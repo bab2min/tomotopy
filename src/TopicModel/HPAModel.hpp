@@ -1,0 +1,514 @@
+#pragma once
+#include "PAModel.hpp"
+
+/*
+Implementation of Hierarchical Pachinko Allocation using Gibbs sampling by bab2min
+
+Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
+*/
+
+namespace tomoto
+{
+	template<TermWeight _TW>
+	struct DocumentHPA : public DocumentPA<_TW>
+	{
+		using DocumentPA<_TW>::DocumentPA;
+		using WeightType = typename DocumentPA<_TW>::WeightType;
+	};
+
+	template<TermWeight _TW>
+	struct ModelStateHPA : public ModelStateLDA<_TW>
+	{
+		using WeightType = typename ModelStateLDA<_TW>::WeightType;
+
+		std::array<Eigen::Matrix<WeightType, -1, -1>, 3> numByTopicWord;
+		std::array<Eigen::Matrix<WeightType, -1, 1>, 3> numByTopic;
+		std::array<Eigen::Matrix<FLOAT, -1, 1>, 2> subTmp;
+
+		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
+	};
+
+	class IHPAModel : public IPAModel
+	{
+	public:
+		using DefaultDocType = DocumentHPA<TermWeight::one>;
+		static IHPAModel* create(TermWeight _weight, bool _exclusive = false, size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 50, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+
+		virtual FLOAT getAlpha(TID k1) const = 0;
+	};
+
+	template<TermWeight _TW, 
+		bool _Exclusive = false,
+		typename _Interface = IHPAModel,
+		typename _Derived = void,
+		typename _DocType = DocumentHPA<_TW>,
+		typename _ModelState = ModelStateHPA<_TW>>
+	class HPAModel : public LDAModel<_TW, false, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_TW, _Exclusive>, _Derived>::type,
+		_DocType, _ModelState>
+	{
+	protected:
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_TW, _Exclusive>, _Derived>::type;
+		using BaseClass = LDAModel<_TW, false, _Interface, DerivedClass, _DocType, _ModelState>;
+		friend BaseClass;
+		friend typename BaseClass::BaseClass;
+		using WeightType = typename BaseClass::WeightType;
+
+		size_t K2;
+		FLOAT epsilon = 0.00001;
+		size_t iteration = 5;
+
+		Eigen::Matrix<FLOAT, -1, 1> alphas; // len = (K + 1)
+
+		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
+		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * (K2 + 1)
+
+		void optimizeHyperparameter(ThreadPool& pool, _ModelState* localData)
+		{
+			const auto K = this->K;
+			auto calcDigammaSum = [](auto list, size_t len, FLOAT alpha)
+			{
+				FLOAT ret = 0;
+				auto dAlpha = math::digammaT(alpha);
+				for (size_t i = 0; i < len; ++i)
+				{
+					ret += math::digammaT(list(i) + alpha) - dAlpha;
+				}
+				return ret;
+			};
+
+			for (size_t i = 0; i < iteration; ++i)
+			{
+				FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), alphas.sum());
+
+				for (size_t k = 0; k <= K; ++k)
+				{
+					FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas[k]);
+					alphas[k] = std::max(nom / denom * alphas[k], epsilon);
+				}
+			}
+
+			std::vector<std::future<void>> res;
+			for (size_t k = 0; k < K; ++k)
+			{
+				pool.enqueue([&, k](size_t)
+				{
+					for (size_t i = 0; i < iteration; ++i)
+					{
+						FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k + 1]; }, this->docs.size(), subAlphaSum[k]);
+						for (size_t k2 = 0; k2 <= K2; ++k2)
+						{
+							FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
+							subAlphas(k, k2) = std::max(nom / denom * subAlphas(k, k2), epsilon);
+						}
+						subAlphaSum[k] = subAlphas.row(k).sum();
+					}
+				});
+			}
+			for (auto& r : res) r.get();
+		}
+
+		std::pair<size_t, size_t> getRangeOfK(size_t k) const
+		{
+			return std::make_pair<size_t, size_t>(ceil(k * (float)K2 / this->K), ceil((k + 1) * (float)K2 / this->K));
+		}
+
+		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
+		{
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			const auto eta = this->eta;
+			assert(vid < V);
+			auto& zLikelihood = ld.zLikelihood;
+
+			FLOAT rootWordProb = (ld.numByTopicWord[0](0, vid) + eta) / (ld.numByTopic[0](0) + V * eta);
+			ld.subTmp[0] = (ld.numByTopicWord[1].col(vid).array().template cast<FLOAT>() + eta) / (ld.numByTopic[1].array().template cast<FLOAT>() + V * eta);
+			ld.subTmp[1] = (ld.numByTopicWord[2].col(vid).array().template cast<FLOAT>() + eta) / (ld.numByTopic[2].array().template cast<FLOAT>() + V * eta);
+
+			if (_Exclusive)
+			{
+				for (size_t k = 0; k < K; ++k)
+				{
+					auto r = getRangeOfK(k);
+					auto r1 = r.first, r2 = r.second;
+					zLikelihood.segment(r1, r2 - r1) = (doc.numByTopic[k + 1] + alphas[k + 1])
+						* (doc.numByTopic1_2.row(k).segment(r1 + 1, r2 - r1).array().transpose().template cast<FLOAT>() + subAlphas.row(k).segment(r1 + 1, r2 - r1).array().transpose()) / (doc.numByTopic[k + 1] + subAlphaSum[k])
+						* ld.subTmp[1].segment(r1, r2 - r1).array();
+				}
+
+				zLikelihood.segment(K2, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + alphas.tail(K).array())
+					* (doc.numByTopic1_2.col(0).array().template cast<FLOAT>() + subAlphas.col(0).array())
+					/ (doc.numByTopic.tail(K).array().template cast<FLOAT>() + subAlphaSum.array().template cast<FLOAT>())
+					* ld.subTmp[0].array();
+
+				zLikelihood[K2 + K] = (doc.numByTopic[0] + alphas[0]) * rootWordProb;
+			}
+			else
+			{
+				for (size_t k = 0; k < K; ++k)
+				{
+					zLikelihood.segment(K2 * k, K2) = (doc.numByTopic[k + 1] + alphas[k + 1])
+						* (doc.numByTopic1_2.row(k).tail(K2).array().transpose().template cast<FLOAT>() + subAlphas.row(k).tail(K2).array().transpose()) / (doc.numByTopic[k + 1] + subAlphaSum[k])
+						* ld.subTmp[1].array();
+				}
+
+				zLikelihood.segment(K2 * K, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + alphas.tail(K).array())
+					* (doc.numByTopic1_2.col(0).array().template cast<FLOAT>() + subAlphas.col(0).array())
+					/ (doc.numByTopic.tail(K).array().template cast<FLOAT>() + subAlphaSum.array().template cast<FLOAT>())
+					* ld.subTmp[0].array();
+
+				zLikelihood[K2 * K + K] = (doc.numByTopic[0] + alphas[0]) * rootWordProb;
+			}
+			sample::prefixSum(zLikelihood.data(), zLikelihood.size());
+			return &zLikelihood[0];
+		}
+
+		template<int INC>
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID z1, TID z2) const
+		{
+			size_t V = this->dict.size();
+			assert(vid < V);
+			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
+			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
+				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
+
+			updateCnt<DEC>(doc.numByTopic[z1], INC * weight);
+			if (z1)
+			{
+				updateCnt<DEC>(doc.numByTopic1_2(z1 - 1, z2), INC * weight);
+				updateCnt<DEC>(ld.numByTopic1_2(z1 - 1, z2), INC * weight);
+			}
+
+			if (!z1)
+			{
+				updateCnt<DEC>(ld.numByTopic[0][0], INC * weight);
+				updateCnt<DEC>(ld.numByTopicWord[0](0, vid), INC * weight);
+				
+			}
+			else if (!z2)
+			{
+				updateCnt<DEC>(ld.numByTopic[1][z1 - 1], INC * weight);
+				updateCnt<DEC>(ld.numByTopicWord[1](z1 - 1, vid), INC * weight);
+			}
+			else
+			{
+				updateCnt<DEC>(ld.numByTopic[2][z2 - 1], INC * weight);
+				updateCnt<DEC>(ld.numByTopicWord[2](z2 - 1, vid), INC * weight);
+			}
+		}
+
+		void sampleDocument(_DocType& doc, _ModelState& ld, RANDGEN& rgs) const
+		{
+			const auto K = this->K;
+			for (size_t w = 0; w < doc.words.size(); ++w)
+			{
+				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
+				auto dist = getZLikelihoods(ld, doc, doc.words[w]);
+				if (_Exclusive)
+				{
+					auto z = sample::sampleFromDiscreteAcc(dist, dist + K2 + K + 1, rgs);
+					if (z < K2)
+					{
+						doc.Zs[w] = (z * K / K2) + 1;
+						doc.Z2s[w] = z + 1;
+					}
+					else if (z < K2 + K)
+					{
+						doc.Zs[w] = z - K2 + 1;
+						doc.Z2s[w] = 0;
+					}
+					else
+					{
+						doc.Zs[w] = 0;
+						doc.Z2s[w] = 0;
+					}
+				}
+				else
+				{
+					auto z = sample::sampleFromDiscreteAcc(dist, dist + K * K2 + K + 1, rgs);
+					if (z < K * K2)
+					{
+						doc.Zs[w] = (z / K2) + 1;
+						doc.Z2s[w] = (z % K2) + 1;
+					}
+					else if (z < K * K2 + K)
+					{
+						doc.Zs[w] = z - K * K2 + 1;
+						doc.Z2s[w] = 0;
+					}
+					else
+					{
+						doc.Zs[w] = 0;
+						doc.Z2s[w] = 0;
+					}
+				}
+				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
+			}
+		}
+
+		void updateGlobal(ThreadPool& pool, _ModelState* localData)
+		{
+			std::vector<std::future<void>> res(pool.getNumWorkers());
+
+			this->tState = this->globalState;
+			this->globalState = localData[0];
+			for (size_t i = 1; i < pool.getNumWorkers(); ++i)
+			{
+				this->globalState.numByTopic[0] += localData[i].numByTopic[0] - this->tState.numByTopic[0];
+				this->globalState.numByTopic[1] += localData[i].numByTopic[1] - this->tState.numByTopic[1];
+				this->globalState.numByTopic[2] += localData[i].numByTopic[2] - this->tState.numByTopic[2];
+				this->globalState.numByTopic1_2 += localData[i].numByTopic1_2 - this->tState.numByTopic1_2;
+				this->globalState.numByTopicWord[0] += localData[i].numByTopicWord[0] - this->tState.numByTopicWord[0];
+				this->globalState.numByTopicWord[1] += localData[i].numByTopicWord[1] - this->tState.numByTopicWord[1];
+				this->globalState.numByTopicWord[2] += localData[i].numByTopicWord[2] - this->tState.numByTopicWord[2];
+			}
+
+			// make all count being positive
+			if (_TW != TermWeight::one)
+			{
+				this->globalState.numByTopic[0] = this->globalState.numByTopic[0].cwiseMax(0);
+				this->globalState.numByTopic[1] = this->globalState.numByTopic[1].cwiseMax(0);
+				this->globalState.numByTopic[2] = this->globalState.numByTopic[2].cwiseMax(0);
+				this->globalState.numByTopic1_2 = this->globalState.numByTopic1_2.cwiseMax(0);
+				this->globalState.numByTopicWord[0] = this->globalState.numByTopicWord[0].cwiseMax(0);
+				this->globalState.numByTopicWord[1] = this->globalState.numByTopicWord[1].cwiseMax(0);
+				this->globalState.numByTopicWord[2] = this->globalState.numByTopicWord[2].cwiseMax(0);
+			}
+
+			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
+			{
+				res[i] = pool.enqueue([&, this, i](size_t threadId)
+				{
+					localData[i] = this->globalState;
+				});
+			}
+			for (auto&& r : res) r.get();
+		}
+
+		std::vector<size_t> _getTopicsCount() const
+		{
+			return { };
+		}
+
+		double getLLDoc(const _DocType& doc) const
+		{
+			return 0;
+		}
+
+		double getLL() const
+		{
+			double ll = 0;
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			const auto eta = this->eta;
+
+			const auto alphaSum = alphas.sum();
+			ll = math::lgammaT(alphaSum);
+			for (size_t k = 0; k < K; ++k) ll -= math::lgammaT(alphas[k]);
+			ll *= this->docs.size();
+			for (auto& doc : this->docs)
+			{
+				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
+				for (TID k = 0; k <= K; ++k)
+				{
+					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]);
+				}
+			}
+
+			for (TID k = 0; k < K; ++k)
+			{
+				ll += math::lgammaT(subAlphaSum[k]);
+				ll -= math::lgammaT(this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k]);
+				for (TID k2 = 0; k2 <= K2; ++k2)
+				{
+					ll -= math::lgammaT(subAlphas(k, k2));
+					ll += math::lgammaT(this->globalState.numByTopic1_2(k, k2) + subAlphas(k, k2));
+				}
+			}
+			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * (K2 + K + 1);
+
+			ll -= math::lgammaT(this->globalState.numByTopic[0][0] + V * eta);
+			for (VID v = 0; v < V; ++v)
+			{
+				ll += math::lgammaT(this->globalState.numByTopicWord[0](0, v) + eta);
+			}
+			for (TID k = 0; k < K; ++k)
+			{
+				ll -= math::lgammaT(this->globalState.numByTopic[1][k] + V * eta);
+				for (VID v = 0; v < V; ++v)
+				{
+					ll += math::lgammaT(this->globalState.numByTopicWord[1](k, v) + eta);
+				}
+			}
+			for (TID k2 = 0; k2 < K2; ++k2)
+			{
+				ll -= math::lgammaT(this->globalState.numByTopic[2][k2] + V * eta);
+				for (VID v = 0; v < V; ++v)
+				{
+					ll += math::lgammaT(this->globalState.numByTopicWord[2](k2, v) + eta);
+				}
+			}
+			return ll;
+		}
+
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
+		{
+			doc.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K + 1);
+			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
+			doc.Zs = tvector<TID>(wordSize);
+			doc.Z2s = tvector<TID>(wordSize);
+			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
+		}
+
+		void initGlobalState(bool initDocs)
+		{
+			const size_t V = this->dict.size();
+			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(1 + this->K + this->K * K2);
+			if (initDocs)
+			{
+				this->globalState.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
+				this->globalState.numByTopic[0] = Eigen::Matrix<WeightType, -1, 1>::Zero(1);
+				this->globalState.numByTopic[1] = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K);
+				this->globalState.numByTopic[2] = Eigen::Matrix<WeightType, -1, 1>::Zero(K2);
+				this->globalState.numByTopicWord[0] = Eigen::Matrix<WeightType, -1, -1>::Zero(1, V);
+				this->globalState.numByTopicWord[1] = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, V);
+				this->globalState.numByTopicWord[2] = Eigen::Matrix<WeightType, -1, -1>::Zero(K2, V);
+			}
+		}
+
+		struct Generator
+		{
+			std::uniform_int_distribution<TID> theta, theta2;
+			std::discrete_distribution<> level;
+		};
+
+		Generator makeGeneratorForInit() const
+		{
+			return Generator{
+				std::uniform_int_distribution<TID>{1, (TID)(this->K)},
+				std::uniform_int_distribution<TID>{1, (TID)(K2)},
+				std::discrete_distribution<>{1.0, 1.0, 1.0},
+			};
+		}
+
+		void updateStateWithDoc(Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
+		{
+			auto w = doc.words[i];
+			switch (g.level(rgs))
+			{
+			case 0:
+				doc.Zs[i] = 0;
+				doc.Z2s[i] = 0;
+				break;
+			case 1:
+				doc.Zs[i] = g.theta(rgs);
+				doc.Z2s[i] = 0;
+				break;
+			default:
+				if (_Exclusive)
+				{
+					doc.Z2s[i] = g.theta2(rgs);
+					doc.Zs[i] = (doc.Z2s[i] - 1) * this->K / K2 + 1;
+				}
+				else
+				{
+					doc.Zs[i] = g.theta(rgs);
+					doc.Z2s[i] = g.theta2(rgs);
+				}
+			}
+			addWordTo<1>(ld, doc, i, w, doc.Zs[i], doc.Z2s[i]);
+		}
+
+	public:
+		HPAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
+		{
+			alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1 + 1, _alpha);
+			subAlphas = Eigen::Matrix<FLOAT, -1, -1>::Constant(_K1, _K2 + 1, 0.1);
+			subAlphaSum = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1, (_K2 + 1) * 0.1);
+			this->optimInterval = 1;
+		}
+
+		GETTER(K2, size_t, K2);
+		GETTER(DirichletEstIteration, size_t, iteration);
+
+		void setDirichletEstIteration(size_t iter) override
+		{
+			if (!iter) throw std::invalid_argument("iter must > 0");
+			iteration = iter;
+		}
+
+		FLOAT getAlpha(TID k1) const override { return alphas[k1]; }
+		FLOAT getSubAlpha(TID k1, TID k2) const override 
+		{ 
+			if (_Exclusive)
+			{
+				if (k2 && k1 != (k2 - 1) * this->K / K2) return 0;
+			}
+			return subAlphas(k1, k2); 
+		}
+
+		std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const override
+		{
+			assert(k < this->K);
+			FLOAT sum = this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k];
+			Eigen::Matrix<FLOAT, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<FLOAT>() + subAlphas.row(k).array()) / sum;
+			return { ret.data() + 1, ret.data() + K2 + 1 };
+		}
+
+		std::vector<FLOAT> _getWidsByTopic(TID k) const
+		{
+			const size_t V = this->dict.size();
+			std::vector<FLOAT> ret(V);
+			size_t level = 0;
+			if (k >= 1)
+			{
+				++level;
+				k -= 1;
+				if (k >= this->K)
+				{
+					++level;
+					k -= this->K;
+				}
+			}
+			FLOAT sum = this->globalState.numByTopic[level][k] + V * this->eta;
+			auto r = this->globalState.numByTopicWord[level].row(k);
+			for (size_t v = 0; v < V; ++v)
+			{
+				ret[v] = (r[v] + this->eta) / sum;
+			}
+			return ret;
+		}
+
+		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		{
+			std::vector<FLOAT> ret(1 + this->K + K2);
+			FLOAT sum = doc.template getSumWordWeight<_TW>() + alphas.sum();
+			ret[0] = (doc.numByTopic[0] + alphas[0]) / sum;
+			for (size_t k = 0; k < this->K; ++k)
+			{
+				ret[k + 1] = (doc.numByTopic1_2(k, 0) + subAlphas(k, 0)) / sum;
+			}
+			for (size_t k = 0; k <= K2; ++k)
+			{
+				ret[k + this->K + 1] = doc.numByTopic1_2.col(k + 1).sum() / sum;
+			}
+			return ret;
+		}
+	};
+
+
+	template<TermWeight _TW> using HPAModelExclusive = HPAModel<_TW, true>;
+	IHPAModel* IHPAModel::create(TermWeight _weight, bool _exclusive, size_t _K, size_t _K2, FLOAT _alphaSum, FLOAT _eta, const RANDGEN& _rg)
+	{
+		if (_exclusive)
+		{
+			SWITCH_TW(_weight, HPAModelExclusive, _K, _K2, _alphaSum, _eta, _rg);
+		}
+		else
+		{
+			SWITCH_TW(_weight, HPAModel, _K, _K2, _alphaSum, _eta, _rg);
+		}
+		return nullptr;
+	}
+}
