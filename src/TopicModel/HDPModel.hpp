@@ -366,7 +366,6 @@ namespace tomoto
 
 		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
 		{
-			const auto K = this->K;
 			if (i == 0)
 			{
 				TID k = g.theta(rgs);

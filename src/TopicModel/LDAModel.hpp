@@ -12,6 +12,10 @@ Implementation of LDA using Gibbs sampling by bab2min
 
 * Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003). Latent dirichlet allocation. Journal of machine Learning research, 3(Jan), 993-1022.
 * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+
+Term Weighting Scheme is based on following paper:
+* Wilson, A. T., & Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.
+
 */
 
 #define SWITCH_TW(TW, MDL, ...) do{ switch (TW)\
@@ -245,7 +249,6 @@ namespace tomoto
 
 		double getLLDocTopic(const _DocType& doc) const
 		{
-			const size_t V = this->dict.size();
 			FLOAT ll = math::lgammaT(K*alpha) - math::lgammaT(alpha)*K;
 			ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + K * alpha);
 			for (TID k = 0; k < K; ++k)

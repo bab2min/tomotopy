@@ -209,7 +209,6 @@ namespace tomoto
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
 		{
 			const size_t V = this->dict.size();
-			const auto K = this->K;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 			getTermsFromMd(ld, &doc.metadataC[0], ld.terms);
@@ -225,7 +224,6 @@ namespace tomoto
 		{
 			const size_t V = this->dict.size();
 			const auto K = this->K;
-			const auto F = this->F;
 			const auto eta = this->eta;
 			double ll = 0;
 			for (size_t k = 0; k < K; ++k)

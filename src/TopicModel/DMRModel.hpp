@@ -153,7 +153,7 @@ namespace tomoto
 					return static_cast<DerivedClass*>(this)->evaluateLambdaObj(x, g, pool, localData);
 				}, Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>(lambda.data(), lambda.size()), fx);
 				//printf("\t(%d) %e\n", ret, fx);
-			} while (!isfinite(fx));
+			} while (!std::isfinite(fx));
 			expLambda = lambda.array().exp() + alphaEps;
 		}
 

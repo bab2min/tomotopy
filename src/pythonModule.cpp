@@ -347,7 +347,7 @@ static PyTypeObject Dictionary_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT,   /* tp_flags */
-	"Dictionary type",           /* tp_doc */
+	"`list`-like Dictionary interface for vocabularies",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -371,7 +371,7 @@ static PyTypeObject Dictionary_type = {
 static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topN = 10;
-	static const char* kwlist[] = { "topN", nullptr };
+	static const char* kwlist[] = { "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
 	try
 	{
@@ -410,8 +410,12 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 
 static PyMethodDef Document_methods[] =
 {
-	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, "get the topN topics of the document" },
-	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, "get a topic distribution of the document" },
+	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, 
+		"get_topics(self, top_n)\n--\n\n"
+		"Return the `top_n` topics with its probability of the document." },
+	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, 
+		"get_topic_dist(self)\n--\n\n"
+		"Return a distribution of the topics in the document." },
 	{ nullptr }
 };
 
@@ -572,9 +576,9 @@ static PyGetSetDef Document_getseters[] = {
 	{ (char*)"words", (getter)Document_words, nullptr, (char*)"word ids", NULL },
 	{ (char*)"weight", (getter)Document_weight, nullptr, (char*)"weights for each word", NULL },
 	{ (char*)"topics", (getter)Document_Z, nullptr, (char*)"topics for each word", NULL },
-	{ (char*)"metadata", (getter)Document_metadata, nullptr, (char*)"metadata of document", NULL },
-	{ (char*)"subtopics", (getter)Document_Z2, nullptr, (char*)"sub topics for each word", NULL },
-	{ (char*)"windows", (getter)Document_windows, nullptr, (char*)"window ids for each word", NULL },
+	{ (char*)"metadata", (getter)Document_metadata, nullptr, (char*)"metadata of document (for only `tomotopy.DMR` model)", NULL },
+	{ (char*)"subtopics", (getter)Document_Z2, nullptr, (char*)"sub topics for each word (for only `tomotopy.PA` and `tomotopy.HPA` model)", NULL },
+	{ (char*)"windows", (getter)Document_windows, nullptr, (char*)"window ids for each word (for only `tomotopy.MGLDA` model)", NULL },
 	{ nullptr },
 };
 
@@ -600,7 +604,8 @@ static PyTypeObject Document_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT,   /* tp_flags */
-	"Document type",           /* tp_doc */
+	"This type provides abstract model to access documents to be used Topic Model.\n\n"
+	"An instance of this type can be acquired from `tomotopy.LDA.make_doc` method or `tomotopy.LDA.docs` member of each Topic Model instance.",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -765,7 +770,7 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (self->isPrepared) throw runtime_error{ "cannot addDoc() after train()" };
+		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
@@ -846,13 +851,13 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 static PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId, topN = 10;
-	static const char* kwlist[] = { "topicId", "topN", nullptr };
+	static const char* kwlist[] = { "topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{"must topicId < K"};
+		if (topicId >= inst->getK()) throw runtime_error{"must topic_id < K"};
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -874,13 +879,13 @@ static PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId;
-	static const char* kwlist[] = { "topicId", nullptr };
+	static const char* kwlist[] = { "topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topicId < K" };
+		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -974,9 +979,9 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	const char* filename;
-	size_t full;
+	size_t full = 1;
 	static const char* kwlist[] = { "filename", "full", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sn", (char**)kwlist, &filename, &full)) return nullptr;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|n", (char**)kwlist, &filename, &full)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -1044,27 +1049,54 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getN);
 
 static PyMethodDef LDA_methods[] =
 {
-	{ "add_doc", (PyCFunction)LDA_addDoc, METH_VARARGS | METH_KEYWORDS, "add new document into model" },
-	{ "make_doc", (PyCFunction)LDA_makeDoc, METH_VARARGS | METH_KEYWORDS, "make unseen document to be inferred" },
-	{ "train", (PyCFunction)LDA_train, METH_VARARGS | METH_KEYWORDS, "train" },
-	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, "get the topN words of the topic" },
-	{ "get_topic_word_dist", (PyCFunction)LDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, "get a word distribution of the topic" },
-	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, "infer the topic distribution of an unseen document" },
-	{ "save", (PyCFunction)LDA_save, METH_VARARGS | METH_KEYWORDS, "save model to file" },
-	{ "load", (PyCFunction)LDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, "load model from file" },
+	{ "add_doc", (PyCFunction)LDA_addDoc, METH_VARARGS | METH_KEYWORDS, 
+		"add_doc(self, words)\n--\n\n"
+		"Add a new document into the model instance and return an index of the inserted document.\n\n"
+		"* `words` is an iterator of `str`.\n\n" },
+	{ "make_doc", (PyCFunction)LDA_makeDoc, METH_VARARGS | METH_KEYWORDS, 
+		"make_doc(self, words)\n--\n\n"
+		"Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDA.infer` method.\n\n"
+		"* `words` is an iterator of `str`.\n\n"},
+	{ "train", (PyCFunction)LDA_train, METH_VARARGS | METH_KEYWORDS, 
+		"train(self, iter=1, workers=0)\n--\n\n"
+		"Train the model using Gibbs-sampling with `iter` iterations. Return `None`.\n\n"
+		"* `workers` indicates the number of workers to perform samplings. If `workers` is 0, the number of cores in the system will be used."},
+	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, 
+		"get_topic_words(self, topic_id, top_n)\n--\n\n"
+		"Return the `top-n` words and its probability in the topic `topic_id`. The returned value is a `list` of `tuple`s with a word and its probability.\n\n"
+		"* `topic_id` is an integer, indicating the topic, in range [0, `k`)."},
+	{ "get_topic_word_dist", (PyCFunction)LDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, 
+		"get_topic_word_dist(self, topic_id)\n--\n\n"
+		"Return the word distribution of the topic `topic_id`. "
+		"The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.\n\n"
+		"* `topic_id` is an integer, indicating the topic, in range [0, `k`)." },
+	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, 
+		"infer(self, document, iter=100, tolerance=-1)\n--\n\n"
+		"Return the inferred topic distribution from unseen `document`s.\n\n"
+		"* `document` should be an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. It can be acquired from `tomotopy.LDA.make_doc` method.\n\n"
+		"* `iter` is the number of iteration to estimate the distribution of topics of `document`. The higher value will generate a more accuracy result.\n\n"
+		"* `tolerance` isn't currently used." },
+	{ "save", (PyCFunction)LDA_save, METH_VARARGS | METH_KEYWORDS, 
+		"save(self, filename, full=True)\n--\n\n"
+		"Save the model instance to file `filename`. Return `None`.\n\n"
+		"If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model."
+		"If `False`, only topic paramters of the model will be saved. This model can be only used for inference of an unseen document."},
+	{ "load", (PyCFunction)LDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
+		"load(filename)\n--\n\n"
+		"Return the model instance loaded from file `filename`.\n\n"},
 	{ nullptr }
 };
 
 static PyGetSetDef LDA_getseters[] = {
-	{ (char*)"tw", (getter)LDA_getTermWeight, nullptr, (char*)"term weight", NULL },
-	{ (char*)"perplexity", (getter)LDA_getPerplexity, nullptr, (char*)"perplexity", NULL },
-	{ (char*)"ll_per_word", (getter)LDA_getLLPerWord, nullptr, (char*)"log likelihood per-word", NULL },
+	{ (char*)"tw", (getter)LDA_getTermWeight, nullptr, (char*)"term weighting scheme", NULL },
+	{ (char*)"perplexity", (getter)LDA_getPerplexity, nullptr, (char*)"get perplexity of the model", NULL },
+	{ (char*)"ll_per_word", (getter)LDA_getLLPerWord, nullptr, (char*)"get log likelihood per-word of the model", NULL },
 	{ (char*)"k", (getter)LDA_getK, nullptr, (char*)"K, the number of topics", NULL },
-	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, (char*)"alpha", NULL },
-	{ (char*)"eta", (getter)LDA_getEta, nullptr, (char*)"eta", NULL },
-	{ (char*)"docs", (getter)LDA_getDocs, nullptr, (char*)"documents", NULL },
-	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"dictionary of vocabuluary", NULL },
-	{ (char*)"num_words", (getter)LDA_getN, nullptr, (char*)"number of total words", NULL },
+	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, (char*)"hyperparameter alpha", NULL },
+	{ (char*)"eta", (getter)LDA_getEta, nullptr, (char*)"hyperparameter eta", NULL },
+	{ (char*)"docs", (getter)LDA_getDocs, nullptr, (char*)"get a `list`-like interface of `tomotopy.Document` in the model instance", NULL },
+	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"get the dictionary of vocabuluary", NULL },
+	{ (char*)"num_words", (getter)LDA_getN, nullptr, (char*)"get the number of total words", NULL },
 	{ nullptr },
 };
 
@@ -1089,7 +1121,7 @@ static PyTypeObject LDA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"LDA Topic Model type",           /* tp_doc */
+	"Latent Dirichlet Allocation Topic Model",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1114,7 +1146,7 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0;
 	size_t K = 1;
-	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 0;
+	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 1e-10;
 	size_t seed = random_device{}();
 	static const char* kwlist[] = { "tw", "k", "alpha", "eta", "sigma", "alpha_epsilon", "seed", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnffffn", (char**)kwlist, &tw, &K, &alpha, &eta, &sigma, &alphaEpsilon, &seed)) return -1;
@@ -1142,7 +1174,7 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (self->isPrepared) throw runtime_error{ "cannot addDoc() after train()" };
+		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
@@ -1238,9 +1270,18 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 
 static PyMethodDef DMR_methods[] =
 {
-	{ "add_doc", (PyCFunction)DMR_addDoc, METH_VARARGS | METH_KEYWORDS, "add new document into model" },
-	{ "make_doc", (PyCFunction)DMR_makeDoc, METH_VARARGS | METH_KEYWORDS, "make unseen document to be inferred" },
-	{ "load", (PyCFunction)DMR_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, "load model from file" },
+	{ "add_doc", (PyCFunction)DMR_addDoc, METH_VARARGS | METH_KEYWORDS,
+		"add_doc(self, words, metadata='')\n--\n\n"
+		"Add a new document into the model instance with `metadata` and return an index of the inserted document.\n\n"
+		"* `words` is an iterator of `str`.\n\n"
+		"* `metadata` is a `str` indicating metadata of the document (e.g., author, title or year).\n\n"},
+	{ "make_doc", (PyCFunction)DMR_makeDoc, METH_VARARGS | METH_KEYWORDS,
+		"make_doc(self, words, metadata='')\n--\n\n"
+		"Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDA.infer` method.\n\n"
+		"* `words` is an iterator of `str`.\n\n"
+		"* `metadata` is a `str` indicating metadata of the document (e.g., author, title or year).\n\n"},
+	{ "load", (PyCFunction)DMR_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
+		"load(filename)\n--\n\n Return the model instance loaded from file `filename`"  },
 	{ nullptr }
 };
 
@@ -1249,7 +1290,7 @@ DEFINE_GETTER(tomoto::IDMRModel, DMR, getSigma);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getF);
 
 static PyGetSetDef DMR_getseters[] = {
-	{ (char*)"f", (getter)DMR_getF, nullptr, (char*)"sigma", NULL },
+	{ (char*)"f", (getter)DMR_getF, nullptr, (char*)"number of features", NULL },
 	{ (char*)"sigma", (getter)DMR_getSigma, nullptr, (char*)"sigma", NULL },
 	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, (char*)"alpha epsilon", NULL },
 	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, (char*)"dictionary of metadata", NULL },
@@ -1279,7 +1320,7 @@ static PyTypeObject DMR_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"DMR Topic Model type",           /* tp_doc */
+	"Dirichlet Multinomial Regression Topic Model",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1325,13 +1366,13 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId;
-	static const char* kwlist[] = { "topicId", nullptr };
+	static const char* kwlist[] = { "topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHDPModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topicId < K" };
+		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -1352,7 +1393,8 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 
 static PyMethodDef HDP_methods[] =
 {
-	{ "load", (PyCFunction)HDP_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, "load model from file" },
+	{ "load", (PyCFunction)HDP_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
+		"load(filename)\n--\n\n Return the model instance loaded from file `filename`" },
 	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, "check whether the topic is alive" },
 	{ nullptr }
 };
@@ -1389,7 +1431,7 @@ static PyTypeObject HDP_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"HDP Topic Model type",           /* tp_doc */
+	"Hierachical Dirichlet Process Topic Model",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1445,7 +1487,7 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (self->isPrepared) throw runtime_error{ "cannot addDoc() after train()" };
+		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
@@ -1498,13 +1540,13 @@ static PyObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject 
 static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId, topN = 10;
-	static const char* kwlist[] = { "topicId", "topN", nullptr };
+	static const char* kwlist[] = { "topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topicId < KG + KL" };
+		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -1526,13 +1568,13 @@ static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyO
 static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId;
-	static const char* kwlist[] = { "topicId", nullptr };
+	static const char* kwlist[] = { "topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topicId < KG + KL" };
+		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -1553,14 +1595,31 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 
 static PyMethodDef MGLDA_methods[] =
 {
-	{ "load", (PyCFunction)MGLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, "load model from file" },
-	{ "add_doc", (PyCFunction)MGLDA_addDoc, METH_VARARGS | METH_KEYWORDS, "add new document into model" },
-	{ "make_doc", (PyCFunction)MGLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, "make unseen document to be inferred" },
-	{ "get_topic_words", (PyCFunction)MGLDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, "get the topN words of the topic" },
-	{ "get_topic_word_dist", (PyCFunction)MGLDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, "get a word distribution of the topic" },
+	{ "load", (PyCFunction)MGLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
+		"load(filename)\n--\n\n Return the model instance loaded from file `filename`" },
+	{ "add_doc", (PyCFunction)MGLDA_addDoc, METH_VARARGS | METH_KEYWORDS,
+		"add_doc(self, words, delimiter='.')\n--\n\n"
+		"Add a new document into the model instance and return an index of the inserted document.\n\n"
+		"* `words` is an iterator of `str`.\n\n"
+		"* `delimiter` is a sentence separator. `words` will be separated by this value into sentences.\n\n"},
+	{ "make_doc", (PyCFunction)MGLDA_makeDoc, METH_VARARGS | METH_KEYWORDS,
+		"make_doc(self, words, delimiter='.')\n--\n\n"
+		"Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDA.infer` method.\n\n"
+		"* `words` is an iterator of `str`.\n\n"
+		"* `delimiter` is a sentence separator. `words` will be separated by this value into sentences.\n\n"},
+	{ "get_topic_words", (PyCFunction)MGLDA_getTopicWords, METH_VARARGS | METH_KEYWORDS,
+		"get_topic_words(self, topic_id, top_n)\n--\n\n"
+		"Return the `top_n` words and its probability in the topic `topic_id`. The returned value is a `list` of `tuple`s with a word and its probability.\n\n"
+		"* `topic_id` is an integer, indicating the topic, in range [0, `k_g` + `k_l`).\n\n"},
+	{ "get_topic_word_dist", (PyCFunction)MGLDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS,
+		"get_topic_word_dist(self, topic_id)\n--\n\n"
+		"Return the word distribution of the topic `topic_id`. "
+		"The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.\n\n"
+		"* `topic_id` is an integer, indicating the topic, in range [0, `k` + `k_l`).\n\n" },
 	{ nullptr }
 };
 
+DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getKL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getGamma);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getAlphaL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getAlphaM);
@@ -1569,6 +1628,8 @@ DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getEtaL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getT);
 
 static PyGetSetDef MGLDA_getseters[] = {
+	{ (char*)"k_g", (getter)LDA_getK, nullptr, (char*)"K global, number of global topics", NULL },
+	{ (char*)"k_l", (getter)MGLDA_getKL, nullptr, (char*)"K local, number of local topics", NULL },
 	{ (char*)"gamma", (getter)MGLDA_getGamma, nullptr, (char*)"gamma", NULL },
 	{ (char*)"t", (getter)MGLDA_getT, nullptr, (char*)"window size", NULL },
 	{ (char*)"alpha_g", (getter)LDA_getAlpha, nullptr, (char*)"alpha global", NULL },
@@ -1601,7 +1662,7 @@ static PyTypeObject MGLDA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"MG-LDA Topic Model type",           /* tp_doc */
+	"Multi Grain Latent Dirichlet Allocation Topic Model",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1649,13 +1710,13 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId;
-	static const char* kwlist[] = { "topicId", nullptr };
+	static const char* kwlist[] = { "topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topicId < K" };
+		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -1676,8 +1737,11 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 
 static PyMethodDef PA_methods[] =
 {
-	{ "load", (PyCFunction)PA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, "load model from file" },
-	{ "get_sub_topic_dist", (PyCFunction)PA_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, "get the distribution of sub-topic" },
+	{ "load", (PyCFunction)PA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
+		"load(filename)\n--\n\n Return the model instance loaded from file `filename`." },
+	{ "get_sub_topic_dist", (PyCFunction)PA_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, 
+		"get_sub_topic_dist(self, topic_id)\n--\n\n"
+		"Return a distribution of the sub topics in a super topic `topic_id`." },
 	{ nullptr }
 };
 
@@ -1710,7 +1774,7 @@ static PyTypeObject PA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"PA Topic Model type",           /* tp_doc */
+	"Pachinko Allocation Topic Model",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1758,13 +1822,13 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId, topN = 10;
-	static const char* kwlist[] = { "topicId", "topN", nullptr };
+	static const char* kwlist[] = { "topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
-		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topicId < 1 + K1 + K2" };
+		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -1786,13 +1850,13 @@ static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId;
-	static const char* kwlist[] = { "topicId", nullptr };
+	static const char* kwlist[] = { "topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
-		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topicId < 1 + K1 + K2" };
+		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
 		if (!self->isPrepared)
 		{
 			inst->prepare();
@@ -1813,9 +1877,17 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 
 static PyMethodDef HPA_methods[] =
 {
-	{ "load", (PyCFunction)HPA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, "load model from file" },
-	{ "get_topic_words", (PyCFunction)HPA_getTopicWords, METH_VARARGS | METH_KEYWORDS, "get the topN words of the topic" },
-	{ "get_topic_word_dist", (PyCFunction)HPA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, "get a word distribution of the topic" },
+	{ "load", (PyCFunction)HPA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
+		"load(filename)\n--\n\n Return the model instance loaded from file `filename`."  },
+	{ "get_topic_words", (PyCFunction)HPA_getTopicWords, METH_VARARGS | METH_KEYWORDS,
+		"get_topic_words(self, topic_id, top_n)\n--\n\n"
+		"Return the `top_n` words and its probability in the topic `topic_id`. The returned value is a `list` of `tuple`s with a word and its probability.\n\n"
+		"* `topic_id` is an integer indicating the topic. 0 for the top topic, range [1, 1 + `k1`) for the super topics and range [1 + `k1`, 1 + `k1` + `k2`) for the sub topics.\n\n"},
+	{ "get_topic_word_dist", (PyCFunction)HPA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS,
+		"get_topic_word_dist(self, topic_id)\n--\n\n"
+		"Return the word distribution of the topic `topic_id`. "
+		"The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.\n\n"
+		"* `topic_id` is an integer indicating the topic. 0 for the top topic, range [1, 1 + `k1`) for the super topics and range [1 + `k1`, 1 + `k1` + `k2`) for the sub topics.\n\n"},
 	{ nullptr }
 };
 
@@ -1844,7 +1916,7 @@ static PyTypeObject HPA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Hierchical PA Topic Model type",           /* tp_doc */
+	"Hierachical Pachinko Allocation Topic Model",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1896,9 +1968,6 @@ PyMODINIT_FUNC MODULE_NAME()
 	gModule = PyModule_Create(&mod);
 	if (!gModule) return nullptr;
 
-	PyModule_AddIntConstant(gModule, "TW_ONE", 0);
-	PyModule_AddIntConstant(gModule, "TW_IDF", 1);
-	PyModule_AddIntConstant(gModule, "TW_PMI", 2);
 
 #ifdef __AVX2__
 	PyModule_AddStringConstant(gModule, "isa", "avx2");
@@ -1913,11 +1982,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	Py_INCREF(&Iterator_type);
 	PyModule_AddObject(gModule, "_Iterator", (PyObject*)&Iterator_type);
 	Py_INCREF(&Document_type);
-	PyModule_AddObject(gModule, "_Document", (PyObject*)&Document_type);
+	PyModule_AddObject(gModule, "Document", (PyObject*)&Document_type);
 	Py_INCREF(&Corpus_type);
 	PyModule_AddObject(gModule, "_Corpus", (PyObject*)&Corpus_type);
 	Py_INCREF(&Dictionary_type);
-	PyModule_AddObject(gModule, "_Dictionary", (PyObject*)&Dictionary_type);
+	PyModule_AddObject(gModule, "Dictionary", (PyObject*)&Dictionary_type);
 	Py_INCREF(&LDA_type);
 	PyModule_AddObject(gModule, "LDA", (PyObject*)&LDA_type);
 	Py_INCREF(&DMR_type);

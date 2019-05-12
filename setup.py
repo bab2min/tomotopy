@@ -17,7 +17,7 @@ if os.name == 'nt':
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
 else: 
     cargs = ['-std=c++1y', '-O3', '-fpermissive']
-    arch_levels = {'':'-march=native'}
+    arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
 
 modules = []
 for arch, aopt in arch_levels.items():
@@ -27,7 +27,7 @@ for arch, aopt in arch_levels.items():
                     include_dirs=['include'],
                     sources = sources,
                     define_macros=[('MODULE_NAME', 'PyInit_' + module_name)],
-                    extra_compile_args=cargs + [aopt]))
+                    extra_compile_args=cargs + ([aopt] if aopt else [])))
 
 
 setup(
@@ -48,12 +48,11 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
 
-        "Intended Audience :: Developers",
+        "Intended Audience :: Information Technology",
         "Intended Audience :: Science/Research",
         "Topic :: Software Development :: Libraries",
         "Topic :: Text Processing :: Linguistic",
-		"Scientific/Engineering :: Information Analysis",
-		"Text Processing :: Linguistic",
+		"Topic :: Scientific/Engineering :: Information Analysis",
 
         "License :: OSI Approved :: MIT License",
 

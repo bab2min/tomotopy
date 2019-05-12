@@ -56,7 +56,7 @@ namespace tomoto
 
 				x -= 2.0L;
 
-				for (int n = 2; n < sizeof(Kncoe) / sizeof(long double); n++)
+				for (size_t n = 2; n < sizeof(Kncoe) / sizeof(long double); n++)
 				{
 					const long double Tn1 = 2.0L * x * Tn - Tn_1;
 					resul += Kncoe[n] * Tn1;
@@ -99,7 +99,7 @@ namespace tomoto
 
 				x -= 2.0L;
 
-				for (int n = 2; n < sizeof(Kncoe) / sizeof(float); n++)
+				for (size_t n = 2; n < sizeof(Kncoe) / sizeof(float); n++)
 				{
 					const float Tn1 = 2.0L * x * Tn - Tn_1;
 					resul += Kncoe[n] * Tn1;
