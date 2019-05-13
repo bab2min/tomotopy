@@ -21,7 +21,7 @@ else:
     arch_levels = {'':'-march=native'}
 
 if struct.calcsize('P') < 8: arch_levels = {k:v for k, v in arch_levels.items() if k in ('', 'sse2')}
-else: arch_levels = {k:v for k, v in arch_levels.items() if k not in ('sse2')}
+else: arch_levels = {k:v for k, v in arch_levels.items() if k not in ('sse2',)}
 
 modules = []
 for arch, aopt in arch_levels.items():
@@ -37,7 +37,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.1.1',
+    version='0.1.2',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
