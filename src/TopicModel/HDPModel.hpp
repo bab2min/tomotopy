@@ -301,7 +301,8 @@ namespace tomoto
 		}
 
 		/* this LL calculation is based on https://github.com/blei-lab/hdp/blob/master/hdp/state.cpp */
-		double getLL() const
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
 			const size_t V = this->dict.size();
 			const auto K = this->K;
@@ -309,41 +310,49 @@ namespace tomoto
 			const auto eta = this->eta;
 			double ll = 0;
 
-			// doc partition ll
-			for (auto& doc : this->docs)
+			for (; _first != _last; ++_first)
 			{
+				auto& doc = *_first;
 				ll += doc.getNumTable() * log(alpha) - math::lgammaT(doc.template getSumWordWeight<_TW>() + alpha) + math::lgammaT(alpha);
 				for (auto&& nt : doc.numTopicByTable)
 				{
 					if (nt) ll += math::lgammaT(nt.num);
 				}
 			}
-			//if (!isfinite(ll)) throw std::exception();
+			return ll;
+		}
+
+		double getLLRest(const _ModelState& ld) const
+		{
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			const auto alpha = this->alpha;
+			const auto eta = this->eta;
+			double ll = 0;
 			// table partition ll
 			size_t liveK = 0;
 			for (TID k = 0; k < K; ++k)
 			{
 				if (!isLiveTopic(k)) continue;
-				ll += math::lgammaT(this->globalState.numTableByTopic[k]);
+				ll += math::lgammaT(ld.numTableByTopic[k]);
 				++liveK;
 			}
-			ll += liveK * log(gamma) - math::lgammaT(this->globalState.totalTable + gamma) + math::lgammaT(gamma);
-			//if (!isfinite(ll)) throw std::exception();
+			ll += liveK * log(gamma) - math::lgammaT(ld.totalTable + gamma) + math::lgammaT(gamma);
 			// topic word ll
 			ll += liveK * math::lgammaT(V * eta);
 			for (TID k = 0; k < K; ++k)
 			{
 				if (!isLiveTopic(k)) continue;
-				ll -= math::lgammaT(this->globalState.numByTopic[k] + V * eta);
+				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					if (!this->globalState.numByTopicWord(k, v)) continue;
-					ll += math::lgammaT(this->globalState.numByTopicWord(k, v) + eta) - math::lgammaT(eta);
+					if (!ld.numByTopicWord(k, v)) continue;
+					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - math::lgammaT(eta);
 				}
 			}
-			//if (!isfinite(ll)) throw std::exception();
 			return ll;
 		}
+
 
 		void initGlobalState(bool initDocs)
 		{

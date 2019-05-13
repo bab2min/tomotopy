@@ -155,4 +155,32 @@ namespace tomoto
 		return { filter, base, end };
 	}
 
+	template <typename _UnaryFunc, typename _Iterator>
+	class TransformIter : public _Iterator
+	{
+	private:
+		_UnaryFunc f;
+	public:
+		using reference = typename std::result_of<const _UnaryFunc(typename std::iterator_traits<_Iterator>::reference)>::type;
+		TransformIter(const _Iterator& _iter = {}, _UnaryFunc _f = {})
+			: _Iterator(_iter), f(_f)
+		{}
+		
+		reference operator*()
+		{
+			return f(_Iterator::operator*());
+		}
+
+		TransformIter& operator++()
+		{
+			_Iterator::operator++();
+			return *this;
+		}
+	};
+
+	template <typename _UnaryFunc, typename _Iterator> 
+	TransformIter<_UnaryFunc, _Iterator> makeTransformIter(const _Iterator& iter, _UnaryFunc f)
+	{
+		return { iter, f };
+	}
 }

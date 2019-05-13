@@ -191,35 +191,45 @@ namespace tomoto
 			return ll;
 		}
 
-		double getLL() const
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->dict.size();
 			const auto K = this->K;
 			const auto alpha = this->alpha;
-			const auto eta = this->eta;
 
-			double ll = -(lambda.array() - log(alpha)).pow(2).sum() / 2 / pow(sigma, 2);
-			for (auto& doc : this->docs)
+			double ll = 0;
+			for (; _first != _last; ++_first)
 			{
+				auto& doc = *_first;
 				auto alphaDoc = expLambda.col(doc.metadata);
 				FLOAT alphaSum = alphaDoc.sum();
 
 				for (TID k = 0; k < K; ++k)
 				{
-					ll += math::lgammaT(doc.numByTopic[k] + alphaDoc[k]);
-					ll -= math::lgammaT(alphaDoc[k]);
+					ll += math::lgammaT(doc.numByTopic[k] + alphaDoc[k]) - math::lgammaT(alphaDoc[k]);
 				}
-				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
-				ll += math::lgammaT(alphaSum);
+				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum) - math::lgammaT(alphaSum);
 			}
+			return ll;
+		}
 
+		double getLLRest(const _ModelState& ld) const
+		{
+			const auto K = this->K;
+			const auto alpha = this->alpha;
+			const auto eta = this->eta;
+			const size_t V = this->dict.size();
+
+			double ll = -(lambda.array() - log(alpha)).pow(2).sum() / 2 / pow(sigma, 2);
+			// topic-word distribution
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
 			for (TID k = 0; k < K; ++k)
 			{
-				ll -= math::lgammaT(this->globalState.numByTopic[k] + V * eta);
+				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					ll += math::lgammaT(this->globalState.numByTopicWord(k, v) + eta);
+					assert(ld.numByTopicWord(k, v) >= 0);
+					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta);
 				}
 			}
 			return ll;

@@ -21,6 +21,8 @@
 #include "PyUtils.h"
 #endif
 
+#include "pythonDocs.h"
+
 namespace py
 {
 	template<typename _Ty>
@@ -97,88 +99,6 @@ static PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 using namespace std;
 
 static PyObject* gModule;
-
-struct IteratorObject
-{
-	PyObject_HEAD;
-	PyObject* obj;
-	size_t idx;
-
-	static void dealloc(IteratorObject* self)
-	{
-		DEBUG_LOG("IteratorObject Dealloc " << self->obj->ob_type << ", " << self->obj->ob_refcnt);
-		Py_XDECREF(self->obj);
-		Py_TYPE(self)->tp_free((PyObject*)self);
-	}
-
-	static int init(IteratorObject *self, PyObject *args, PyObject *kwargs)
-	{
-		PyObject* argParent;
-		static const char* kwlist[] = { "f", nullptr };
-		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &argParent)) return -1;
-		try
-		{
-			self->obj = argParent;
-			Py_INCREF(argParent);
-			self->idx = 0;
-		}
-		catch (const exception& e)
-		{
-			PyErr_SetString(PyExc_Exception, e.what());
-			return -1;
-		}
-		return 0;
-	}
-
-	static PyObject* iternext(IteratorObject* self)
-	{
-		if (self->idx >= PySequence_Size(self->obj)) return nullptr;
-		return PySequence_GetItem(self->obj, self->idx++);
-	}
-};
-
-
-static PyTypeObject Iterator_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.Iterator",             /* tp_name */
-	sizeof(IteratorObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)IteratorObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
-	0,                         /* tp_as_number */
-	0,                         /* tp_as_sequence */
-	0,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	0,                         /* tp_call */
-	0,                         /* tp_str */
-	0,                         /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT,   /* tp_flags */
-	"Iterator type",           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	0,                         /* tp_iter */
-	(iternextfunc)IteratorObject::iternext,  /* tp_iternext */
-	0,             /* tp_methods */
-	0,						 /* tp_members */
-	0,                         /* tp_getset */
-	0,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)IteratorObject::init,      /* tp_init */
-	PyType_GenericAlloc,
-	PyType_GenericNew,
-};
-
 
 struct TopicModelObject
 {
@@ -305,20 +225,6 @@ struct DictionaryObject
 	}
 };
 
-static PyObject* General_iter(PyObject* self)
-{
-	DEBUG_LOG("__iter__ " << self->ob_type << ", " << self->ob_refcnt);
-	try
-	{
-		return PyObject_CallObject((PyObject*)&Iterator_type, Py_BuildValue("(O)", self));
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
-}
-
 static PySequenceMethods Dictionary_seq_methods = {
 	(lenfunc)DictionaryObject::len,
 	nullptr,
@@ -352,7 +258,7 @@ static PyTypeObject Dictionary_type = {
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
 	0,                         /* tp_weaklistoffset */
-	General_iter, /* tp_iter */
+	PySeqIter_New, /* tp_iter */
 	0,                         /* tp_iternext */
 	0,             /* tp_methods */
 	0,						 /* tp_members */
@@ -410,12 +316,8 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 
 static PyMethodDef Document_methods[] =
 {
-	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, 
-		"get_topics(self, top_n)\n--\n\n"
-		"Return the `top_n` topics with its probability of the document." },
-	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, 
-		"get_topic_dist(self)\n--\n\n"
-		"Return a distribution of the topics in the document." },
+	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, Document_get_topics__doc__ },
+	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, Document_get_topic_dist__doc__ },
 	{ nullptr }
 };
 
@@ -604,8 +506,7 @@ static PyTypeObject Document_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT,   /* tp_flags */
-	"This type provides abstract model to access documents to be used Topic Model.\n\n"
-	"An instance of this type can be acquired from `tomotopy.LDA.make_doc` method or `tomotopy.LDA.docs` member of each Topic Model instance.",           /* tp_doc */
+	Document___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -717,7 +618,7 @@ static PyTypeObject Corpus_type = {
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
 	0,                         /* tp_weaklistoffset */
-	General_iter,              /* tp_iter */
+	PySeqIter_New,              /* tp_iter */
 	0,                         /* tp_iternext */
 	0,             /* tp_methods */
 	0,						 /* tp_members */
@@ -944,6 +845,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 		}
 		else
 		{
+			PyErr_Clear();
 			if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "document must be tomotopy.Document type or list of tomotopy.Document" };
 			auto* doc = (DocumentObject*)argDoc;
 			if (doc->parentModel != self) throw runtime_error{ "document was from another model, not fit to this model" };
@@ -955,9 +857,8 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 
 			if (doc->owner)
 			{
-				float ll;
-				auto ret = self->inst->infer((tomoto::DocumentBase*)doc->doc, iteration, tolerance, &ll);
-				return Py_BuildValue("(Nf)", py::buildPyValue(ret), ll);
+				float ll = self->inst->infer((tomoto::DocumentBase*)doc->doc, iteration, tolerance);
+				return Py_BuildValue("(Nf)", py::buildPyValue(self->inst->getTopicsByDoc(doc->doc)), ll);
 			}
 			else
 			{
@@ -1049,41 +950,14 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getN);
 
 static PyMethodDef LDA_methods[] =
 {
-	{ "add_doc", (PyCFunction)LDA_addDoc, METH_VARARGS | METH_KEYWORDS, 
-		"add_doc(self, words)\n--\n\n"
-		"Add a new document into the model instance and return an index of the inserted document.\n\n"
-		"* `words` is an iterator of `str`.\n\n" },
-	{ "make_doc", (PyCFunction)LDA_makeDoc, METH_VARARGS | METH_KEYWORDS, 
-		"make_doc(self, words)\n--\n\n"
-		"Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDA.infer` method.\n\n"
-		"* `words` is an iterator of `str`.\n\n"},
-	{ "train", (PyCFunction)LDA_train, METH_VARARGS | METH_KEYWORDS, 
-		"train(self, iter=1, workers=0)\n--\n\n"
-		"Train the model using Gibbs-sampling with `iter` iterations. Return `None`.\n\n"
-		"* `workers` indicates the number of workers to perform samplings. If `workers` is 0, the number of cores in the system will be used."},
-	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, 
-		"get_topic_words(self, topic_id, top_n)\n--\n\n"
-		"Return the `top-n` words and its probability in the topic `topic_id`. The returned value is a `list` of `tuple`s with a word and its probability.\n\n"
-		"* `topic_id` is an integer, indicating the topic, in range [0, `k`)."},
-	{ "get_topic_word_dist", (PyCFunction)LDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, 
-		"get_topic_word_dist(self, topic_id)\n--\n\n"
-		"Return the word distribution of the topic `topic_id`. "
-		"The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.\n\n"
-		"* `topic_id` is an integer, indicating the topic, in range [0, `k`)." },
-	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, 
-		"infer(self, document, iter=100, tolerance=-1)\n--\n\n"
-		"Return the inferred topic distribution from unseen `document`s.\n\n"
-		"* `document` should be an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. It can be acquired from `tomotopy.LDA.make_doc` method.\n\n"
-		"* `iter` is the number of iteration to estimate the distribution of topics of `document`. The higher value will generate a more accuracy result.\n\n"
-		"* `tolerance` isn't currently used." },
-	{ "save", (PyCFunction)LDA_save, METH_VARARGS | METH_KEYWORDS, 
-		"save(self, filename, full=True)\n--\n\n"
-		"Save the model instance to file `filename`. Return `None`.\n\n"
-		"If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model."
-		"If `False`, only topic paramters of the model will be saved. This model can be only used for inference of an unseen document."},
-	{ "load", (PyCFunction)LDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
-		"load(filename)\n--\n\n"
-		"Return the model instance loaded from file `filename`.\n\n"},
+	{ "add_doc", (PyCFunction)LDA_addDoc, METH_VARARGS | METH_KEYWORDS, LDA_add_doc__doc__ },
+	{ "make_doc", (PyCFunction)LDA_makeDoc, METH_VARARGS | METH_KEYWORDS, LDA_make_doc__doc__},
+	{ "train", (PyCFunction)LDA_train, METH_VARARGS | METH_KEYWORDS, LDA_train__doc__},
+	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, LDA_get_topic_words__doc__},
+	{ "get_topic_word_dist", (PyCFunction)LDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, LDA_get_topic_word_dist__doc__ },
+	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, LDA_infer__doc__ },
+	{ "save", (PyCFunction)LDA_save, METH_VARARGS | METH_KEYWORDS, LDA_save__doc__},
+	{ "load", (PyCFunction)LDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__},
 	{ nullptr }
 };
 
@@ -1095,7 +969,7 @@ static PyGetSetDef LDA_getseters[] = {
 	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, (char*)"hyperparameter alpha", NULL },
 	{ (char*)"eta", (getter)LDA_getEta, nullptr, (char*)"hyperparameter eta", NULL },
 	{ (char*)"docs", (getter)LDA_getDocs, nullptr, (char*)"get a `list`-like interface of `tomotopy.Document` in the model instance", NULL },
-	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"get the dictionary of vocabuluary", NULL },
+	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"get the dictionary of vocabuluary in type `tomotopy.Dictionary`", NULL },
 	{ (char*)"num_words", (getter)LDA_getN, nullptr, (char*)"get the number of total words", NULL },
 	{ nullptr },
 };
@@ -1121,7 +995,7 @@ static PyTypeObject LDA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Latent Dirichlet Allocation Topic Model",           /* tp_doc */
+	LDA___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1270,18 +1144,9 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 
 static PyMethodDef DMR_methods[] =
 {
-	{ "add_doc", (PyCFunction)DMR_addDoc, METH_VARARGS | METH_KEYWORDS,
-		"add_doc(self, words, metadata='')\n--\n\n"
-		"Add a new document into the model instance with `metadata` and return an index of the inserted document.\n\n"
-		"* `words` is an iterator of `str`.\n\n"
-		"* `metadata` is a `str` indicating metadata of the document (e.g., author, title or year).\n\n"},
-	{ "make_doc", (PyCFunction)DMR_makeDoc, METH_VARARGS | METH_KEYWORDS,
-		"make_doc(self, words, metadata='')\n--\n\n"
-		"Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDA.infer` method.\n\n"
-		"* `words` is an iterator of `str`.\n\n"
-		"* `metadata` is a `str` indicating metadata of the document (e.g., author, title or year).\n\n"},
-	{ "load", (PyCFunction)DMR_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
-		"load(filename)\n--\n\n Return the model instance loaded from file `filename`"  },
+	{ "add_doc", (PyCFunction)DMR_addDoc, METH_VARARGS | METH_KEYWORDS, DMR_add_doc__doc__ },
+	{ "make_doc", (PyCFunction)DMR_makeDoc, METH_VARARGS | METH_KEYWORDS, DMR_make_doc__doc__ },
+	{ "load", (PyCFunction)DMR_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
 	{ nullptr }
 };
 
@@ -1293,7 +1158,7 @@ static PyGetSetDef DMR_getseters[] = {
 	{ (char*)"f", (getter)DMR_getF, nullptr, (char*)"number of features", NULL },
 	{ (char*)"sigma", (getter)DMR_getSigma, nullptr, (char*)"sigma", NULL },
 	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, (char*)"alpha epsilon", NULL },
-	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, (char*)"dictionary of metadata", NULL },
+	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, (char*)"get the dictionary of metadata in type `tomotopy.Dictionary`", NULL },
 	{ (char*)"lambdas", (getter)DMR_getLambda, nullptr, (char*)"lambda", NULL },
 	{ nullptr },
 };
@@ -1320,7 +1185,7 @@ static PyTypeObject DMR_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Dirichlet Multinomial Regression Topic Model",           /* tp_doc */
+	DMR___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1393,9 +1258,8 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 
 static PyMethodDef HDP_methods[] =
 {
-	{ "load", (PyCFunction)HDP_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
-		"load(filename)\n--\n\n Return the model instance loaded from file `filename`" },
-	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, "check whether the topic is alive" },
+	{ "load", (PyCFunction)HDP_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, HDP_is_live_topic__doc__ },
 	{ nullptr }
 };
 
@@ -1431,7 +1295,7 @@ static PyTypeObject HDP_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Hierachical Dirichlet Process Topic Model",           /* tp_doc */
+	HDP___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1595,27 +1459,11 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 
 static PyMethodDef MGLDA_methods[] =
 {
-	{ "load", (PyCFunction)MGLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
-		"load(filename)\n--\n\n Return the model instance loaded from file `filename`" },
-	{ "add_doc", (PyCFunction)MGLDA_addDoc, METH_VARARGS | METH_KEYWORDS,
-		"add_doc(self, words, delimiter='.')\n--\n\n"
-		"Add a new document into the model instance and return an index of the inserted document.\n\n"
-		"* `words` is an iterator of `str`.\n\n"
-		"* `delimiter` is a sentence separator. `words` will be separated by this value into sentences.\n\n"},
-	{ "make_doc", (PyCFunction)MGLDA_makeDoc, METH_VARARGS | METH_KEYWORDS,
-		"make_doc(self, words, delimiter='.')\n--\n\n"
-		"Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDA.infer` method.\n\n"
-		"* `words` is an iterator of `str`.\n\n"
-		"* `delimiter` is a sentence separator. `words` will be separated by this value into sentences.\n\n"},
-	{ "get_topic_words", (PyCFunction)MGLDA_getTopicWords, METH_VARARGS | METH_KEYWORDS,
-		"get_topic_words(self, topic_id, top_n)\n--\n\n"
-		"Return the `top_n` words and its probability in the topic `topic_id`. The returned value is a `list` of `tuple`s with a word and its probability.\n\n"
-		"* `topic_id` is an integer, indicating the topic, in range [0, `k_g` + `k_l`).\n\n"},
-	{ "get_topic_word_dist", (PyCFunction)MGLDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS,
-		"get_topic_word_dist(self, topic_id)\n--\n\n"
-		"Return the word distribution of the topic `topic_id`. "
-		"The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.\n\n"
-		"* `topic_id` is an integer, indicating the topic, in range [0, `k` + `k_l`).\n\n" },
+	{ "load", (PyCFunction)MGLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "add_doc", (PyCFunction)MGLDA_addDoc, METH_VARARGS | METH_KEYWORDS, MGLDA_add_doc__doc__ },
+	{ "make_doc", (PyCFunction)MGLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, MGLDA_make_doc__doc__ },
+	{ "get_topic_words", (PyCFunction)MGLDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, MGLDA_get_topic_words__doc__ },
+	{ "get_topic_word_dist", (PyCFunction)MGLDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, MGLDA_get_topic_word_dist__doc__ },
 	{ nullptr }
 };
 
@@ -1662,7 +1510,7 @@ static PyTypeObject MGLDA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Multi Grain Latent Dirichlet Allocation Topic Model",           /* tp_doc */
+	MGLDA___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1737,11 +1585,8 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 
 static PyMethodDef PA_methods[] =
 {
-	{ "load", (PyCFunction)PA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
-		"load(filename)\n--\n\n Return the model instance loaded from file `filename`." },
-	{ "get_sub_topic_dist", (PyCFunction)PA_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, 
-		"get_sub_topic_dist(self, topic_id)\n--\n\n"
-		"Return a distribution of the sub topics in a super topic `topic_id`." },
+	{ "load", (PyCFunction)PA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "get_sub_topic_dist", (PyCFunction)PA_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topic_dist__doc__ },
 	{ nullptr }
 };
 
@@ -1774,7 +1619,7 @@ static PyTypeObject PA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Pachinko Allocation Topic Model",           /* tp_doc */
+	PA___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1877,17 +1722,9 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 
 static PyMethodDef HPA_methods[] =
 {
-	{ "load", (PyCFunction)HPA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, 
-		"load(filename)\n--\n\n Return the model instance loaded from file `filename`."  },
-	{ "get_topic_words", (PyCFunction)HPA_getTopicWords, METH_VARARGS | METH_KEYWORDS,
-		"get_topic_words(self, topic_id, top_n)\n--\n\n"
-		"Return the `top_n` words and its probability in the topic `topic_id`. The returned value is a `list` of `tuple`s with a word and its probability.\n\n"
-		"* `topic_id` is an integer indicating the topic. 0 for the top topic, range [1, 1 + `k1`) for the super topics and range [1 + `k1`, 1 + `k1` + `k2`) for the sub topics.\n\n"},
-	{ "get_topic_word_dist", (PyCFunction)HPA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS,
-		"get_topic_word_dist(self, topic_id)\n--\n\n"
-		"Return the word distribution of the topic `topic_id`. "
-		"The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.\n\n"
-		"* `topic_id` is an integer indicating the topic. 0 for the top topic, range [1, 1 + `k1`) for the super topics and range [1 + `k1`, 1 + `k1` + `k2`) for the sub topics.\n\n"},
+	{ "load", (PyCFunction)HPA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "get_topic_words", (PyCFunction)HPA_getTopicWords, METH_VARARGS | METH_KEYWORDS, HPA_get_topic_words__doc__ },
+	{ "get_topic_word_dist", (PyCFunction)HPA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, HPA_get_topic_word_dist__doc__ },
 	{ nullptr }
 };
 
@@ -1916,7 +1753,7 @@ static PyTypeObject HPA_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Hierachical Pachinko Allocation Topic Model",           /* tp_doc */
+	HPA___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -1954,7 +1791,6 @@ PyMODINIT_FUNC MODULE_NAME()
 		nullptr,
 	};
 
-	if (PyType_Ready(&Iterator_type) < 0) return nullptr;
 	if (PyType_Ready(&Document_type) < 0) return nullptr;
 	if (PyType_Ready(&Corpus_type) < 0) return nullptr;
 	if (PyType_Ready(&Dictionary_type) < 0) return nullptr;
@@ -1976,11 +1812,9 @@ PyMODINIT_FUNC MODULE_NAME()
 #elif defined(__SSE2__)
 	PyModule_AddStringConstant(gModule, "isa", "sse2");
 #else
-	PyModule_AddStringConstant(gModule, "isa", "");
+	PyModule_AddStringConstant(gModule, "isa", "none");
 #endif
 
-	Py_INCREF(&Iterator_type);
-	PyModule_AddObject(gModule, "_Iterator", (PyObject*)&Iterator_type);
 	Py_INCREF(&Document_type);
 	PyModule_AddObject(gModule, "Document", (PyObject*)&Document_type);
 	Py_INCREF(&Corpus_type);

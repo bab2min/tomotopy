@@ -1,11 +1,11 @@
 from setuptools import setup, Extension
 from codecs import open
-import os, os.path
+import os, os.path, struct
 from setuptools.command.install import install
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, 'README'), encoding='utf-8') as f:
+with open(os.path.join(here, 'tomotopy/documentation.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 sources = []
@@ -17,7 +17,11 @@ if os.name == 'nt':
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
 else: 
     cargs = ['-std=c++1y', '-O3', '-fpermissive']
-    arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
+    #arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
+    arch_levels = {'':'-march=native'}
+
+if struct.calcsize('P') < 8: arch_levels = {k:v for k, v in arch_levels.items() if k in ('', 'sse2')}
+else: arch_levels = {k:v for k, v in arch_levels.items() if k not in ('sse2')}
 
 modules = []
 for arch, aopt in arch_levels.items():
@@ -33,7 +37,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.1.0',
+    version='0.1.1',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
@@ -57,7 +61,13 @@ setup(
         "License :: OSI Approved :: MIT License",
 
         'Programming Language :: Python :: 3',
-        'Programming Language :: C++'
+        'Programming Language :: C++',
+		"Operating System :: Microsoft :: Windows :: Windows Vista",
+		"Operating System :: Microsoft :: Windows :: Windows 7",
+		"Operating System :: Microsoft :: Windows :: Windows 8",
+		"Operating System :: Microsoft :: Windows :: Windows 8.1",
+		"Operating System :: Microsoft :: Windows :: Windows 10",
+		"Operating System :: POSIX"
     ],
     install_requires=['py-cpuinfo'],
     keywords='NLP, Topic Model',

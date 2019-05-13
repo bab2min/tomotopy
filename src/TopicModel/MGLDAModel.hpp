@@ -163,6 +163,90 @@ namespace tomoto
 			}
 		}
 
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
+		{
+			const auto V = this->dict.size();
+			const auto K = this->K;
+			const auto alpha = this->alpha;
+			
+			size_t totSents = 0, totWins = 0;
+			double ll = 0;
+			if (K) ll += (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * std::distance(_first, _last);
+			for (; _first != _last; ++_first)
+			{
+				auto& doc = *_first;
+				const size_t S = doc.numBySent.size();
+				if (K)
+				{
+					ll -= math::lgammaT(doc.numGl + K * alpha);
+					for (TID k = 0; k < K; ++k)
+					{
+						ll += math::lgammaT(doc.numByTopic[k] + alpha);
+					}
+				}
+
+				for (size_t v = 0; v < S + T - 1; ++v)
+				{
+					ll -= math::lgammaT(doc.numByWinL[v] + KL * alphaL);
+					for (TID k = 0; k < KL; ++k)
+					{
+						ll += math::lgammaT(doc.numByWinTopicL(k, v) + alphaL);
+					}
+					if (K)
+					{
+						ll += math::lgammaT(std::max((FLOAT)doc.numByWin[v] - doc.numByWinL[v], (FLOAT)0) + alphaM);
+						ll += math::lgammaT(doc.numByWinL[v] + alphaML);
+						ll -= math::lgammaT(doc.numByWin[v] + alphaM + alphaML);
+					}
+				}
+
+				totWins += S + T - 1;
+				totSents += S;
+				for (size_t s = 0; s < S; ++s)
+				{
+					ll -= math::lgammaT(doc.numBySent[s] + T * gamma);
+					for (size_t v = 0; v < T; ++v)
+					{
+						ll += math::lgammaT(doc.numBySentWin(s, v) + gamma);
+					}
+				}
+			}
+			ll += (math::lgammaT(KL*alphaL) - math::lgammaT(alphaL)*KL) * totWins;
+			if (K) ll += (math::lgammaT(alphaM + alphaML) - math::lgammaT(alphaM) - math::lgammaT(alphaML)) * totWins;
+			ll += (math::lgammaT(T * gamma) - math::lgammaT(gamma) * T) * totSents;
+
+			return ll;
+		}
+
+		double getLLRest(const _ModelState& ld) const
+		{
+			const auto V = this->dict.size();
+			const auto K = this->K;
+			const auto eta = this->eta;
+			
+			double ll = 0;
+			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
+			for (TID k = 0; k < K; ++k)
+			{
+				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
+				for (VID w = 0; w < V; ++w)
+				{
+					ll += math::lgammaT(ld.numByTopicWord(k, w) + eta);
+				}
+			}
+			ll += (math::lgammaT(V*etaL) - math::lgammaT(etaL)*V) * KL;
+			for (TID k = 0; k < KL; ++k)
+			{
+				ll -= math::lgammaT(ld.numByTopic[k + K] + V * etaL);
+				for (VID w = 0; w < V; ++w)
+				{
+					ll += math::lgammaT(ld.numByTopicWord(k + K, w) + etaL);
+				}
+			}
+			return ll;
+		}
+
 		double getLL() const
 		{
 			double ll = 0;

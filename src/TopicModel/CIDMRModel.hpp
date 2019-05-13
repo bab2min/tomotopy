@@ -220,6 +220,61 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
+		{
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			double ll = 0;
+
+			Eigen::Matrix<FLOAT, -1, 1> alphas(K);
+			auto tempState = this->globalState;
+			for (; _first != _last; ++_first)
+			{
+				auto& doc = *_first;
+				auto& terms = tempState.terms;
+				getTermsFromMd(tempState, &doc.metadataC[0], terms);
+				for (TID k = 0; k < K; ++k)
+				{
+					alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
+				}
+				FLOAT alphaSum = alphas.sum();
+				for (TID k = 0; k < K; ++k)
+				{
+					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]);
+					ll -= math::lgammaT(alphas[k]);
+				}
+				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
+				ll += math::lgammaT(alphaSum);
+			}
+			return ll;
+		}
+
+		double getLLRest(const _ModelState& ld) const
+		{
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			const auto eta = this->eta;
+			double ll = 0;
+			for (size_t k = 0; k < K; ++k)
+			{
+				ll += getIntegratedLambdaSq(this->lambda.row(k));
+			}
+			ll /= -2 * pow(this->sigma, 2);
+
+
+			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
+			for (TID k = 0; k < K; ++k)
+			{
+				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
+				for (VID v = 0; v < V; ++v)
+				{
+					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta);
+				}
+			}
+			return ll;
+		}
+
 		double getLL() const
 		{
 			const size_t V = this->dict.size();

@@ -290,62 +290,67 @@ namespace tomoto
 			return { };
 		}
 
-		double getLLDoc(const _DocType& doc) const
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			return 0;
-		}
-
-		double getLL() const
-		{
-			double ll = 0;
 			const size_t V = this->dict.size();
 			const auto K = this->K;
-			const auto eta = this->eta;
-
 			const auto alphaSum = alphas.sum();
+
+			double ll = 0;
 			ll = math::lgammaT(alphaSum);
 			for (size_t k = 0; k < K; ++k) ll -= math::lgammaT(alphas[k]);
-			ll *= this->docs.size();
-			for (auto& doc : this->docs)
+			ll *= std::distance(_first, _last);
+			for (; _first != _last; ++_first)
 			{
+				auto& doc = *_first;
 				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
 				for (TID k = 0; k <= K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]);
 				}
 			}
+			return ll;
+		}
 
+		double getLLRest(const _ModelState& ld) const
+		{
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			const auto eta = this->eta;
+
+			double ll = 0;
 			for (TID k = 0; k < K; ++k)
 			{
 				ll += math::lgammaT(subAlphaSum[k]);
-				ll -= math::lgammaT(this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k]);
+				ll -= math::lgammaT(ld.numByTopic1_2.row(k).sum() + subAlphaSum[k]);
 				for (TID k2 = 0; k2 <= K2; ++k2)
 				{
 					ll -= math::lgammaT(subAlphas(k, k2));
-					ll += math::lgammaT(this->globalState.numByTopic1_2(k, k2) + subAlphas(k, k2));
+					ll += math::lgammaT(ld.numByTopic1_2(k, k2) + subAlphas(k, k2));
 				}
 			}
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * (K2 + K + 1);
 
-			ll -= math::lgammaT(this->globalState.numByTopic[0][0] + V * eta);
+			ll -= math::lgammaT(ld.numByTopic[0][0] + V * eta);
 			for (VID v = 0; v < V; ++v)
 			{
-				ll += math::lgammaT(this->globalState.numByTopicWord[0](0, v) + eta);
+				ll += math::lgammaT(ld.numByTopicWord[0](0, v) + eta);
 			}
 			for (TID k = 0; k < K; ++k)
 			{
-				ll -= math::lgammaT(this->globalState.numByTopic[1][k] + V * eta);
+				ll -= math::lgammaT(ld.numByTopic[1][k] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					ll += math::lgammaT(this->globalState.numByTopicWord[1](k, v) + eta);
+					ll += math::lgammaT(ld.numByTopicWord[1](k, v) + eta);
 				}
 			}
 			for (TID k2 = 0; k2 < K2; ++k2)
 			{
-				ll -= math::lgammaT(this->globalState.numByTopic[2][k2] + V * eta);
+				ll -= math::lgammaT(ld.numByTopic[2][k2] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					ll += math::lgammaT(this->globalState.numByTopicWord[2](k2, v) + eta);
+					ll += math::lgammaT(ld.numByTopicWord[2](k2, v) + eta);
 				}
 			}
 			return ll;

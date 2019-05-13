@@ -180,39 +180,49 @@ namespace tomoto
 			for (auto&& r : res) r.get();
 		}
 
-		double getLL() const
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			double ll = 0;
 			const size_t V = this->dict.size();
 			const auto K = this->K;
 			const auto alpha = this->alpha;
-			const auto eta = this->eta;
-			ll += (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * this->docs.size();
-			for (auto& doc : this->docs)
+			float ll = (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * std::distance(_first, _last);
+			for (; _first != _last; ++_first)
 			{
+				auto& doc = *_first;
 				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + K * alpha);
 				for (TID k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alpha);
 				}
 			}
+			return ll;
+		}
+
+		double getLLRest(const _ModelState& ld) const
+		{
+			const size_t V = this->dict.size();
+			const auto K = this->K;
+			const auto eta = this->eta;
+		
+			double ll = 0;
 			for (TID k = 0; k < K; ++k)
 			{
 				ll += math::lgammaT(subAlphaSum[k]);
-				ll -= math::lgammaT(this->globalState.numByTopic[k] + subAlphaSum[k]);
+				ll -= math::lgammaT(ld.numByTopic[k] + subAlphaSum[k]);
 				for (TID k2 = 0; k2 < K2; ++k2)
 				{
 					ll -= math::lgammaT(subAlphas(k, k2));
-					ll += math::lgammaT(this->globalState.numByTopic1_2(k, k2) + subAlphas(k, k2));
+					ll += math::lgammaT(ld.numByTopic1_2(k, k2) + subAlphas(k, k2));
 				}
 			}
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K2;
 			for (TID k2 = 0; k2 < K2; ++k2)
 			{
-				ll -= math::lgammaT(this->globalState.numByTopic2[k2] + V * eta);
+				ll -= math::lgammaT(ld.numByTopic2[k2] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					ll += math::lgammaT(this->globalState.numByTopicWord(k2, v) + eta);
+					ll += math::lgammaT(ld.numByTopicWord(k2, v) + eta);
 				}
 			}
 			return ll;

@@ -39,7 +39,7 @@ namespace tomoto
 		
 		virtual std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const = 0;
 		virtual std::vector<std::pair<TID, FLOAT>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
-		virtual std::vector<FLOAT> infer(DocumentBase* doc, size_t maxIter, FLOAT tolerance, FLOAT* ll = nullptr) const = 0;
+		virtual FLOAT infer(DocumentBase* doc, size_t maxIter, FLOAT tolerance) const = 0;
 		virtual FLOAT infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance) const = 0;
 		virtual ~ITopicModel() {}
 	};
@@ -238,9 +238,9 @@ namespace tomoto
 			return vid2String(getWidsByTopicSorted(tid, topN));
 		}
 
-		std::vector<FLOAT> infer(DocumentBase* doc, size_t maxIter, FLOAT tolerance, FLOAT* ll = nullptr) const override
+		FLOAT infer(DocumentBase* doc, size_t maxIter, FLOAT tolerance) const override
 		{
-			return static_cast<const _Derived*>(this)->infer(*static_cast<DocType*>(doc), maxIter, tolerance, ll);
+			return static_cast<const _Derived*>(this)->infer(*static_cast<DocType*>(doc), maxIter, tolerance);
 		}
 
 		FLOAT infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance) const override

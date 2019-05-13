@@ -143,6 +143,7 @@ namespace tomoto
 		static constexpr const char* TMID = "LDA";
 		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
 
+		std::vector<FLOAT> vocabWeight;
 		std::vector<TID> sharedZs;
 		std::vector<FLOAT> sharedWordWeights;
 		FLOAT alpha;
@@ -246,68 +247,46 @@ namespace tomoto
 			for (auto&& r : res) r.get();
 		}
 
-
-		double getLLDocTopic(const _DocType& doc) const
-		{
-			FLOAT ll = math::lgammaT(K*alpha) - math::lgammaT(alpha)*K;
-			ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + K * alpha);
-			for (TID k = 0; k < K; ++k)
-			{
-				ll += math::lgammaT(doc.numByTopic[k] + alpha);
-			}
-			return ll;
-		}
-
-		double getLLTopicWord(const _DocType& doc) const
-		{
-			const size_t V = this->dict.size();
-			FLOAT ll = 0;
-			std::vector<uint32_t> numByTopicD(K);
-			std::vector<uint32_t> numByWordTopicD(K * V);
-			for (size_t i = 0; i < doc.words.size(); ++i)
-			{
-				++numByTopicD[doc.Zs[i]];
-				++numByWordTopicD[V * doc.Zs[i] + doc.words[i]];
-			}
-
-			for (TID k = 0; k < K; ++k)
-			{
-				ll -= math::lgammaT(this->globalState.numByTopic[k] + numByTopicD[k] + V * eta) - math::lgammaT(this->globalState.numByTopic[k] + V * eta);
-				for (VID v = 0; v < V; ++v)
-				{
-					if (!numByWordTopicD[V * k + v]) continue;
-					ll += math::lgammaT(this->globalState.numByTopicWord(k, v) + numByWordTopicD[V * k + v] + eta) - math::lgammaT(this->globalState.numByTopicWord(k, v) + eta);
-				}
-			}
-			return ll;
-		}
-
-		double getLLDoc(const _DocType& doc) const { return getLLDocTopic(doc) + getLLTopicWord(doc); }
-
-		double getLL() const
+		template<typename _DocIter>
+		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
 			double ll = 0;
-			const size_t V = this->dict.size();
-			ll += (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * this->docs.size();
-			for (auto& doc : this->docs)
+			// doc-topic distribution
+			ll += (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * std::distance(_first, _last);
+			for (; _first != _last; ++_first)
 			{
+				auto& doc = *_first;
 				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + K * alpha);
 				for (TID k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alpha);
 				}
 			}
+			return ll;
+		}
+
+		double getLLRest(const _ModelState& ld) const
+		{
+			double ll = 0;
+			const size_t V = this->dict.size();
+			// topic-word distribution
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
 			for (TID k = 0; k < K; ++k)
 			{
-				ll -= math::lgammaT(this->globalState.numByTopic[k] + V * eta);
+				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					assert(this->globalState.numByTopicWord(k, v) >= 0);
-					ll += math::lgammaT(this->globalState.numByTopicWord(k, v) + eta);
+					assert(ld.numByTopicWord(k, v) >= 0);
+					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta);
 				}
 			}
 			return ll;
+		}
+
+		double getLL() const
+		{
+			return static_cast<const DerivedClass*>(this)->template getLLDocs<>(this->docs.begin(), this->docs.end())
+				+ static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 		}
 
 		void prepareShared()
@@ -330,7 +309,7 @@ namespace tomoto
 				tvector<FLOAT>::trade(sharedWordWeights, srcs.begin(), srcs.end());
 			}
 		}
-
+		
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			doc.numByTopic.init(_Shared ? (WeightType*)numByTopicDoc.col(docId).data() : nullptr, K);
@@ -368,6 +347,31 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z);
 		}
 
+		template<typename _Generator>
+		void initializeDocState(_DocType& doc, size_t docId, _Generator& g, _ModelState& ld, RANDGEN& rgs) const
+		{
+			std::vector<uint32_t> tf(this->dict.size());
+			static_cast<const DerivedClass*>(this)->prepareDoc(doc, docId, doc.words.size());
+			if (_TW == TermWeight::pmi)
+			{
+				fill(tf.begin(), tf.end(), 0);
+				for (auto& w : doc.words) ++tf[w];
+			}
+
+			for (size_t i = 0; i < doc.words.size(); ++i)
+			{
+				if (_TW == TermWeight::idf)
+				{
+					doc.wordWeights[i] = vocabWeight[doc.words[i]];
+				}
+				else if (_TW == TermWeight::pmi)
+				{
+					doc.wordWeights[i] = std::max((FLOAT)log(tf[doc.words[i]] / vocabWeight[doc.words[i]] / doc.words.size()), (FLOAT)0);
+				}
+				static_cast<const DerivedClass*>(this)->updateStateWithDoc(g, ld, rgs, doc, i);
+			}
+		}
+
 		std::vector<size_t> _getTopicsCount() const
 		{
 			std::vector<size_t> cnt(K);
@@ -378,7 +382,7 @@ namespace tomoto
 			return cnt;
 		}
 
-		DEFINE_SERIALIZER(alpha, eta, K);
+		DEFINE_SERIALIZER(vocabWeight, alpha, eta, K);
 
 	public:
 		LDAModel(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
@@ -418,68 +422,60 @@ namespace tomoto
 			}
 		}
 
+
 		void prepare(bool initDocs = true)
 		{
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
 
 			const size_t V = this->dict.size();
-			std::vector<uint32_t> df, cf, tf;
-			std::vector<FLOAT> vocabWeight;
-			uint32_t totCf;
 
-			// calculate weighting
-			if (_TW != TermWeight::one)
+			if (initDocs)
 			{
-				df.resize(V);
-				cf.resize(V);
-				tf.resize(V);
+				std::vector<uint32_t> df, cf, tf;
+				uint32_t totCf;
+
+				// calculate weighting
+				if (_TW != TermWeight::one)
+				{
+					df.resize(V);
+					cf.resize(V);
+					tf.resize(V);
+					for (auto& doc : this->docs)
+					{
+						for (auto& w : doc.words)
+						{
+							++cf[w];
+						}
+
+						for (auto w : std::unordered_set<VID>{ doc.words.begin(), doc.words.end() })
+						{
+							++df[w];
+						}
+					}
+					totCf = accumulate(cf.begin(), cf.end(), 0);
+				}
+				if (_TW == TermWeight::idf)
+				{
+					vocabWeight.resize(V);
+					for (size_t i = 0; i < V; ++i)
+					{
+						vocabWeight[i] = log(this->docs.size() / (FLOAT)df[i]);
+					}
+				}
+				else if (_TW == TermWeight::pmi)
+				{
+					vocabWeight.resize(V);
+					for (size_t i = 0; i < V; ++i)
+					{
+						vocabWeight[i] = cf[i] / (float)totCf;
+					}
+				}
+
+				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
 				for (auto& doc : this->docs)
 				{
-					for (auto& w : doc.words)
-					{
-						++cf[w];
-					}
-
-					for (auto w : std::unordered_set<VID>{ doc.words.begin(), doc.words.end() })
-					{
-						++df[w];
-					}
-				}
-				totCf = accumulate(cf.begin(), cf.end(), 0);
-			}
-			if (_TW == TermWeight::idf)
-			{
-				vocabWeight.resize(V);
-				for (size_t i = 0; i < V; ++i)
-				{
-					vocabWeight[i] = log(this->docs.size() / (FLOAT)df[i]);
-				}
-			}
-
-			auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
-			if (initDocs) for (auto& doc : this->docs)
-			{
-				static_cast<DerivedClass*>(this)->prepareDoc(doc, &doc - &this->docs[0], doc.words.size());
-				float dw;
-				if (_TW == TermWeight::pmi)
-				{
-					fill(tf.begin(), tf.end(), 0);
-					for (auto& w : doc.words) ++tf[w];
-					dw = (float)totCf / doc.words.size();
-				}
-
-				for (size_t i = 0; i < doc.words.size(); ++i)
-				{
-					if (_TW == TermWeight::idf)
-					{
-						doc.wordWeights[i] = vocabWeight[doc.words[i]];
-					}
-					else if (_TW == TermWeight::pmi)
-					{
-						doc.wordWeights[i] = std::max((FLOAT)log(dw * tf[doc.words[i]] / cf[doc.words[i]]), (FLOAT)0);
-					}
-					static_cast<DerivedClass*>(this)->updateStateWithDoc(generator, this->globalState, this->rg, doc, i);
+					initializeDocState(doc, &doc - &this->docs[0], generator, this->globalState, this->rg);
 				}
 			}
 			else
@@ -519,30 +515,22 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> infer(_DocType& doc, size_t maxIter, FLOAT tolerance, FLOAT* ll = nullptr) const
+		FLOAT infer(_DocType& doc, size_t maxIter, FLOAT tolerance) const
 		{
 			auto generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit();
-			static_cast<const DerivedClass*>(this)->prepareDoc(doc, -1, doc.words.size());
-			/*
-			To do: this inference function does not initialize word weight properly yet, 
-			but calculating word weight for unknown docs seems difficult.
-			*/
-
 			// temporary state variable
 			RANDGEN rgc{};
 			auto tmpState = this->globalState;
 
-			for (size_t i = 0; i < doc.words.size(); ++i)
-			{
-				static_cast<const DerivedClass*>(this)->updateStateWithDoc(generator, tmpState, rgc, doc, i);
-			}
+			initializeDocState(doc, -1, generator, tmpState, rgc);
 			for (size_t i = 0; i < maxIter; ++i)
 			{
 				static_cast<const DerivedClass*>(this)->sampleDocument(doc, tmpState, rgc);
 			}
 
-			if (ll) *ll = static_cast<const DerivedClass*>(this)->getLLDoc(doc);
-			return static_cast<const DerivedClass*>(this)->getTopicsByDoc(doc);
+			FLOAT ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
+			ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&doc, &doc + 1);
+			return ll;
 		}
 
 		FLOAT infer(const std::vector<_DocType*>& docs, size_t maxIter, FLOAT tolerance) const
@@ -553,19 +541,18 @@ namespace tomoto
 			auto tmpState = this->globalState;
 			for (auto doc : docs)
 			{
-				static_cast<const DerivedClass*>(this)->prepareDoc(*doc, -1, doc->words.size());
-				for (size_t i = 0; i < doc->words.size(); ++i)
-				{
-					static_cast<const DerivedClass*>(this)->updateStateWithDoc(generator, tmpState, rgc, *doc, i);
-				}
+				initializeDocState(*doc, -1, generator, tmpState, rgc);
 			}
 			for (size_t i = 0; i < maxIter; ++i)
 			{
 				for (auto doc : docs) static_cast<const DerivedClass*>(this)->sampleDocument(*doc, tmpState, rgc);
 			}
 
-			FLOAT ll = 0;
-			for (auto doc : docs) ll += static_cast<const DerivedClass*>(this)->getLLDoc(*doc);
+			FLOAT ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
+			auto tx = [](auto x)->_DocType& { return *x; };
+			ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(
+				makeTransformIter(docs.begin(), tx),
+				makeTransformIter(docs.end(), tx));
 			return ll;
 		}
 	};
