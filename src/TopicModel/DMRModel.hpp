@@ -159,7 +159,7 @@ namespace tomoto
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
@@ -174,7 +174,7 @@ namespace tomoto
 		
 		double getLLDocTopic(const _DocType& doc) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 
 			auto alphaDoc = expLambda.segment(doc.metadata * K, K);
@@ -218,7 +218,7 @@ namespace tomoto
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			const auto eta = this->eta;
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 
 			double ll = -(lambda.array() - log(alpha)).pow(2).sum() / 2 / pow(sigma, 2);
 			// topic-word distribution

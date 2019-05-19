@@ -102,7 +102,7 @@ namespace tomoto
 		FLOAT gamma;
 		size_t addTopic(_ModelState& ld, VID vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			size_t pos;
 			for (pos = 0; pos < ld.numTableByTopic.size(); ++pos)
 			{
@@ -129,7 +129,7 @@ namespace tomoto
 
 		FLOAT* getWordTopicProb(_ModelState& ld, VID vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
@@ -139,7 +139,7 @@ namespace tomoto
 
 		FLOAT* getTableLikelihoods(_ModelState& ld, _DocType& doc, VID vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(vid < V);
 			const size_t T = doc.numTopicByTable.size();
 			const auto K = ld.numByTopic.size();
@@ -156,7 +156,7 @@ namespace tomoto
 
 		FLOAT* getTopicLikelihoods(_ModelState& ld, VID vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(vid < V);
 			const auto K = ld.numByTopic.size();
 			ld.topicLikelihood.resize(K + 1);
@@ -170,7 +170,7 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, size_t tableId, TID tid) const
 		{
 			assert(tid < ld.numTableByTopic.size());
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(vid < V);
 
 			if (INC > 0 && tid >= doc.numByTopic.size())
@@ -205,6 +205,7 @@ namespace tomoto
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
+				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.numTopicByTable[doc.Zs[w]].topic);
 				getWordTopicProb(ld, doc.words[w]);
 				auto topicDist = getTopicLikelihoods(ld, doc.words[w]);
@@ -230,7 +231,7 @@ namespace tomoto
 		void updateGlobal(ThreadPool& pool, _ModelState* localData)
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			auto& K = this->K;
 			K = 0;
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
@@ -304,7 +305,7 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			const auto eta = this->eta;
@@ -324,7 +325,7 @@ namespace tomoto
 
 		double getLLRest(const _ModelState& ld) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			const auto eta = this->eta;
@@ -356,7 +357,7 @@ namespace tomoto
 
 		void initGlobalState(bool initDocs)
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			if (initDocs)
 			{
@@ -375,7 +376,7 @@ namespace tomoto
 
 		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
 		{
-			if (i == 0)
+			if (doc.getNumTable() == 0)
 			{
 				TID k = g.theta(rgs);
 				doc.addNewTable(k);

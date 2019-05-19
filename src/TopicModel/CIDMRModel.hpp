@@ -208,7 +208,7 @@ namespace tomoto
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 			getTermsFromMd(ld, &doc.metadataC[0], ld.terms);
@@ -223,7 +223,7 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			double ll = 0;
 
@@ -252,7 +252,7 @@ namespace tomoto
 
 		double getLLRest(const _ModelState& ld) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto eta = this->eta;
 			double ll = 0;
@@ -277,7 +277,7 @@ namespace tomoto
 
 		double getLL() const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto eta = this->eta;
 			double ll = 0;

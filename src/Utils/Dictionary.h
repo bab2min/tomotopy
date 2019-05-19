@@ -46,6 +46,15 @@ namespace tomoto
 			std::swap(dict, rhs.dict);
 			std::swap(id2word, rhs.id2word);
 		}
+
+		void reorder(const std::vector<VID>& order)
+		{
+			for (auto& p : dict)
+			{
+				p.second = order[p.second];
+				id2word[p.second] = p.first;
+			}
+		}
 	};
 
 	VID Dictionary::add(const std::string & word)

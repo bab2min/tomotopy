@@ -94,8 +94,13 @@ namespace tomoto
 		return pos;
 	}
 
-	template<class _Container, class _OrderType = uint32_t>
-	void sortAndWriteOrder(_Container& src, std::vector<_OrderType>& order)
+	/*
+	* _Container src: (in/out) container to be sorted
+	* vector<integer> order: (out) a vector mapping old idx to new idx (order[oldIdx] => newIdx)
+	* _Less cmp: (in) comparator
+	*/
+	template<typename _Container, typename _OrderType = uint32_t, typename _Less = std::less<typename _Container::value_type>>
+	void sortAndWriteOrder(_Container& src, std::vector<_OrderType>& order, _Less cmp = _Less{})
 	{
 		std::vector<std::pair<typename _Container::value_type, _OrderType>> pv(src.size());
 		for (_OrderType i = 0; i < src.size(); ++i)
@@ -103,7 +108,10 @@ namespace tomoto
 			pv[i] = std::make_pair(src[i], i);
 		}
 
-		std::sort(pv.begin(), pv.end());
+		std::sort(pv.begin(), pv.end(), [&cmp](auto a, auto b)
+		{
+			return cmp(a.first, b.first);
+		});
 		order = std::vector<_OrderType>(src.size());
 		for (size_t i = 0; i < src.size(); ++i)
 		{

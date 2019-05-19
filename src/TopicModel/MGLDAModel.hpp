@@ -88,7 +88,7 @@ namespace tomoto
 		// window and gl./loc. and topic assignment likelihoods for new word. ret T*(K+KL) FLOATs
 		FLOAT* getVZLikelihoods(_ModelState& ld, const _DocType& doc, VID vid, uint16_t s) const
 		{
-			const auto V = this->dict.size();
+			const auto V = this->realV;
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			const auto eta = this->eta;
@@ -117,7 +117,7 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID tid, uint16_t s, uint8_t w, uint8_t r) const
 		{
 			const auto K = this->K;
-			const auto V = this->dict.size();
+			const auto V = this->realV;
 
 			assert(r != 0 || tid < K);
 			assert(r == 0 || tid < KL);
@@ -154,6 +154,7 @@ namespace tomoto
 			const auto K = this->K;
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
+				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
 				auto dist = getVZLikelihoods(ld, doc, doc.words[w], doc.sents[w]);
 				auto vz = sample::sampleFromDiscreteAcc(dist, dist + T * (K + KL), rgs);
@@ -166,7 +167,7 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const auto V = this->dict.size();
+			const auto V = this->realV;
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			
@@ -221,7 +222,7 @@ namespace tomoto
 
 		double getLLRest(const _ModelState& ld) const
 		{
-			const auto V = this->dict.size();
+			const auto V = this->realV;
 			const auto K = this->K;
 			const auto eta = this->eta;
 			
@@ -250,7 +251,7 @@ namespace tomoto
 		double getLL() const
 		{
 			double ll = 0;
-			const auto V = this->dict.size();
+			const auto V = this->realV;
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			const auto eta = this->eta;
@@ -338,7 +339,7 @@ namespace tomoto
 
 		void initGlobalState(bool initDocs)
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(T * (this->K + KL));
 			if (initDocs)
 			{

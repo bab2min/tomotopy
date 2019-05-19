@@ -116,6 +116,18 @@ namespace py
 	}
 
 	template<typename _Ty>
+	PyObject* buildPyValue(vector<_Ty>&& v)
+	{
+		auto ret = PyList_New(v.size());
+		size_t id = 0;
+		for (auto& e : v)
+		{
+			PyList_SetItem(ret, id++, buildPyValue(e));
+		}
+		return ret;
+	}
+
+	template<typename _Ty>
 	typename enable_if<is_iterator<_Ty>::value, PyObject*>::type buildPyValue(_Ty first, _Ty last)
 	{
 		auto ret = PyList_New(distance(first, last));

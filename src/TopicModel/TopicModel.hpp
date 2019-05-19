@@ -31,9 +31,10 @@ namespace tomoto
 		virtual size_t getN() const = 0;
 		virtual size_t getNumDocs() const = 0;
 		virtual const Dictionary& getVocabDict() const = 0;
+		virtual const std::vector<size_t>& getVocabFrequencies() const = 0;
 
 		virtual void train(size_t iteration, size_t numWorkers) = 0;
-		virtual void prepare(bool initDocs = true) = 0;
+		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0) = 0;
 		virtual std::vector<FLOAT> getWidsByTopic(TID tid) const = 0;
 		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const = 0;
 		
@@ -73,16 +74,19 @@ namespace tomoto
 		std::vector<uint32_t> wOffsetByDoc;
 
 		std::vector<DocType> docs;
+		std::vector<size_t> vocabFrequencies;
 		size_t iterated = 0;
 		_ModelState globalState, tState;
 		Dictionary dict;
+		size_t realV = 0; // vocab size after removing stopwords
+		size_t realN = 0; // total word size after removing stopwords
 
 		void _saveModel(std::ostream& writer, bool fullModel) const
 		{
 			serializer::writeMany(writer, 
 				serializer::MagicConstant{ _Derived::TMID },
 				serializer::MagicConstant{ _Derived::TWID },
-				dict);
+				dict, vocabFrequencies, realV);
 			static_cast<const _Derived*>(this)->serializerWrite(writer);
 			globalState.serializerWrite(writer);
 			if (fullModel)
@@ -100,20 +104,29 @@ namespace tomoto
 			serializer::readMany(reader, 
 				serializer::MagicConstant{ _Derived::TMID },
 				serializer::MagicConstant{ _Derived::TWID },
-				dict);
+				dict, vocabFrequencies, realV);
 			static_cast<_Derived*>(this)->serializerRead(reader);
 			globalState.serializerRead(reader);
 			serializer::readMany(reader, docs);
+			realN = countRealN();
 		}
 
 		size_t _addDoc(const DocType& doc)
 		{
-			if(!doc.words.empty()) docs.emplace_back(doc);
+			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
+			if (vocabFrequencies.size() <= maxWid) vocabFrequencies.resize(maxWid + 1);
+			for (auto w : doc.words) ++vocabFrequencies[w];
+
+			if (!doc.words.empty()) docs.emplace_back(doc);
 			return docs.size() - 1;
 		}
 
 		size_t _addDoc(DocType&& doc)
 		{
+			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
+			if (vocabFrequencies.size() <= maxWid) vocabFrequencies.resize(maxWid + 1);
+			for (auto w : doc.words) ++vocabFrequencies[w];
+
 			if (!doc.words.empty()) docs.emplace_back(std::move(doc));
 			return docs.size() - 1;
 		}
@@ -160,6 +173,40 @@ namespace tomoto
 			tvector<VID>::trade(words, srcs.begin(), srcs.end());
 		}
 
+		size_t countRealN() const
+		{
+			size_t n = 0;
+			for (auto& doc : docs)
+			{
+				for (auto& w : doc.words)
+				{
+					if (w < realV) ++n;
+				}
+			}
+			return n;
+		}
+
+		void removeStopwords(size_t minWordCnt)
+		{
+			if (minWordCnt <= 1) realV = dict.size();
+			std::vector<VID> order;
+			sortAndWriteOrder(vocabFrequencies, order, [](auto a, auto b) { return a > b; });
+			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end(), [minWordCnt](auto a) 
+			{ 
+				return a < minWordCnt; 
+			}) - vocabFrequencies.begin();
+			dict.reorder(order);
+			realN = 0;
+			for (auto& doc : docs)
+			{
+				for (auto& w : doc.words)
+				{
+					w = order[w];
+					if (w < realV) ++realN;
+				}
+			}
+		}
+
 	public:
 		TopicModel(const RANDGEN& _rg) : rg(_rg)
 		{
@@ -172,15 +219,15 @@ namespace tomoto
 
 		size_t getN() const override
 		{ 
-			return words.size(); 
+			return realN; 
 		}
 
 		size_t getV() const override
 		{
-			return dict.size();
+			return realV;
 		}
 
-		void prepare(bool initDocs = true) override
+		void prepare(bool initDocs = true, size_t minWordCnt = 0) override
 		{
 		}
 
@@ -269,6 +316,11 @@ namespace tomoto
 		const Dictionary& getVocabDict() const override
 		{
 			return dict;
+		}
+
+		const std::vector<size_t>& getVocabFrequencies() const override
+		{
+			return vocabFrequencies;
 		}
 
 		void saveModel(std::ostream& writer, bool fullModel) const override

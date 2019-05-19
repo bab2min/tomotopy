@@ -105,6 +105,7 @@ struct TopicModelObject
 	PyObject_HEAD;
 	tomoto::ITopicModel* inst;
 	bool isPrepared;
+	size_t minWordCnt;
 
 	static void dealloc(TopicModelObject* self)
 	{
@@ -478,9 +479,9 @@ static PyGetSetDef Document_getseters[] = {
 	{ (char*)"words", (getter)Document_words, nullptr, (char*)"word ids", NULL },
 	{ (char*)"weight", (getter)Document_weight, nullptr, (char*)"weights for each word", NULL },
 	{ (char*)"topics", (getter)Document_Z, nullptr, (char*)"topics for each word", NULL },
-	{ (char*)"metadata", (getter)Document_metadata, nullptr, (char*)"metadata of document (for only `tomotopy.DMR` model)", NULL },
-	{ (char*)"subtopics", (getter)Document_Z2, nullptr, (char*)"sub topics for each word (for only `tomotopy.PA` and `tomotopy.HPA` model)", NULL },
-	{ (char*)"windows", (getter)Document_windows, nullptr, (char*)"window ids for each word (for only `tomotopy.MGLDA` model)", NULL },
+	{ (char*)"metadata", (getter)Document_metadata, nullptr, (char*)"metadata of document (for only `tomotopy.DMRModel` model)", NULL },
+	{ (char*)"subtopics", (getter)Document_Z2, nullptr, (char*)"sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model)", NULL },
+	{ (char*)"windows", (getter)Document_windows, nullptr, (char*)"window ids for each word (for only `tomotopy.MGLDAModel` model)", NULL },
 	{ nullptr },
 };
 
@@ -642,18 +643,19 @@ static PyObject* HPA_load(PyObject*, PyObject* args, PyObject *kwargs);
 
 static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0;
+	size_t tw = 0, minCnt = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "k", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnffn", (char**)kwlist, &tw, &K, &alpha, &eta, &seed)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "k", "alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnffn", (char**)kwlist, &tw, &minCnt, &K, &alpha, &eta, &seed)) return -1;
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RANDGEN{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->minWordCnt = minCnt;
 	}
 	catch (const exception& e)
 	{
@@ -722,7 +724,7 @@ static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 
 static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t iteration = 1, workers = 0;
+	size_t iteration = 10, workers = 0;
 	static const char* kwlist[] = { "iter", "workers", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nn", (char**)kwlist, &iteration, &workers)) return nullptr;
 	try
@@ -731,7 +733,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		inst->train(iteration, workers);
@@ -761,7 +763,7 @@ static PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		if (topicId >= inst->getK()) throw runtime_error{"must topic_id < K"};
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -789,7 +791,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -831,7 +833,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 			if (PyErr_Occurred()) throw bad_exception{};
 			if (!self->isPrepared)
 			{
-				self->inst->prepare();
+				self->inst->prepare(true, self->minWordCnt);
 				self->isPrepared = true;
 			}
 			auto ll = self->inst->infer(docs, iteration, tolerance);
@@ -851,7 +853,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 			if (doc->parentModel != self) throw runtime_error{ "document was from another model, not fit to this model" };
 			if (!self->isPrepared)
 			{
-				self->inst->prepare();
+				self->inst->prepare(true, self->minWordCnt);
 				self->isPrepared = true;
 			}
 
@@ -940,6 +942,30 @@ static PyObject* LDA_getVocabs(TopicModelObject* self, void* closure)
 }
 
 
+static PyObject* LDA_getCountByTopics(TopicModelObject* self)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt);
+			self->isPrepared = true;
+		}
+		return py::buildPyValue(inst->getCountByTopic());
+	}
+	catch (const bad_exception& e)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getK);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getAlpha);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getEta);
@@ -947,12 +973,15 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getPerplexity);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getLLPerWord);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getTermWeight);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getN);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getV);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabFrequencies);
 
 static PyMethodDef LDA_methods[] =
 {
 	{ "add_doc", (PyCFunction)LDA_addDoc, METH_VARARGS | METH_KEYWORDS, LDA_add_doc__doc__ },
 	{ "make_doc", (PyCFunction)LDA_makeDoc, METH_VARARGS | METH_KEYWORDS, LDA_make_doc__doc__},
 	{ "train", (PyCFunction)LDA_train, METH_VARARGS | METH_KEYWORDS, LDA_train__doc__},
+	{ "get_count_by_topics", (PyCFunction)LDA_getCountByTopics, METH_NOARGS, LDA_get_count_by_topics__doc__},
 	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, LDA_get_topic_words__doc__},
 	{ "get_topic_word_dist", (PyCFunction)LDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, LDA_get_topic_word_dist__doc__ },
 	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, LDA_infer__doc__ },
@@ -969,14 +998,16 @@ static PyGetSetDef LDA_getseters[] = {
 	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, (char*)"hyperparameter alpha", NULL },
 	{ (char*)"eta", (getter)LDA_getEta, nullptr, (char*)"hyperparameter eta", NULL },
 	{ (char*)"docs", (getter)LDA_getDocs, nullptr, (char*)"get a `list`-like interface of `tomotopy.Document` in the model instance", NULL },
-	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"get the dictionary of vocabuluary in type `tomotopy.Dictionary`", NULL },
+	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"get the dictionary of vocabuluary as type `tomotopy.Dictionary`", NULL },
+	{ (char*)"num_vocabs", (getter)LDA_getV, nullptr, (char*)"get the number of vocabuluaries after words with a smaller frequency were removed", NULL },
+	{ (char*)"vocab_freq", (getter)LDA_getVocabFrequencies, nullptr, (char*)"get the frequency of vocabularies included in the model", NULL },
 	{ (char*)"num_words", (getter)LDA_getN, nullptr, (char*)"get the number of total words", NULL },
 	{ nullptr },
 };
 
 static PyTypeObject LDA_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.LDA",             /* tp_name */
+	"tomotopy.LDAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
@@ -1018,18 +1049,19 @@ static PyTypeObject LDA_type = {
 
 static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0;
+	size_t tw = 0, minCnt = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 1e-10;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "k", "alpha", "eta", "sigma", "alpha_epsilon", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnffffn", (char**)kwlist, &tw, &K, &alpha, &eta, &sigma, &alphaEpsilon, &seed)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "k", "alpha", "eta", "sigma", "alpha_epsilon", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnffffn", (char**)kwlist, &tw, &minCnt, &K, &alpha, &eta, &sigma, &alphaEpsilon, &seed)) return -1;
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, K, alpha, sigma, eta, alphaEpsilon, tomoto::RANDGEN{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->minWordCnt = minCnt;
 	}
 	catch (const exception& e)
 	{
@@ -1166,7 +1198,7 @@ static PyGetSetDef DMR_getseters[] = {
 
 static PyTypeObject DMR_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.DMR",             /* tp_name */
+	"tomotopy.DMRModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
@@ -1207,18 +1239,19 @@ static PyTypeObject DMR_type = {
 
 static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0;
+	size_t tw = 0, minCnt = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01, gamma = 0.1;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "initial_k", "alpha", "eta", "gamma", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnfffn", (char**)kwlist, &tw, &K, &alpha, &eta, &gamma, &seed)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "initial_k", "alpha", "eta", "gamma", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnfffn", (char**)kwlist, &tw, &minCnt, &K, &alpha, &eta, &gamma, &seed)) return -1;
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, tomoto::RANDGEN{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->minWordCnt = minCnt;
 	}
 	catch (const exception& e)
 	{
@@ -1240,7 +1273,7 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->isLiveTopic(topicId));
@@ -1276,7 +1309,7 @@ static PyGetSetDef HDP_getseters[] = {
 
 static PyTypeObject HDP_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.HDP",             /* tp_name */
+	"tomotopy.HDPModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
@@ -1318,13 +1351,13 @@ static PyTypeObject HDP_type = {
 
 static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0;
+	size_t tw = 0, minCnt = 0;
 	size_t K = 1, KL = 1, T = 3;
 	float alpha = 0.1, alphaL = 0.1, eta = 0.01, etaL = 0.01, alphaM = 0.1, alphaML = 0.1, gamma = 0.1;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml", 
+	static const char* kwlist[] = { "tw", "min_cf", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml", 
 		"eta_g", "eta_l", "gamma", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfffffffn", (char**)kwlist, &tw, &K, &KL, &T,
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffffffn", (char**)kwlist, &tw, &minCnt, &K, &KL, &T,
 		&alpha, &alphaL, &alphaM, &alphaML, &eta, &etaL, &gamma, &seed)) return -1;
 	try
 	{
@@ -1333,6 +1366,7 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->minWordCnt = minCnt;
 	}
 	catch (const exception& e)
 	{
@@ -1413,7 +1447,7 @@ static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyO
 		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -1441,7 +1475,7 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -1491,7 +1525,7 @@ static PyGetSetDef MGLDA_getseters[] = {
 
 static PyTypeObject MGLDA_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.MGLDA",             /* tp_name */
+	"tomotopy.MGLDAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
@@ -1532,12 +1566,12 @@ static PyTypeObject MGLDA_type = {
 
 static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0;
+	size_t tw = 0, minCnt = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "k1", "k2", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnffn", (char**)kwlist, &tw, 
+	static const char* kwlist[] = { "tw", "min_cf", "k1", "k2", "alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffn", (char**)kwlist, &tw, &minCnt,
 		&K, &K2, &alpha, &eta, &seed)) return -1;
 	try
 	{
@@ -1546,6 +1580,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->minWordCnt = minCnt;
 	}
 	catch (const exception& e)
 	{
@@ -1567,7 +1602,7 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId));
@@ -1600,7 +1635,7 @@ static PyGetSetDef PA_getseters[] = {
 
 static PyTypeObject PA_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.PA",             /* tp_name */
+	"tomotopy.PAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
@@ -1641,12 +1676,12 @@ static PyTypeObject PA_type = {
 
 static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0;
+	size_t tw = 0, minCnt = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "k1", "k2", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnffn", (char**)kwlist, &tw, 
+	static const char* kwlist[] = { "tw", "min_cf", "k1", "k2", "alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffn", (char**)kwlist, &tw, &minCnt,
 		&K, &K2, &alpha, &eta, &seed)) return -1;
 	try
 	{
@@ -1655,6 +1690,7 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->minWordCnt = minCnt;
 	}
 	catch (const exception& e)
 	{
@@ -1676,7 +1712,7 @@ static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -1704,7 +1740,7 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare();
+			inst->prepare(true, self->minWordCnt);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -1734,7 +1770,7 @@ static PyGetSetDef HPA_getseters[] = {
 
 static PyTypeObject HPA_type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"tomotopy.HPA",             /* tp_name */
+	"tomotopy.HPAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
@@ -1809,7 +1845,7 @@ PyMODINIT_FUNC MODULE_NAME()
 	PyModule_AddStringConstant(gModule, "isa", "avx2");
 #elif defined(__AVX__)
 	PyModule_AddStringConstant(gModule, "isa", "avx");
-#elif defined(__SSE2__)
+#elif defined(__SSE2__) || defined(__x86_64__) || defined(_WIN64)
 	PyModule_AddStringConstant(gModule, "isa", "sse2");
 #else
 	PyModule_AddStringConstant(gModule, "isa", "none");
@@ -1822,16 +1858,16 @@ PyMODINIT_FUNC MODULE_NAME()
 	Py_INCREF(&Dictionary_type);
 	PyModule_AddObject(gModule, "Dictionary", (PyObject*)&Dictionary_type);
 	Py_INCREF(&LDA_type);
-	PyModule_AddObject(gModule, "LDA", (PyObject*)&LDA_type);
+	PyModule_AddObject(gModule, "LDAModel", (PyObject*)&LDA_type);
 	Py_INCREF(&DMR_type);
-	PyModule_AddObject(gModule, "DMR", (PyObject*)&DMR_type);
+	PyModule_AddObject(gModule, "DMRModel", (PyObject*)&DMR_type);
 	Py_INCREF(&HDP_type);
-	PyModule_AddObject(gModule, "HDP", (PyObject*)&HDP_type);
+	PyModule_AddObject(gModule, "HDPModel", (PyObject*)&HDP_type);
 	Py_INCREF(&MGLDA_type);
-	PyModule_AddObject(gModule, "MGLDA", (PyObject*)&MGLDA_type);
+	PyModule_AddObject(gModule, "MGLDAModel", (PyObject*)&MGLDA_type);
 	Py_INCREF(&PA_type);
-	PyModule_AddObject(gModule, "PA", (PyObject*)&PA_type);
+	PyModule_AddObject(gModule, "PAModel", (PyObject*)&PA_type);
 	Py_INCREF(&HPA_type);
-	PyModule_AddObject(gModule, "HPA", (PyObject*)&HPA_type);
+	PyModule_AddObject(gModule, "HPAModel", (PyObject*)&HPA_type);
 	return gModule;
 }

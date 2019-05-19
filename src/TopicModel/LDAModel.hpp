@@ -143,7 +143,7 @@ namespace tomoto
 		static constexpr const char* TMID = "LDA";
 		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
 
-		std::vector<FLOAT> vocabWeight;
+		std::vector<FLOAT> vocabWeights;
 		std::vector<TID> sharedZs;
 		std::vector<FLOAT> sharedWordWeights;
 		FLOAT alpha;
@@ -158,7 +158,7 @@ namespace tomoto
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + alpha)
@@ -172,7 +172,7 @@ namespace tomoto
 		template<int INC>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID tid) const
 		{
-			size_t V = this->dict.size();
+			const size_t V = this->realV;
 			assert(tid < K);
 			assert(vid < V);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
@@ -188,6 +188,7 @@ namespace tomoto
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
+				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 				auto dist = static_cast<const DerivedClass*>(this)->getZLikelihoods(ld, doc, doc.words[w]);
 				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + K, rgs);
@@ -268,7 +269,7 @@ namespace tomoto
 		double getLLRest(const _ModelState& ld) const
 		{
 			double ll = 0;
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			// topic-word distribution
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
 			for (TID k = 0; k < K; ++k)
@@ -319,7 +320,7 @@ namespace tomoto
 
 		void initGlobalState(bool initDocs)
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(K);
 			if (initDocs)
 			{
@@ -350,23 +351,24 @@ namespace tomoto
 		template<typename _Generator>
 		void initializeDocState(_DocType& doc, size_t docId, _Generator& g, _ModelState& ld, RANDGEN& rgs) const
 		{
-			std::vector<uint32_t> tf(this->dict.size());
+			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, docId, doc.words.size());
 			if (_TW == TermWeight::pmi)
 			{
 				fill(tf.begin(), tf.end(), 0);
-				for (auto& w : doc.words) ++tf[w];
+				for (auto& w : doc.words) if(w < this->realV) ++tf[w];
 			}
 
 			for (size_t i = 0; i < doc.words.size(); ++i)
 			{
+				if (doc.words[i] >= this->realV) continue;
 				if (_TW == TermWeight::idf)
 				{
-					doc.wordWeights[i] = vocabWeight[doc.words[i]];
+					doc.wordWeights[i] = vocabWeights[doc.words[i]];
 				}
 				else if (_TW == TermWeight::pmi)
 				{
-					doc.wordWeights[i] = std::max((FLOAT)log(tf[doc.words[i]] / vocabWeight[doc.words[i]] / doc.words.size()), (FLOAT)0);
+					doc.wordWeights[i] = std::max((FLOAT)log(tf[doc.words[i]] / vocabWeights[doc.words[i]] / doc.words.size()), (FLOAT)0);
 				}
 				static_cast<const DerivedClass*>(this)->updateStateWithDoc(g, ld, rgs, doc, i);
 			}
@@ -382,7 +384,7 @@ namespace tomoto
 			return cnt;
 		}
 
-		DEFINE_SERIALIZER(vocabWeight, alpha, eta, K);
+		DEFINE_SERIALIZER(vocabWeights, alpha, eta, K);
 
 	public:
 		LDAModel(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
@@ -422,13 +424,13 @@ namespace tomoto
 			}
 		}
 
-
-		void prepare(bool initDocs = true)
+		void prepare(bool initDocs = true, size_t minWordCnt = 0)
 		{
+			if (initDocs) this->removeStopwords(minWordCnt);
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
 
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 
 			if (initDocs)
 			{
@@ -439,36 +441,31 @@ namespace tomoto
 				if (_TW != TermWeight::one)
 				{
 					df.resize(V);
-					cf.resize(V);
 					tf.resize(V);
 					for (auto& doc : this->docs)
 					{
-						for (auto& w : doc.words)
-						{
-							++cf[w];
-						}
-
 						for (auto w : std::unordered_set<VID>{ doc.words.begin(), doc.words.end() })
 						{
+							if (w >= this->realV) continue;
 							++df[w];
 						}
 					}
-					totCf = accumulate(cf.begin(), cf.end(), 0);
+					totCf = accumulate(this->vocabFrequencies.begin(), this->vocabFrequencies.end(), 0);
 				}
 				if (_TW == TermWeight::idf)
 				{
-					vocabWeight.resize(V);
+					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
 					{
-						vocabWeight[i] = log(this->docs.size() / (FLOAT)df[i]);
+						vocabWeights[i] = log(this->docs.size() / (FLOAT)df[i]);
 					}
 				}
 				else if (_TW == TermWeight::pmi)
 				{
-					vocabWeight.resize(V);
+					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
 					{
-						vocabWeight[i] = cf[i] / (float)totCf;
+						vocabWeights[i] = this->vocabFrequencies[i] / (float)totCf;
 					}
 				}
 
@@ -504,7 +501,7 @@ namespace tomoto
 		std::vector<FLOAT> _getWidsByTopic(TID tid) const
 		{
 			assert(tid < K);
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			std::vector<FLOAT> ret(V);
 			FLOAT sum = this->globalState.numByTopic[tid] + V * eta;
 			auto r = this->globalState.numByTopicWord.row(tid);

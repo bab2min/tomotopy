@@ -37,7 +37,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.1.2',
+    version='0.1.3',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
@@ -70,7 +70,7 @@ setup(
 		"Operating System :: POSIX"
     ],
     install_requires=['py-cpuinfo'],
-    keywords='NLP, Topic Model',
+    keywords='NLP,Topic Model',
 
     packages = ['tomotopy'],
     include_package_data=True,

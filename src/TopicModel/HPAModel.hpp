@@ -115,7 +115,7 @@ namespace tomoto
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto eta = this->eta;
 			assert(vid < V);
@@ -166,7 +166,7 @@ namespace tomoto
 		template<int INC>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID z1, TID z2) const
 		{
-			size_t V = this->dict.size();
+			size_t V = this->realV;
 			assert(vid < V);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
 			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
@@ -202,6 +202,7 @@ namespace tomoto
 			const auto K = this->K;
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
+				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
 				auto dist = getZLikelihoods(ld, doc, doc.words[w]);
 				if (_Exclusive)
@@ -293,7 +294,7 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto alphaSum = alphas.sum();
 
@@ -315,7 +316,7 @@ namespace tomoto
 
 		double getLLRest(const _ModelState& ld) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto eta = this->eta;
 
@@ -367,7 +368,7 @@ namespace tomoto
 
 		void initGlobalState(bool initDocs)
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(1 + this->K + this->K * K2);
 			if (initDocs)
 			{
@@ -463,7 +464,7 @@ namespace tomoto
 
 		std::vector<FLOAT> _getWidsByTopic(TID k) const
 		{
-			const size_t V = this->dict.size();
+			const size_t V = this->realV;
 			std::vector<FLOAT> ret(V);
 			size_t level = 0;
 			if (k >= 1)
