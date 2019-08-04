@@ -16,7 +16,7 @@ tomotopy 란?
 * Pachinko Allocation (`tomotopy.PAModel`)
 * Hierarchical PA (`tomotopy.HPAModel`)
 
-더 자세한 정보는 https://bab2min.github.io/tomotopy 에서 확인하시길 바랍니다.
+더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
 시작하기
 ---------------
