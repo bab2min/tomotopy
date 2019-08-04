@@ -228,26 +228,14 @@ namespace tomoto
 			}
 		}
 
-		void updateGlobal(ThreadPool& pool, _ModelState* localData)
+		void updateGlobalInfo(ThreadPool& pool, _ModelState* localData)
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
-			const size_t V = this->realV;
 			auto& K = this->K;
 			K = 0;
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
 				K = std::max(K, (TID)localData[i].numByTopic.size());
-			}
-
-			if (K > this->globalState.numByTopic.size())
-			{
-				size_t oldSize = this->globalState.numByTopic.size();
-				this->globalState.numByTopic.conservativeResize(K);
-				this->globalState.numByTopic.tail(K - oldSize).setZero();
-				this->globalState.numTableByTopic.conservativeResize(K);
-				this->globalState.numTableByTopic.tail(K - oldSize).setZero();
-				this->globalState.numByTopicWord.conservativeResize(K, Eigen::NoChange);
-				this->globalState.numByTopicWord.block(oldSize, 0, K - oldSize, V).setZero();
 			}
 
 			// synchronize topic size of all documents
@@ -266,27 +254,45 @@ namespace tomoto
 				}, this->docs.size() * i / pool.getNumWorkers(), this->docs.size() * (i + 1) / pool.getNumWorkers());
 			}
 			for (auto&& r : res) r.get();
+		}
 
-			this->tState = this->globalState;
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
+		{
+			std::vector<std::future<void>> res(pool.getNumWorkers());
+			const size_t V = this->realV;
+			auto K = this->K;
+
+			if (K > globalState.numByTopic.size())
+			{
+				size_t oldSize = globalState.numByTopic.size();
+				globalState.numByTopic.conservativeResize(K);
+				globalState.numByTopic.tail(K - oldSize).setZero();
+				globalState.numTableByTopic.conservativeResize(K);
+				globalState.numTableByTopic.tail(K - oldSize).setZero();
+				globalState.numByTopicWord.conservativeResize(K, Eigen::NoChange);
+				globalState.numByTopicWord.block(oldSize, 0, K - oldSize, V).setZero();
+			}
+
+			tState = globalState;
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
 				size_t locK = localData[i].numByTopic.size();
-				this->globalState.numByTopic.head(locK) 
-					+= localData[i].numByTopic.head(locK) - this->tState.numByTopic.head(locK);
-				this->globalState.numTableByTopic.head(locK)
-					+= localData[i].numTableByTopic.head(locK) - this->tState.numTableByTopic.head(locK);
-				this->globalState.numByTopicWord.block(0, 0, locK, V)
-					+= localData[i].numByTopicWord.block(0, 0, locK, V) - this->tState.numByTopicWord.block(0, 0, locK, V);
+				globalState.numByTopic.head(locK) 
+					+= localData[i].numByTopic.head(locK) - tState.numByTopic.head(locK);
+				globalState.numTableByTopic.head(locK)
+					+= localData[i].numTableByTopic.head(locK) - tState.numTableByTopic.head(locK);
+				globalState.numByTopicWord.block(0, 0, locK, V)
+					+= localData[i].numByTopicWord.block(0, 0, locK, V) - tState.numByTopicWord.block(0, 0, locK, V);
 			}
 
 			// make all count being positive
 			if (_TW != TermWeight::one)
 			{
-				this->globalState.numByTopic = this->globalState.numByTopic.cwiseMax(0);
-				this->globalState.numByTopicWord = this->globalState.numByTopicWord.cwiseMax(0);
+				globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
+				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 			}
 
-			this->globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, auto doc)
+			globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, auto doc)
 			{
 				return sum + doc.getNumTable();
 			});
@@ -295,7 +301,7 @@ namespace tomoto
 			{
 				res[i] = pool.enqueue([&, this, i](size_t threadId)
 				{
-					localData[i] = this->globalState;
+					localData[i] = globalState;
 				});
 			}
 			for (auto&& r : res) r.get();
@@ -367,9 +373,9 @@ namespace tomoto
 			}
 		}
 
-		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
+		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
-			doc.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K);
+			doc.numByTopic.init(topicDocPtr, this->K);
 			doc.Zs = tvector<TID>(wordSize);
 			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}

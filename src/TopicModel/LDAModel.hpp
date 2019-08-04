@@ -35,28 +35,41 @@ namespace tomoto
 {
 	enum class TermWeight { one, idf, pmi, size };
 
-	template<typename _Scalar, bool _Shared = false>
-	struct ShareableVector : public Eigen::Matrix<_Scalar, -1, 1>
-	{
-		using Eigen::Matrix<_Scalar, -1, 1>::Matrix;
-		void init(_Scalar* ptr, Eigen::Index len)
-		{
-			*this = Eigen::Matrix<_Scalar, -1, 1>::Zero(len);
-		}
-	};
-
 	template<typename _Scalar>
-	struct ShareableVector<_Scalar, true> : Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>
+	struct ShareableVector : Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>
 	{
-		using Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>::Map;
-		ShareableVector() : Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>{ nullptr, 0 }
-		{}
+		Eigen::Matrix<_Scalar, -1, 1> ownData;
+		ShareableVector(_Scalar* ptr = nullptr, Eigen::Index len = 0) 
+			: Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>(nullptr, 0)
+		{
+			init(ptr, len);
+		}
 
 		void init(_Scalar* ptr, Eigen::Index len)
 		{
+			if (!ptr && len)
+			{
+				ownData = Eigen::Matrix<_Scalar, -1, 1>::Zero(len);
+				ptr = ownData.data();
+			}
 			// is this the best way??
 			this->m_data = ptr;
 			((Eigen::internal::variable_if_dynamic<Eigen::Index, -1>*)&this->m_rows)->setValue(len);
+		}
+
+		void conservativeResize(size_t newSize)
+		{
+			ownData.conservativeResize(newSize);
+			init(ownData.data(), ownData.size());
+		}
+
+		void becomeOwner()
+		{
+			if (ownData.data() != this->m_data)
+			{
+				ownData = *this;
+				init(ownData.data(), ownData.size());
+			}
 		}
 	};
 
@@ -69,7 +82,7 @@ namespace tomoto
 
 		tvector<TID> Zs;
 		tvector<FLOAT> wordWeights;
-		ShareableVector<WeightType, _Shared> numByTopic;
+		ShareableVector<WeightType> numByTopic;
 
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentBase, Zs, wordWeights);
 
@@ -119,6 +132,8 @@ namespace tomoto
 		virtual TermWeight getTermWeight() const = 0;
 		virtual size_t getOptimInterval() const = 0;
 		virtual void setOptimInterval(size_t) = 0;
+		virtual size_t getBurnInIteration() const = 0;
+		virtual void setBurnInIteration(size_t) = 0;
 		virtual std::vector<size_t> getCountByTopic() const = 0;
 		virtual size_t getK() const = 0;
 		virtual FLOAT getAlpha() const = 0;
@@ -147,13 +162,36 @@ namespace tomoto
 		std::vector<TID> sharedZs;
 		std::vector<FLOAT> sharedWordWeights;
 		FLOAT alpha;
+		Eigen::Matrix<FLOAT, -1, 1> alphas;
 		FLOAT eta;
 		TID K;
-		size_t optimInterval = 0;
+		size_t optimInterval = 10, burnIn = 0;
 		Eigen::Matrix<WeightType, -1, -1> numByTopicDoc;
 
-		void optimizeHyperparameter(ThreadPool& pool, _ModelState* localData)
+		template<typename _List>
+		static FLOAT calcDigammaSum(_List list, size_t len, FLOAT alpha)
 		{
+			FLOAT ret = 0;
+			auto dAlpha = math::digammaT(alpha);
+			for (size_t i = 0; i < len; ++i)
+			{
+				ret += math::digammaT(list(i) + alpha) - dAlpha;
+			}
+			return ret;
+		}
+
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
+		{
+			const auto K = this->K;
+			for (size_t i = 0; i < 10; ++i)
+			{
+				FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), alphas.sum());
+				for (size_t k = 0; k < K; ++k)
+				{
+					FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas(k));
+					alphas(k) = std::max(nom / denom * alphas(k), 1e-5f);
+				}
+			}
 		}
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
@@ -161,7 +199,7 @@ namespace tomoto
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
-			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + alpha)
+			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + alphas.array())
 				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + eta)
 				/ (ld.numByTopic.array().template cast<FLOAT>() + V * eta);
 
@@ -204,7 +242,7 @@ namespace tomoto
 			{
 				res.emplace_back(pool.enqueue([&, this, ch, chStride](size_t threadId)
 				{
-					forRandom((this->docs.size() - 1 - ch) / chStride + 1, this->rg(), [&, this](size_t id)
+					forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 					{
 						static_cast<DerivedClass*>(this)->sampleDocument(this->docs[id * chStride + ch],
 							localData[threadId], rgs[threadId]);
@@ -212,37 +250,42 @@ namespace tomoto
 				}));
 			}
 			for (auto&& r : res) r.get();
-			static_cast<DerivedClass*>(this)->updateGlobal(pool, localData);
-			if (optimInterval && (this->iterated + 1) % optimInterval == 0)
+			static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
+			static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData);
+			if (this->iterated >= this->burnIn && optimInterval && (this->iterated + 1) % optimInterval == 0)
 			{
-				static_cast<DerivedClass*>(this)->optimizeHyperparameter(pool, localData);
+				static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData);
 			}
 		}
 
-		void updateGlobal(ThreadPool& pool, _ModelState* localData)
+		void updateGlobalInfo(ThreadPool& pool, _ModelState* localData)
+		{
+		}
+
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
 
-			this->tState = this->globalState;
-			this->globalState = localData[0];
+			tState = globalState;
+			globalState = localData[0];
 			for (size_t i = 1; i < pool.getNumWorkers(); ++i)
 			{
-				this->globalState.numByTopic += localData[i].numByTopic - this->tState.numByTopic;
-				this->globalState.numByTopicWord += localData[i].numByTopicWord - this->tState.numByTopicWord;
+				globalState.numByTopic += localData[i].numByTopic - tState.numByTopic;
+				globalState.numByTopicWord += localData[i].numByTopicWord - tState.numByTopicWord;
 			}
 
 			// make all count being positive
 			if (_TW != TermWeight::one)
 			{
-				this->globalState.numByTopic = this->globalState.numByTopic.cwiseMax(0);
-				this->globalState.numByTopicWord = this->globalState.numByTopicWord.cwiseMax(0);
+				globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
+				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 			}
 
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
-				res[i] = pool.enqueue([&, this, i](size_t threadId)
+				res[i] = pool.enqueue([&, i](size_t threadId)
 				{
-					localData[i] = this->globalState;
+					localData[i] = globalState;
 				});
 			}
 			for (auto&& r : res) r.get();
@@ -253,14 +296,13 @@ namespace tomoto
 		{
 			double ll = 0;
 			// doc-topic distribution
-			ll += (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * std::distance(_first, _last);
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + K * alpha);
+				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphas.sum()) - math::lgammaT(alphas.sum());
 				for (TID k = 0; k < K; ++k)
 				{
-					ll += math::lgammaT(doc.numByTopic[k] + alpha);
+					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]) - math::lgammaT(alphas[k]);
 				}
 			}
 			return ll;
@@ -271,14 +313,15 @@ namespace tomoto
 			double ll = 0;
 			const size_t V = this->realV;
 			// topic-word distribution
-			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
+			auto lgammaEta = math::lgammaT(eta);
+			ll += math::lgammaT(V*eta) * K;
 			for (TID k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					assert(ld.numByTopicWord(k, v) >= 0);
-					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta);
+					if (!ld.numByTopicWord(k, v)) continue;
+					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
 				}
 			}
 			return ll;
@@ -292,28 +335,22 @@ namespace tomoto
 
 		void prepareShared()
 		{
-			std::vector<tvector<TID>*> srcs;
-			srcs.reserve(this->docs.size());
-			for (auto&& doc : this->docs)
-			{
-				srcs.emplace_back(&doc.Zs);
-			}
-			tvector<TID>::trade(sharedZs, srcs.begin(), srcs.end());
+			auto txZs = [](_DocType& doc) { return &doc.Zs; };
+			tvector<TID>::trade(sharedZs, 
+				makeTransformIter(this->docs.begin(), txZs),
+				makeTransformIter(this->docs.end(), txZs));
 			if (_TW != TermWeight::one)
 			{
-				std::vector<tvector<FLOAT>*> srcs;
-				srcs.reserve(this->docs.size());
-				for (auto&& doc : this->docs)
-				{
-					srcs.emplace_back(&doc.wordWeights);
-				}
-				tvector<FLOAT>::trade(sharedWordWeights, srcs.begin(), srcs.end());
+				auto txWeights = [](_DocType& doc) { return &doc.wordWeights; };
+				tvector<FLOAT>::trade(sharedWordWeights,
+					makeTransformIter(this->docs.begin(), txWeights),
+					makeTransformIter(this->docs.end(), txWeights));
 			}
 		}
 		
-		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
+		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
-			doc.numByTopic.init(_Shared ? (WeightType*)numByTopicDoc.col(docId).data() : nullptr, K);
+			doc.numByTopic.init(_Shared ? topicDocPtr : nullptr, K);
 			doc.Zs = tvector<TID>(wordSize);
 			if(_TW != TermWeight::one) doc.wordWeights.resize(wordSize, 1);
 		}
@@ -349,13 +386,13 @@ namespace tomoto
 		}
 
 		template<typename _Generator>
-		void initializeDocState(_DocType& doc, size_t docId, _Generator& g, _ModelState& ld, RANDGEN& rgs) const
+		void initializeDocState(_DocType& doc, WeightType* topicDocPtr, _Generator& g, _ModelState& ld, RANDGEN& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
-			static_cast<const DerivedClass*>(this)->prepareDoc(doc, docId, doc.words.size());
+			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
 			if (_TW == TermWeight::pmi)
 			{
-				fill(tf.begin(), tf.end(), 0);
+				std::fill(tf.begin(), tf.end(), 0);
 				for (auto& w : doc.words) if(w < this->realV) ++tf[w];
 			}
 
@@ -384,16 +421,102 @@ namespace tomoto
 			return cnt;
 		}
 
-		DEFINE_SERIALIZER(vocabWeights, alpha, eta, K);
+		std::vector<FLOAT> _getWidsByTopic(TID tid) const
+		{
+			assert(tid < K);
+			const size_t V = this->realV;
+			std::vector<FLOAT> ret(V);
+			FLOAT sum = this->globalState.numByTopic[tid] + V * eta;
+			auto r = this->globalState.numByTopicWord.row(tid);
+			for (size_t v = 0; v < V; ++v)
+			{
+				ret[v] = (r[v] + eta) / sum;
+			}
+			return ret;
+		}
+
+		template<bool _Together, typename _Iter>
+		std::vector<double> _infer(_Iter docFirst, _Iter docLast, size_t maxIter, FLOAT tolerance, size_t numWorkers) const
+		{
+			auto generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit();
+			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
+			ThreadPool pool(numWorkers, numWorkers * 8);
+			if (_Together)
+			{
+				// temporary state variable
+				RANDGEN rgc{};
+				auto tmpState = this->globalState, tState = this->globalState;
+				for (auto d = docFirst; d != docLast; ++d)
+				{
+					initializeDocState(*d, nullptr, generator, tmpState, rgc);
+				}
+
+				std::vector<decltype(tmpState)> localData(pool.getNumWorkers(), tmpState);
+				std::vector<RANDGEN> rgs;
+				for (size_t i = 0; i < pool.getNumWorkers(); ++i) rgs.emplace_back(rgc());
+
+				for (size_t i = 0; i < maxIter; ++i)
+				{
+					std::vector<std::future<void>> res;
+					const size_t chStride = std::min(pool.getNumWorkers() * 8, (size_t)std::distance(docFirst, docLast));
+					for (size_t ch = 0; ch < chStride; ++ch)
+					{
+						res.emplace_back(pool.enqueue([&, ch, chStride](size_t threadId)
+						{
+							forRandom((std::distance(docFirst, docLast) - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
+							{
+								static_cast<const DerivedClass*>(this)->sampleDocument(
+									docFirst[id * chStride + ch], localData[threadId], rgs[threadId]);
+							});
+						}));
+					}
+					for (auto&& r : res) r.get();
+					static_cast<const DerivedClass*>(this)->mergeState(pool, tmpState, tState, localData.data());
+				}
+				double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
+				ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(docFirst, docLast);
+				return { ll };
+			}
+			else
+			{
+				std::vector<std::future<double>> res;
+				const double gllRest = static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
+				for (auto d = docFirst; d != docLast; ++d)
+				{
+					res.emplace_back(pool.enqueue([&, d](size_t threadId)
+					{
+						RANDGEN rgc{};
+						auto tmpState = this->globalState;
+						initializeDocState(*d, nullptr, generator, tmpState, rgc);
+						for (size_t i = 0; i < maxIter; ++i)
+						{
+							static_cast<const DerivedClass*>(this)->sampleDocument(*d, tmpState, rgc);
+						}
+						double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
+						ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&*d, &*d + 1);
+						return ll;
+					}));
+				}
+				std::vector<double> ret;
+				for (auto&& r : res) ret.emplace_back(r.get());
+				return ret;
+			}
+		}
+
+		DEFINE_SERIALIZER(vocabWeights, alpha, alphas, eta, K);
 
 	public:
 		LDAModel(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
-		{ }
+		{ 
+			alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(K, alpha);
+		}
+
 		GETTER(K, size_t, K);
 		GETTER(Alpha, FLOAT, alpha);
 		GETTER(Eta, FLOAT, eta);
 		GETTER(OptimInterval, size_t, optimInterval);
+		GETTER(BurnInIteration, size_t, burnIn);
 
 		TermWeight getTermWeight() const override
 		{
@@ -403,6 +526,11 @@ namespace tomoto
 		void setOptimInterval(size_t _optimInterval) override
 		{
 			optimInterval = _optimInterval;
+		}
+
+		void setBurnInIteration(size_t iteration) override
+		{
+			burnIn = iteration;
 		}
 
 		size_t addDoc(const std::vector<std::string>& words) override
@@ -472,7 +600,7 @@ namespace tomoto
 				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
 				for (auto& doc : this->docs)
 				{
-					initializeDocState(doc, &doc - &this->docs[0], generator, this->globalState, this->rg);
+					initializeDocState(doc, _Shared ? numByTopicDoc.col(&doc - &this->docs[0]).data() : nullptr, generator, this->globalState, this->rg);
 				}
 			}
 			else
@@ -498,60 +626,6 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> _getWidsByTopic(TID tid) const
-		{
-			assert(tid < K);
-			const size_t V = this->realV;
-			std::vector<FLOAT> ret(V);
-			FLOAT sum = this->globalState.numByTopic[tid] + V * eta;
-			auto r = this->globalState.numByTopicWord.row(tid);
-			for (size_t v = 0; v < V; ++v)
-			{
-				ret[v] = (r[v] + eta) / sum;
-			}
-			return ret;
-		}
-
-		FLOAT infer(_DocType& doc, size_t maxIter, FLOAT tolerance) const
-		{
-			auto generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit();
-			// temporary state variable
-			RANDGEN rgc{};
-			auto tmpState = this->globalState;
-
-			initializeDocState(doc, -1, generator, tmpState, rgc);
-			for (size_t i = 0; i < maxIter; ++i)
-			{
-				static_cast<const DerivedClass*>(this)->sampleDocument(doc, tmpState, rgc);
-			}
-
-			FLOAT ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
-			ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&doc, &doc + 1);
-			return ll;
-		}
-
-		FLOAT infer(const std::vector<_DocType*>& docs, size_t maxIter, FLOAT tolerance) const
-		{
-			auto generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit();
-			// temporary state variable
-			RANDGEN rgc{};
-			auto tmpState = this->globalState;
-			for (auto doc : docs)
-			{
-				initializeDocState(*doc, -1, generator, tmpState, rgc);
-			}
-			for (size_t i = 0; i < maxIter; ++i)
-			{
-				for (auto doc : docs) static_cast<const DerivedClass*>(this)->sampleDocument(*doc, tmpState, rgc);
-			}
-
-			FLOAT ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
-			auto tx = [](auto x)->_DocType& { return *x; };
-			ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(
-				makeTransformIter(docs.begin(), tx),
-				makeTransformIter(docs.end(), tx));
-			return ll;
-		}
 	};
 
 	ILDAModel* ILDAModel::create(TermWeight _weight, size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)

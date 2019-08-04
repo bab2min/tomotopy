@@ -7,6 +7,8 @@ Latent Dirichlet Allocation(`tomotopy.LDAModel`), Dirichlet Multinomial Regressi
 Hierarchical Dirichlet Process(`tomotopy.HDPModel`), Multi Grain LDA(`tomotopy.MGLDAModel`), 
 Pachinko Allocation(`tomotopy.PAModel`) and Hierarchical PA(`tomotopy.HPAModel`).
 
+Please visit https://bab2min.github.io/tomotopy to see more information.
+
 Getting Started
 ---------------
 You can install tomotopy easily using pip.

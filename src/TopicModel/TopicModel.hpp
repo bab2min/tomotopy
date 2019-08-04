@@ -40,8 +40,7 @@ namespace tomoto
 		
 		virtual std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const = 0;
 		virtual std::vector<std::pair<TID, FLOAT>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
-		virtual FLOAT infer(DocumentBase* doc, size_t maxIter, FLOAT tolerance) const = 0;
-		virtual FLOAT infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance) const = 0;
+		virtual std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, bool together) const = 0;
 		virtual ~ITopicModel() {}
 	};
 
@@ -113,21 +112,21 @@ namespace tomoto
 
 		size_t _addDoc(const DocType& doc)
 		{
+			if (doc.words.empty()) return -1;
 			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
 			if (vocabFrequencies.size() <= maxWid) vocabFrequencies.resize(maxWid + 1);
 			for (auto w : doc.words) ++vocabFrequencies[w];
-
-			if (!doc.words.empty()) docs.emplace_back(doc);
+			docs.emplace_back(doc);
 			return docs.size() - 1;
 		}
 
 		size_t _addDoc(DocType&& doc)
 		{
+			if (doc.words.empty()) return -1;
 			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
 			if (vocabFrequencies.size() <= maxWid) vocabFrequencies.resize(maxWid + 1);
 			for (auto w : doc.words) ++vocabFrequencies[w];
-
-			if (!doc.words.empty()) docs.emplace_back(std::move(doc));
+			docs.emplace_back(std::move(doc));
 			return docs.size() - 1;
 		}
 
@@ -162,15 +161,15 @@ namespace tomoto
 
 		void updateWeakArray()
 		{
-			std::vector<tvector<VID>*> srcs;
-			srcs.reserve(docs.size());
 			wOffsetByDoc.emplace_back(0);
-			for (auto&& doc : docs)
+			for (auto& doc : docs)
 			{
-				srcs.emplace_back(&doc.words);
 				wOffsetByDoc.emplace_back(wOffsetByDoc.back() + doc.words.size());
 			}
-			tvector<VID>::trade(words, srcs.begin(), srcs.end());
+			auto tx = [](_DocType& doc) { return &doc.words; };
+			tvector<VID>::trade(words, 
+				makeTransformIter(docs.begin(), tx),
+				makeTransformIter(docs.end(), tx));
 		}
 
 		size_t countRealN() const
@@ -252,7 +251,7 @@ namespace tomoto
 
 		double getLLPerWord() const override
 		{
-			return static_cast<const _Derived*>(this)->getLL() / words.size();
+			return words.empty() ? 0 : static_cast<const _Derived*>(this)->getLL() / words.size();
 		}
 
 		double getPerplexity() const override
@@ -285,16 +284,15 @@ namespace tomoto
 			return vid2String(getWidsByTopicSorted(tid, topN));
 		}
 
-		FLOAT infer(DocumentBase* doc, size_t maxIter, FLOAT tolerance) const override
+		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, bool together) const override
 		{
-			return static_cast<const _Derived*>(this)->infer(*static_cast<DocType*>(doc), maxIter, tolerance);
-		}
-
-		FLOAT infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance) const override
-		{
-			std::vector<DocType*> rDocs;
-			std::transform(docs.begin(), docs.end(), std::back_inserter(rDocs), [](auto t) { return static_cast<DocType*>(t); });
-			return static_cast<const _Derived*>(this)->infer(rDocs, maxIter, tolerance);
+			auto tx = [](DocumentBase* p)->DocType& { return *static_cast<DocType*>(p); };
+			if(together) return static_cast<const _Derived*>(this)->_infer<true>(
+				makeTransformIter(docs.begin(), tx), makeTransformIter(docs.end(), tx),
+				maxIter, tolerance, numWorkers);
+			else return static_cast<const _Derived*>(this)->_infer<false>(
+				makeTransformIter(docs.begin(), tx), makeTransformIter(docs.end(), tx),
+				maxIter, tolerance, numWorkers);
 		}
 
 		std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const override

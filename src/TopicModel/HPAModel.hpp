@@ -63,27 +63,16 @@ namespace tomoto
 		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
 		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * (K2 + 1)
 
-		void optimizeHyperparameter(ThreadPool& pool, _ModelState* localData)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
 		{
 			const auto K = this->K;
-			auto calcDigammaSum = [](auto list, size_t len, FLOAT alpha)
-			{
-				FLOAT ret = 0;
-				auto dAlpha = math::digammaT(alpha);
-				for (size_t i = 0; i < len; ++i)
-				{
-					ret += math::digammaT(list(i) + alpha) - dAlpha;
-				}
-				return ret;
-			};
-
 			for (size_t i = 0; i < iteration; ++i)
 			{
-				FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), alphas.sum());
+				FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), alphas.sum());
 
 				for (size_t k = 0; k <= K; ++k)
 				{
-					FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas[k]);
+					FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas[k]);
 					alphas[k] = std::max(nom / denom * alphas[k], epsilon);
 				}
 			}
@@ -95,10 +84,10 @@ namespace tomoto
 				{
 					for (size_t i = 0; i < iteration; ++i)
 					{
-						FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k + 1]; }, this->docs.size(), subAlphaSum[k]);
+						FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k + 1]; }, this->docs.size(), subAlphaSum[k]);
 						for (size_t k2 = 0; k2 <= K2; ++k2)
 						{
-							FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
+							FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
 							subAlphas(k, k2) = std::max(nom / denom * subAlphas(k, k2), epsilon);
 						}
 						subAlphaSum[k] = subAlphas.row(k).sum();
@@ -247,40 +236,40 @@ namespace tomoto
 			}
 		}
 
-		void updateGlobal(ThreadPool& pool, _ModelState* localData)
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
 
-			this->tState = this->globalState;
-			this->globalState = localData[0];
+			tState = globalState;
+			globalState = localData[0];
 			for (size_t i = 1; i < pool.getNumWorkers(); ++i)
 			{
-				this->globalState.numByTopic[0] += localData[i].numByTopic[0] - this->tState.numByTopic[0];
-				this->globalState.numByTopic[1] += localData[i].numByTopic[1] - this->tState.numByTopic[1];
-				this->globalState.numByTopic[2] += localData[i].numByTopic[2] - this->tState.numByTopic[2];
-				this->globalState.numByTopic1_2 += localData[i].numByTopic1_2 - this->tState.numByTopic1_2;
-				this->globalState.numByTopicWord[0] += localData[i].numByTopicWord[0] - this->tState.numByTopicWord[0];
-				this->globalState.numByTopicWord[1] += localData[i].numByTopicWord[1] - this->tState.numByTopicWord[1];
-				this->globalState.numByTopicWord[2] += localData[i].numByTopicWord[2] - this->tState.numByTopicWord[2];
+				globalState.numByTopic[0] += localData[i].numByTopic[0] - tState.numByTopic[0];
+				globalState.numByTopic[1] += localData[i].numByTopic[1] - tState.numByTopic[1];
+				globalState.numByTopic[2] += localData[i].numByTopic[2] - tState.numByTopic[2];
+				globalState.numByTopic1_2 += localData[i].numByTopic1_2 - tState.numByTopic1_2;
+				globalState.numByTopicWord[0] += localData[i].numByTopicWord[0] - tState.numByTopicWord[0];
+				globalState.numByTopicWord[1] += localData[i].numByTopicWord[1] - tState.numByTopicWord[1];
+				globalState.numByTopicWord[2] += localData[i].numByTopicWord[2] - tState.numByTopicWord[2];
 			}
 
 			// make all count being positive
 			if (_TW != TermWeight::one)
 			{
-				this->globalState.numByTopic[0] = this->globalState.numByTopic[0].cwiseMax(0);
-				this->globalState.numByTopic[1] = this->globalState.numByTopic[1].cwiseMax(0);
-				this->globalState.numByTopic[2] = this->globalState.numByTopic[2].cwiseMax(0);
-				this->globalState.numByTopic1_2 = this->globalState.numByTopic1_2.cwiseMax(0);
-				this->globalState.numByTopicWord[0] = this->globalState.numByTopicWord[0].cwiseMax(0);
-				this->globalState.numByTopicWord[1] = this->globalState.numByTopicWord[1].cwiseMax(0);
-				this->globalState.numByTopicWord[2] = this->globalState.numByTopicWord[2].cwiseMax(0);
+				globalState.numByTopic[0] = globalState.numByTopic[0].cwiseMax(0);
+				globalState.numByTopic[1] = globalState.numByTopic[1].cwiseMax(0);
+				globalState.numByTopic[2] = globalState.numByTopic[2].cwiseMax(0);
+				globalState.numByTopic1_2 = globalState.numByTopic1_2.cwiseMax(0);
+				globalState.numByTopicWord[0] = globalState.numByTopicWord[0].cwiseMax(0);
+				globalState.numByTopicWord[1] = globalState.numByTopicWord[1].cwiseMax(0);
+				globalState.numByTopicWord[2] = globalState.numByTopicWord[2].cwiseMax(0);
 			}
 
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
 				res[i] = pool.enqueue([&, this, i](size_t threadId)
 				{
-					localData[i] = this->globalState;
+					localData[i] = globalState;
 				});
 			}
 			for (auto&& r : res) r.get();
@@ -357,9 +346,9 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
+		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
-			doc.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K + 1);
+			doc.numByTopic.init(topicDocPtr, this->K + 1);
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
 			doc.Zs = tvector<TID>(wordSize);
 			doc.Z2s = tvector<TID>(wordSize);
@@ -460,6 +449,11 @@ namespace tomoto
 			FLOAT sum = this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k];
 			Eigen::Matrix<FLOAT, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<FLOAT>() + subAlphas.row(k).array()) / sum;
 			return { ret.data() + 1, ret.data() + K2 + 1 };
+		}
+
+		std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const override
+		{
+			return extractTopN<TID>(getSubTopicBySuperTopic(k), topN);
 		}
 
 		std::vector<FLOAT> _getWidsByTopic(TID k) const

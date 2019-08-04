@@ -39,6 +39,7 @@ namespace tomoto
 		virtual size_t getK2() const = 0;
 		virtual FLOAT getSubAlpha(TID k1, TID k2) const = 0;
 		virtual std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const = 0;
+		virtual std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const = 0;
 	};
 
 	template<TermWeight _TW,
@@ -58,25 +59,14 @@ namespace tomoto
 		using WeightType = typename BaseClass::WeightType;
 
 		size_t K2;
-		FLOAT epsilon = 0.00001;
+		FLOAT epsilon = 1e-5;
 		size_t iteration = 5;
 
 		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
 		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * K2
-		void optimizeHyperparameter(ThreadPool& pool, _ModelState* localData)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
 		{
 			const auto K = this->K;
-			auto calcDigammaSum = [](auto list, size_t len, FLOAT alpha)
-			{
-				FLOAT ret = 0;
-				auto dAlpha = math::digammaT(alpha);
-				for (size_t i = 0; i < len; ++i)
-				{
-					ret += math::digammaT(list(i) + alpha) - dAlpha;
-				}
-				return ret;
-			};
-
 			std::vector<std::future<void>> res;
 			for (size_t k = 0; k < K; ++k)
 			{
@@ -84,10 +74,10 @@ namespace tomoto
 				{
 					for (size_t i = 0; i < iteration; ++i)
 					{
-						FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), subAlphaSum[k]);
+						FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), subAlphaSum[k]);
 						for (size_t k2 = 0; k2 < K2; ++k2)
 						{
-							FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
+							FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
 							subAlphas(k, k2) = std::max(nom / denom * subAlphas(k, k2), epsilon);
 						}
 						subAlphaSum[k] = subAlphas.row(k).sum();
@@ -148,34 +138,34 @@ namespace tomoto
 			}
 		}
 
-		void updateGlobal(ThreadPool& pool, _ModelState* localData)
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
 
-			this->tState = this->globalState;
-			this->globalState = localData[0];
+			tState = globalState;
+			globalState = localData[0];
 			for (size_t i = 1; i < pool.getNumWorkers(); ++i)
 			{
-				this->globalState.numByTopic += localData[i].numByTopic - this->tState.numByTopic;
-				this->globalState.numByTopic1_2 += localData[i].numByTopic1_2 - this->tState.numByTopic1_2;
-				this->globalState.numByTopic2 += localData[i].numByTopic2 - this->tState.numByTopic2;
-				this->globalState.numByTopicWord += localData[i].numByTopicWord - this->tState.numByTopicWord;
+				globalState.numByTopic += localData[i].numByTopic - tState.numByTopic;
+				globalState.numByTopic1_2 += localData[i].numByTopic1_2 - tState.numByTopic1_2;
+				globalState.numByTopic2 += localData[i].numByTopic2 - tState.numByTopic2;
+				globalState.numByTopicWord += localData[i].numByTopicWord - tState.numByTopicWord;
 			}
 
 			// make all count being positive
 			if (_TW != TermWeight::one)
 			{
-				this->globalState.numByTopic = this->globalState.numByTopic.cwiseMax(0);
-				this->globalState.numByTopic1_2 = this->globalState.numByTopic1_2.cwiseMax(0);
-				this->globalState.numByTopic2 = this->globalState.numByTopic2.cwiseMax(0);
-				this->globalState.numByTopicWord = this->globalState.numByTopicWord.cwiseMax(0);
+				globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
+				globalState.numByTopic1_2 = globalState.numByTopic1_2.cwiseMax(0);
+				globalState.numByTopic2 = globalState.numByTopic2.cwiseMax(0);
+				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 			}
 
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
 				res[i] = pool.enqueue([&, this, i](size_t threadId)
 				{
-					localData[i] = this->globalState;
+					localData[i] = globalState;
 				});
 			}
 			for (auto&& r : res) r.get();
@@ -229,9 +219,9 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
+		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
-			BaseClass::prepareDoc(doc, docId, wordSize);
+			BaseClass::prepareDoc(doc, topicDocPtr, wordSize);
 
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2);
 			doc.Z2s = tvector<TID>(wordSize);
@@ -297,6 +287,11 @@ namespace tomoto
 			FLOAT sum = this->globalState.numByTopic[k] + subAlphaSum[k];
 			Eigen::Matrix<FLOAT, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<FLOAT>() + subAlphas.row(k).array()) / sum;
 			return { ret.data(), ret.data() + K2 };
+		}
+
+		std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const
+		{
+			return extractTopN<TID>(getSubTopicBySuperTopic(k), topN);
 		}
 
 		std::vector<FLOAT> _getWidsByTopic(TID k2) const

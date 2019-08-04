@@ -9,7 +9,7 @@
 #include "TopicModel/DMRModel.hpp"
 #include "TopicModel/PAModel.hpp"
 #include "TopicModel/HPAModel.hpp"
-#include "TopicModel/CIDMRModel.hpp"
+#include "TopicModel/GDMRModel.hpp"
 
 #ifdef _DEBUG
 #undef _DEBUG
@@ -46,7 +46,7 @@ static PyObject* PREFIX##_##GETTER(TopicModelObject *self, void *closure)\
 		auto* inst = static_cast<BASE*>(self->inst);\
 		return py::buildPyValue(inst->GETTER());\
 	}\
-	catch (const bad_exception& e)\
+	catch (const bad_exception&)\
 	{\
 		return nullptr;\
 	}\
@@ -75,7 +75,7 @@ static PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 			{\
 				((TopicModelObject*)p)->inst->loadModel(str);\
 			}\
-			catch (const tomoto::serializer::UnfitException& e)\
+			catch (const tomoto::serializer::UnfitException&)\
 			{\
 				Py_XDECREF(p);\
 				continue;\
@@ -85,7 +85,7 @@ static PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 		}\
 		throw runtime_error{ "'"s + filename + "' is not valid model file"s };\
 	}\
-	catch (const bad_exception& e)\
+	catch (const bad_exception&)\
 	{\
 		return nullptr;\
 	}\
@@ -171,7 +171,7 @@ struct DictionaryObject
 			if (!self->dict) throw runtime_error{ "dict is null" };
 			return self->dict->size();
 		}
-		catch (const bad_exception& e)
+		catch (const bad_exception&)
 		{
 			return -1;
 		}
@@ -194,7 +194,7 @@ struct DictionaryObject
 			}
 			return py::buildPyValue(self->dict->toWord(key));
 		}
-		catch (const bad_exception& e)
+		catch (const bad_exception&)
 		{
 			return nullptr;
 		}
@@ -285,7 +285,7 @@ static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObje
 		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
 		return py::buildPyValue(self->parentModel->inst->getTopicsByDocSorted(self->doc, topN));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -303,7 +303,7 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
 		return py::buildPyValue(self->parentModel->inst->getTopicsByDoc(self->doc));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -359,7 +359,7 @@ static PyObject* Document_words(DocumentObject* self, void* closure)
 		if (!self->doc) throw runtime_error{ "doc is null!" };
 		return py::buildPyValue(self->doc->words);
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -377,7 +377,7 @@ static PyObject* Document_weight(DocumentObject* self, void* closure)
 		if (!self->doc) throw runtime_error{ "doc is null!" };
 		return py::buildPyValue(self->doc->weight);
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -411,7 +411,7 @@ static PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 		} while (0);\
 		throw runtime_error{ "doc doesn't has '" #FIELD "' field!" };\
 	}\
-	catch (const bad_exception& e)\
+	catch (const bad_exception&)\
 	{\
 		return nullptr;\
 	}\
@@ -460,7 +460,7 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 		} while (0);
 		throw runtime_error{ "doc doesn't has 'Zs' field!" };
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -476,12 +476,12 @@ DEFINE_DOCUMENT_GETTER(tomoto::DocumentMGLDA, windows, Vs);
 DEFINE_DOCUMENT_GETTER(tomoto::DocumentPA, Z2, Z2s);
 
 static PyGetSetDef Document_getseters[] = {
-	{ (char*)"words", (getter)Document_words, nullptr, (char*)"word ids", NULL },
-	{ (char*)"weight", (getter)Document_weight, nullptr, (char*)"weights for each word", NULL },
-	{ (char*)"topics", (getter)Document_Z, nullptr, (char*)"topics for each word", NULL },
-	{ (char*)"metadata", (getter)Document_metadata, nullptr, (char*)"metadata of document (for only `tomotopy.DMRModel` model)", NULL },
-	{ (char*)"subtopics", (getter)Document_Z2, nullptr, (char*)"sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model)", NULL },
-	{ (char*)"windows", (getter)Document_windows, nullptr, (char*)"window ids for each word (for only `tomotopy.MGLDAModel` model)", NULL },
+	{ (char*)"words", (getter)Document_words, nullptr, Document_words__doc__, NULL },
+	{ (char*)"weight", (getter)Document_weight, nullptr, Document_weight__doc__, NULL },
+	{ (char*)"topics", (getter)Document_Z, nullptr, Document_topics__doc__, NULL },
+	{ (char*)"metadata", (getter)Document_metadata, nullptr, Document_metadata__doc__, NULL },
+	{ (char*)"subtopics", (getter)Document_Z2, nullptr, Document_subtopics__doc__, NULL },
+	{ (char*)"windows", (getter)Document_windows, nullptr, Document_windows__doc__, NULL },
 	{ nullptr },
 };
 
@@ -534,7 +534,7 @@ static Py_ssize_t Corpus_len(CorpusObject* self)
 		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
 		return self->parentModel->inst->getNumDocs();
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return -1;
 	}
@@ -557,7 +557,7 @@ static PyObject* Corpus_getitem(CorpusObject* self, Py_ssize_t key)
 		}
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self->parentModel, key, 0));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -683,7 +683,7 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		auto ret = inst->addDoc(py::makeIterToVector(iter));
 		return py::buildPyValue(ret);
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -711,7 +711,7 @@ static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		auto ret = inst->makeDoc(py::makeIterToVector(iter));
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -740,7 +740,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -768,7 +768,7 @@ static PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -796,7 +796,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -810,10 +810,10 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argDoc, *iter = nullptr, *item;
-	size_t iteration = 100;
+	size_t iteration = 100, workers = 0, together = 0;
 	float tolerance = -1;
-	static const char* kwlist[] = { "document", "iter", "tolerance", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nf", (char**)kwlist, &argDoc, &iteration, &tolerance)) return nullptr;
+	static const char* kwlist[] = { "document", "iter", "tolerance", "workers", "together", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnp", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &together)) return nullptr;
 	DEBUG_LOG("infer " << self->ob_base.ob_type << ", " << self->ob_base.ob_refcnt);
 	try
 	{
@@ -836,14 +836,21 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 				self->inst->prepare(true, self->minWordCnt);
 				self->isPrepared = true;
 			}
-			auto ll = self->inst->infer(docs, iteration, tolerance);
+			auto ll = self->inst->infer(docs, iteration, tolerance, workers, !!together);
 			PyObject* ret = PyList_New(docs.size());
 			size_t i = 0;
 			for (auto d : docs)
 			{
 				PyList_SetItem(ret, i++, py::buildPyValue(self->inst->getTopicsByDoc(d)));
 			}
-			return Py_BuildValue("(Nf)", ret, ll);
+			if (together)
+			{
+				return Py_BuildValue("(Nf)", ret, ll[0]);
+			}
+			else
+			{
+				return Py_BuildValue("(NN)", ret, py::buildPyValue(ll));
+			}
 		}
 		else
 		{
@@ -856,10 +863,11 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 				self->inst->prepare(true, self->minWordCnt);
 				self->isPrepared = true;
 			}
-
 			if (doc->owner)
 			{
-				float ll = self->inst->infer((tomoto::DocumentBase*)doc->doc, iteration, tolerance);
+				std::vector<tomoto::DocumentBase*> docs;
+				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
+				float ll = self->inst->infer(docs, iteration, tolerance, workers, !!together)[0];
 				return Py_BuildValue("(Nf)", py::buildPyValue(self->inst->getTopicsByDoc(doc->doc)), ll);
 			}
 			else
@@ -868,7 +876,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 			}
 		}
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -884,7 +892,7 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 	const char* filename;
 	size_t full = 1;
 	static const char* kwlist[] = { "filename", "full", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|n", (char**)kwlist, &filename, &full)) return nullptr;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|p", (char**)kwlist, &filename, &full)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -894,7 +902,7 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -912,7 +920,7 @@ static PyObject* LDA_getDocs(TopicModelObject* self, void* closure)
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		return PyObject_CallObject((PyObject*)&Corpus_type, Py_BuildValue("(O)", self));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -930,7 +938,7 @@ static PyObject* LDA_getVocabs(TopicModelObject* self, void* closure)
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self, &self->inst->getVocabDict()));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -955,7 +963,7 @@ static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 		}
 		return py::buildPyValue(inst->getCountByTopic());
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -966,6 +974,51 @@ static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 	}
 }
 
+static int LDA_setOptimInterval(TopicModelObject* self, PyObject* val, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
+		auto v = PyLong_AsLong(val);
+		if (v == -1 && PyErr_Occurred()) throw bad_exception{};
+		if (v < 0) throw runtime_error{ "optim_interval must >= 0" };
+		inst->setOptimInterval(v);
+	}
+	catch (const bad_exception&)
+	{
+		return -1;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return -1;
+	}
+	return 0;
+}
+
+static int LDA_setBurnInIteration(TopicModelObject* self, PyObject* val, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
+		auto v = PyLong_AsLong(val);
+		if (v == -1 && PyErr_Occurred()) throw bad_exception{};
+		if (v < 0) throw runtime_error{ "burn_in must >= 0" };
+		inst->setBurnInIteration(v);
+	}
+	catch (const bad_exception&)
+	{
+		return -1;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return -1;
+	}
+	return 0;
+}
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getK);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getAlpha);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getEta);
@@ -975,6 +1028,8 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getTermWeight);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getN);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getV);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabFrequencies);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getOptimInterval);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getBurnInIteration);
 
 static PyMethodDef LDA_methods[] =
 {
@@ -991,17 +1046,19 @@ static PyMethodDef LDA_methods[] =
 };
 
 static PyGetSetDef LDA_getseters[] = {
-	{ (char*)"tw", (getter)LDA_getTermWeight, nullptr, (char*)"term weighting scheme", NULL },
-	{ (char*)"perplexity", (getter)LDA_getPerplexity, nullptr, (char*)"get perplexity of the model", NULL },
-	{ (char*)"ll_per_word", (getter)LDA_getLLPerWord, nullptr, (char*)"get log likelihood per-word of the model", NULL },
-	{ (char*)"k", (getter)LDA_getK, nullptr, (char*)"K, the number of topics", NULL },
-	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, (char*)"hyperparameter alpha", NULL },
-	{ (char*)"eta", (getter)LDA_getEta, nullptr, (char*)"hyperparameter eta", NULL },
-	{ (char*)"docs", (getter)LDA_getDocs, nullptr, (char*)"get a `list`-like interface of `tomotopy.Document` in the model instance", NULL },
-	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, (char*)"get the dictionary of vocabuluary as type `tomotopy.Dictionary`", NULL },
-	{ (char*)"num_vocabs", (getter)LDA_getV, nullptr, (char*)"get the number of vocabuluaries after words with a smaller frequency were removed", NULL },
-	{ (char*)"vocab_freq", (getter)LDA_getVocabFrequencies, nullptr, (char*)"get the frequency of vocabularies included in the model", NULL },
-	{ (char*)"num_words", (getter)LDA_getN, nullptr, (char*)"get the number of total words", NULL },
+	{ (char*)"tw", (getter)LDA_getTermWeight, nullptr, LDA_tw__doc__, NULL },
+	{ (char*)"perplexity", (getter)LDA_getPerplexity, nullptr, LDA_perplexity__doc__, NULL },
+	{ (char*)"ll_per_word", (getter)LDA_getLLPerWord, nullptr, LDA_ll_per_word__doc__, NULL },
+	{ (char*)"k", (getter)LDA_getK, nullptr, LDA_k__doc__, NULL },
+	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, LDA_alpha__doc__, NULL },
+	{ (char*)"eta", (getter)LDA_getEta, nullptr, LDA_eta__doc__, NULL },
+	{ (char*)"docs", (getter)LDA_getDocs, nullptr, LDA_docs__doc__, NULL },
+	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, LDA_vocabs__doc__, NULL },
+	{ (char*)"num_vocabs", (getter)LDA_getV, nullptr, LDA_num_vocabs__doc__, NULL },
+	{ (char*)"vocab_freq", (getter)LDA_getVocabFrequencies, nullptr, LDA_vocab_freq__doc__, NULL },
+	{ (char*)"num_words", (getter)LDA_getN, nullptr, LDA_num_words__doc__, NULL },
+	{ (char*)"optim_interval", (getter)LDA_getOptimInterval, (setter)LDA_setOptimInterval, LDA_optim_interval__doc__, NULL },
+	{ (char*)"burn_in", (getter)LDA_getBurnInIteration, (setter)LDA_setBurnInIteration, LDA_burn_in__doc__, NULL },
 	{ nullptr },
 };
 
@@ -1090,7 +1147,7 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		auto ret = inst->addDoc(py::makeIterToVector(iter), { string{metadata} });
 		return py::buildPyValue(ret);
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1120,7 +1177,7 @@ static PyObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		auto ret = inst->makeDoc(py::makeIterToVector(iter), { string{metadata} });
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1139,7 +1196,7 @@ static PyObject* DMR_getMetadataDict(TopicModelObject* self, void* closure)
 		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self, 
 			&static_cast<tomoto::IDMRModel*>(self->inst)->getMetadataDict()));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1163,7 +1220,7 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 		}
 		return ret;
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1187,11 +1244,11 @@ DEFINE_GETTER(tomoto::IDMRModel, DMR, getSigma);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getF);
 
 static PyGetSetDef DMR_getseters[] = {
-	{ (char*)"f", (getter)DMR_getF, nullptr, (char*)"number of features", NULL },
-	{ (char*)"sigma", (getter)DMR_getSigma, nullptr, (char*)"sigma", NULL },
-	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, (char*)"alpha epsilon", NULL },
-	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, (char*)"get the dictionary of metadata in type `tomotopy.Dictionary`", NULL },
-	{ (char*)"lambdas", (getter)DMR_getLambda, nullptr, (char*)"lambda", NULL },
+	{ (char*)"f", (getter)DMR_getF, nullptr, DMR_f__doc__, NULL },
+	{ (char*)"sigma", (getter)DMR_getSigma, nullptr, DMR_sigma__doc__, NULL },
+	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, DMR_alpha_epsilon__doc__, NULL },
+	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, DMR_metadata_dict__doc__, NULL },
+	{ (char*)"lambdas", (getter)DMR_getLambda, nullptr, DMR_lamdas__doc__, NULL },
 	{ nullptr },
 };
 
@@ -1278,7 +1335,7 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 		}
 		return py::buildPyValue(inst->isLiveTopic(topicId));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1301,9 +1358,9 @@ DEFINE_GETTER(tomoto::IHDPModel, HDP, getTotalTables);
 DEFINE_GETTER(tomoto::IHDPModel, HDP, getLiveK);
 
 static PyGetSetDef HDP_getseters[] = {
-	{ (char*)"gamma", (getter)HDP_getGamma, nullptr, (char*)"gamma", NULL },
-	{ (char*)"live_k", (getter)HDP_getLiveK, nullptr, (char*)"number of alive topics", NULL },
-	{ (char*)"num_tables", (getter)HDP_getTotalTables, nullptr, (char*)"number of total tables", NULL },
+	{ (char*)"gamma", (getter)HDP_getGamma, nullptr, HDP_gamma__doc__, NULL },
+	{ (char*)"live_k", (getter)HDP_getLiveK, nullptr, HDP_live_k__doc__, NULL },
+	{ (char*)"num_tables", (getter)HDP_getTotalTables, nullptr, HDP_num_tables__doc__, NULL },
 	{ nullptr },
 };
 
@@ -1395,7 +1452,7 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 		auto ret = inst->addDoc(py::makeIterToVector(iter), delimiter);
 		return py::buildPyValue(ret);
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1424,7 +1481,7 @@ static PyObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject 
 		auto ret = inst->makeDoc(py::makeIterToVector(iter), delimiter);
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1452,7 +1509,7 @@ static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyO
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1480,7 +1537,7 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1510,16 +1567,16 @@ DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getEtaL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getT);
 
 static PyGetSetDef MGLDA_getseters[] = {
-	{ (char*)"k_g", (getter)LDA_getK, nullptr, (char*)"K global, number of global topics", NULL },
-	{ (char*)"k_l", (getter)MGLDA_getKL, nullptr, (char*)"K local, number of local topics", NULL },
-	{ (char*)"gamma", (getter)MGLDA_getGamma, nullptr, (char*)"gamma", NULL },
-	{ (char*)"t", (getter)MGLDA_getT, nullptr, (char*)"window size", NULL },
-	{ (char*)"alpha_g", (getter)LDA_getAlpha, nullptr, (char*)"alpha global", NULL },
-	{ (char*)"alpha_l", (getter)MGLDA_getAlphaL, nullptr, (char*)"alpha local", NULL },
-	{ (char*)"alpha_mg", (getter)MGLDA_getAlphaM, nullptr, (char*)"alpha mixture global", NULL },
-	{ (char*)"alpha_ml", (getter)MGLDA_getAlphaML, nullptr, (char*)"alpha mixture local", NULL },
-	{ (char*)"eta_g", (getter)LDA_getEta, nullptr, (char*)"eta global", NULL },
-	{ (char*)"eta_l", (getter)MGLDA_getEtaL, nullptr, (char*)"eta local", NULL },
+	{ (char*)"k_g", (getter)LDA_getK, nullptr, MGLDA_k_g__doc__, NULL },
+	{ (char*)"k_l", (getter)MGLDA_getKL, nullptr, MGLDA_k_l__doc__, NULL },
+	{ (char*)"gamma", (getter)MGLDA_getGamma, nullptr, MGLDA_gamma__doc__, NULL },
+	{ (char*)"t", (getter)MGLDA_getT, nullptr, MGLDA_t__doc__, NULL },
+	{ (char*)"alpha_g", (getter)LDA_getAlpha, nullptr, MGLDA_alpha_g__doc__, NULL },
+	{ (char*)"alpha_l", (getter)MGLDA_getAlphaL, nullptr, MGLDA_alpha_l__doc__, NULL },
+	{ (char*)"alpha_mg", (getter)MGLDA_getAlphaM, nullptr, MGLDA_alpha_mg__doc__, NULL },
+	{ (char*)"alpha_ml", (getter)MGLDA_getAlphaML, nullptr, MGLDA_alpha_ml__doc__, NULL },
+	{ (char*)"eta_g", (getter)LDA_getEta, nullptr, MGLDA_eta_g__doc__, NULL },
+	{ (char*)"eta_l", (getter)MGLDA_getEtaL, nullptr, MGLDA_eta_l__doc__, NULL },
 	{ nullptr },
 };
 
@@ -1593,13 +1650,13 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId;
-	static const char* kwlist[] = { "topic_id", nullptr };
+	static const char* kwlist[] = { "super_topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
+		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
 		if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt);
@@ -1607,7 +1664,7 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 		}
 		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1618,18 +1675,107 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 	}
 }
 
+static PyObject* PA_getSubTopics(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t topicId, topN = 10;
+	static const char* kwlist[] = { "super_topic_id", "top_n", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
+		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt);
+			self->isPrepared = true;
+		}
+		return py::buildPyValue(inst->getSubTopicBySuperTopicSorted(topicId, topN));
+
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t topicId, topN = 10;
+	static const char* kwlist[] = { "sub_topic_id", "top_n", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
+		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt);
+			self->isPrepared = true;
+		}
+		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t topicId;
+	static const char* kwlist[] = { "sub_topic_id", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
+		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt);
+			self->isPrepared = true;
+		}
+		return py::buildPyValue(inst->getWidsByTopic(topicId));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+
 static PyMethodDef PA_methods[] =
 {
 	{ "load", (PyCFunction)PA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
 	{ "get_sub_topic_dist", (PyCFunction)PA_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topic_dist__doc__ },
+	{ "get_sub_topics", (PyCFunction)PA_getSubTopics, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topics__doc__ },
+	{ "get_topic_words", (PyCFunction)PA_getTopicWords, METH_VARARGS | METH_KEYWORDS, PA_get_topic_words__doc__},
+	{ "get_topic_word_dist", (PyCFunction)PA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, PA_get_topic_word_dist__doc__ },
 	{ nullptr }
 };
 
 DEFINE_GETTER(tomoto::IPAModel, PA, getK2);
 
 static PyGetSetDef PA_getseters[] = {
-	{ (char*)"k1", (getter)LDA_getK, nullptr, (char*)"number of super topics", NULL },
-	{ (char*)"k2", (getter)PA_getK2, nullptr, (char*)"number of sub topics", NULL },
+	{ (char*)"k1", (getter)LDA_getK, nullptr, PA_k1__doc__, NULL },
+	{ (char*)"k2", (getter)PA_getK2, nullptr, PA_k2__doc__, NULL },
 	{ nullptr },
 };
 
@@ -1717,7 +1863,7 @@ static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}
@@ -1745,7 +1891,7 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
 	}
-	catch (const bad_exception& e)
+	catch (const bad_exception&)
 	{
 		return nullptr;
 	}

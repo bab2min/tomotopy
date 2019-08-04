@@ -323,14 +323,14 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
+		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
 			const size_t S = doc.numBySent.size();
-			fill(doc.numBySent.begin(), doc.numBySent.end(), 0);
+			std::fill(doc.numBySent.begin(), doc.numBySent.end(), 0);
 			doc.Zs = tvector<TID>(wordSize);
 			doc.Vs.resize(wordSize);
 			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
-			doc.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K + KL);
+			doc.numByTopic.init(topicDocPtr, this->K + KL);
 			doc.numBySentWin = Eigen::Matrix<WeightType, -1, -1>::Zero(S, T);
 			doc.numByWin = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);
 			doc.numByWinL = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);

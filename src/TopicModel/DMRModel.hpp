@@ -10,13 +10,13 @@ Implementation of DMR using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct DocumentDMR : public DocumentLDA<_TW>
+	template<TermWeight _TW, bool _Shared = false>
+	struct DocumentDMR : public DocumentLDA<_TW, _Shared>
 	{
-		using DocumentLDA<_TW>::DocumentLDA;
+		using DocumentLDA<_TW, _Shared>::DocumentLDA;
 		size_t metadata = 0;
 
-		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, metadata);
+		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Shared>, metadata);
 	};
 
 	template<TermWeight _TW>
@@ -38,27 +38,28 @@ namespace tomoto
 		
 		virtual void setAlphaEps(FLOAT _alphaEps) = 0;
 		virtual FLOAT getAlphaEps() const = 0;
+		virtual void setOptimRepeat(size_t repeat) = 0;
+		virtual size_t getOptimRepeat() const = 0;
 		virtual size_t getF() const = 0;
 		virtual FLOAT getSigma() const = 0;
-		virtual size_t getOptimInterval() const = 0;
 		virtual const Dictionary& getMetadataDict() const = 0;
 		virtual std::vector<FLOAT> getLambdaByMetadata(size_t metadataId) const = 0;
 		virtual std::vector<FLOAT> getLambdaByTopic(TID tid) const = 0;
 	};
 
-	template<TermWeight _TW,
+	template<TermWeight _TW, bool _Shared = false,
 		typename _Interface = IDMRModel,
 		typename _Derived = void,
 		typename _DocType = DocumentDMR<_TW>,
 		typename _ModelState = ModelStateDMR<_TW>>
-	class DMRModel : public LDAModel<_TW, false, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW>, _Derived>::type,
+	class DMRModel : public LDAModel<_TW, _Shared, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW, _Shared>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 		static constexpr const char* TMID = "DMR";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, false, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, _Shared, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -67,24 +68,29 @@ namespace tomoto
 		Eigen::Matrix<FLOAT, -1, -1> expLambda;
 		FLOAT sigma;
 		size_t F = 0;
+		size_t optimRepeat = 5;
 		FLOAT alphaEps = 1e-10;
-		FLOAT temperatureScale = 0.05;
+		FLOAT temperatureScale = 0;
 		static constexpr FLOAT maxLambda = 10;
-		static constexpr size_t maxBFGSIteration = 5;
+		static constexpr size_t maxBFGSIteration = 10;
 
 		Dictionary metadataDict;
 		LBFGSpp::LBFGSSolver<FLOAT, LBFGSpp::LineSearchBracketing> solver;
 
+		FLOAT getNegativeLambdaLL(Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g) const
+		{
+			g = (x.array() - log(this->alpha)) / pow(sigma, 2);
+			return (x.array() - log(this->alpha)).pow(2).sum() / 2 / pow(sigma, 2);
+		}
+
 		FLOAT evaluateLambdaObj(Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g, ThreadPool& pool, _ModelState* localData) const
 		{
-			// if one of x is greater than maxLambda, return +inf for preventing search more
+			// if one of x is greater than maxLambda, return +inf for preventing searching more
 			if ((x.array() > maxLambda).any()) return INFINITY;
 
 			const auto K = this->K;
-			const auto alpha = this->alpha;
 
-			FLOAT fx = -(x.array() - log(alpha)).pow(2).sum() / 2 / pow(sigma, 2);
-			g = -(-(x.array() - log(alpha)) / pow(sigma, 2));
+			FLOAT fx = - static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
 			auto alphas = (x.array().exp() + alphaEps).eval();
 
 			std::vector<std::future<Eigen::Matrix<FLOAT, -1, 1>>> res;
@@ -132,28 +138,41 @@ namespace tomoto
 			return -fx;
 		}
 
-		void initHyperparameter()
+		void initParameters()
 		{
 			auto dist = std::normal_distribution<FLOAT>(log(this->alpha), sigma);
 			for (size_t i = 0; i < this->K; ++i) for (size_t j = 0; j < F; ++j)
 			{
-				FLOAT temperature = 1 / FLOAT(this->iterated * temperatureScale + 1);
-				lambda(i, j) = lambda(i, j) + (dist(this->rg) - lambda(i, j)) * temperature;
+				lambda(i, j) = dist(this->rg);
 			}
 		}
 
-		void optimizeHyperparameter(ThreadPool& pool, _ModelState* localData)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
 		{
-			FLOAT fx = 0;
-			do
+			Eigen::Matrix<FLOAT, -1, -1> bLambda;
+			FLOAT fx = 0, bestFx = INFINITY;
+			for (size_t i = 0; i < optimRepeat; ++i)
 			{
-				static_cast<DerivedClass*>(this)->initHyperparameter();
+				static_cast<DerivedClass*>(this)->initParameters();
 				int ret = solver.minimize([this, &pool, localData](Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g)
 				{
 					return static_cast<DerivedClass*>(this)->evaluateLambdaObj(x, g, pool, localData);
 				}, Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>(lambda.data(), lambda.size()), fx);
-				//printf("\t(%d) %e\n", ret, fx);
-			} while (!std::isfinite(fx));
+
+				if (fx < bestFx)
+				{
+					bLambda = lambda;
+					bestFx = fx;
+					//printf("\t(%d) %e\n", ret, fx);
+				}
+			}
+			if (!std::isfinite(bestFx))
+			{
+				std::cout << "optimizing parameters has been failed!" << std::endl;
+				throw std::runtime_error{ "optimizing parameters has been failed!" };
+			}
+			lambda = bLambda;
+			//std::cerr << fx << std::endl;
 			expLambda = lambda.array().exp() + alphaEps;
 		}
 
@@ -222,14 +241,15 @@ namespace tomoto
 
 			double ll = -(lambda.array() - log(alpha)).pow(2).sum() / 2 / pow(sigma, 2);
 			// topic-word distribution
-			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
+			auto lgammaEta = math::lgammaT(eta);
+			ll += math::lgammaT(V*eta) * K;
 			for (TID k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
 				for (VID v = 0; v < V; ++v)
 				{
-					assert(ld.numByTopicWord(k, v) >= 0);
-					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta);
+					if (!ld.numByTopicWord(k, v)) continue;
+					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
 				}
 			}
 			return ll;
@@ -244,6 +264,7 @@ namespace tomoto
 			{
 				lambda = Eigen::Matrix<FLOAT, -1, -1>::Constant(this->K, F, log(this->alpha));
 			}
+			if (_Shared) this->numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, this->docs.size());
 			expLambda = lambda.array().exp();
 			LBFGSpp::LBFGSParam<FLOAT> param;
 			param.max_iterations = maxBFGSIteration;
@@ -257,7 +278,6 @@ namespace tomoto
 			FLOAT _alphaEps = 0, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _eta, _rg), sigma(_sigma), alphaEps(_alphaEps)
 		{
-			this->optimInterval = 5;
 		}
 
 		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) override
@@ -282,10 +302,16 @@ namespace tomoto
 		GETTER(F, size_t, F);
 		GETTER(Sigma, FLOAT, sigma);
 		GETTER(AlphaEps, FLOAT, alphaEps);
+		GETTER(OptimRepeat, size_t, optimRepeat);
 
 		void setAlphaEps(FLOAT _alphaEps)
 		{
 			alphaEps = _alphaEps;
+		}
+
+		void setOptimRepeat(size_t _optimRepeat)
+		{
+			optimRepeat = _optimRepeat;
 		}
 
 		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const

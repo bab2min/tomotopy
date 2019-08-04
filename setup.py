@@ -37,7 +37,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.1.3',
+    version='0.1.4',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
