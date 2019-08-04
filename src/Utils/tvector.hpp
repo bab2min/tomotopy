@@ -483,7 +483,8 @@ namespace tomoto
 		template <class _Cont, class _Iter>
 		static void trade(_Cont& dest, _Iter srcBegin, _Iter srcEnd)
 		{
-			static_assert(std::is_same<typename std::iterator_traits<_Iter>::value_type, tvector<T>*>::value, "value_type of InputIt must be tvector<T>* type");
+			/*static_assert(std::is_same<typename std::remove_reference<std::iterator_traits<_Iter>::value_type>::type, tvector<T>*>::value, 
+				"value_type of InputIt must be tvector<T>* type");*/
 			size_type totalLen = 0;
 			for (auto it = srcBegin; it != srcEnd; ++it) totalLen += (*it)->size();
 			auto dend = dest.size();

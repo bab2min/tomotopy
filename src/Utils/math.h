@@ -70,7 +70,7 @@ namespace tomoto
 		float digammaf(float x)
 		{
 			if (x < 0.0f)
-				return digammaf(1.0f - x) + pi / tanl(pi*(1.0f - x));
+				return digammaf(1.0f - x) + pi / tanf(pi*(1.0f - x));
 			else if (x < 1.0f)
 				return digammaf(1.0f + x) - 1.0f / x;
 			else if (x == 1.0f)
@@ -118,17 +118,17 @@ namespace tomoto
 			struct F_lgamma
 			{
 				float operator()(float x) { return lgamma(x); }
-				static constexpr float smallThreshold = 0.01;
+				static constexpr float smallThreshold = 0.001;
 				float forSmall(float x) 
 				{ 
 					if (x == 0) return INFINITY; 
-					return (x + 0.5) * log(x + 1) - (x + 1) + log(2 * pi) / 2 + 1 / 12.0 / (x + 1) - log(x);
+					return (x + 0.5f) * log(x + 1) - (x + 1) + log(2 * pi) / 2 + 1 / 12.f / (x + 1) - log(x);
 				}
-				float forLarge(float x) { return (x - 0.5) * log(x) - x + log(2 * pi) / 2 + 1 / 12.0 / x; }
+				float forLarge(float x) { return (x - 0.5f) * log(x) - x + log(2 * pi) / 2 + 1 / 12.f / x; }
 				float forNonFinite(float x) { if (std::isnan(x)) return NAN; if (x > 0) return INFINITY; return -INFINITY; }
 			};
 
-			using LUT_lgamma = LUT3<F_lgamma, float, 1 * 512, 512, 100 * 64, 64, 1000 * 8, 8>;
+			using LUT_lgamma = LUT3<F_lgamma, float, 1 * 1024, 1024, 100 * 64, 64, 1000 * 8, 8>;
 
 			struct F_digamma
 			{
@@ -136,13 +136,13 @@ namespace tomoto
 				{
 					return digamma(x);
 				}
-				static constexpr float smallThreshold = 0.1;
+				static constexpr float smallThreshold = 0.001;
 				float forSmall(float x) 
 				{
 					if (x == 0) return -INFINITY;
-					return log(x + 2) - 0.5 / (x + 2) - 1 / 12.0 / pow(x + 2, 2) - 1 / (x + 1) - 1 / x; 
+					return log(x + 2) - 0.5f / (x + 2) - 1 / 12.f / pow(x + 2, 2) - 1 / (x + 1) - 1 / x; 
 				}
-				float forLarge(float x) { return log(x) - 0.5 / x - 1 / 12.0 / pow(x, 2); }
+				float forLarge(float x) { return log(x) - 0.5f / x - 1 / 12.f / pow(x, 2); }
 				float forNonFinite(float x) { if (std::isnan(x) || x < 0) return NAN; return INFINITY;}
 			};
 

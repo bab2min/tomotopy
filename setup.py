@@ -1,12 +1,13 @@
 from setuptools import setup, Extension
 from codecs import open
-import os, os.path, struct
+import os, os.path, struct, re
 from setuptools.command.install import install
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, 'tomotopy/documentation.md'), encoding='utf-8') as f:
-    long_description = f.read()
+long_description = ''
+for line in open(os.path.join(here, 'tomotopy/documentation.rst'), encoding='utf-8'):
+    long_description += re.sub(r'^<.+>\s*$', '', line)
 
 sources = []
 for f in os.listdir(os.path.join(here, 'src')):

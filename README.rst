@@ -169,7 +169,7 @@ Inference for unseen document should be performed using `tomotopy.LDAModel.infer
     mdl.train(100)
     doc_inst = mdl.make_doc(unseen_words)
     topic_dist, ll = mdl.infer(doc_inst)
-	print("Topic Distribution for Unseen Docs: ", topic_dist)
+    print("Topic Distribution for Unseen Docs: ", topic_dist)
     print("Log-likelihood of inference: ", ll)
 
 The `infer` method can infer only one instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. 

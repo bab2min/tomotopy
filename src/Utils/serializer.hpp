@@ -173,7 +173,7 @@ namespace tomoto
 		template<class _Ty>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const tvector<_Ty>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.size());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			for (auto& e : v) writeToStream(ostr, e);
 		}
 
@@ -188,7 +188,7 @@ namespace tomoto
 		template<class _Ty>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const std::basic_string<_Ty>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.size());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
 				throw std::ios_base::failure("writing type '"s + typeid(_Ty).name() + "' is failed"s);
 		}
@@ -241,6 +241,17 @@ void serializerWrite(std::ostream& ostr) const\
 void serializerWrite(std::ostream& ostr) const\
 {\
 	base::serializerWrite(ostr);\
+	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
+}
+
+#define DEFINE_SERIALIZER_AFTER_BASE2(base1, base2, ...) void serializerRead(std::istream& istr)\
+{\
+	base1, base2::serializerRead(istr);\
+	tomoto::serializer::readMany(istr, __VA_ARGS__);\
+}\
+void serializerWrite(std::ostream& ostr) const\
+{\
+	base1, base2::serializerWrite(ostr);\
 	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
 }
 

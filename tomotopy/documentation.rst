@@ -123,7 +123,7 @@ The following chart shows the log-likelihood per word of two models' result.
 <tr><th>#20</th><td>apollo, mission, lunar, first, crew, land</td></tr>
 </tbody></table>
 
-The  SIMD instruction set has a great effect on performance. Following is a comparison between SIMD instruction sets.
+The SIMD instruction set has a great effect on performance. Following is a comparison between SIMD instruction sets.
 
 .. image:: https://bab2min.github.io/tomotopy/images/SIMDComp.png
 
@@ -210,7 +210,7 @@ Inference for unseen document should be performed using `tomotopy.LDAModel.infer
     mdl.train(100)
     doc_inst = mdl.make_doc(unseen_words)
     topic_dist, ll = mdl.infer(doc_inst)
-	print("Topic Distribution for Unseen Docs: ", topic_dist)
+    print("Topic Distribution for Unseen Docs: ", topic_dist)
     print("Log-likelihood of inference: ", ll)
 
 The `infer` method can infer only one instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. 

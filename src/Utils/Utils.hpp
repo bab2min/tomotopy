@@ -179,6 +179,21 @@ namespace tomoto
 			return f(_Iterator::operator*());
 		}
 
+		const reference operator*() const
+		{
+			return f(_Iterator::operator*());
+		}
+
+		reference operator[](std::size_t idx)
+		{
+			return f(_Iterator::operator[](idx));
+		}
+
+		const reference operator[](std::size_t idx) const
+		{
+			return f(_Iterator::operator[](idx));
+		}
+
 		TransformIter& operator++()
 		{
 			_Iterator::operator++();

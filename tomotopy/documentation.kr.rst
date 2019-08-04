@@ -207,7 +207,7 @@ add_doc은 `tomotopy.LDAModel.train`을 시작하기 전까지만 사용할 수 
     mdl.train(100)
     doc_inst = mdl.make_doc(unseen_words)
     topic_dist, ll = mdl.infer(doc_inst)
-	print("Topic Distribution for Unseen Docs: ", topic_dist)
+    print("Topic Distribution for Unseen Docs: ", topic_dist)
     print("Log-likelihood of inference: ", ll)
 
 infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `tomotopy.Document` 인스턴스의 `list`를 추론하는데 사용할 수 있습니다. 
