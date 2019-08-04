@@ -168,8 +168,7 @@ Documents in the Model and out of the Model
 We can use Topic Model for two major purposes. 
 The basic one is to discover topics from a set of documents as a result of trained model,
 and the more advanced one is to infer topic distributions for unseen documents by using trained model.
-기본적으로는 문헌 집합으로부터 모델을 학습하여 문헌 내의 주제들을 발견하기 위해 토픽 모델을 사용할 수 있으며,
-더 나아가 학습된 모델을 활용하여 학습할 때는 주어지지 않았던 새로운 문헌에 대해 주제 분포를 추론하는 것도 가능합니다.
+
 We named the document in the former purpose (used for model training) as **document in the model**,
 and the document in the later purpose (unseen document during training) as **document out of the model**.
 

@@ -1,13 +1,23 @@
+**English**,
+`한국어`_.
+
+.. _한국어: README.kr.rst
+
 What is tomotopy?
 ------------------
 `tomotopy` is a Python extension of `tomoto` (Topic Modeling Tool) which is a Gibbs-sampling based topic model library written in C++.
 It utilizes a vectorization of modern CPUs for maximizing speed. 
 The current version of `tomoto` supports several major topic models including 
-Latent Dirichlet Allocation(`tomotopy.LDAModel`), Dirichlet Multinomial Regression(`tomotopy.DMRModel`),
-Hierarchical Dirichlet Process(`tomotopy.HDPModel`), Multi Grain LDA(`tomotopy.MGLDAModel`), 
-Pachinko Allocation(`tomotopy.PAModel`) and Hierarchical PA(`tomotopy.HPAModel`).
+
+* Latent Dirichlet Allocation (`tomotopy.LDAModel`),
+* Dirichlet Multinomial Regression (`tomotopy.DMRModel`),
+* Hierarchical Dirichlet Process (`tomotopy.HDPModel`),
+* Multi Grain LDA (`tomotopy.MGLDAModel`), 
+* Pachinko Allocation (`tomotopy.PAModel`),
+* Hierarchical PA (`tomotopy.HPAModel`).
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
+
 
 Getting Started
 ---------------
@@ -23,8 +33,8 @@ After installing, you can start tomotopy by just importing.
     import tomotopy as tp
     print(tp.isa) # prints 'avx2', 'avx', 'sse2' or 'none'
 
-Currently, tomotopy can exploits AVX2, AVX or SSE2 SIMD instruction set
-for maximizing performance. When the package is imported, it will check available instruction sets and select the best option.
+Currently, tomotopy can exploits AVX2, AVX or SSE2 SIMD instruction set for maximizing performance.
+When the package is imported, it will check available instruction sets and select the best option.
 If `tp.isa` tells `none`, iterations of training may take a long time. 
 But, since most of modern Intel or AMD CPUs provide SIMD instruction set, the SIMD acceleration could show a big improvement.
 
@@ -36,8 +46,8 @@ Here is a sample code for simple LDA training of texts from 'sample.txt' file.
     for line in open('sample.txt'):
         mdl.add_doc(line.strip().split())
     
-    for i in range(100):
-        mdl.train()
+    for i in range(0, 100, 10):
+        mdl.train(10)
         print('Iteration: {}\tLog-likelihood: {}'.format(i, mdl.ll_per_word))
     
     for k in range(mdl.k):
@@ -47,10 +57,10 @@ Here is a sample code for simple LDA training of texts from 'sample.txt' file.
 Performance of tomotopy
 -----------------------
 `tomotopy` uses Collapsed Gibbs-Sampling(CGS) to infer the distribution of topics and the distribution of words.
-Generally CGS converges more slowly than Variational Bayes(VB) that [gensim's LdaModel] uses, but its iteration can be computed much faster.
+Generally CGS converges more slowly than Variational Bayes(VB) that `gensim's LdaModel`_ uses, but its iteration can be computed much faster.
 In addition, `tomotopy` can take advantage of multicore CPUs with a SIMD instruction set, which can result in faster iterations.
 
-[gensim's LdaModel]: https://radimrehurek.com/gensim/models/ldamodel.html 
+.. _gensim's LdaModel: https://radimrehurek.com/gensim/models/ldamodel.html 
 
 Following chart shows the comparison of LDA model's running time between `tomotopy` and `gensim`. 
 The input data consists of 1000 random documents from English Wikipedia with 1,506,966 words (about 10.1 MB).
@@ -72,7 +82,7 @@ The following chart shows the log-likelihood per word of two models' result.
 
 .. image:: https://bab2min.github.io/tomotopy/images/LLComp.png
 
-The  SIMD instruction set has a great effect on performance. Following is a comparison between SIMD instruction sets.
+The SIMD instruction set has a great effect on performance. Following is a comparison between SIMD instruction sets.
 
 .. image:: https://bab2min.github.io/tomotopy/images/SIMDComp.png
 
@@ -90,8 +100,8 @@ so you can save the model into the file whenever you want, and re-load it from t
     for line in open('sample.txt'):
         mdl.add_doc(line.strip().split())
     
-    for i in range(100):
-        mdl.train()
+    for i in range(0, 100, 10):
+        mdl.train(10)
         print('Iteration: {}\tLog-likelihood: {}'.format(i, mdl.ll_per_word))
     
     # save into file
@@ -114,9 +124,56 @@ See more at `tomotopy.LDAModel.save` and `tomotopy.LDAModel.load` methods.
 
 Documents in the Model and out of the Model
 -------------------------------------------
+We can use Topic Model for two major purposes. 
+The basic one is to discover topics from a set of documents as a result of trained model,
+and the more advanced one is to infer topic distributions for unseen documents by using trained model.
+
+We named the document in the former purpose (used for model training) as **document in the model**,
+and the document in the later purpose (unseen document during training) as **document out of the model**.
+
+In `tomotopy`, these two different kinds of document are generated differently.
+A **document in the model** can be created by `tomotopy.LDAModel.add_doc` method.
+`add_doc` can be called before `tomotopy.LDAModel.train` starts. 
+In other words, after `train` called, `add_doc` cannot add a document into the model because the set of document used for training has become fixed.
+
+To acquire the instance of the created document, you should use `tomotopy.LDAModel.docs` like:
+
+::
+
+    mdl = tp.LDAModel(k=20)
+    idx = mdl.add_doc(words)
+    if idx < 0: raise RuntimeError("Failed to add doc")
+    doc_inst = mdl.docs[idx]
+    # doc_inst is an instance of the added document
+
+A **document out of the model** is generated by `tomotopy.LDAModel.make_doc` method. `make_doc` can be called only after `train` starts.
+If you use `make_doc` before the set of document used for training has become fixed, you may get wrong results.
+Since `make_doc` returns the instance directly, you can use its return value for other manipulations.
+
+::
+
+    mdl = tp.LDAModel(k=20)
+    # add_doc ...
+    mdl.train(100)
+    doc_inst = mdl.make_doc(unseen_words) # doc_inst is an instance of the unseen document
 
 Inference for Unseen Documents
 ------------------------------
+If a new document is created by `tomotopy.LDAModel.make_doc`, its topic distribution can be inferred by the model.
+Inference for unseen document should be performed using `tomotopy.LDAModel.infer` method.
+
+::
+
+    mdl = tp.LDAModel(k=20)
+    # add_doc ...
+    mdl.train(100)
+    doc_inst = mdl.make_doc(unseen_words)
+    topic_dist, ll = mdl.infer(doc_inst)
+	print("Topic Distribution for Unseen Docs: ", topic_dist)
+    print("Log-likelihood of inference: ", ll)
+
+The `infer` method can infer only one instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. 
+See more at `tomotopy.LDAModel.infer`.
 
 License
 ---------
