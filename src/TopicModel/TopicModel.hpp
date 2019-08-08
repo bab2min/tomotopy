@@ -3,6 +3,8 @@
 #include "../Utils/tvector.hpp"
 #include "../Utils/ThreadPool.hpp"
 #include "../Utils/serializer.hpp"
+#include "../Utils/exception.h"
+
 
 namespace tomoto
 {
@@ -33,8 +35,8 @@ namespace tomoto
 		virtual const Dictionary& getVocabDict() const = 0;
 		virtual const std::vector<size_t>& getVocabFrequencies() const = 0;
 
-		virtual void train(size_t iteration, size_t numWorkers) = 0;
-		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0) = 0;
+		virtual int train(size_t iteration, size_t numWorkers) = 0;
+		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) = 0;
 		virtual std::vector<FLOAT> getWidsByTopic(TID tid) const = 0;
 		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const = 0;
 		
@@ -185,11 +187,11 @@ namespace tomoto
 			return n;
 		}
 
-		void removeStopwords(size_t minWordCnt)
+		void removeStopwords(size_t minWordCnt, size_t removeTopN)
 		{
-			if (minWordCnt <= 1) realV = dict.size();
+			if (minWordCnt <= 1 && removeTopN == 0) realV = dict.size();
 			std::vector<VID> order;
-			sortAndWriteOrder(vocabFrequencies, order, [](auto a, auto b) { return a > b; });
+			sortAndWriteOrder(vocabFrequencies, order, removeTopN, [](auto a, auto b) { return a > b; });
 			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end(), [minWordCnt](auto a) 
 			{ 
 				return a < minWordCnt; 
@@ -204,6 +206,11 @@ namespace tomoto
 					if (w < realV) ++realN;
 				}
 			}
+		}
+
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		{
+			throw e;
 		}
 
 	public:
@@ -226,11 +233,11 @@ namespace tomoto
 			return realV;
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0) override
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) override
 		{
 		}
 
-		void train(size_t iteration, size_t numWorkers) override
+		int train(size_t iteration, size_t numWorkers) override
 		{
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 			ThreadPool pool(numWorkers);
@@ -244,9 +251,23 @@ namespace tomoto
 
 			for (size_t i = 0; i < iteration; ++i)
 			{
-				static_cast<_Derived*>(this)->trainOne(pool, localData.data(), localRG.data());
+				while (1)
+				{
+					try
+					{
+						static_cast<_Derived*>(this)->trainOne(pool, localData.data(), localRG.data());
+						break;
+					}
+					catch (const exception::TrainingError& e)
+					{
+						std::cerr << e.what() << std::endl;
+						int ret = static_cast<_Derived*>(this)->restoreFromTrainingError(e, pool, localData.data(), localRG.data());
+						if(ret < 0) return ret;
+					}
+				}
 				++iterated;
 			}
+			return 0;
 		}
 
 		double getLLPerWord() const override
@@ -287,10 +308,10 @@ namespace tomoto
 		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, bool together) const override
 		{
 			auto tx = [](DocumentBase* p)->DocType& { return *static_cast<DocType*>(p); };
-			if(together) return static_cast<const _Derived*>(this)->_infer<true>(
+			if(together) return static_cast<const _Derived*>(this)->template _infer<true>(
 				makeTransformIter(docs.begin(), tx), makeTransformIter(docs.end(), tx),
 				maxIter, tolerance, numWorkers);
-			else return static_cast<const _Derived*>(this)->_infer<false>(
+			else return static_cast<const _Derived*>(this)->template _infer<false>(
 				makeTransformIter(docs.begin(), tx), makeTransformIter(docs.end(), tx),
 				maxIter, tolerance, numWorkers);
 		}

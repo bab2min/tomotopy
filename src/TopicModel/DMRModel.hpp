@@ -109,14 +109,14 @@ namespace tomoto
 						for (TID k = 0; k < K; ++k)
 						{
 							val[K * F] -= math::lgammaT(alphaDoc[k]) - math::lgammaT(doc.numByTopic[k] + alphaDoc[k]);
-							if (!isfinite(alphaDoc[k]) && alphaDoc[k] > 0) tmpK[k] = 0;
+							if (!std::isfinite(alphaDoc[k]) && alphaDoc[k] > 0) tmpK[k] = 0;
 							else tmpK[k] = -(math::digammaT(alphaDoc[k]) - math::digammaT(doc.numByTopic[k] + alphaDoc[k]));
 						}
 						//val[K * F] = -(lgammaApprox(alphaDoc.array()) - lgammaApprox(doc.numByTopic.array().cast<FLOAT>() + alphaDoc.array())).sum();
 						//tmpK = -(digammaApprox(alphaDoc.array()) - digammaApprox(doc.numByTopic.array().cast<FLOAT>() + alphaDoc.array()));
 						val[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
 						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
-						if (!isfinite(alphaSum) && alphaSum > 0)
+						if (!std::isfinite(alphaSum) && alphaSum > 0)
 						{
 							val[K * F] = -INFINITY;
 							t = 0;
@@ -147,7 +147,7 @@ namespace tomoto
 			}
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
 		{
 			Eigen::Matrix<FLOAT, -1, -1> bLambda;
 			FLOAT fx = 0, bestFx = INFINITY;
@@ -342,6 +342,15 @@ namespace tomoto
 
 		const Dictionary& getMetadataDict() const { return metadataDict; }
 	};
+
+	/* This is for preventing 'undefined symbol' problem in compiling by clang. */
+	template<TermWeight _TW, bool _Shared,
+		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
+		constexpr FLOAT DMRModel<_TW, _Shared, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
+
+	template<TermWeight _TW, bool _Shared,
+		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
+		constexpr size_t DMRModel<_TW, _Shared, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
 
 	IDMRModel* IDMRModel::create(TermWeight _weight, size_t _K, FLOAT _defaultAlpha, FLOAT _sigma, FLOAT _eta, FLOAT _alphaEps, const RANDGEN& _rg)
 	{

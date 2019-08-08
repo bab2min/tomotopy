@@ -415,7 +415,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::string& delimiter) const override
 		{
-			std::unique_ptr<_DocType> doc = std::make_unique<_DocType>();
+			auto* doc = new _DocType;
 			size_t numSent = 0;
 			for (auto& w : words)
 			{
@@ -432,7 +432,7 @@ namespace tomoto
 				}
 			}
 			doc->numBySent.resize(doc->sents.empty() ? 0 : (doc->sents.back() + 1));
-			return doc;
+			return std::unique_ptr<DocumentBase>{ doc };
 		}
 
 		GETTER(KL, size_t, KL);

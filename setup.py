@@ -1,6 +1,6 @@
 from setuptools import setup, Extension
 from codecs import open
-import os, os.path, struct, re
+import os, os.path, struct, re, platform
 from setuptools.command.install import install
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -13,12 +13,16 @@ sources = []
 for f in os.listdir(os.path.join(here, 'src')):
     if f.endswith('.cpp'): sources.append('src/' + f)
 
-if os.name == 'nt': 
+largs = []
+if platform.system() == 'Windows': 
     cargs = ['/O2', '/MT', '/Gy']
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
-else: 
+elif platform.system() == 'Darwin': 
+    cargs = ['-std=c++1y', '-O3', '-fpermissive', '-stdlib=libc++']
+    largs += ['-stdlib=libc++']
+    arch_levels = {'':'-march=native'}
+else:
     cargs = ['-std=c++1y', '-O3', '-fpermissive']
-    #arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
     arch_levels = {'':'-march=native'}
 
 if struct.calcsize('P') < 8: arch_levels = {k:v for k, v in arch_levels.items() if k in ('', 'sse2')}
@@ -32,13 +36,13 @@ for arch, aopt in arch_levels.items():
                     include_dirs=['include'],
                     sources = sources,
                     define_macros=[('MODULE_NAME', 'PyInit_' + module_name)],
-                    extra_compile_args=cargs + ([aopt] if aopt else [])))
+                    extra_compile_args=cargs + ([aopt] if aopt else []), extra_link_args=largs))
 
 
 setup(
     name='tomotopy',
 
-    version='0.1.4',
+    version='0.1.6',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,

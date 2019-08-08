@@ -141,13 +141,13 @@ namespace tomoto
 						{
 							alphas[k] = exp(mappedX.row(k) * terms) + this->alphaEps;
 							ret[K * F] -= math::lgammaT(alphas[k]) - math::lgammaT(doc.numByTopic[k] + alphas[k]);
-							if (!isfinite(alphas[k]) && alphas[k] > 0) tmpK[k] = 0;
+							if (!std::isfinite(alphas[k]) && alphas[k] > 0) tmpK[k] = 0;
 							else tmpK[k] = -(math::digammaT(alphas[k]) - math::digammaT(doc.numByTopic[k] + alphas[k]));
 						}
 						FLOAT alphaSum = alphas.sum();
 						ret[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
 						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
-						if (!isfinite(alphaSum) && alphaSum > 0)
+						if (!std::isfinite(alphaSum) && alphaSum > 0)
 						{
 							ret[K * F] = -INFINITY;
 							t = 0;

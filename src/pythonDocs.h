@@ -191,7 +191,7 @@ u8R""(새로운 문헌인 `document`에 대해 각각의 주제 분포를 추론
 만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.
 * `together` : 이 값이 True인 경우 입력한 `document` 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
 False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 `False`입니다.
-)"", );
+)"");
 
 DOC_SIGNATURE_EN_KO(LDA_save__doc__,
 	"save(self, filename, full=True)",
@@ -405,7 +405,7 @@ HDPModel(tw=TermWeight.ONE, min_cf=0, initial_k=1, alpha=0.1, eta=0.01, gamma=0.
 * `gamma` : table-topic에 대한 Dirichlet Process의 집중 계수
 * `seed` : 난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
 이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
-)"", );
+)"");
 
 DOC_SIGNATURE_EN_KO(HDP_is_live_topic__doc__,
 	"is_live_topic(self, topic_id)",

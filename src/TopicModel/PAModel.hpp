@@ -64,7 +64,7 @@ namespace tomoto
 
 		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
 		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * K2
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
 		{
 			const auto K = this->K;
 			std::vector<std::future<void>> res;

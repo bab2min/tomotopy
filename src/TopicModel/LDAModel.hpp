@@ -180,7 +180,7 @@ namespace tomoto
 			return ret;
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
 		{
 			const auto K = this->K;
 			for (size_t i = 0; i < 10; ++i)
@@ -237,24 +237,33 @@ namespace tomoto
 		void trainOne(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
 		{
 			std::vector<std::future<void>> res;
-			const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
-			for (size_t ch = 0; ch < chStride; ++ch)
+			try
 			{
-				res.emplace_back(pool.enqueue([&, this, ch, chStride](size_t threadId)
+				const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
+				for (size_t ch = 0; ch < chStride; ++ch)
 				{
-					forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
+					res.emplace_back(pool.enqueue([&, this, ch, chStride](size_t threadId)
 					{
-						static_cast<DerivedClass*>(this)->sampleDocument(this->docs[id * chStride + ch],
-							localData[threadId], rgs[threadId]);
-					});
-				}));
+						forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
+						{
+							static_cast<DerivedClass*>(this)->sampleDocument(this->docs[id * chStride + ch],
+								localData[threadId], rgs[threadId]);
+						});
+					}));
+				}
+				for (auto&& r : res) r.get();
+				res.clear();
+				static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
+				static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData);
+				if (this->iterated >= this->burnIn && optimInterval && (this->iterated + 1) % optimInterval == 0)
+				{
+					static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData, rgs);
+				}
 			}
-			for (auto&& r : res) r.get();
-			static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
-			static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData);
-			if (this->iterated >= this->burnIn && optimInterval && (this->iterated + 1) % optimInterval == 0)
+			catch (const exception::TrainingError& e)
 			{
-				static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData);
+				for (auto&& r : res) if(r.valid()) r.get();
+				throw e;
 			}
 		}
 
@@ -416,7 +425,10 @@ namespace tomoto
 			std::vector<size_t> cnt(K);
 			for (auto& doc : this->docs)
 			{
-				for (auto z : doc.Zs) ++cnt[z];
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] < this->realV) ++cnt[doc.Zs[i]];
+				}
 			}
 			return cnt;
 		}
@@ -552,9 +564,9 @@ namespace tomoto
 			}
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0)
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0)
 		{
-			if (initDocs) this->removeStopwords(minWordCnt);
+			if (initDocs) this->removeStopwords(minWordCnt, removeTopN);
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
 

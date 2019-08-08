@@ -9,7 +9,6 @@
 #include "TopicModel/DMRModel.hpp"
 #include "TopicModel/PAModel.hpp"
 #include "TopicModel/HPAModel.hpp"
-#include "TopicModel/GDMRModel.hpp"
 
 #ifdef _DEBUG
 #undef _DEBUG

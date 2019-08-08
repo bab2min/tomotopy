@@ -100,7 +100,7 @@ namespace tomoto
 	* _Less cmp: (in) comparator
 	*/
 	template<typename _Container, typename _OrderType = uint32_t, typename _Less = std::less<typename _Container::value_type>>
-	void sortAndWriteOrder(_Container& src, std::vector<_OrderType>& order, _Less cmp = _Less{})
+	void sortAndWriteOrder(_Container& src, std::vector<_OrderType>& order, size_t rotate = 0, _Less cmp = _Less{})
 	{
 		std::vector<std::pair<typename _Container::value_type, _OrderType>> pv(src.size());
 		for (_OrderType i = 0; i < src.size(); ++i)
@@ -112,6 +112,7 @@ namespace tomoto
 		{
 			return cmp(a.first, b.first);
 		});
+		if (rotate) std::rotate(pv.begin(), pv.begin() + rotate, pv.end());
 		order = std::vector<_OrderType>(src.size());
 		for (size_t i = 0; i < src.size(); ++i)
 		{
