@@ -1,3 +1,10 @@
+tomotopy
+========
+
+.. image:: https://badge.fury.io/py/tomotopy.svg
+    :target: https://pypi.python.org/pypi/tomotopy
+
+🎌
 **English**,
 `한국어`_.
 
@@ -5,6 +12,7 @@
 
 What is tomotopy?
 ------------------
+
 `tomotopy` is a Python extension of `tomoto` (Topic Modeling Tool) which is a Gibbs-sampling based topic model library written in C++.
 It utilizes a vectorization of modern CPUs for maximizing speed. 
 The current version of `tomoto` supports several major topic models including 
