@@ -1,3 +1,10 @@
+tomotopy
+========
+
+.. image:: https://badge.fury.io/py/tomotopy.svg
+    :target: https://pypi.python.org/pypi/tomotopy
+
+🎌
 `English`_,
 **한국어**.
 
