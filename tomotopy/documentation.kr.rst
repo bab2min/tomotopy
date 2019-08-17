@@ -5,15 +5,21 @@ tomotopy 란?
 현재 버전의 `tomoto`에서는 다음과 같은 주요 토픽 모델들을 지원하고 있습니다.
 
 * Latent Dirichlet Allocation (`tomotopy.LDAModel`)
+* Supervised Latent Dirichlet Allocation (`tomotopy.SLDAModel`)
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`)
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`)
-* Multi Grain LDA (`tomotopy.MGLDAModel`)
+* Multi Grain LDA (`tomotopy.MGLDAModel`) 
 * Pachinko Allocation (`tomotopy.PAModel`)
 * Hierarchical PA (`tomotopy.HPAModel`)
+* Correlated Topic Model (`tomotopy.CTModel`)
+
+tomotopy의 가장 최신버전은 0.2.0 입니다.
+
+.. image:: https://badge.fury.io/py/tomotopy.svg
 
 시작하기
 ---------------
-다음과 같이 pip를 이용하면 tomotopy를 쉽게 설치할 수 있습니다.
+다음과 같이 pip를 이용하면 tomotopy를 쉽게 설치할 수 있습니다. (https://pypi.org/project/tomotopy/)
 ::
 
     $ pip install tomotopy
@@ -216,3 +222,26 @@ infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `t
 라이센스
 ---------
 `tomotopy`는 MIT License 하에 배포됩니다.
+
+역사
+-------
+
+* 0.2.0 (2019-08-18)
+    * `tomotopy.CTModel`와 `tomotopy.SLDAModel` 토픽 모델이 새로 추가되었습니다.
+    * `rm_top` 파라미터 옵션이 모든 토픽 모델에 추가되었습니다.
+    * `PAModel`과 `HPAModel` 모델에서 `save`와 `load`가 제대로 작동하지 않는 문제를 해결하였습니다.
+    * `HDPModel` 인스턴스를 파일로부터 로딩할 때 종종 프로그램이 종료되는 문제를 해결하였습니다.
+    * `min_cf` > 0으로 설정하였을 때 `ll_per_word` 값이 잘못 계산되는 문제를 해결하였습니다.
+
+* 0.1.6 (2019-08-09)
+    * macOS와 clang에서 제대로 컴파일되지 않는 문제를 해결했습니다.
+
+* 0.1.4 (2019-08-05)
+    * `add_doc` 메소드가 빈 리스트를 받았을 때 발생하는 문제를 해결하였습니다.
+    * `tomotopy.PAModel.get_topic_words`가 하위토픽의 단어 분포를 제대로 반환하지 못하는 문제를 해결하였습니다.
+
+* 0.1.3 (2019-05-19)
+    * `min_cf` 파라미터와 불용어 제거 기능이 모든 토픽 모델에 추가되었습니다.
+
+* 0.1.0 (2019-05-12)
+    * **tomotopy**의 최초 버전

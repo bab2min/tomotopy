@@ -73,8 +73,19 @@ namespace tomoto
 		}
 	};
 
+	template<TermWeight _TW>
+	struct SumWordWeight
+	{
+		FLOAT sumWordWeight = 0;
+	};
+
+	template<>
+	struct SumWordWeight<TermWeight::one>
+	{
+	};
+
 	template<TermWeight _TW, bool _Shared = false>
-	struct DocumentLDA : public DocumentBase
+	struct DocumentLDA : public DocumentBase, SumWordWeight<_TW>
 	{
 	public:
 		using DocumentBase::DocumentBase;
@@ -86,14 +97,7 @@ namespace tomoto
 
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentBase, Zs, wordWeights);
 
-		void update(WeightType* ptr, size_t K)
-		{
-			numByTopic.init(ptr, K);
-			for (size_t i = 0; i < Zs.size(); ++i)
-			{
-				numByTopic[Zs[i]] += _TW != TermWeight::one ? wordWeights[i] : 1;
-			}
-		}
+		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 
 		template<TermWeight __TW>
 		typename std::enable_if<__TW == TermWeight::one, int32_t>::type getSumWordWeight() const
@@ -104,7 +108,19 @@ namespace tomoto
 		template<TermWeight __TW>
 		typename std::enable_if<__TW != TermWeight::one, FLOAT>::type getSumWordWeight() const
 		{
-			return std::accumulate(wordWeights.begin(), wordWeights.end(), 0.f);
+			//return std::accumulate(wordWeights.begin(), wordWeights.end(), 0.f);
+			return this->sumWordWeight;
+		}
+
+		template<TermWeight __TW>
+		typename std::enable_if<__TW == TermWeight::one>::type updateSumWordWeight()
+		{
+		}
+
+		template<TermWeight __TW>
+		typename std::enable_if<__TW != TermWeight::one>::type updateSumWordWeight()
+		{
+			this->sumWordWeight = std::accumulate(wordWeights.begin(), wordWeights.end(), 0.f);
 		}
 	};
 
@@ -137,6 +153,7 @@ namespace tomoto
 		virtual std::vector<size_t> getCountByTopic() const = 0;
 		virtual size_t getK() const = 0;
 		virtual FLOAT getAlpha() const = 0;
+		virtual FLOAT getAlpha(TID k1) const = 0;
 		virtual FLOAT getEta() const = 0;
 	};
 
@@ -194,7 +211,7 @@ namespace tomoto
 			}
 		}
 
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
+		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
@@ -210,9 +227,8 @@ namespace tomoto
 		template<int INC>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID tid) const
 		{
-			const size_t V = this->realV;
 			assert(tid < K);
-			assert(vid < V);
+			assert(vid < this->realV);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
 			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
 				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
@@ -222,13 +238,13 @@ namespace tomoto
 			updateCnt<DEC>(ld.numByTopicWord(tid, vid), INC * weight);
 		}
 
-		void sampleDocument(_DocType& doc, _ModelState& ld, RANDGEN& rgs) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
-				auto dist = static_cast<const DerivedClass*>(this)->getZLikelihoods(ld, doc, doc.words[w]);
+				auto dist = static_cast<const DerivedClass*>(this)->getZLikelihoods(ld, doc, docId, doc.words[w]);
 				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + K, rgs);
 				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 			}
@@ -246,8 +262,9 @@ namespace tomoto
 					{
 						forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 						{
-							static_cast<DerivedClass*>(this)->sampleDocument(this->docs[id * chStride + ch],
-								localData[threadId], rgs[threadId]);
+							static_cast<DerivedClass*>(this)->sampleDocument(
+								this->docs[id * chStride + ch], id * chStride + ch,
+								localData[threadId], rgs[threadId], this->iterated);
 						});
 					}));
 				}
@@ -416,6 +433,7 @@ namespace tomoto
 				{
 					doc.wordWeights[i] = std::max((FLOAT)log(tf[doc.words[i]] / vocabWeights[doc.words[i]] / doc.words.size()), (FLOAT)0);
 				}
+				doc.template updateSumWordWeight<_TW>();
 				static_cast<const DerivedClass*>(this)->updateStateWithDoc(g, ld, rgs, doc, i);
 			}
 		}
@@ -473,12 +491,12 @@ namespace tomoto
 					const size_t chStride = std::min(pool.getNumWorkers() * 8, (size_t)std::distance(docFirst, docLast));
 					for (size_t ch = 0; ch < chStride; ++ch)
 					{
-						res.emplace_back(pool.enqueue([&, ch, chStride](size_t threadId)
+						res.emplace_back(pool.enqueue([&, i, ch, chStride](size_t threadId)
 						{
 							forRandom((std::distance(docFirst, docLast) - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 							{
 								static_cast<const DerivedClass*>(this)->sampleDocument(
-									docFirst[id * chStride + ch], localData[threadId], rgs[threadId]);
+									docFirst[id * chStride + ch], -1, localData[threadId], rgs[threadId], i);
 							});
 						}));
 					}
@@ -502,7 +520,7 @@ namespace tomoto
 						initializeDocState(*d, nullptr, generator, tmpState, rgc);
 						for (size_t i = 0; i < maxIter; ++i)
 						{
-							static_cast<const DerivedClass*>(this)->sampleDocument(*d, tmpState, rgc);
+							static_cast<const DerivedClass*>(this)->sampleDocument(*d, -1, tmpState, rgc, i);
 						}
 						double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
 						ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&*d, &*d + 1);
@@ -529,6 +547,8 @@ namespace tomoto
 		GETTER(Eta, FLOAT, eta);
 		GETTER(OptimInterval, size_t, optimInterval);
 		GETTER(BurnInIteration, size_t, burnIn);
+
+		FLOAT getAlpha(TID k1) const override { return alphas[k1]; }
 
 		TermWeight getTermWeight() const override
 		{
@@ -560,7 +580,7 @@ namespace tomoto
 			size_t docId = 0;
 			for (auto& doc : this->docs)
 			{
-				doc.update(_Shared ? numByTopicDoc.col(docId++).data() : nullptr, K);
+				doc.template update<>(_Shared ? numByTopicDoc.col(docId++).data() : nullptr, *static_cast<DerivedClass*>(this));
 			}
 		}
 
@@ -618,6 +638,7 @@ namespace tomoto
 			else
 			{
 				static_cast<DerivedClass*>(this)->updateDocs();
+				for (auto& doc : this->docs) doc.template updateSumWordWeight<_TW>();
 			}
 			static_cast<DerivedClass*>(this)->prepareShared();
 		}
@@ -639,6 +660,18 @@ namespace tomoto
 		}
 
 	};
+
+	template<TermWeight _TW, bool _Shared>
+	template<typename _TopicModel>
+	void DocumentLDA<_TW, _Shared>::update(WeightType* ptr, const _TopicModel& mdl)
+	{
+		numByTopic.init(ptr, mdl.getK());
+		for (size_t i = 0; i < Zs.size(); ++i)
+		{
+			if (this->words[i] >= mdl.getV()) continue;
+			numByTopic[Zs[i]] += _TW != TermWeight::one ? wordWeights[i] : 1;
+		}
+	}
 
 	ILDAModel* ILDAModel::create(TermWeight _weight, size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
 	{

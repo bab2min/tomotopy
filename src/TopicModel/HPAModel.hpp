@@ -14,6 +14,8 @@ namespace tomoto
 	{
 		using DocumentPA<_TW>::DocumentPA;
 		using WeightType = typename DocumentPA<_TW>::WeightType;
+
+		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 	};
 
 	template<TermWeight _TW>
@@ -26,6 +28,8 @@ namespace tomoto
 		std::array<Eigen::Matrix<FLOAT, -1, 1>, 2> subTmp;
 
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
+
+		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numByTopicWord, numByTopic, numByTopic1_2);
 	};
 
 	class IHPAModel : public IPAModel
@@ -33,8 +37,6 @@ namespace tomoto
 	public:
 		using DefaultDocType = DocumentHPA<TermWeight::one>;
 		static IHPAModel* create(TermWeight _weight, bool _exclusive = false, size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 50, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
-
-		virtual FLOAT getAlpha(TID k1) const = 0;
 	};
 
 	template<TermWeight _TW, 
@@ -58,7 +60,7 @@ namespace tomoto
 		FLOAT epsilon = 0.00001;
 		size_t iteration = 5;
 
-		Eigen::Matrix<FLOAT, -1, 1> alphas; // len = (K + 1)
+		//Eigen::Matrix<FLOAT, -1, 1> alphas; // len = (K + 1)
 
 		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
 		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * (K2 + 1)
@@ -68,12 +70,12 @@ namespace tomoto
 			const auto K = this->K;
 			for (size_t i = 0; i < iteration; ++i)
 			{
-				FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), alphas.sum());
+				FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), this->alphas.sum());
 
 				for (size_t k = 0; k <= K; ++k)
 				{
-					FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas[k]);
-					alphas[k] = std::max(nom / denom * alphas[k], epsilon);
+					FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), this->alphas[k]);
+					this->alphas[k] = std::max(nom / denom * this->alphas[k], epsilon);
 				}
 			}
 
@@ -102,7 +104,7 @@ namespace tomoto
 			return std::make_pair<size_t, size_t>(ceil(k * (float)K2 / this->K), ceil((k + 1) * (float)K2 / this->K));
 		}
 
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
+		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			const auto K = this->K;
@@ -120,33 +122,35 @@ namespace tomoto
 				{
 					auto r = getRangeOfK(k);
 					auto r1 = r.first, r2 = r.second;
-					zLikelihood.segment(r1, r2 - r1) = (doc.numByTopic[k + 1] + alphas[k + 1])
-						* (doc.numByTopic1_2.row(k).segment(r1 + 1, r2 - r1).array().transpose().template cast<FLOAT>() + subAlphas.row(k).segment(r1 + 1, r2 - r1).array().transpose()) / (doc.numByTopic[k + 1] + subAlphaSum[k])
+					zLikelihood.segment(r1, r2 - r1) = (doc.numByTopic[k + 1] + this->alphas[k + 1])
+						* (doc.numByTopic1_2.row(k).segment(r1 + 1, r2 - r1).array().transpose().template cast<FLOAT>() + subAlphas.row(k).segment(r1 + 1, r2 - r1).array().transpose())
+						/ (doc.numByTopic[k + 1] + subAlphaSum[k])
 						* ld.subTmp[1].segment(r1, r2 - r1).array();
 				}
 
-				zLikelihood.segment(K2, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + alphas.tail(K).array())
+				zLikelihood.segment(K2, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + this->alphas.tail(K).array())
 					* (doc.numByTopic1_2.col(0).array().template cast<FLOAT>() + subAlphas.col(0).array())
 					/ (doc.numByTopic.tail(K).array().template cast<FLOAT>() + subAlphaSum.array().template cast<FLOAT>())
 					* ld.subTmp[0].array();
 
-				zLikelihood[K2 + K] = (doc.numByTopic[0] + alphas[0]) * rootWordProb;
+				zLikelihood[K2 + K] = (doc.numByTopic[0] + this->alphas[0]) * rootWordProb;
 			}
 			else
 			{
 				for (size_t k = 0; k < K; ++k)
 				{
-					zLikelihood.segment(K2 * k, K2) = (doc.numByTopic[k + 1] + alphas[k + 1])
-						* (doc.numByTopic1_2.row(k).tail(K2).array().transpose().template cast<FLOAT>() + subAlphas.row(k).tail(K2).array().transpose()) / (doc.numByTopic[k + 1] + subAlphaSum[k])
+					zLikelihood.segment(K2 * k, K2) = (doc.numByTopic[k + 1] + this->alphas[k + 1])
+						* (doc.numByTopic1_2.row(k).tail(K2).array().transpose().template cast<FLOAT>() + subAlphas.row(k).tail(K2).array().transpose()) 
+						/ (doc.numByTopic[k + 1] + subAlphaSum[k])
 						* ld.subTmp[1].array();
 				}
 
-				zLikelihood.segment(K2 * K, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + alphas.tail(K).array())
+				zLikelihood.segment(K2 * K, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + this->alphas.tail(K).array())
 					* (doc.numByTopic1_2.col(0).array().template cast<FLOAT>() + subAlphas.col(0).array())
 					/ (doc.numByTopic.tail(K).array().template cast<FLOAT>() + subAlphaSum.array().template cast<FLOAT>())
 					* ld.subTmp[0].array();
 
-				zLikelihood[K2 * K + K] = (doc.numByTopic[0] + alphas[0]) * rootWordProb;
+				zLikelihood[K2 * K + K] = (doc.numByTopic[0] + this->alphas[0]) * rootWordProb;
 			}
 			sample::prefixSum(zLikelihood.data(), zLikelihood.size());
 			return &zLikelihood[0];
@@ -155,8 +159,7 @@ namespace tomoto
 		template<int INC>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID z1, TID z2) const
 		{
-			size_t V = this->realV;
-			assert(vid < V);
+			assert(vid < this->realV);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
 			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
 				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
@@ -186,14 +189,14 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, _ModelState& ld, RANDGEN& rgs) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
 		{
 			const auto K = this->K;
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
-				auto dist = getZLikelihoods(ld, doc, doc.words[w]);
+				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w]);
 				if (_Exclusive)
 				{
 					auto z = sample::sampleFromDiscreteAcc(dist, dist + K2 + K + 1, rgs);
@@ -283,13 +286,12 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->realV;
 			const auto K = this->K;
-			const auto alphaSum = alphas.sum();
+			const auto alphaSum = this->alphas.sum();
 
 			double ll = 0;
 			ll = math::lgammaT(alphaSum);
-			for (size_t k = 0; k < K; ++k) ll -= math::lgammaT(alphas[k]);
+			for (size_t k = 0; k < K; ++k) ll -= math::lgammaT(this->alphas[k]);
 			ll *= std::distance(_first, _last);
 			for (; _first != _last; ++_first)
 			{
@@ -297,7 +299,7 @@ namespace tomoto
 				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
 				for (TID k = 0; k <= K; ++k)
 				{
-					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]);
+					ll += math::lgammaT(doc.numByTopic[k] + this->alphas[k]);
 				}
 			}
 			return ll;
@@ -414,11 +416,13 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, doc.Zs[i], doc.Z2s[i]);
 		}
 
+		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, K2, subAlphas, subAlphaSum);
+
 	public:
 		HPAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
-			alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1 + 1, _alpha);
+			this->alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1 + 1, _alpha);
 			subAlphas = Eigen::Matrix<FLOAT, -1, -1>::Constant(_K1, _K2 + 1, 0.1);
 			subAlphaSum = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1, (_K2 + 1) * 0.1);
 			this->optimInterval = 1;
@@ -433,7 +437,6 @@ namespace tomoto
 			iteration = iter;
 		}
 
-		FLOAT getAlpha(TID k1) const override { return alphas[k1]; }
 		FLOAT getSubAlpha(TID k1, TID k2) const override 
 		{ 
 			if (_Exclusive)
@@ -483,13 +486,13 @@ namespace tomoto
 		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
 		{
 			std::vector<FLOAT> ret(1 + this->K + K2);
-			FLOAT sum = doc.template getSumWordWeight<_TW>() + alphas.sum();
-			ret[0] = (doc.numByTopic[0] + alphas[0]) / sum;
+			FLOAT sum = doc.template getSumWordWeight<_TW>() + this->alphas.sum();
+			ret[0] = (doc.numByTopic[0] + this->alphas[0]) / sum;
 			for (size_t k = 0; k < this->K; ++k)
 			{
 				ret[k + 1] = (doc.numByTopic1_2(k, 0) + subAlphas(k, 0)) / sum;
 			}
-			for (size_t k = 0; k <= K2; ++k)
+			for (size_t k = 0; k < K2; ++k)
 			{
 				ret[k + this->K + 1] = doc.numByTopic1_2.col(k + 1).sum() / sum;
 			}
@@ -497,6 +500,19 @@ namespace tomoto
 		}
 	};
 
+	template<TermWeight _TW>
+	template<typename _TopicModel>
+	void DocumentHPA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	{
+		this->numByTopic.init(ptr, mdl.getK() + 1);
+		this->numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(mdl.getK(), mdl.getK2() + 1);
+		for (size_t i = 0; i < this->Zs.size(); ++i)
+		{
+			if (this->words[i] >= mdl.getV()) continue;
+			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			if (this->Zs[i]) this->numByTopic1_2(this->Zs[i] - 1, this->Z2s[i]) += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+		}
+	}
 
 	template<TermWeight _TW> using HPAModelExclusive = HPAModel<_TW, true>;
 	IHPAModel* IHPAModel::create(TermWeight _weight, bool _exclusive, size_t _K, size_t _K2, FLOAT _alphaSum, FLOAT _eta, const RANDGEN& _rg)

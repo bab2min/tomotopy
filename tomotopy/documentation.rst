@@ -5,15 +5,21 @@ It utilizes a vectorization of modern CPUs for maximizing speed.
 The current version of `tomoto` supports several major topic models including 
 
 * Latent Dirichlet Allocation (`tomotopy.LDAModel`),
+* Supervised Latent Dirichlet Allocation (`tomotopy.SLDAModel`),
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`),
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`),
 * Multi Grain LDA (`tomotopy.MGLDAModel`), 
 * Pachinko Allocation (`tomotopy.PAModel`),
-* Hierarchical PA (`tomotopy.HPAModel`).
+* Hierarchical PA (`tomotopy.HPAModel`),
+* Correlated Topic Model (`tomotopy.CTModel`).
+
+The most recent version of tomotopy is 0.2.0.
+
+.. image:: https://badge.fury.io/py/tomotopy.svg
 
 Getting Started
 ---------------
-You can install tomotopy easily using pip.
+You can install tomotopy easily using pip. (https://pypi.org/project/tomotopy/)
 ::
 
     $ pip install tomotopy
@@ -220,3 +226,26 @@ License
 ---------
 `tomotopy` is licensed under the terms of MIT License, 
 meaning you can use it for any reasonable purpose and remain in complete ownership of all the documentation you produce.
+
+History
+-------
+
+* 0.2.0 (2019-08-18)
+    * New models including `tomotopy.CTModel` and `tomotopy.SLDAModel` were added into the package.
+    * A new parameter option `rm_top` was added for all topic models.
+    * The problems in `save` and `load` method for `PAModel` and `HPAModel` were fixed.
+    * An occassional crash in loading `HDPModel` was fixed.
+    * The problem that `ll_per_word` was calculated incorrectly when `min_cf` > 0 was fixed.
+
+* 0.1.6 (2019-08-09)
+    * Compiling errors at clang with macOS environment were fixed.
+
+* 0.1.4 (2019-08-05)
+    * The issue when `add_doc` receives an empty list as input was fixed.
+    * The issue that `tomotopy.PAModel.get_topic_words` doesn't extract the word distribution of subtopic was fixed.
+
+* 0.1.3 (2019-05-19)
+    * The parameter `min_cf` and its stopword-removing function were added for all topic models.
+
+* 0.1.0 (2019-05-12)
+    * First version of **tomotopy**

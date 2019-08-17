@@ -118,7 +118,6 @@ namespace tomoto
 			const auto F = this->F;
 
 			auto mappedX = Eigen::Map<Eigen::Matrix<FLOAT, -1, -1>>(x.data(), K, F);
-			auto mappedG = Eigen::Map<Eigen::Matrix<FLOAT, -1, -1>>(g.data(), K, F);
 			FLOAT fx = -static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
 
 			std::vector<std::future<Eigen::Matrix<FLOAT, -1, 1>>> res;
@@ -201,7 +200,7 @@ namespace tomoto
 			}
 		}
 
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
+		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
@@ -218,7 +217,6 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->realV;
 			const auto K = this->K;
 			double ll = 0;
 
@@ -249,7 +247,7 @@ namespace tomoto
 			const size_t V = this->realV;
 			const auto K = this->K;
 			const auto eta = this->eta;
-			double ll = 0, pl = 0;
+			double ll = 0;
 			for (size_t k = 0; k < K; ++k)
 			{
 				ll += getIntegratedLambdaSq(this->lambda.row(k));

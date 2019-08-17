@@ -176,10 +176,9 @@ namespace tomoto
 			expLambda = lambda.array().exp() + alphaEps;
 		}
 
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
+		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
-			const auto K = this->K;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->expLambda.col(doc.metadata).array())
@@ -214,7 +213,6 @@ namespace tomoto
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
 			const auto K = this->K;
-			const auto alpha = this->alpha;
 
 			double ll = 0;
 			for (; _first != _last; ++_first)

@@ -9,6 +9,8 @@
 #include "TopicModel/DMRModel.hpp"
 #include "TopicModel/PAModel.hpp"
 #include "TopicModel/HPAModel.hpp"
+#include "TopicModel/CTModel.hpp"
+#include "TopicModel/SLDAModel.hpp"
 
 #ifdef _DEBUG
 #undef _DEBUG
@@ -55,6 +57,31 @@ static PyObject* PREFIX##_##GETTER(TopicModelObject *self, void *closure)\
 		return nullptr;\
 	}\
 }\
+
+#define DEFINE_SETTER_NON_NEGATIVE_INT(BASE, PREFIX, SETTER)\
+static int PREFIX##_##SETTER(TopicModelObject* self, PyObject* val, void* closure)\
+{\
+	try\
+	{\
+		if (!self->inst) throw runtime_error{ "inst is null" };\
+		auto* inst = static_cast<BASE*>(self->inst);\
+		auto v = PyLong_AsLong(val);\
+		if (v == -1 && PyErr_Occurred()) throw bad_exception{};\
+		if (v < 0) throw runtime_error{ #SETTER " must >= 0" };\
+		inst->SETTER(v);\
+	}\
+	catch (const bad_exception&)\
+	{\
+		return -1;\
+	}\
+	catch (const exception& e)\
+	{\
+		PyErr_SetString(PyExc_Exception, e.what());\
+		return -1;\
+	}\
+	return 0;\
+}
+
 
 #define DEFINE_LOADER(PREFIX, TYPE) \
 static PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
@@ -105,6 +132,7 @@ struct TopicModelObject
 	tomoto::ITopicModel* inst;
 	bool isPrepared;
 	size_t minWordCnt;
+	size_t removeTopWord;
 
 	static void dealloc(TopicModelObject* self)
 	{
@@ -233,7 +261,7 @@ static PySequenceMethods Dictionary_seq_methods = {
 };
 
 static PyTypeObject Dictionary_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.Dictionary",             /* tp_name */
 	sizeof(DictionaryObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -470,23 +498,63 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 	}
 }
 
+static PyObject* Document_beta(DocumentObject* self, void* closure)
+{
+	try
+	{
+		if (!self->doc) throw runtime_error{ "doc is null!" };
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::one>*>(self->doc);
+			if (doc) return py::buildPyValueTransform(doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(), 
+				[](auto x) { return log(x); });
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::idf>*>(self->doc);
+			if (doc) return py::buildPyValueTransform(doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(),
+				[](auto x) { return log(x); });
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::pmi>*>(self->doc);
+			if (doc) return py::buildPyValueTransform(doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(),
+				[](auto x) { return log(x); });
+		} while (0);
+
+		throw runtime_error{ "doc doesn't has 'beta' field!" };
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 DEFINE_DOCUMENT_GETTER(tomoto::DocumentDMR, metadata, metadata);
 DEFINE_DOCUMENT_GETTER(tomoto::DocumentMGLDA, windows, Vs);
 DEFINE_DOCUMENT_GETTER(tomoto::DocumentPA, Z2, Z2s);
+DEFINE_DOCUMENT_GETTER(tomoto::DocumentSLDA, y, y);
 
 static PyGetSetDef Document_getseters[] = {
-	{ (char*)"words", (getter)Document_words, nullptr, Document_words__doc__, NULL },
-	{ (char*)"weight", (getter)Document_weight, nullptr, Document_weight__doc__, NULL },
-	{ (char*)"topics", (getter)Document_Z, nullptr, Document_topics__doc__, NULL },
-	{ (char*)"metadata", (getter)Document_metadata, nullptr, Document_metadata__doc__, NULL },
-	{ (char*)"subtopics", (getter)Document_Z2, nullptr, Document_subtopics__doc__, NULL },
-	{ (char*)"windows", (getter)Document_windows, nullptr, Document_windows__doc__, NULL },
+	{ (char*)"words", (getter)Document_words, nullptr, Document_words__doc__, nullptr },
+	{ (char*)"weight", (getter)Document_weight, nullptr, Document_weight__doc__, nullptr },
+	{ (char*)"topics", (getter)Document_Z, nullptr, Document_topics__doc__, nullptr },
+	{ (char*)"metadata", (getter)Document_metadata, nullptr, Document_metadata__doc__, nullptr },
+	{ (char*)"subtopics", (getter)Document_Z2, nullptr, Document_subtopics__doc__, nullptr },
+	{ (char*)"windows", (getter)Document_windows, nullptr, Document_windows__doc__, nullptr },
+	{ (char*)"beta", (getter)Document_beta, nullptr, Document_beta__doc__, nullptr },
+	{ (char*)"vars", (getter)Document_y, nullptr, Document_vars__doc__, nullptr },
 	{ nullptr },
 };
 
 
 static PyTypeObject Document_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.Document",             /* tp_name */
 	sizeof(DocumentObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -593,7 +661,7 @@ static PySequenceMethods Corpus_seq_methods = {
 };
 
 static PyTypeObject Corpus_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.Corpus",             /* tp_name */
 	sizeof(CorpusObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -639,15 +707,17 @@ static PyObject* HDP_load(PyObject*, PyObject* args, PyObject *kwargs);
 static PyObject* MGLDA_load(PyObject*, PyObject* args, PyObject *kwargs);
 static PyObject* PA_load(PyObject*, PyObject* args, PyObject *kwargs);
 static PyObject* HPA_load(PyObject*, PyObject* args, PyObject *kwargs);
+static PyObject* CT_load(PyObject*, PyObject* args, PyObject *kwargs);
+static PyObject* SLDA_load(PyObject*, PyObject* args, PyObject *kwargs);
 
 static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0;
+	size_t tw = 0, minCnt = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "k", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnffn", (char**)kwlist, &tw, &minCnt, &K, &alpha, &eta, &seed)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k", "alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffn", (char**)kwlist, &tw, &minCnt, &rmTop, &K, &alpha, &eta, &seed)) return -1;
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RANDGEN{ seed });
@@ -655,6 +725,7 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
 	}
 	catch (const exception& e)
 	{
@@ -676,10 +747,10 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
-			throw runtime_error{ "words is not iterable" };
+			throw runtime_error{ "words must be an iterable of str." };
 		}
 		py::AutoReleaser arIter{ iter };
-		auto ret = inst->addDoc(py::makeIterToVector(iter));
+		auto ret = inst->addDoc(py::makeIterToVector<string>(iter));
 		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
@@ -704,10 +775,10 @@ static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
-			throw runtime_error{ "words is not iterable" };
+			throw runtime_error{ "words must be an iterable of str." };
 		}
 		py::AutoReleaser arIter{ iter };
-		auto ret = inst->makeDoc(py::makeIterToVector(iter));
+		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter));
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
 	catch (const bad_exception&)
@@ -732,7 +803,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		inst->train(iteration, workers);
@@ -762,7 +833,7 @@ static PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		if (topicId >= inst->getK()) throw runtime_error{"must topic_id < K"};
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -790,7 +861,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -811,7 +882,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 	PyObject *argDoc, *iter = nullptr, *item;
 	size_t iteration = 100, workers = 0, together = 0;
 	float tolerance = -1;
-	static const char* kwlist[] = { "document", "iter", "tolerance", "workers", "together", nullptr };
+	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "together", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnp", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &together)) return nullptr;
 	DEBUG_LOG("infer " << self->ob_base.ob_type << ", " << self->ob_base.ob_refcnt);
 	try
@@ -824,15 +895,15 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 			while (item = PyIter_Next(iter))
 			{
 				py::AutoReleaser arItem{ item };
-				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "document must be tomotopy.Document type or list of tomotopy.Document" };
+				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
 				auto* doc = (DocumentObject*)item;
-				if (doc->parentModel != self) throw runtime_error{ "document was from another model, not fit to this model" };
+				if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
 				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
 			}
 			if (PyErr_Occurred()) throw bad_exception{};
 			if (!self->isPrepared)
 			{
-				self->inst->prepare(true, self->minWordCnt);
+				self->inst->prepare(true, self->minWordCnt, self->removeTopWord);
 				self->isPrepared = true;
 			}
 			auto ll = self->inst->infer(docs, iteration, tolerance, workers, !!together);
@@ -854,12 +925,12 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 		else
 		{
 			PyErr_Clear();
-			if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "document must be tomotopy.Document type or list of tomotopy.Document" };
+			if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
 			auto* doc = (DocumentObject*)argDoc;
-			if (doc->parentModel != self) throw runtime_error{ "document was from another model, not fit to this model" };
+			if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
 			if (!self->isPrepared)
 			{
-				self->inst->prepare(true, self->minWordCnt);
+				self->inst->prepare(true, self->minWordCnt, self->removeTopWord);
 				self->isPrepared = true;
 			}
 			if (doc->owner)
@@ -948,7 +1019,6 @@ static PyObject* LDA_getVocabs(TopicModelObject* self, void* closure)
 	}
 }
 
-
 static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 {
 	try
@@ -957,7 +1027,7 @@ static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getCountByTopic());
@@ -973,53 +1043,61 @@ static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 	}
 }
 
-static int LDA_setOptimInterval(TopicModelObject* self, PyObject* val, void* closure)
+static PyObject* LDA_getAlpha(TopicModelObject* self)
 {
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		auto v = PyLong_AsLong(val);
-		if (v == -1 && PyErr_Occurred()) throw bad_exception{};
-		if (v < 0) throw runtime_error{ "optim_interval must >= 0" };
-		inst->setOptimInterval(v);
+		vector<float> ret;
+		for (size_t i = 0; i < inst->getK(); ++i)
+		{
+			ret.emplace_back(inst->getAlpha(i));
+		}
+		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
 	{
-		return -1;
+		return nullptr;
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
+		return nullptr;
 	}
-	return 0;
 }
 
-static int LDA_setBurnInIteration(TopicModelObject* self, PyObject* val, void* closure)
+static PyObject* LDA_getRemovedTopWords(TopicModelObject* self)
 {
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		auto v = PyLong_AsLong(val);
-		if (v == -1 && PyErr_Occurred()) throw bad_exception{};
-		if (v < 0) throw runtime_error{ "burn_in must >= 0" };
-		inst->setBurnInIteration(v);
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			self->isPrepared = true;
+		}
+		vector<string> ret;
+		size_t last = inst->getVocabDict().size();
+		for (size_t rmV = last - self->removeTopWord; rmV < last; ++rmV)
+		{
+			ret.emplace_back(inst->getVocabDict().toWord(rmV));
+		}
+		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
 	{
-		return -1;
+		return nullptr;
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
+		return nullptr;
 	}
-	return 0;
 }
+
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getK);
-DEFINE_GETTER(tomoto::ILDAModel, LDA, getAlpha);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getEta);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getPerplexity);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getLLPerWord);
@@ -1029,6 +1107,10 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getV);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabFrequencies);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getOptimInterval);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getBurnInIteration);
+
+DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ILDAModel, LDA, setOptimInterval);
+DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ILDAModel, LDA, setBurnInIteration);
+
 
 static PyMethodDef LDA_methods[] =
 {
@@ -1045,24 +1127,25 @@ static PyMethodDef LDA_methods[] =
 };
 
 static PyGetSetDef LDA_getseters[] = {
-	{ (char*)"tw", (getter)LDA_getTermWeight, nullptr, LDA_tw__doc__, NULL },
-	{ (char*)"perplexity", (getter)LDA_getPerplexity, nullptr, LDA_perplexity__doc__, NULL },
-	{ (char*)"ll_per_word", (getter)LDA_getLLPerWord, nullptr, LDA_ll_per_word__doc__, NULL },
-	{ (char*)"k", (getter)LDA_getK, nullptr, LDA_k__doc__, NULL },
-	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, LDA_alpha__doc__, NULL },
-	{ (char*)"eta", (getter)LDA_getEta, nullptr, LDA_eta__doc__, NULL },
-	{ (char*)"docs", (getter)LDA_getDocs, nullptr, LDA_docs__doc__, NULL },
-	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, LDA_vocabs__doc__, NULL },
-	{ (char*)"num_vocabs", (getter)LDA_getV, nullptr, LDA_num_vocabs__doc__, NULL },
-	{ (char*)"vocab_freq", (getter)LDA_getVocabFrequencies, nullptr, LDA_vocab_freq__doc__, NULL },
-	{ (char*)"num_words", (getter)LDA_getN, nullptr, LDA_num_words__doc__, NULL },
-	{ (char*)"optim_interval", (getter)LDA_getOptimInterval, (setter)LDA_setOptimInterval, LDA_optim_interval__doc__, NULL },
-	{ (char*)"burn_in", (getter)LDA_getBurnInIteration, (setter)LDA_setBurnInIteration, LDA_burn_in__doc__, NULL },
+	{ (char*)"tw", (getter)LDA_getTermWeight, nullptr, LDA_tw__doc__, nullptr },
+	{ (char*)"perplexity", (getter)LDA_getPerplexity, nullptr, LDA_perplexity__doc__, nullptr },
+	{ (char*)"ll_per_word", (getter)LDA_getLLPerWord, nullptr, LDA_ll_per_word__doc__, nullptr },
+	{ (char*)"k", (getter)LDA_getK, nullptr, LDA_k__doc__, nullptr },
+	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, LDA_alpha__doc__, nullptr },
+	{ (char*)"eta", (getter)LDA_getEta, nullptr, LDA_eta__doc__, nullptr },
+	{ (char*)"docs", (getter)LDA_getDocs, nullptr, LDA_docs__doc__, nullptr },
+	{ (char*)"vocabs", (getter)LDA_getVocabs, nullptr, LDA_vocabs__doc__, nullptr },
+	{ (char*)"num_vocabs", (getter)LDA_getV, nullptr, LDA_num_vocabs__doc__, nullptr },
+	{ (char*)"vocab_freq", (getter)LDA_getVocabFrequencies, nullptr, LDA_vocab_freq__doc__, nullptr },
+	{ (char*)"num_words", (getter)LDA_getN, nullptr, LDA_num_words__doc__, nullptr },
+	{ (char*)"optim_interval", (getter)LDA_getOptimInterval, (setter)LDA_setOptimInterval, LDA_optim_interval__doc__, nullptr },
+	{ (char*)"burn_in", (getter)LDA_getBurnInIteration, (setter)LDA_setBurnInIteration, LDA_burn_in__doc__, nullptr },
+	{ (char*)"removed_top_words", (getter)LDA_getRemovedTopWords, nullptr, LDA_removed_top_words__doc__, nullptr },
 	{ nullptr },
 };
 
 static PyTypeObject LDA_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.LDAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -1105,12 +1188,13 @@ static PyTypeObject LDA_type = {
 
 static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0;
+	size_t tw = 0, minCnt = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 1e-10;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "k", "alpha", "eta", "sigma", "alpha_epsilon", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnffffn", (char**)kwlist, &tw, &minCnt, &K, &alpha, &eta, &sigma, &alphaEpsilon, &seed)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k", "alpha", "eta", "sigma", "alpha_epsilon", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffffn", (char**)kwlist, &tw, &minCnt, &rmTop,
+		&K, &alpha, &eta, &sigma, &alphaEpsilon, &seed)) return -1;
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, K, alpha, sigma, eta, alphaEpsilon, tomoto::RANDGEN{ seed });
@@ -1118,6 +1202,7 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
 	}
 	catch (const exception& e)
 	{
@@ -1140,10 +1225,10 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
-			throw runtime_error{ "words is not iterable" };
+			throw runtime_error{ "words must be an iterable of str." };
 		}
 		py::AutoReleaser arIter{ iter };
-		auto ret = inst->addDoc(py::makeIterToVector(iter), { string{metadata} });
+		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), { string{metadata} });
 		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
@@ -1170,10 +1255,10 @@ static PyObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
-			throw runtime_error{ "words is not iterable" };
+			throw runtime_error{ "words must be an iterable of str." };
 		}
 		py::AutoReleaser arIter{ iter };
-		auto ret = inst->makeDoc(py::makeIterToVector(iter), { string{metadata} });
+		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), { string{metadata} });
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
 	catch (const bad_exception&)
@@ -1243,17 +1328,17 @@ DEFINE_GETTER(tomoto::IDMRModel, DMR, getSigma);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getF);
 
 static PyGetSetDef DMR_getseters[] = {
-	{ (char*)"f", (getter)DMR_getF, nullptr, DMR_f__doc__, NULL },
-	{ (char*)"sigma", (getter)DMR_getSigma, nullptr, DMR_sigma__doc__, NULL },
-	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, DMR_alpha_epsilon__doc__, NULL },
-	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, DMR_metadata_dict__doc__, NULL },
-	{ (char*)"lambdas", (getter)DMR_getLambda, nullptr, DMR_lamdas__doc__, NULL },
+	{ (char*)"f", (getter)DMR_getF, nullptr, DMR_f__doc__, nullptr },
+	{ (char*)"sigma", (getter)DMR_getSigma, nullptr, DMR_sigma__doc__, nullptr },
+	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, DMR_alpha_epsilon__doc__, nullptr },
+	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, DMR_metadata_dict__doc__, nullptr },
+	{ (char*)"lambdas", (getter)DMR_getLambda, nullptr, DMR_lamdas__doc__, nullptr },
 	{ nullptr },
 };
 
 
 static PyTypeObject DMR_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.DMRModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -1295,12 +1380,13 @@ static PyTypeObject DMR_type = {
 
 static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0;
+	size_t tw = 0, minCnt = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01, gamma = 0.1;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "initial_k", "alpha", "eta", "gamma", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnfffn", (char**)kwlist, &tw, &minCnt, &K, &alpha, &eta, &gamma, &seed)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "initial_k", "alpha", "eta", "gamma", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfffn", (char**)kwlist, &tw, &minCnt, &rmTop,
+		&K, &alpha, &eta, &gamma, &seed)) return -1;
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, tomoto::RANDGEN{ seed });
@@ -1308,6 +1394,7 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
 	}
 	catch (const exception& e)
 	{
@@ -1329,7 +1416,7 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->isLiveTopic(topicId));
@@ -1357,14 +1444,14 @@ DEFINE_GETTER(tomoto::IHDPModel, HDP, getTotalTables);
 DEFINE_GETTER(tomoto::IHDPModel, HDP, getLiveK);
 
 static PyGetSetDef HDP_getseters[] = {
-	{ (char*)"gamma", (getter)HDP_getGamma, nullptr, HDP_gamma__doc__, NULL },
-	{ (char*)"live_k", (getter)HDP_getLiveK, nullptr, HDP_live_k__doc__, NULL },
-	{ (char*)"num_tables", (getter)HDP_getTotalTables, nullptr, HDP_num_tables__doc__, NULL },
+	{ (char*)"gamma", (getter)HDP_getGamma, nullptr, HDP_gamma__doc__, nullptr },
+	{ (char*)"live_k", (getter)HDP_getLiveK, nullptr, HDP_live_k__doc__, nullptr },
+	{ (char*)"num_tables", (getter)HDP_getTotalTables, nullptr, HDP_num_tables__doc__, nullptr },
 	{ nullptr },
 };
 
 static PyTypeObject HDP_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.HDPModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -1407,13 +1494,14 @@ static PyTypeObject HDP_type = {
 
 static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0;
+	size_t tw = 0, minCnt = 0, rmTop = 0;
 	size_t K = 1, KL = 1, T = 3;
 	float alpha = 0.1, alphaL = 0.1, eta = 0.01, etaL = 0.01, alphaM = 0.1, alphaML = 0.1, gamma = 0.1;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml", 
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml",
 		"eta_g", "eta_l", "gamma", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffffffn", (char**)kwlist, &tw, &minCnt, &K, &KL, &T,
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnfffffffn", (char**)kwlist, &tw, &minCnt, &rmTop,
+		&K, &KL, &T,
 		&alpha, &alphaL, &alphaM, &alphaML, &eta, &etaL, &gamma, &seed)) return -1;
 	try
 	{
@@ -1423,6 +1511,7 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
 	}
 	catch (const exception& e)
 	{
@@ -1445,10 +1534,10 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
-			throw runtime_error{ "words is not iterable" };
+			throw runtime_error{ "words must be an iterable of str." };
 		}
 		py::AutoReleaser arIter{ iter };
-		auto ret = inst->addDoc(py::makeIterToVector(iter), delimiter);
+		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), delimiter);
 		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
@@ -1474,10 +1563,10 @@ static PyObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject 
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
-			throw runtime_error{ "words is not iterable" };
+			throw runtime_error{ "words must be an iterable of str." };
 		}
 		py::AutoReleaser arIter{ iter };
-		auto ret = inst->makeDoc(py::makeIterToVector(iter), delimiter);
+		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), delimiter);
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
 	catch (const bad_exception&)
@@ -1503,7 +1592,7 @@ static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyO
 		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -1531,7 +1620,7 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -1566,21 +1655,21 @@ DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getEtaL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getT);
 
 static PyGetSetDef MGLDA_getseters[] = {
-	{ (char*)"k_g", (getter)LDA_getK, nullptr, MGLDA_k_g__doc__, NULL },
-	{ (char*)"k_l", (getter)MGLDA_getKL, nullptr, MGLDA_k_l__doc__, NULL },
-	{ (char*)"gamma", (getter)MGLDA_getGamma, nullptr, MGLDA_gamma__doc__, NULL },
-	{ (char*)"t", (getter)MGLDA_getT, nullptr, MGLDA_t__doc__, NULL },
-	{ (char*)"alpha_g", (getter)LDA_getAlpha, nullptr, MGLDA_alpha_g__doc__, NULL },
-	{ (char*)"alpha_l", (getter)MGLDA_getAlphaL, nullptr, MGLDA_alpha_l__doc__, NULL },
-	{ (char*)"alpha_mg", (getter)MGLDA_getAlphaM, nullptr, MGLDA_alpha_mg__doc__, NULL },
-	{ (char*)"alpha_ml", (getter)MGLDA_getAlphaML, nullptr, MGLDA_alpha_ml__doc__, NULL },
-	{ (char*)"eta_g", (getter)LDA_getEta, nullptr, MGLDA_eta_g__doc__, NULL },
-	{ (char*)"eta_l", (getter)MGLDA_getEtaL, nullptr, MGLDA_eta_l__doc__, NULL },
+	{ (char*)"k_g", (getter)LDA_getK, nullptr, MGLDA_k_g__doc__, nullptr },
+	{ (char*)"k_l", (getter)MGLDA_getKL, nullptr, MGLDA_k_l__doc__, nullptr },
+	{ (char*)"gamma", (getter)MGLDA_getGamma, nullptr, MGLDA_gamma__doc__, nullptr },
+	{ (char*)"t", (getter)MGLDA_getT, nullptr, MGLDA_t__doc__, nullptr },
+	{ (char*)"alpha_g", (getter)LDA_getAlpha, nullptr, MGLDA_alpha_g__doc__, nullptr },
+	{ (char*)"alpha_l", (getter)MGLDA_getAlphaL, nullptr, MGLDA_alpha_l__doc__, nullptr },
+	{ (char*)"alpha_mg", (getter)MGLDA_getAlphaM, nullptr, MGLDA_alpha_mg__doc__, nullptr },
+	{ (char*)"alpha_ml", (getter)MGLDA_getAlphaML, nullptr, MGLDA_alpha_ml__doc__, nullptr },
+	{ (char*)"eta_g", (getter)LDA_getEta, nullptr, MGLDA_eta_g__doc__, nullptr },
+	{ (char*)"eta_l", (getter)MGLDA_getEtaL, nullptr, MGLDA_eta_l__doc__, nullptr },
 	{ nullptr },
 };
 
 static PyTypeObject MGLDA_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.MGLDAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -1622,12 +1711,12 @@ static PyTypeObject MGLDA_type = {
 
 static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0;
+	size_t tw = 0, minCnt = 0, rmTop = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "k1", "k2", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffn", (char**)kwlist, &tw, &minCnt,
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k1", "k2", "alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffn", (char**)kwlist, &tw, &minCnt, &rmTop,
 		&K, &K2, &alpha, &eta, &seed)) return -1;
 	try
 	{
@@ -1637,6 +1726,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
 	}
 	catch (const exception& e)
 	{
@@ -1658,7 +1748,7 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId));
@@ -1686,7 +1776,7 @@ static PyObject* PA_getSubTopics(TopicModelObject* self, PyObject* args, PyObjec
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getSubTopicBySuperTopicSorted(topicId, topN));
@@ -1715,7 +1805,7 @@ static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -1743,7 +1833,7 @@ static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -1773,13 +1863,13 @@ static PyMethodDef PA_methods[] =
 DEFINE_GETTER(tomoto::IPAModel, PA, getK2);
 
 static PyGetSetDef PA_getseters[] = {
-	{ (char*)"k1", (getter)LDA_getK, nullptr, PA_k1__doc__, NULL },
-	{ (char*)"k2", (getter)PA_getK2, nullptr, PA_k2__doc__, NULL },
+	{ (char*)"k1", (getter)LDA_getK, nullptr, PA_k1__doc__, nullptr },
+	{ (char*)"k2", (getter)PA_getK2, nullptr, PA_k2__doc__, nullptr },
 	{ nullptr },
 };
 
 static PyTypeObject PA_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.PAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -1821,12 +1911,12 @@ static PyTypeObject PA_type = {
 
 static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0;
+	size_t tw = 0, minCnt = 0, rmTop = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "k1", "k2", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffn", (char**)kwlist, &tw, &minCnt,
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k1", "k2", "alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffn", (char**)kwlist, &tw, &minCnt, &rmTop,
 		&K, &K2, &alpha, &eta, &seed)) return -1;
 	try
 	{
@@ -1836,6 +1926,7 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
 	}
 	catch (const exception& e)
 	{
@@ -1857,7 +1948,7 @@ static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -1885,7 +1976,7 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt);
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -1914,7 +2005,7 @@ static PyGetSetDef HPA_getseters[] = {
 };
 
 static PyTypeObject HPA_type = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.HPAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
@@ -1954,12 +2045,440 @@ static PyTypeObject HPA_type = {
 	PyType_GenericNew,
 };
 
+static int CT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
+{
+	size_t tw = 0, minCnt = 0, rmTop = 0;
+	size_t K = 1;
+	float alpha = 0.1, eta = 0.01;
+	size_t seed = random_device{}();
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k", "smoothing_alpha", "eta", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnbnffn", (char**)kwlist, &tw, &minCnt, &rmTop,
+		&K, &alpha, &eta, &seed)) return -1;
+	try
+	{
+		tomoto::ITopicModel* inst = tomoto::ICTModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RANDGEN{ seed });
+		if (!inst) throw runtime_error{ "unknown tw value" };
+		self->inst = inst;
+		self->isPrepared = false;
+		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return -1;
+	}
+	return 0;
+}
+
+static PyObject* CT_getCorrelations(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t topicId;
+	static const char* kwlist[] = { "topic_id", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ICTModel*>(self->inst);
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			self->isPrepared = true;
+		}
+		return py::buildPyValue(inst->getCorrelationTopic(topicId));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyMethodDef CT_methods[] =
+{
+	{ "load", (PyCFunction)CT_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "get_correlations", (PyCFunction)CT_getCorrelations, METH_VARARGS | METH_KEYWORDS, CT_get_correlations__doc__ },
+	{ nullptr }
+};
+
+DEFINE_GETTER(tomoto::ICTModel, CT, getNumBetaSample);
+DEFINE_GETTER(tomoto::ICTModel, CT, getNumTMNSample);
+DEFINE_GETTER(tomoto::ICTModel, CT, getPriorMean);
+DEFINE_GETTER(tomoto::ICTModel, CT, getPriorCov);
+
+DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ICTModel, CT, setNumBetaSample);
+DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ICTModel, CT, setNumTMNSample);
+
+
+static PyGetSetDef CT_getseters[] = {
+	{ (char*)"num_beta_sample", (getter)CT_getNumBetaSample, (setter)CT_setNumBetaSample, CT_num_beta_sample__doc__, nullptr },
+	{ (char*)"num_tmn_sample", (getter)CT_getNumTMNSample, (setter)CT_setNumTMNSample, CT_num_tmn_sample__doc__, nullptr },
+	{ (char*)"prior_mean", (getter)CT_getPriorMean, nullptr, CT_get_prior_mean__doc__, nullptr },
+	{ (char*)"prior_cov", (getter)CT_getPriorCov, nullptr, CT_get_prior_cov__doc__, nullptr },
+	{ nullptr },
+};
+
+
+static PyTypeObject CT_type = {
+	PyVarObject_HEAD_INIT(nullptr, 0)
+	"tomotopy.CTModel",             /* tp_name */
+	sizeof(TopicModelObject), /* tp_basicsize */
+	0,                         /* tp_itemsize */
+	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
+	0,                         /* tp_print */
+	0,                         /* tp_getattr */
+	0,                         /* tp_setattr */
+	0,                         /* tp_reserved */
+	0,                         /* tp_repr */
+	0,                         /* tp_as_number */
+	0,                         /* tp_as_sequence */
+	0,                         /* tp_as_mapping */
+	0,                         /* tp_hash  */
+	0,                         /* tp_call */
+	0,                         /* tp_str */
+	0,                         /* tp_getattro */
+	0,                         /* tp_setattro */
+	0,                         /* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+	CT___init____doc__,           /* tp_doc */
+	0,                         /* tp_traverse */
+	0,                         /* tp_clear */
+	0,                         /* tp_richcompare */
+	0,                         /* tp_weaklistoffset */
+	0,                         /* tp_iter */
+	0,                         /* tp_iternext */
+	CT_methods,             /* tp_methods */
+	0,						 /* tp_members */
+	CT_getseters,                         /* tp_getset */
+	&LDA_type,                         /* tp_base */
+	0,                         /* tp_dict */
+	0,                         /* tp_descr_get */
+	0,                         /* tp_descr_set */
+	0,                         /* tp_dictoffset */
+	(initproc)CT_init,      /* tp_init */
+	PyType_GenericAlloc,
+	PyType_GenericNew,
+};
+
+static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
+{
+	size_t tw = 0, minCnt = 0, rmTop = 0;
+	size_t K = 1;
+	float alpha = 0.1, eta = 0.01;
+	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
+	size_t seed = random_device{}();
+	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k",
+		"vars", "alpha", "eta",
+		"mu", "nu_sq", "glm_param", "seed", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnOffOOOn", (char**)kwlist, 
+		&tw, &minCnt, &rmTop, &K, 
+		&vars, &alpha, &eta, 
+		&mu, &nuSq, &glmCoef, &seed)) return -1;
+	try
+	{
+		PyObject* iter;
+		vector<tomoto::ISLDAModel::GLM> varTypes;
+		if (vars)
+		{
+			if (!(iter = PyObject_GetIter(vars))) throw runtime_error{ "'vars' must be an iterable." };
+			py::AutoReleaser ar{ iter };
+			auto vs = py::makeIterToVector<string>(iter);
+			for (auto& s : vs)
+			{
+				tomoto::ISLDAModel::GLM t;
+				if (s == "l") t = tomoto::ISLDAModel::GLM::linear;
+				else if (s == "b") t = tomoto::ISLDAModel::GLM::binary_logistic;
+				else throw runtime_error{ "Unknown var type '" + s + "'" };
+				varTypes.emplace_back(t);
+			}
+		}
+		
+		vector<tomoto::FLOAT> vmu, vnuSq, vglmCoef; 
+		float fTemp;
+		if (mu)
+		{
+			if ((fTemp = PyFloat_AsDouble(mu)) == -1 && PyErr_Occurred())
+			{
+				PyErr_Clear();
+				if (!(iter = PyObject_GetIter(mu))) throw runtime_error{ "'mu' must be float or iterable of float." };
+
+				py::AutoReleaser ar{ iter };
+				vmu = py::makeIterToVector<tomoto::FLOAT>(iter);
+			}
+			else
+			{
+				vmu.resize(varTypes.size(), fTemp);
+			}
+		}
+
+		if (nuSq)
+		{
+			if ((fTemp = PyFloat_AsDouble(nuSq)) == -1 && PyErr_Occurred())
+			{
+				PyErr_Clear();
+				if (!(iter = PyObject_GetIter(nuSq))) throw runtime_error{ "'nu_sq' must be float or iterable of float." };
+
+				py::AutoReleaser ar{ iter };
+				vnuSq = py::makeIterToVector<tomoto::FLOAT>(iter);
+			}
+			else
+			{
+				vnuSq.resize(varTypes.size(), fTemp);
+			}
+		}
+
+		if (glmCoef)
+		{
+			if ((fTemp = PyFloat_AsDouble(glmCoef)) == -1 && PyErr_Occurred())
+			{
+				PyErr_Clear();
+				if (!(iter = PyObject_GetIter(glmCoef))) throw runtime_error{ "'glm_param' must be float or iterable of float." };
+
+				py::AutoReleaser ar{ iter };
+				vglmCoef = py::makeIterToVector<tomoto::FLOAT>(iter);
+			}
+			else
+			{
+				vglmCoef.resize(varTypes.size(), fTemp);
+			}
+		}
+
+		tomoto::ITopicModel* inst = tomoto::ISLDAModel::create((tomoto::TermWeight)tw, K, varTypes, 
+			alpha, eta, vmu, vnuSq, vglmCoef,
+			tomoto::RANDGEN{ seed });
+		if (!inst) throw runtime_error{ "unknown tw value" };
+		self->inst = inst;
+		self->isPrepared = false;
+		self->minWordCnt = minCnt;
+		self->removeTopWord = rmTop;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return -1;
+	}
+	return 0;
+}
+
+
+static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	PyObject *argWords, *iter = nullptr, *argY = nullptr;
+	static const char* kwlist[] = { "words", "y", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argY)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
+		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		if (!(iter = PyObject_GetIter(argWords)))
+		{
+			throw runtime_error{ "'words' must be an iterable of str." };
+		}
+		py::AutoReleaser arIter{ iter };
+		auto words = py::makeIterToVector<string>(iter);
+		vector<tomoto::FLOAT> ys;
+		if (argY)
+		{
+			if (!(iter = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
+			py::AutoReleaser arIter{ iter };
+			ys = py::makeIterToVector<tomoto::FLOAT>(iter);
+		}
+		auto ret = inst->addDoc(words, ys);
+		return py::buildPyValue(ret);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	PyObject *argWords, *iter = nullptr, *argY = nullptr;
+	static const char* kwlist[] = { "words", "y", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argY)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		if (!(iter = PyObject_GetIter(argWords)))
+		{
+			throw runtime_error{ "words must be an iterable of str." };
+		}
+		py::AutoReleaser arIter{ iter };
+		auto words = py::makeIterToVector<string>(iter);
+		vector<tomoto::FLOAT> ys;
+		if (argY)
+		{
+			if (!(iter = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
+			py::AutoReleaser arIter{ iter };
+			ys = py::makeIterToVector<tomoto::FLOAT>(iter);
+		}
+		auto ret = inst->makeDoc(words, ys);
+		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* SLDA_getRegressionCoef(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t varId;
+	static const char* kwlist[] = { "var_id", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &varId)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		if (varId >= inst->getF()) throw runtime_error{ "'var_id' must be < 'f'" };
+		return py::buildPyValue(inst->getRegressionCoef(varId));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* SLDA_getTypeOfVar(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t varId;
+	static const char* kwlist[] = { "var_id", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &varId)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		if (varId >= inst->getF()) throw runtime_error{ "'var_id' must be < 'f'" };
+		return py::buildPyValue("l\0b" + (size_t)inst->getTypeOfVar(varId) * 2);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* SLDA_estimateVars(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	PyObject* argDoc;
+	static const char* kwlist[] = { "doc", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &argDoc)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type" };
+		auto* doc = (DocumentObject*)argDoc;
+		if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
+
+		return py::buildPyValue(inst->estimateVars(doc->doc));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyMethodDef SLDA_methods[] =
+{
+	{ "load", (PyCFunction)SLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "add_doc", (PyCFunction)SLDA_addDoc, METH_VARARGS | METH_KEYWORDS, SLDA_add_doc__doc__ },
+	{ "make_doc", (PyCFunction)SLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, SLDA_make_doc__doc__},
+	{ "get_regression_coef", (PyCFunction)SLDA_getRegressionCoef, METH_VARARGS | METH_KEYWORDS, SLDA_get_regression_coef__doc__},
+	{ "get_var_type", (PyCFunction)SLDA_getTypeOfVar, METH_VARARGS | METH_KEYWORDS, SLDA_get_var_type__doc__},
+	{ "estimate", (PyCFunction)SLDA_estimateVars, METH_VARARGS | METH_KEYWORDS, SLDA_estimate__doc__},
+	{ nullptr }
+};
+
+DEFINE_GETTER(tomoto::ISLDAModel, SLDA, getF);
+
+static PyGetSetDef SLDA_getseters[] = {
+	{ (char*)"f", (getter)SLDA_getF, nullptr, SLDA_f__doc__, nullptr },
+	{ nullptr },
+};
+
+
+static PyTypeObject SLDA_type = {
+	PyVarObject_HEAD_INIT(nullptr, 0)
+	"tomotopy.SLDAModel",             /* tp_name */
+	sizeof(TopicModelObject), /* tp_basicsize */
+	0,                         /* tp_itemsize */
+	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
+	0,                         /* tp_print */
+	0,                         /* tp_getattr */
+	0,                         /* tp_setattr */
+	0,                         /* tp_reserved */
+	0,                         /* tp_repr */
+	0,                         /* tp_as_number */
+	0,                         /* tp_as_sequence */
+	0,                         /* tp_as_mapping */
+	0,                         /* tp_hash  */
+	0,                         /* tp_call */
+	0,                         /* tp_str */
+	0,                         /* tp_getattro */
+	0,                         /* tp_setattro */
+	0,                         /* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+	SLDA___init____doc__,           /* tp_doc */
+	0,                         /* tp_traverse */
+	0,                         /* tp_clear */
+	0,                         /* tp_richcompare */
+	0,                         /* tp_weaklistoffset */
+	0,                         /* tp_iter */
+	0,                         /* tp_iternext */
+	SLDA_methods,             /* tp_methods */
+	0,						 /* tp_members */
+	SLDA_getseters,                         /* tp_getset */
+	&LDA_type,                         /* tp_base */
+	0,                         /* tp_dict */
+	0,                         /* tp_descr_get */
+	0,                         /* tp_descr_set */
+	0,                         /* tp_dictoffset */
+	(initproc)SLDA_init,      /* tp_init */
+	PyType_GenericAlloc,
+	PyType_GenericNew,
+};
+
+
 DEFINE_LOADER(LDA, LDA_type);
 DEFINE_LOADER(DMR, DMR_type);
 DEFINE_LOADER(HDP, HDP_type);
 DEFINE_LOADER(MGLDA, MGLDA_type);
 DEFINE_LOADER(PA, PA_type);
 DEFINE_LOADER(HPA, HPA_type);
+DEFINE_LOADER(CT, CT_type);
+DEFINE_LOADER(SLDA, SLDA_type);
 
 PyMODINIT_FUNC MODULE_NAME()
 {
@@ -1981,6 +2500,8 @@ PyMODINIT_FUNC MODULE_NAME()
 	if (PyType_Ready(&MGLDA_type) < 0) return nullptr;
 	if (PyType_Ready(&PA_type) < 0) return nullptr;
 	if (PyType_Ready(&HPA_type) < 0) return nullptr;
+	if (PyType_Ready(&CT_type) < 0) return nullptr;
+	if (PyType_Ready(&SLDA_type) < 0) return nullptr;
 
 	gModule = PyModule_Create(&mod);
 	if (!gModule) return nullptr;
@@ -2014,5 +2535,9 @@ PyMODINIT_FUNC MODULE_NAME()
 	PyModule_AddObject(gModule, "PAModel", (PyObject*)&PA_type);
 	Py_INCREF(&HPA_type);
 	PyModule_AddObject(gModule, "HPAModel", (PyObject*)&HPA_type);
+	Py_INCREF(&CT_type);
+	PyModule_AddObject(gModule, "CTModel", (PyObject*)&CT_type);
+	Py_INCREF(&SLDA_type);
+	PyModule_AddObject(gModule, "SLDAModel", (PyObject*)&SLDA_type);
 	return gModule;
 }

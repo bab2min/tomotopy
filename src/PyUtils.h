@@ -32,16 +32,44 @@ namespace py
 		static constexpr bool value = true;
 	};
 
-	vector<string> makeIterToVector(PyObject *iter)
+	template<typename T>
+	T makeObjectToCType(PyObject *obj)
+	{
+	}
+
+	template<>
+	string makeObjectToCType<string>(PyObject *obj)
+	{
+		const char* str = PyUnicode_AsUTF8(obj);
+		if (!str) throw bad_exception{};
+		return str;
+	}
+
+	template<>
+	float makeObjectToCType<float>(PyObject *obj)
+	{
+		float d = PyFloat_AsDouble(obj);
+		if (d == -1 && PyErr_Occurred()) throw bad_exception{};
+		return d;
+	}
+
+	template<>
+	double makeObjectToCType<double>(PyObject *obj)
+	{
+		double d = PyFloat_AsDouble(obj);
+		if (d == -1 && PyErr_Occurred()) throw bad_exception{};
+		return d;
+	}
+
+	template<typename T>
+	vector<T> makeIterToVector(PyObject *iter)
 	{
 		PyObject* item;
-		vector<string> v;
+		vector<T> v;
 		while (item = PyIter_Next(iter))
 		{
 			AutoReleaser ar{ item };
-			const char* str = PyUnicode_AsUTF8(item);
-			if (!str) throw bad_exception{};
-			v.emplace_back(str);
+			v.emplace_back(makeObjectToCType<T>(item));
 		}
 		if (PyErr_Occurred())
 		{

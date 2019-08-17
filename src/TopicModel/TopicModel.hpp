@@ -272,7 +272,7 @@ namespace tomoto
 
 		double getLLPerWord() const override
 		{
-			return words.empty() ? 0 : static_cast<const _Derived*>(this)->getLL() / words.size();
+			return words.empty() ? 0 : static_cast<const _Derived*>(this)->getLL() / realN;
 		}
 
 		double getPerplexity() const override

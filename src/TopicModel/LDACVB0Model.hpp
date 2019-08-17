@@ -30,14 +30,7 @@ namespace tomoto
 
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentBase, Zs);
 
-		void update(FLOAT* ptr, size_t K)
-		{
-			numByTopic = Eigen::VectorXf::Zero(K);
-			for (size_t i = 0; i < Zs.cols(); ++i)
-			{
-				numByTopic += Zs.col(i);
-			}
-		}
+		template<typename _TopicModel> void update(FLOAT* ptr, const _TopicModel& mdl);
 
 		int32_t getSumWordWeight() const
 		{
@@ -120,7 +113,7 @@ namespace tomoto
 			}
 		}
 
-		const Eigen::VectorXf& getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t vid) const
+		const Eigen::VectorXf& getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
@@ -135,8 +128,7 @@ namespace tomoto
 		template<int _Inc, typename _Vec>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, _Vec tDist) const
 		{
-			const size_t V = this->realV;
-			assert(vid < V);
+			assert(vid < this->realV);
 			constexpr bool DEC = _Inc < 0;
 			doc.numByTopic += _Inc * tDist;
 			if (DEC) doc.numByTopic = doc.numByTopic.cwiseMax(0);
@@ -146,13 +138,13 @@ namespace tomoto
 			if (DEC) ld.numByTopicWord.col(vid) = ld.numByTopicWord.col(vid).cwiseMax(0);
 		}
 
-		void sampleDocument(_DocType& doc, _ModelState& ld, RANDGEN& rgs) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs.col(w));
-				doc.Zs.col(w) = static_cast<const DerivedClass*>(this)->getZLikelihoods(ld, doc, doc.words[w]);
+				doc.Zs.col(w) = static_cast<const DerivedClass*>(this)->getZLikelihoods(ld, doc, docId, doc.words[w]);
 				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs.col(w));
 			}
 		}
@@ -167,8 +159,9 @@ namespace tomoto
 				{
 					forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 					{
-						static_cast<DerivedClass*>(this)->sampleDocument(this->docs[id * chStride + ch],
-							localData[threadId], rgs[threadId]);
+						static_cast<DerivedClass*>(this)->sampleDocument(
+							this->docs[id * chStride + ch], id * chStride + ch,
+							localData[threadId], rgs[threadId], this->iterated);
 					});
 				}));
 			}
@@ -346,10 +339,9 @@ namespace tomoto
 
 		void updateDocs()
 		{
-			size_t docId = 0;
 			for (auto& doc : this->docs)
 			{
-				doc.update(nullptr, K);
+				doc.template update<>(nullptr, *static_cast<DerivedClass*>(this));
 			}
 		}
 
@@ -358,8 +350,6 @@ namespace tomoto
 			if (initDocs) this->removeStopwords(minWordCnt, removeTopN);
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
-
-			const size_t V = this->realV;
 
 			if (initDocs)
 			{
@@ -413,8 +403,19 @@ namespace tomoto
 		}
 	};
 
+	template<typename _TopicModel>
+	void DocumentLDACVB0::update(FLOAT * ptr, const _TopicModel & mdl)
+	{
+		numByTopic = Eigen::VectorXf::Zero(mdl.getK());
+		for (size_t i = 0; i < Zs.cols(); ++i)
+		{
+			numByTopic += Zs.col(i);
+		}
+	}
+
 	ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
 	{
 		return new LDACVB0Model<>(_K, _alpha, _eta, _rg);
 	}
+
 }

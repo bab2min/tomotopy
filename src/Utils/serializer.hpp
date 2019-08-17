@@ -1,10 +1,12 @@
 #pragma once
 #include <iostream>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <Eigen/Dense>
 #include <vector>
 #include "tvector.hpp"
+#include "text.hpp"
 
 namespace tomoto
 {
@@ -93,14 +95,14 @@ namespace tomoto
 		inline typename std::enable_if<std::is_fundamental<_Ty>::value>::type writeToBinStreamImpl(std::ostream& ostr, const _Ty& v)
 		{
 			if (!ostr.write((const char*)&v, sizeof(_Ty)))
-				throw std::ios_base::failure("writing type '"s +typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
 		inline typename std::enable_if<std::is_fundamental<_Ty>::value>::type readFromBinStreamImpl(std::istream& istr, _Ty& v)
 		{
 			if (!istr.read((char*)&v, sizeof(_Ty)))
-				throw std::ios_base::failure("reading type '"s +typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
@@ -122,7 +124,7 @@ namespace tomoto
 			writeToStream<uint32_t>(ostr, v.rows());
 			writeToStream<uint32_t>(ostr, v.cols());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure("writing type '"s +typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
@@ -132,7 +134,7 @@ namespace tomoto
 			uint32_t cols = readFromStream<uint32_t>(istr);
 			v = Eigen::Matrix<_Ty, -1, -1>::Zero(rows, cols);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
-				throw std::ios_base::failure("reading type '"s + typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
@@ -141,7 +143,7 @@ namespace tomoto
 			writeToStream<uint32_t>(ostr, v.rows());
 			writeToStream<uint32_t>(ostr, v.cols());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure("writing type '"s + typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
@@ -149,10 +151,10 @@ namespace tomoto
 		{
 			uint32_t rows = readFromStream<uint32_t>(istr);
 			uint32_t cols = readFromStream<uint32_t>(istr);
-			if (cols != 1) throw std::ios_base::failure("matrix cols != 1'");
+			if (cols != 1) throw std::ios_base::failure{ "matrix cols != 1'" };
 			v = Eigen::Matrix<_Ty, -1, 1>::Zero(rows);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
-				throw std::ios_base::failure("reading type '"s + typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
@@ -167,6 +169,21 @@ namespace tomoto
 		{
 			uint32_t size = readFromStream<uint32_t>(istr);
 			v.resize(size);
+			for (auto& e : v) readFromStream(istr, e);
+		}
+
+		template<class _Ty, size_t _N>
+		inline void writeToBinStreamImpl(std::ostream& ostr, const std::array<_Ty, _N>& v)
+		{
+			writeToStream<uint32_t>(ostr, v.size());
+			for (auto& e : v) writeToStream(ostr, e);
+		}
+
+		template<class _Ty, size_t _N>
+		inline void readFromBinStreamImpl(std::istream& istr, std::array<_Ty, _N>& v)
+		{
+			uint32_t size = readFromStream<uint32_t>(istr);
+			if (_N != size) throw std::ios_base::failure{ text::format("the size of array must be %zd, not %zd", _N, size) };
 			for (auto& e : v) readFromStream(istr, e);
 		}
 
@@ -190,7 +207,7 @@ namespace tomoto
 		{
 			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure("writing type '"s + typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
 		}
 
 		template<class _Ty>
@@ -199,7 +216,19 @@ namespace tomoto
 			uint32_t size = readFromStream<uint32_t>(istr);
 			v.resize(size);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure("reading type '"s + typeid(_Ty).name() + "' is failed"s);
+				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
+		}
+
+		template<class _Ty>
+		inline typename std::enable_if<std::is_abstract<_Ty>::value>::type writeToBinStreamImpl(std::ostream& ostr, const std::unique_ptr<_Ty>& v)
+		{
+			_Ty::serializerWrite(v, ostr);
+		}
+
+		template<class _Ty>
+		inline typename std::enable_if<std::is_abstract<_Ty>::value>::type readFromBinStreamImpl(std::istream& istr, std::unique_ptr<_Ty>& v)
+		{
+			_Ty::serializerRead(v, istr);
 		}
 
 		template<typename _Ty> 
@@ -233,6 +262,18 @@ void serializerWrite(std::ostream& ostr) const\
 	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
 }
 
+
+#define DEFINE_SERIALIZER_CALLBACK(onRead, ...) void serializerRead(std::istream& istr)\
+{\
+	tomoto::serializer::readMany(istr, __VA_ARGS__);\
+	this->onRead();\
+}\
+void serializerWrite(std::ostream& ostr) const\
+{\
+	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
+}
+
+
 #define DEFINE_SERIALIZER_AFTER_BASE(base, ...) void serializerRead(std::istream& istr)\
 {\
 	base::serializerRead(istr);\
@@ -264,5 +305,26 @@ void serializerWrite(std::ostream& ostr) const\
 void serializerWrite(std::ostream& ostr) const\
 {\
 	base::serializerWrite(ostr);\
+	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
+}
+
+#define DEFINE_SERIALIZER_AFTER_BASE2_CALLBACK(base1, base2, onRead, ...) void serializerRead(std::istream& istr)\
+{\
+	base1, base2::serializerRead(istr);\
+	tomoto::serializer::readMany(istr, __VA_ARGS__);\
+	this->onRead();\
+}\
+void serializerWrite(std::ostream& ostr) const\
+{\
+	base1, base2::serializerWrite(ostr);\
+	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
+}
+
+#define DEFINE_SERIALIZER_VIRTUAL(...) virtual void serializerRead(std::istream& istr)\
+{\
+	tomoto::serializer::readMany(istr, __VA_ARGS__);\
+}\
+virtual void serializerWrite(std::ostream& ostr) const\
+{\
 	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
 }

@@ -51,14 +51,7 @@ namespace tomoto
 			return insertIntoEmpty(numTopicByTable, TableTopicInfo{ 0, tid });
 		}
 
-		void update(WeightType* ptr, size_t K)
-		{
-			DocumentLDA<_TW>::update(ptr, K);
-			for (size_t i = 0; i < this->Zs.size(); ++i)
-			{
-				numTopicByTable[this->Zs[i]].num += _TW != TermWeight::one ? this->wordWeights[i] : 1;
-			}
-		}
+		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 	};
 
 	template<TermWeight _TW>
@@ -139,8 +132,7 @@ namespace tomoto
 
 		FLOAT* getTableLikelihoods(_ModelState& ld, _DocType& doc, VID vid) const
 		{
-			const size_t V = this->realV;
-			assert(vid < V);
+			assert(vid < this->realV);
 			const size_t T = doc.numTopicByTable.size();
 			const auto K = ld.numByTopic.size();
 			FLOAT acc = 0;
@@ -170,8 +162,7 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, size_t tableId, TID tid) const
 		{
 			assert(tid < ld.numTableByTopic.size());
-			const size_t V = this->realV;
-			assert(vid < V);
+			assert(vid < this->realV);
 
 			if (INC > 0 && tid >= doc.numByTopic.size())
 			{
@@ -201,7 +192,7 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, _ModelState& ld, RANDGEN& rgs) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -311,10 +302,7 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const size_t V = this->realV;
-			const auto K = this->K;
 			const auto alpha = this->alpha;
-			const auto eta = this->eta;
 			double ll = 0;
 
 			for (; _first != _last; ++_first)
@@ -333,7 +321,6 @@ namespace tomoto
 		{
 			const size_t V = this->realV;
 			const auto K = this->K;
-			const auto alpha = this->alpha;
 			const auto eta = this->eta;
 			double ll = 0;
 			// table partition ll
@@ -430,6 +417,19 @@ namespace tomoto
 			return this->globalState.numTableByTopic[tid];
 		}
 	};
+
+	template<TermWeight _TW>
+	template<typename _TopicModel>
+	void DocumentHDP<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	{
+		this->numByTopic.init(ptr, mdl.getK());
+		for (size_t i = 0; i < this->Zs.size(); ++i)
+		{
+			if (this->words[i] >= mdl.getV()) continue;
+			numTopicByTable[this->Zs[i]].num += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			this->numByTopic[numTopicByTable[this->Zs[i]].topic] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+		}
+	}
 
 	IHDPModel* IHDPModel::create(TermWeight _weight, size_t _K, FLOAT _alpha , FLOAT _eta, FLOAT _gamma, const RANDGEN& _rg)
 	{

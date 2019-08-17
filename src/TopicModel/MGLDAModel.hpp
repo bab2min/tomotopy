@@ -31,15 +31,7 @@ namespace tomoto
 
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, sents, Vs, numGl, numBySentWin, numByWinL, numByWin, numByWinTopicL);
 
-		void update(WeightType* ptr, size_t K)
-		{
-			DocumentLDA<_TW>::update(ptr, K);
-			numBySent.resize(*std::max_element(sents.begin(), sents.end()) + 1);
-			for (size_t i = 0; i < sents.size(); ++i)
-			{
-				numBySent[sents[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
-			}
-		}
+		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 	};
 
 	class IMGLDAModel : public ILDAModel
@@ -117,13 +109,12 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID tid, uint16_t s, uint8_t w, uint8_t r) const
 		{
 			const auto K = this->K;
-			const auto V = this->realV;
 
 			assert(r != 0 || tid < K);
 			assert(r == 0 || tid < KL);
 			assert(w < T);
 			assert(r < 2);
-			assert(vid < V);
+			assert(vid < this->realV);
 			assert(s < doc.numBySent.size());
 
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
@@ -149,7 +140,7 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, _ModelState& ld, RANDGEN& rgs) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
 		{
 			const auto K = this->K;
 			for (size_t w = 0; w < doc.words.size(); ++w)
@@ -167,7 +158,6 @@ namespace tomoto
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
-			const auto V = this->realV;
 			const auto K = this->K;
 			const auto alpha = this->alpha;
 			
@@ -375,13 +365,6 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, doc.words[i], z, doc.sents[i], win, r);
 		}
 
-		void updateDocs()
-		{
-			for (auto& doc : this->docs)
-			{
-				doc.update(nullptr, this->K + KL);
-			}
-		}
 
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 	public:
@@ -443,6 +426,20 @@ namespace tomoto
 		GETTER(AlphaM, FLOAT, alphaM);
 		GETTER(AlphaML, FLOAT, alphaML);
 	};
+
+	template<TermWeight _TW>
+	template<typename _TopicModel>
+	void DocumentMGLDA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	{
+		this->numByTopic.init(ptr, mdl.getK() + mdl.getKL());
+		numBySent.resize(*std::max_element(sents.begin(), sents.end()) + 1);
+		for (size_t i = 0; i < this->Zs.size(); ++i)
+		{
+			if (this->words[i] >= mdl.getV()) continue;
+			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			numBySent[sents[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+		}
+	}
 
 	IMGLDAModel* IMGLDAModel::create(TermWeight _weight, size_t _KG, size_t _KL, size_t _T,
 		FLOAT _alphaG, FLOAT _alphaL, FLOAT _alphaMG, FLOAT _alphaML,
