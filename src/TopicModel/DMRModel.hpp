@@ -2,7 +2,7 @@
 #include "LDAModel.hpp"
 #include "../Utils/LBFGS.h"
 #include "../Utils/text.hpp"
-
+#include "DMR.h"
 /*
 Implementation of DMR using Gibbs sampling by bab2min
 * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.
@@ -10,41 +10,10 @@ Implementation of DMR using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW, bool _Shared = false>
-	struct DocumentDMR : public DocumentLDA<_TW, _Shared>
-	{
-		using DocumentLDA<_TW, _Shared>::DocumentLDA;
-		size_t metadata = 0;
-
-		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Shared>, metadata);
-	};
-
 	template<TermWeight _TW>
 	struct ModelStateDMR : public ModelStateLDA<_TW>
 	{
 		Eigen::Matrix<FLOAT, -1, 1> tmpK;
-	};
-
-	class IDMRModel : public ILDAModel
-	{
-	public:
-		using DefaultDocType = DocumentDMR<TermWeight::one>;
-		static IDMRModel* create(TermWeight _weight, size_t _K = 1,
-			FLOAT defaultAlpha = 1.0, FLOAT _sigma = 1.0, FLOAT _eta = 0.01, FLOAT _alphaEps = 1e-10,
-			const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
-
-		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) const = 0;
-		
-		virtual void setAlphaEps(FLOAT _alphaEps) = 0;
-		virtual FLOAT getAlphaEps() const = 0;
-		virtual void setOptimRepeat(size_t repeat) = 0;
-		virtual size_t getOptimRepeat() const = 0;
-		virtual size_t getF() const = 0;
-		virtual FLOAT getSigma() const = 0;
-		virtual const Dictionary& getMetadataDict() const = 0;
-		virtual std::vector<FLOAT> getLambdaByMetadata(size_t metadataId) const = 0;
-		virtual std::vector<FLOAT> getLambdaByTopic(TID tid) const = 0;
 	};
 
 	template<TermWeight _TW, bool _Shared = false,
@@ -195,7 +164,7 @@ namespace tomoto
 			const size_t V = this->realV;
 			const auto K = this->K;
 
-			auto alphaDoc = expLambda.segment(doc.metadata * K, K);
+			auto alphaDoc = expLambda.col(doc.metadata);
 
 			FLOAT ll = 0;
 			FLOAT alphaSum = alphaDoc.sum();
@@ -294,7 +263,7 @@ namespace tomoto
 			if (xid == (VID)-1) throw std::invalid_argument("unknown metadata");
 			auto doc = this->_makeDocWithinVocab(words);
 			doc.metadata = xid;
-			return std::make_unique<_DocType>(doc);
+			return make_unique<_DocType>(doc);
 		}
 
 		GETTER(F, size_t, F);
@@ -349,9 +318,4 @@ namespace tomoto
 	template<TermWeight _TW, bool _Shared,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
 		constexpr size_t DMRModel<_TW, _Shared, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
-
-	IDMRModel* IDMRModel::create(TermWeight _weight, size_t _K, FLOAT _defaultAlpha, FLOAT _sigma, FLOAT _eta, FLOAT _alphaEps, const RANDGEN& _rg)
-	{
-		SWITCH_TW(_weight, DMRModel, _K, _defaultAlpha, _sigma, _eta, _alphaEps, _rg);
-	}
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "PAModel.hpp"
-
+#include "HPA.h"
 /*
 Implementation of Hierarchical Pachinko Allocation using Gibbs sampling by bab2min
 
@@ -9,15 +9,6 @@ Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics 
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct DocumentHPA : public DocumentPA<_TW>
-	{
-		using DocumentPA<_TW>::DocumentPA;
-		using WeightType = typename DocumentPA<_TW>::WeightType;
-
-		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
-	};
-
 	template<TermWeight _TW>
 	struct ModelStateHPA : public ModelStateLDA<_TW>
 	{
@@ -30,13 +21,6 @@ namespace tomoto
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numByTopicWord, numByTopic, numByTopic1_2);
-	};
-
-	class IHPAModel : public IPAModel
-	{
-	public:
-		using DefaultDocType = DocumentHPA<TermWeight::one>;
-		static IHPAModel* create(TermWeight _weight, bool _exclusive = false, size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 50, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
 	};
 
 	template<TermWeight _TW, 
@@ -515,16 +499,4 @@ namespace tomoto
 	}
 
 	template<TermWeight _TW> using HPAModelExclusive = HPAModel<_TW, true>;
-	IHPAModel* IHPAModel::create(TermWeight _weight, bool _exclusive, size_t _K, size_t _K2, FLOAT _alphaSum, FLOAT _eta, const RANDGEN& _rg)
-	{
-		if (_exclusive)
-		{
-			SWITCH_TW(_weight, HPAModelExclusive, _K, _K2, _alphaSum, _eta, _rg);
-		}
-		else
-		{
-			SWITCH_TW(_weight, HPAModel, _K, _K2, _alphaSum, _eta, _rg);
-		}
-		return nullptr;
-	}
 }

@@ -1,18 +1,10 @@
 #pragma once
 #include "DMRModel.hpp"
 #include "../Utils/slp.hpp"
+#include "GDMR.h"
 
 namespace tomoto
 {
-	template<TermWeight _TW, bool _Shared = false>
-	struct DocumentGDMR : public DocumentDMR<_TW, _Shared>
-	{
-		using DocumentDMR<_TW, _Shared>::DocumentDMR;
-		std::vector<FLOAT> metadataC;
-
-		DEFINE_SERIALIZER_AFTER_BASE2(DocumentDMR<_TW, _Shared>, metadataC);
-	};
-
 	template<TermWeight _TW>
 	struct ModelStateGDMR : public ModelStateDMR<_TW>
 	{
@@ -20,21 +12,6 @@ namespace tomoto
 		Eigen::Matrix<FLOAT, -1, 1> terms;
 		std::vector<std::vector<FLOAT>> slpCache;
 		std::vector<size_t> ndimCnt;
-	};
-
-	class IGDMRModel : public IDMRModel
-	{
-	public:
-		using DefaultDocType = DocumentDMR<TermWeight::one>;
-		static IGDMRModel* create(TermWeight _weight, size_t _K = 1, const std::vector<size_t>& _degreeByF = {},
-			FLOAT defaultAlpha = 1.0, FLOAT _sigma = 1.0, FLOAT _eta = 0.01, FLOAT _alphaEps = 1e-10,
-			const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
-
-		virtual FLOAT getSigma0() const = 0;
-		virtual void setSigma0(FLOAT) = 0;
-		virtual const std::vector<size_t>& getFs() const = 0;
-		virtual std::vector<FLOAT> getLambdaByTopic(TID tid) const = 0;
-		virtual void setMdRange(const std::vector<FLOAT>& vMin, const std::vector<FLOAT>& vMax) = 0;
 	};
 
 	template<TermWeight _TW, bool _Shared = false,
@@ -327,7 +304,7 @@ namespace tomoto
 			FLOAT _alphaEps = 1e-10, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), degreeByF(_degreeByF)
 		{
-			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](auto a, auto b) {return a * (b + 1); });
+			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
 		}
 
 		GETTER(Fs, const std::vector<size_t>&, degreeByF);
@@ -355,7 +332,7 @@ namespace tomoto
 			{
 				return stof(s);
 			});
-			return std::make_unique<_DocType>(doc);
+			return make_unique<_DocType>(doc);
 		}
 
 		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
@@ -390,9 +367,4 @@ namespace tomoto
 			mdCoefs = vMax;
 		}
 	};
-
-	IGDMRModel* IGDMRModel::create(TermWeight _weight, size_t _K, const std::vector<size_t>& degreeByF, FLOAT _defaultAlpha, FLOAT _sigma, FLOAT _eta, FLOAT _alphaEps, const RANDGEN& _rg)
-	{
-		SWITCH_TW(_weight, GDMRModel, _K, degreeByF, _defaultAlpha, _sigma, _eta, _alphaEps, _rg);
-	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "LDAModel.hpp"
+#include "HDP.h"
 
 /*
 Implementation of HDP using Gibbs sampling by bab2min
@@ -11,50 +12,6 @@ Implementation of HDP using Gibbs sampling by bab2min
 namespace tomoto
 {
 	template<TermWeight _TW>
-	struct DocumentHDP : public DocumentLDA<_TW>
-	{
-		/* 
-		for DocumentHDP, the topic in numByTopic, Zs indicates 'table id', not 'topic id'.
-		to get real 'topic id', check the topic field of numTopicByTable.
-		*/
-		using DocumentLDA<_TW>::DocumentLDA;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
-		struct TableTopicInfo
-		{
-			WeightType num = 0;
-			TID topic = 0;
-			operator const bool() const
-			{
-				return num > (WeightType)1e-2;
-			}
-
-			void serializerWrite(std::ostream& writer) const
-			{
-				serializer::writeMany(writer, topic);
-			}
-
-			void serializerRead(std::istream& reader)
-			{
-				serializer::readMany(reader, topic);
-			}
-		};
-		std::vector<TableTopicInfo> numTopicByTable;
-
-		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, numTopicByTable);
-
-		size_t getNumTable() const
-		{
-			return std::count_if(numTopicByTable.begin(), numTopicByTable.end(), [](const auto& e) { return (bool)e; });
-		}
-		size_t addNewTable(TID tid)
-		{
-			return insertIntoEmpty(numTopicByTable, TableTopicInfo{ 0, tid });
-		}
-
-		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
-	};
-
-	template<TermWeight _TW>
 	struct ModelStateHDP : public ModelStateLDA<_TW>
 	{
 		Eigen::Matrix<FLOAT, -1, 1> tableLikelihood, topicLikelihood;
@@ -62,18 +19,6 @@ namespace tomoto
 		size_t totalTable = 0;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numTableByTopic, totalTable);
-	};
-
-	class IHDPModel : public ILDAModel
-	{
-	public:
-		using DefaultDocType = DocumentHDP<TermWeight::one>;
-		static IHDPModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, FLOAT gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
-
-		virtual FLOAT getGamma() const = 0;
-		virtual size_t getTotalTables() const = 0;
-		virtual size_t getLiveK() const = 0;
-		virtual bool isLiveTopic(TID tid) const = 0;
 	};
 
 	template<TermWeight _TW,
@@ -283,7 +228,7 @@ namespace tomoto
 				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 			}
 
-			globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, auto doc)
+			globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, const _DocType& doc)
 			{
 				return sum + doc.getNumTable();
 			});
@@ -397,7 +342,7 @@ namespace tomoto
 
 		size_t getTotalTables() const override
 		{
-			return accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, auto doc)
+			return accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, const _DocType& doc)
 			{
 				return sum + doc.getNumTable();
 			});
@@ -429,10 +374,5 @@ namespace tomoto
 			numTopicByTable[this->Zs[i]].num += _TW != TermWeight::one ? this->wordWeights[i] : 1;
 			this->numByTopic[numTopicByTable[this->Zs[i]].topic] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
 		}
-	}
-
-	IHDPModel* IHDPModel::create(TermWeight _weight, size_t _K, FLOAT _alpha , FLOAT _eta, FLOAT _gamma, const RANDGEN& _rg)
-	{
-		SWITCH_TW(_weight, HDPModel, _K, _alpha, _eta, _gamma, _rg);
 	}
 }

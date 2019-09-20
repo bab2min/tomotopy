@@ -18,7 +18,7 @@ namespace tomoto
 		/*
 			This digamma implmentation is from http://www2.mpia-hd.mpg.de/~mathar/progs/digamma.c, and modified by bab2min.
 		*/
-		long double digammal(long double x)
+		inline long double digammal(long double x)
 		{
 			if (x < 0.0L)
 				return digammal(1.0L - x) + pi_l / tanl(pi_l*(1.0L - x));
@@ -67,7 +67,7 @@ namespace tomoto
 			}
 		}
 
-		float digammaf(float x)
+		inline float digammaf(float x)
 		{
 			if (x < 0.0f)
 				return digammaf(1.0f - x) + pi / tanf(pi*(1.0f - x));
@@ -153,14 +153,14 @@ namespace tomoto
 		inline float digammaT(float x) { return detail::LUT_digamma::get(x); }
 
 		template<class _T>
-		auto lgammaApprox(_T z)
+		inline _T lgammaApprox(_T z)
 		{
 			// approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))
 			return (z + 2.5) * log(z + 3) - (z + 3) + 0.91893853 + 1. / 12. / (z + 3) - log(z * (z + 1) * (z + 2));
 		}
 
 		template<class _T>
-		auto digammaApprox(_T z)
+		inline _T digammaApprox(_T z)
 		{
 			// approximation : digamma(z) ~= ln(z+4) - 1/2/(z+4) - 1/12/(z+4)^2 - 1/z - 1/(z+1) - 1/(z+2) - 1/(z+3)
 			return log(z + 4) - 1. / 2. / (z + 4) - 1. / 12. / ((z + 4) * (z + 4)) - 1. / z - 1. / (z + 1) - 1. / (z + 2) - 1. / (z + 3);

@@ -66,11 +66,15 @@ The input data consists of 1000 random documents from English Wikipedia with 1,5
 
 .. image:: https://bab2min.github.io/tomotopy/images/tmt_i5.png
 
-Performance in Intel i5-6600, x86-64 (4 cores)
+↑ Performance in Intel i5-6600, x86-64 (4 cores)
 
 .. image:: https://bab2min.github.io/tomotopy/images/tmt_xeon.png
 
-Performance in Intel Xeon E5-2620 v4, x86-64 (8 cores, 16 threads)
+↑ Performance in Intel Xeon E5-2620 v4, x86-64 (8 cores, 16 threads)
+
+.. image:: https://bab2min.github.io/tomotopy/images/tmt_r7_3700x.png
+
+↑ Performance in AMD Ryzen7 3700X, x86-64 (8 cores, 16 threads)
 
 Although `tomotopy` iterated 20 times more, the overall running time was 5~10 times faster than `gensim`. And it yields a stable result.
 

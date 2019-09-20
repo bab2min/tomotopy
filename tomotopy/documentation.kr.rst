@@ -66,11 +66,16 @@ tomotopy의 성능
 
 .. image:: https://bab2min.github.io/tomotopy/images/tmt_i5.png
 
-Intel i5-6600, x86-64 (4 cores)에서의 성능
+↑ Intel i5-6600, x86-64 (4 cores)에서의 성능
 
 .. image:: https://bab2min.github.io/tomotopy/images/tmt_xeon.png
 
-Intel Xeon E5-2620 v4, x86-64 (8 cores, 16 threads)에서의 성능
+↑ Intel Xeon E5-2620 v4, x86-64 (8 cores, 16 threads)에서의 성능
+
+.. image:: https://bab2min.github.io/tomotopy/images/tmt_r7_3700x.png
+
+↑ AMD Ryzen7 3700X, x86-64 (8 cores, 16 threads)에서의 성능
+
 
 `tomotopy`가 20배 더 많이 반복하였지만 전체 실행시간은 `gensim`보다 5~10배 더 빨랐습니다. 또한 `tomotopy`는 전반적으로 안정적인 결과를 보여주고 있습니다.
 

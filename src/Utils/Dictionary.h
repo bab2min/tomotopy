@@ -22,10 +22,32 @@ namespace tomoto
 		std::unordered_map<std::string, VID> dict;
 		std::vector<std::string> id2word;
 	public:
-		VID add(const std::string& word);
+		VID add(const std::string& word)
+		{
+			auto it = dict.find(word);
+			if (it == dict.end())
+			{
+				dict.emplace(std::make_pair(word, dict.size()));
+				id2word.emplace_back(word);
+				return dict.size() - 1;
+			}
+			return it->second;
+		}
+
 		size_t size() const { return dict.size(); }
-		std::string toWord(VID vid) const;
-		VID toWid(const std::string& word) const;
+		
+		std::string toWord(VID vid) const
+		{
+			assert(vid < id2word.size());
+			return id2word[vid];
+		}
+		
+		VID toWid(const std::string& word) const
+		{
+			auto it = dict.find(word);
+			if (it == dict.end()) return (VID)-1;
+			return it->second;
+		}
 
 		void serializerWrite(std::ostream& writer) const
 		{
@@ -56,30 +78,5 @@ namespace tomoto
 			}
 		}
 	};
-
-	VID Dictionary::add(const std::string & word)
-	{
-		auto it = dict.find(word);
-		if (it == dict.end())
-		{
-			dict.emplace(std::make_pair(word, dict.size()));
-			id2word.emplace_back(word);
-			return dict.size() - 1;
-		}
-		return it->second;
-	}
-
-	std::string Dictionary::toWord(VID vid) const
-	{
-		assert(vid < id2word.size());
-		return id2word[vid];
-	}
-
-	VID Dictionary::toWid(const std::string & word) const
-	{
-		auto it = dict.find(word);
-		if (it == dict.end()) return (VID)-1;
-		return it->second;
-	}
 
 }

@@ -10,7 +10,6 @@
 
 namespace tomoto
 {
-	using namespace std::string_literals;
 	namespace serializer
 	{
 		template<typename _Ty> inline void writeToStream(std::ostream& ostr, const _Ty& v);
@@ -29,45 +28,45 @@ namespace tomoto
 			{}
 		};
 
-		void writeMany(std::ostream& ostr)
+		inline void writeMany(std::ostream& ostr)
 		{
 			// do nothing
 		}
 
 		template<typename _FirstTy, typename ... _RestTy>
-		typename std::enable_if<!std::is_same<_FirstTy, MagicConstant>::value>::type writeMany(std::ostream& ostr, const _FirstTy& first, _RestTy&&... rest)
+		inline typename std::enable_if<!std::is_same<_FirstTy, MagicConstant>::value>::type writeMany(std::ostream& ostr, const _FirstTy& first, _RestTy&&... rest)
 		{
 			writeToStream(ostr, first);
 			writeMany(ostr, std::forward<_RestTy>(rest)...);
 		}
 
 		template<typename ... _RestTy>
-		void writeMany(std::ostream& ostr, const MagicConstant& first, _RestTy&&... rest)
+		inline void writeMany(std::ostream& ostr, const MagicConstant& first, _RestTy&&... rest)
 		{
 			writeToStream(ostr, *(uint32_t*)first.m);
 			writeMany(ostr, std::forward<_RestTy>(rest)...);
 		}
 
-		void readMany(std::istream& istr)
+		inline void readMany(std::istream& istr)
 		{
 			// do nothing
 		}
 
 		template<typename _FirstTy, typename ... _RestTy>
-		typename std::enable_if<!std::is_same<_FirstTy, MagicConstant>::value>::type readMany(std::istream& istr, _FirstTy& first, _RestTy&&... rest)
+		inline typename std::enable_if<!std::is_same<_FirstTy, MagicConstant>::value>::type readMany(std::istream& istr, _FirstTy& first, _RestTy&&... rest)
 		{
 			readFromStream(istr, first);
 			readMany(istr, std::forward<_RestTy>(rest)...);
 		}
 
 		template<typename ... _RestTy>
-		void readMany(std::istream& istr, MagicConstant&& first, _RestTy&&... rest)
+		inline void readMany(std::istream& istr, MagicConstant&& first, _RestTy&&... rest)
 		{
 			char m[5] = {0, };
 			readFromStream(istr, *(uint32_t*)m);
 			if (*(uint32_t*)m != *(uint32_t*)first.m)
 			{
-				throw UnfitException("'"s + first.m + "' is needed but '"s + m + "'"s);
+				throw UnfitException(std::string("'") + first.m + std::string("' is needed but '") + m + std::string("'"));
 			}
 			readMany(istr, std::forward<_RestTy>(rest)...);
 		}
@@ -95,14 +94,14 @@ namespace tomoto
 		inline typename std::enable_if<std::is_fundamental<_Ty>::value>::type writeToBinStreamImpl(std::ostream& ostr, const _Ty& v)
 		{
 			if (!ostr.write((const char*)&v, sizeof(_Ty)))
-				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
 		inline typename std::enable_if<std::is_fundamental<_Ty>::value>::type readFromBinStreamImpl(std::istream& istr, _Ty& v)
 		{
 			if (!istr.read((char*)&v, sizeof(_Ty)))
-				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
@@ -124,7 +123,7 @@ namespace tomoto
 			writeToStream<uint32_t>(ostr, v.rows());
 			writeToStream<uint32_t>(ostr, v.cols());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
@@ -134,7 +133,7 @@ namespace tomoto
 			uint32_t cols = readFromStream<uint32_t>(istr);
 			v = Eigen::Matrix<_Ty, -1, -1>::Zero(rows, cols);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
-				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
@@ -143,7 +142,7 @@ namespace tomoto
 			writeToStream<uint32_t>(ostr, v.rows());
 			writeToStream<uint32_t>(ostr, v.cols());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
@@ -151,10 +150,10 @@ namespace tomoto
 		{
 			uint32_t rows = readFromStream<uint32_t>(istr);
 			uint32_t cols = readFromStream<uint32_t>(istr);
-			if (cols != 1) throw std::ios_base::failure{ "matrix cols != 1'" };
+			if (cols != 1) throw std::ios_base::failure( "matrix cols != 1'" );
 			v = Eigen::Matrix<_Ty, -1, 1>::Zero(rows);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
-				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
@@ -183,7 +182,7 @@ namespace tomoto
 		inline void readFromBinStreamImpl(std::istream& istr, std::array<_Ty, _N>& v)
 		{
 			uint32_t size = readFromStream<uint32_t>(istr);
-			if (_N != size) throw std::ios_base::failure{ text::format("the size of array must be %zd, not %zd", _N, size) };
+			if (_N != size) throw std::ios_base::failure( text::format("the size of array must be %zd, not %zd", _N, size) );
 			for (auto& e : v) readFromStream(istr, e);
 		}
 
@@ -207,7 +206,7 @@ namespace tomoto
 		{
 			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure{ "writing type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>
@@ -216,7 +215,7 @@ namespace tomoto
 			uint32_t size = readFromStream<uint32_t>(istr);
 			v.resize(size);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure{ "reading type '"s + typeid(_Ty).name() + "' is failed"s };
+				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
 
 		template<class _Ty>

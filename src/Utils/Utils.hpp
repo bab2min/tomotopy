@@ -3,9 +3,16 @@
 #include <functional>
 #include <typeinfo>
 #include <algorithm>
+#include <memory>
 
 namespace tomoto
 {
+	template<typename T, typename... Args>
+	std::unique_ptr<T> make_unique(Args&&... args)
+	{
+		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+	}
+
 	template<bool _Dec, typename _Ty>
 	struct CntUpdater
 	{
@@ -102,13 +109,14 @@ namespace tomoto
 	template<typename _Container, typename _OrderType = uint32_t, typename _Less = std::less<typename _Container::value_type>>
 	void sortAndWriteOrder(_Container& src, std::vector<_OrderType>& order, size_t rotate = 0, _Less cmp = _Less{})
 	{
-		std::vector<std::pair<typename _Container::value_type, _OrderType>> pv(src.size());
+		typedef std::pair<typename _Container::value_type, _OrderType> voPair_t;
+		std::vector<voPair_t> pv(src.size());
 		for (_OrderType i = 0; i < src.size(); ++i)
 		{
 			pv[i] = std::make_pair(src[i], i);
 		}
 
-		std::sort(pv.begin(), pv.end(), [&cmp](auto a, auto b)
+		std::sort(pv.begin(), pv.end(), [&cmp](const voPair_t& a, const voPair_t& b)
 		{
 			return cmp(a.first, b.first);
 		});
