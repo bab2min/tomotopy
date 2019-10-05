@@ -413,9 +413,9 @@ namespace tomoto
 		}
 	}
 
-	/*inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
+	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
 	{
 		return new LDACVB0Model<>(_K, _alpha, _eta, _rg);
-	}*/
+	}
 
 }

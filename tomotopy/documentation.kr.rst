@@ -230,6 +230,8 @@ infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `t
 
 역사
 -------
+* 0.3.0 (2019-10-06)
+    * 
 
 * 0.2.0 (2019-08-18)
     * `tomotopy.CTModel`와 `tomotopy.SLDAModel` 토픽 모델이 새로 추가되었습니다.

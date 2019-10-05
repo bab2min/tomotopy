@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <vector>
 #include <functional>
 #include <typeinfo>
@@ -33,7 +34,9 @@ namespace tomoto
 
 	template<bool _Dec, typename _Ty> _Ty updateCnt(_Ty& val, _Ty inc)
 	{
-		return CntUpdater<_Dec, _Ty>{}(val, inc);
+		auto ret = CntUpdater<_Dec, _Ty>{}(val, inc);
+		assert(ret >= 0);
+		return ret;
 	}
 
 	template<class UnaryFunction>

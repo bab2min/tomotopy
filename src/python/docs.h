@@ -75,6 +75,14 @@ DOC_VARIABLE_EN_KO(Document_vars__doc__,
 
 .. versionadded:: 0.2.0)"");
 
+DOC_VARIABLE_EN_KO(Document_labels__doc__,
+	u8R""(a `list` of (label, probability) of the document (for only `tomotopy.LLDAModel` model, read-only)
+
+.. versionadded:: 0.3.0)"",
+u8R""(문헌에 매겨진 (레이블, 확률)의 `list` (`tomotopy.LLDAModel` 모형에서만 사용됨 , 읽기전용)
+
+.. versionadded:: 0.3.0)"");
+
 /*
 	class LDA
 */
@@ -507,13 +515,13 @@ DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
 	class HDP
 */
 DOC_SIGNATURE_EN_KO(HDP___init____doc__,
-	"HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=1, alpha=0.1, eta=0.01, gamma=0.1, seed=None)",
+	"HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)",
 	u8R""(This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on following papers:
 
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 
-HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=1, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
+HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
 
 Parameters
 ----------
@@ -544,7 +552,7 @@ u8R""(이 타입은 Hierarchical Dirichlet Process(HDP) 토픽 모델의 구현�
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 
-HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=1, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
+HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
 
 Parameters
 ----------
@@ -1368,3 +1376,110 @@ doc : tomotopy.Document
 DOC_VARIABLE_EN_KO(SLDA_f__doc__,
 	u8R""(the number of response variables (read-only))"",
 	u8R""(응답 변수의 개수 (읽기전용))"");
+
+/*
+	class LLDA
+*/
+DOC_SIGNATURE_EN_KO(LLDA___init____doc__,
+	"LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
+	u8R""(This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
+	
+> * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
+
+.. versionadded:: 0.3.0
+
+LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)
+
+Parameters
+----------
+tw : int or tomotopy.TermWeight
+    term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
+min_cf : int
+    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    The default value is 0, which means no words are excluded.
+rm_top : int
+    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    The default value is 0, which means no top words are removed.
+k : int
+    the number of topics between 1 ~ 32767.
+alpha : float
+    hyperparameter of Dirichlet distribution for document-topic
+eta : float
+    hyperparameter of Dirichlet distribution for topic-word
+seed : int
+    random seed. The default value is a random number from `std::random_device{}` in C++
+)"",
+u8R""(이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
+	
+> * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
+
+.. versionadded:: 0.3.0
+	
+LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=?)
+
+Parameters
+----------
+tw : int or tomotopy.TermWeight
+    용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
+min_cf : int
+    단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+rm_top : int
+    제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+    기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
+k : int
+    토픽의 개수, 1 ~ 32767 범위의 정수.
+alpha : float
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+eta : float
+    토픽-단어 디리클레 분포의 하이퍼 파라미터
+seed : int
+    난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
+    이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+)"");
+
+DOC_SIGNATURE_EN_KO(LLDA_add_doc__doc__,
+	"add_doc(self, words, labels=[])",
+	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+
+Parameters
+----------
+words : iterable of str
+    an iterable of `str`
+labels : iterable of str
+    labels of the document
+)"",
+u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+
+Parameters
+----------
+words : iterable of str
+    문헌의 각 단어를 나열하는 `str` 타입의 iterable
+labels : iterable of str
+    문헌의 레이블 리스트
+)"");
+
+DOC_SIGNATURE_EN_KO(LLDA_make_doc__doc__,
+	"make_doc(self, words, labels=[])",
+	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+
+Parameters
+----------
+words : iterable of str
+    an iteratable of `str`
+labels : iterable of str
+    labels of the document
+)"",
+u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+
+Parameters
+----------
+words : iterable of str
+    문헌의 각 단어를 나열하는 `str` 타입의 iterable
+labels : iterable of str
+    문헌의 레이블 리스트
+)"");
+
+DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
+	u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
+	u8R""(`tomotopy.Dictionary` 타입의 토픽 레이블 사전 (읽기전용))"");

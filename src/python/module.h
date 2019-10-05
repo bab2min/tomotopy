@@ -167,6 +167,7 @@ extern PyTypeObject PA_type;
 extern PyTypeObject HPA_type;
 extern PyTypeObject CT_type;
 extern PyTypeObject SLDA_type;
+extern PyTypeObject LLDA_type;
 
 struct TopicModelObject
 {
@@ -231,3 +232,5 @@ DEFINE_DOCUMENT_GETTER_PROTOTYPE(Z2);
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(beta);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(y);
+
+DEFINE_DOCUMENT_GETTER_PROTOTYPE(labels);

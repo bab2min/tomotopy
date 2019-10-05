@@ -7,8 +7,8 @@ namespace tomoto
 	struct DocumentHDP : public DocumentLDA<_TW>
 	{
 		/* 
-		for DocumentHDP, the topic in numByTopic, Zs indicates 'table id', not 'topic id'.
-		to get real 'topic id', check the topic field of numTopicByTable.
+		For DocumentHDP, the topic in numByTopic, Zs indicates 'table id', not 'topic id'.
+		To get real 'topic id', check the topic field of numTopicByTable.
 		*/
 		using DocumentLDA<_TW>::DocumentLDA;
 		using WeightType = typename DocumentLDA<_TW>::WeightType;

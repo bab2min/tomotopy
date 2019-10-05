@@ -7,7 +7,7 @@ using namespace std;
 static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, rmTop = 0;
-	size_t K = 1;
+	size_t K = 2;
 	float alpha = 0.1, eta = 0.01, gamma = 0.1;
 	size_t seed = random_device{}();
 	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "initial_k", "alpha", "eta", "gamma", "seed", nullptr };
@@ -79,6 +79,7 @@ PyObject* Document_HDP_Z(DocumentObject* self, void* closure)
 }
 
 
+DEFINE_GETTER(tomoto::IHDPModel, HDP, getAlpha);
 DEFINE_GETTER(tomoto::IHDPModel, HDP, getGamma);
 DEFINE_GETTER(tomoto::IHDPModel, HDP, getTotalTables);
 DEFINE_GETTER(tomoto::IHDPModel, HDP, getLiveK);
@@ -93,6 +94,7 @@ static PyMethodDef HDP_methods[] =
 };
 
 static PyGetSetDef HDP_getseters[] = {
+	{ (char*)"alpha", (getter)HDP_getAlpha, nullptr, LDA_alpha__doc__, nullptr },
 	{ (char*)"gamma", (getter)HDP_getGamma, nullptr, HDP_gamma__doc__, nullptr },
 	{ (char*)"live_k", (getter)HDP_getLiveK, nullptr, HDP_live_k__doc__, nullptr },
 	{ (char*)"num_tables", (getter)HDP_getTotalTables, nullptr, HDP_num_tables__doc__, nullptr },

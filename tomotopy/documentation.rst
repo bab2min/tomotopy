@@ -233,6 +233,8 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.3.0 (2019-10-06)
+    * 
 
 * 0.2.0 (2019-08-18)
     * New models including `tomotopy.CTModel` and `tomotopy.SLDAModel` were added into the package.

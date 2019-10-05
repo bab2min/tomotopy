@@ -7,6 +7,7 @@
 #define TM_HPA
 #define TM_CT
 #define TM_SLDA
+#define TM_LLDA
 
 using namespace std;
 
@@ -155,7 +156,6 @@ PyTypeObject Dictionary_type = {
 	PyType_GenericNew,
 };
 
-
 static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topN = 10;
@@ -195,14 +195,12 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 	}
 }
 
-
 static PyMethodDef Document_methods[] =
 {
 	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, Document_get_topics__doc__ },
 	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, Document_get_topic_dist__doc__ },
 	{ nullptr }
 };
-
 
 static int Document_init(DocumentObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -314,6 +312,9 @@ static PyGetSetDef Document_getseters[] = {
 #endif
 #ifdef TM_SLDA
 	{ (char*)"vars", (getter)Document_y, nullptr, Document_vars__doc__, nullptr },
+#endif
+#ifdef TM_LLDA
+	{ (char*)"labels", (getter)Document_labels, nullptr, Document_labels__doc__, nullptr },
 #endif
 	{ nullptr },
 };
@@ -531,6 +532,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	if (PyType_Ready(&SLDA_type) < 0) return nullptr;
 	Py_INCREF(&SLDA_type);
 	PyModule_AddObject(gModule, "SLDAModel", (PyObject*)&SLDA_type);
+#endif
+#ifdef TM_LLDA
+	if (PyType_Ready(&LLDA_type) < 0) return nullptr;
+	Py_INCREF(&LLDA_type);
+	PyModule_AddObject(gModule, "LLDAModel", (PyObject*)&LLDA_type);
 #endif
 
 #ifdef __AVX2__
