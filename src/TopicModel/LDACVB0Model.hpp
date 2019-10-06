@@ -334,7 +334,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const override
 		{
-			return std::make_unique<_DocType>(this->_makeDocWithinVocab(words));
+			return make_unique<_DocType>(this->_makeDocWithinVocab(words));
 		}
 
 		void updateDocs()
@@ -413,7 +413,7 @@ namespace tomoto
 		}
 	}
 
-	ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
+	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
 	{
 		return new LDACVB0Model<>(_K, _alpha, _eta, _rg);
 	}

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../Utils/Utils.hpp"
 #include "../Utils/Dictionary.h"
 #include "../Utils/tvector.hpp"
 #include "../Utils/ThreadPool.hpp"
@@ -49,13 +50,14 @@ namespace tomoto
 	template<class _TyKey, class _TyValue>
 	static std::vector<std::pair<_TyKey, _TyValue>> extractTopN(const std::vector<_TyValue>& vec, size_t topN)
 	{
-		std::vector<std::pair<_TyKey, _TyValue>> ret;
+		typedef std::pair<_TyKey, _TyValue> pair_t;
+		std::vector<pair_t> ret;
 		_TyKey k = 0;
 		for (auto&& t : vec)
 		{
 			ret.emplace_back(std::make_pair(k++, t));
 		}
-		std::sort(ret.begin(), ret.end(), [](const auto& a, const auto& b)
+		std::sort(ret.begin(), ret.end(), [](const pair_t& a, const pair_t& b)
 		{
 			return a.second > b.second;
 		});
@@ -191,8 +193,8 @@ namespace tomoto
 		{
 			if (minWordCnt <= 1 && removeTopN == 0) realV = dict.size();
 			std::vector<VID> order;
-			sortAndWriteOrder(vocabFrequencies, order, removeTopN, [](auto a, auto b) { return a > b; });
-			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end(), [minWordCnt](auto a) 
+			sortAndWriteOrder(vocabFrequencies, order, removeTopN, std::greater<size_t>());
+			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end(), [minWordCnt](size_t a) 
 			{ 
 				return a < minWordCnt; 
 			}) - vocabFrequencies.begin();

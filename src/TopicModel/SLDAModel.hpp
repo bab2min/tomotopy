@@ -1,6 +1,7 @@
 #pragma once
 #include "LDAModel.hpp"
 #include "../Utils/PolyaGamma.hpp"
+#include "SLDA.h"
 
 /*
 Implementation of sLDA using Gibbs sampling by bab2min
@@ -10,45 +11,10 @@ Implementation of sLDA using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW, bool _Shared = false>
-	struct DocumentSLDA : public DocumentLDA<_TW, _Shared>
-	{
-		using DocumentLDA<_TW, _Shared>::DocumentLDA;
-		std::vector<FLOAT> y;
-		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Shared>, y);
-	};
-
 	template<TermWeight _TW>
 	struct ModelStateSLDA : public ModelStateLDA<_TW>
 	{
 	};
-
-	class ISLDAModel : public ILDAModel
-	{
-	public:
-		enum class GLM
-		{
-			linear = 0,
-			binary_logistic = 1,
-		};
-
-		using DefaultDocType = DocumentSLDA<TermWeight::one>;
-		static ISLDAModel* create(TermWeight _weight, size_t _K = 1, 
-			const std::vector<ISLDAModel::GLM>& vars = {},
-			FLOAT alpha = 0.1, FLOAT _eta = 0.01,
-			const std::vector<FLOAT>& _mu = {}, const std::vector<FLOAT>& _nuSq = {},
-			const std::vector<FLOAT>& _glmParam = {},
-			const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
-
-		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<FLOAT>& y) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<FLOAT>& y) const = 0;
-		
-		virtual size_t getF() const = 0;
-		virtual std::vector<FLOAT> getRegressionCoef(size_t f) const = 0;
-		virtual GLM getTypeOfVar(size_t f) const = 0;
-		virtual std::vector<FLOAT> estimateVars(const DocumentBase* doc) const = 0;
-	};
-
 
 	template<TermWeight _TW, bool _Shared = false,
 		typename _Interface = ISLDAModel,
@@ -325,11 +291,11 @@ namespace tomoto
 					switch (varTypes[f])
 					{
 					case ISLDAModel::GLM::linear:
-						v = std::make_unique<LinearFunctor>(this->K, mu[f], 
+						v = make_unique<LinearFunctor>(this->K, mu[f], 
 							f < glmParam.size() ? glmParam[f] : 1.f);
 						break;
 					case ISLDAModel::GLM::binary_logistic:
-						v = std::make_unique<BinaryLogisticFunctor>(this->K, mu[f], 
+						v = make_unique<BinaryLogisticFunctor>(this->K, mu[f], 
 							f < glmParam.size() ? glmParam[f] : 1.f, this->docs.size());
 						break;
 					}
@@ -391,7 +357,7 @@ namespace tomoto
 		{
 			auto doc = this->_makeDocWithinVocab(words);
 			doc.y = y;
-			return std::make_unique<_DocType>(doc);
+			return make_unique<_DocType>(doc);
 		}
 
 		std::vector<FLOAT> estimateVars(const DocumentBase* doc) const
@@ -422,24 +388,15 @@ namespace tomoto
 			switch ((ISLDAModel::GLM)(t - 1))
 			{
 			case ISLDAModel::GLM::linear:
-				p = std::make_unique<LinearFunctor>();
+				p = make_unique<LinearFunctor>();
 				break;
 			case ISLDAModel::GLM::binary_logistic:
-				p = std::make_unique<BinaryLogisticFunctor>();
+				p = make_unique<BinaryLogisticFunctor>();
 				break;
 			default:
 				throw std::ios_base::failure(text::format("wrong GLMFunctor type id %d", (t - 1)));
 			}
 			p->serializerRead(istr);
 		}
-	}
-
-	ISLDAModel* ISLDAModel::create(TermWeight _weight, size_t _K, const std::vector<ISLDAModel::GLM>& vars,
-		FLOAT _alpha, FLOAT _eta, 
-		const std::vector<FLOAT>& _mu, const std::vector<FLOAT>& _nuSq,
-		const std::vector<FLOAT>& _glmParam,
-		const RANDGEN& _rg)
-	{
-		SWITCH_TW(_weight, SLDAModel, _K, vars, _alpha, _eta, _mu, _nuSq, _glmParam, _rg);
 	}
 }

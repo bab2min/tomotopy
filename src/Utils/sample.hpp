@@ -18,12 +18,12 @@ namespace tomoto
 	namespace sample
 	{
 #ifdef _WIN32
-		uint32_t popcnt(uint32_t i)
+		inline uint32_t popcnt(uint32_t i)
 		{
 			return __popcnt(i);
 		}
 #else
-		uint32_t popcnt(uint32_t i)
+		inline uint32_t popcnt(uint32_t i)
 		{
 			return __builtin_popcount(i);
 		}
@@ -47,7 +47,7 @@ namespace tomoto
 			return x;
 		}
 
-		void prefix_sum_AVX(float *a, const int n)
+		inline void prefix_sum_AVX(float *a, const int n)
 		{
 			__m256 offset = _mm256_setzero_ps();
 			for (int i = 0; i < n; i += 8)
@@ -81,7 +81,7 @@ namespace tomoto
 			return x;
 		}
 
-		void prefix_sum_SSE(float *a, const int n)
+		inline void prefix_sum_SSE(float *a, const int n)
 		{
 			__m128 offset = _mm_setzero_ps();
 			for (int i = 0; i < n; i += 4)
@@ -93,6 +93,7 @@ namespace tomoto
 				offset = _mm_shuffle_ps(out, out, _MM_SHUFFLE(3, 3, 3, 3));
 			}
 		}
+
 		inline void prefixSum(float* arr, size_t K)
 		{
 			size_t Kf = (K >> 2) << 2;
@@ -114,7 +115,7 @@ namespace tomoto
 #endif
 
 		template<class RealIt, class Random>
-		size_t sampleFromDiscrete(RealIt begin, RealIt end, Random& rg)
+		inline size_t sampleFromDiscrete(RealIt begin, RealIt end, Random& rg)
 		{
 			auto r = std::generate_canonical<float, 32>(rg) * std::accumulate(begin, end, 0.f);
 			size_t K = std::distance(begin, end);

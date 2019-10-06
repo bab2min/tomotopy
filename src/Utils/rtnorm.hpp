@@ -2479,7 +2479,7 @@ namespace rtnorm
 	constexpr int N = 4001;
 	//------------------------------------------------------------
 	// Compute y_l from y_k
-	double yl(int k)
+	inline double yl(int k)
 	{
 		double yl0 = 0.053513975472;                  // y_l of the leftmost rectangle
 		double ylN = 0.000914116389555;               // y_l of the rightmost rectangle

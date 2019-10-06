@@ -1,5 +1,6 @@
 #pragma once
 #include "LDAModel.hpp"
+#include "HDP.h"
 
 /*
 Implementation of HDP using Gibbs sampling by bab2min
@@ -11,50 +12,6 @@ Implementation of HDP using Gibbs sampling by bab2min
 namespace tomoto
 {
 	template<TermWeight _TW>
-	struct DocumentHDP : public DocumentLDA<_TW>
-	{
-		/* 
-		for DocumentHDP, the topic in numByTopic, Zs indicates 'table id', not 'topic id'.
-		to get real 'topic id', check the topic field of numTopicByTable.
-		*/
-		using DocumentLDA<_TW>::DocumentLDA;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
-		struct TableTopicInfo
-		{
-			WeightType num = 0;
-			TID topic = 0;
-			operator const bool() const
-			{
-				return num > (WeightType)1e-2;
-			}
-
-			void serializerWrite(std::ostream& writer) const
-			{
-				serializer::writeMany(writer, topic);
-			}
-
-			void serializerRead(std::istream& reader)
-			{
-				serializer::readMany(reader, topic);
-			}
-		};
-		std::vector<TableTopicInfo> numTopicByTable;
-
-		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, numTopicByTable);
-
-		size_t getNumTable() const
-		{
-			return std::count_if(numTopicByTable.begin(), numTopicByTable.end(), [](const auto& e) { return (bool)e; });
-		}
-		size_t addNewTable(TID tid)
-		{
-			return insertIntoEmpty(numTopicByTable, TableTopicInfo{ 0, tid });
-		}
-
-		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
-	};
-
-	template<TermWeight _TW>
 	struct ModelStateHDP : public ModelStateLDA<_TW>
 	{
 		Eigen::Matrix<FLOAT, -1, 1> tableLikelihood, topicLikelihood;
@@ -62,18 +19,6 @@ namespace tomoto
 		size_t totalTable = 0;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numTableByTopic, totalTable);
-	};
-
-	class IHDPModel : public ILDAModel
-	{
-	public:
-		using DefaultDocType = DocumentHDP<TermWeight::one>;
-		static IHDPModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, FLOAT gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
-
-		virtual FLOAT getGamma() const = 0;
-		virtual size_t getTotalTables() const = 0;
-		virtual size_t getLiveK() const = 0;
-		virtual bool isLiveTopic(TID tid) const = 0;
 	};
 
 	template<TermWeight _TW,
@@ -93,7 +38,49 @@ namespace tomoto
 		using WeightType = typename BaseClass::WeightType;
 
 		FLOAT gamma;
-		size_t addTopic(_ModelState& ld, VID vid) const
+
+		template<typename _NumFunc>
+		static FLOAT estimateConcentrationParameter(_NumFunc ns, FLOAT tableCnt, size_t size, FLOAT alpha, RANDGEN& rgs)
+		{
+			FLOAT a = 1, b = 1;
+			for (size_t i = 0; i < 10; ++i)
+			{
+				FLOAT sumLogW = 0;
+				FLOAT sumS = 0;
+				for (size_t j = 0; j < size; ++j)
+				{
+					FLOAT w = math::beta_distribution<FLOAT>{ alpha + 1, (FLOAT)ns(j) }(rgs);
+					FLOAT s = std::bernoulli_distribution{ ns(j) / (ns(j) + alpha) }(rgs) ? 1 : 0;
+					sumLogW += log(w);
+					sumS += s;
+				}
+				a += tableCnt - sumS;
+				b -= sumLogW;
+				alpha = std::gamma_distribution<FLOAT>{ a, 1 / b }(rgs);
+			}
+			return alpha;
+		}
+
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		{
+			size_t tableCnt = 0;
+			for (auto& doc : this->docs)
+			{
+				tableCnt += doc.getNumTable();
+			}
+
+			this->alpha = estimateConcentrationParameter([this](size_t s)
+			{
+				return this->docs[s].template getSumWordWeight<_TW>();
+			}, tableCnt, this->docs.size(), this->alpha, *rgs);
+
+			gamma = estimateConcentrationParameter([this](size_t)
+			{
+				return this->globalState.totalTable;
+			}, this->getLiveK(), 1, gamma, *rgs);
+		}
+
+		size_t addTopic(_ModelState& ld) const
 		{
 			const size_t V = this->realV;
 			size_t pos;
@@ -120,14 +107,16 @@ namespace tomoto
 			return pos;
 		}
 
-		FLOAT* getWordTopicProb(_ModelState& ld, VID vid) const
+		void calcWordTopicProb(_ModelState& ld, VID vid) const
 		{
 			const size_t V = this->realV;
+			const auto K = ld.numByTopic.size();
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
-			zLikelihood = (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
+			zLikelihood.resize(K + 1);
+			zLikelihood.head(K) = (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
 				/ (ld.numByTopic.array().template cast<FLOAT>() + V * this->eta);
-			return &zLikelihood[0];
+			zLikelihood[K] = 1. / V;
 		}
 
 		FLOAT* getTableLikelihoods(_ModelState& ld, _DocType& doc, VID vid) const
@@ -141,25 +130,24 @@ namespace tomoto
 			{
 				ld.tableLikelihood[t] = acc += doc.numTopicByTable[t].num * ld.zLikelihood[doc.numTopicByTable[t].topic];
 			}
-			FLOAT pNewTable = ld.topicLikelihood[K] / (gamma + ld.totalTable);
-			ld.tableLikelihood[T] = acc += pNewTable * this->alpha;
+			FLOAT pNewTable = ld.zLikelihood[K] / (gamma + ld.totalTable);
+			ld.tableLikelihood[T] = acc += this->alpha * pNewTable;
 			return &ld.tableLikelihood[0];
 		}
 
-		FLOAT* getTopicLikelihoods(_ModelState& ld, VID vid) const
+		FLOAT* getTopicLikelihoods(_ModelState& ld) const
 		{
 			const size_t V = this->realV;
-			assert(vid < V);
 			const auto K = ld.numByTopic.size();
 			ld.topicLikelihood.resize(K + 1);
 			ld.topicLikelihood.head(K) = ld.zLikelihood.array().template cast<FLOAT>() * ld.numTableByTopic.array().template cast<FLOAT>();
-			ld.topicLikelihood[K] = gamma / V;
+			ld.topicLikelihood[K] = ld.zLikelihood[K] * gamma;
 			sample::prefixSum(ld.topicLikelihood.data(), ld.topicLikelihood.size());
 			return &ld.topicLikelihood[0];
 		}
 
-		template<int INC> 
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, size_t tableId, TID tid) const
+		template<int INC>
+		inline void addOnlyWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID tid) const
 		{
 			assert(tid < ld.numTableByTopic.size());
 			assert(vid < this->realV);
@@ -177,6 +165,16 @@ namespace tomoto
 			updateCnt<DEC>(doc.numByTopic[tid], INC * weight);
 			updateCnt<DEC>(ld.numByTopic[tid], INC * weight);
 			updateCnt<DEC>(ld.numByTopicWord(tid, vid), INC * weight);
+		}
+
+		template<int INC> 
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, size_t tableId, TID tid) const
+		{
+			addOnlyWordTo<INC>(ld, doc, pid, vid, tid);
+			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
+			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
+				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
+
 			if (INC < 0) assert(doc.numTopicByTable[tableId].num > 0);
 			updateCnt<DEC>(doc.numTopicByTable[tableId].num, INC * weight);
 			if (INC < 0 && !doc.numTopicByTable[tableId])  // deleting table
@@ -198,8 +196,8 @@ namespace tomoto
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.numTopicByTable[doc.Zs[w]].topic);
-				getWordTopicProb(ld, doc.words[w]);
-				auto topicDist = getTopicLikelihoods(ld, doc.words[w]);
+				calcWordTopicProb(ld, doc.words[w]);
+				auto topicDist = getTopicLikelihoods(ld);
 				auto dist = getTableLikelihoods(ld, doc, doc.words[w]);
 				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + 1, rgs);
 				if (doc.Zs[w] == doc.numTopicByTable.size()) // create new table
@@ -208,7 +206,7 @@ namespace tomoto
 					TID newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + 1, rgs);
 					if (newTopic == K) // create new topic
 					{
-						newTopic = addTopic(ld, doc.words[w]);
+						newTopic = addTopic(ld);
 						//printf("New Topic #%zd\n", newTopic);
 					}
 					doc.Zs[w] = doc.addNewTable(newTopic);
@@ -216,6 +214,41 @@ namespace tomoto
 					++ld.totalTable;
 				}
 				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.numTopicByTable[doc.Zs[w]].topic);
+			}
+
+			for (size_t t = 0; t < doc.getNumTable(); ++t)
+			{
+				auto& curTable = doc.numTopicByTable[t];
+				if (!curTable) continue;
+				--ld.numTableByTopic[curTable.topic];
+				size_t K = ld.numByTopic.size();
+				ld.zLikelihood.resize(K + 1);
+				ld.zLikelihood.setZero();
+				for (size_t w = 0; w < doc.words.size(); ++w)
+				{
+					if (doc.words[w] >= this->realV) continue;
+					if (doc.Zs[w] != t) continue;
+					addOnlyWordTo<-1>(ld, doc, w, doc.words[w], curTable.topic);
+					ld.zLikelihood.head(K).array() += ((ld.numByTopicWord.col(doc.words[w]).array().template cast<FLOAT>() + this->eta)
+						/ (ld.numByTopic.array().template cast<FLOAT>() + this->realV * this->eta)).log();
+					ld.zLikelihood[K] += log(1. / this->realV);
+				}
+				ld.zLikelihood = (ld.zLikelihood.array() - ld.zLikelihood.maxCoeff()).exp();
+				auto topicDist = getTopicLikelihoods(ld);
+				TID newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + 1, rgs);
+				if (newTopic == K) // create new topic
+				{
+					newTopic = addTopic(ld);
+					//printf("New Topic #%zd\n", newTopic);
+				}
+				curTable.topic = newTopic;
+				for (size_t w = 0; w < doc.words.size(); ++w)
+				{
+					if (doc.words[w] >= this->realV) continue;
+					if (doc.Zs[w] != t) continue;
+					addOnlyWordTo<1>(ld, doc, w, doc.words[w], curTable.topic);
+				}
+				++ld.numTableByTopic[curTable.topic];
 			}
 		}
 
@@ -283,7 +316,7 @@ namespace tomoto
 				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 			}
 
-			globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, auto doc)
+			globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, const _DocType& doc)
 			{
 				return sum + doc.getNumTable();
 			});
@@ -385,19 +418,22 @@ namespace tomoto
 			std::vector<size_t> cnt(this->K);
 			for (auto& doc : this->docs)
 			{
-				for (auto z : doc.Zs) ++cnt[doc.numTopicByTable[z].topic];
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] < this->realV) ++cnt[doc.numTopicByTable[doc.Zs[i]].topic];
+				}
 			}
 			return cnt;
 		}
 
 	public:
-		HDPModel(size_t initialK = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		HDPModel(size_t initialK = 2, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
 			: BaseClass(initialK, _alpha, _eta, _rg), gamma(_gamma)
 		{}
 
 		size_t getTotalTables() const override
 		{
-			return accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, auto doc)
+			return accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, const _DocType& doc)
 			{
 				return sum + doc.getNumTable();
 			});
@@ -429,10 +465,5 @@ namespace tomoto
 			numTopicByTable[this->Zs[i]].num += _TW != TermWeight::one ? this->wordWeights[i] : 1;
 			this->numByTopic[numTopicByTable[this->Zs[i]].topic] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
 		}
-	}
-
-	IHDPModel* IHDPModel::create(TermWeight _weight, size_t _K, FLOAT _alpha , FLOAT _eta, FLOAT _gamma, const RANDGEN& _rg)
-	{
-		SWITCH_TW(_weight, HDPModel, _K, _alpha, _eta, _gamma, _rg);
 	}
 }

@@ -33,12 +33,12 @@ namespace py
 	};
 
 	template<typename T>
-	T makeObjectToCType(PyObject *obj)
+	inline T makeObjectToCType(PyObject *obj)
 	{
 	}
 
 	template<>
-	string makeObjectToCType<string>(PyObject *obj)
+	inline string makeObjectToCType<string>(PyObject *obj)
 	{
 		const char* str = PyUnicode_AsUTF8(obj);
 		if (!str) throw bad_exception{};
@@ -46,7 +46,7 @@ namespace py
 	}
 
 	template<>
-	float makeObjectToCType<float>(PyObject *obj)
+	inline float makeObjectToCType<float>(PyObject *obj)
 	{
 		float d = PyFloat_AsDouble(obj);
 		if (d == -1 && PyErr_Occurred()) throw bad_exception{};
@@ -54,7 +54,7 @@ namespace py
 	}
 
 	template<>
-	double makeObjectToCType<double>(PyObject *obj)
+	inline double makeObjectToCType<double>(PyObject *obj)
 	{
 		double d = PyFloat_AsDouble(obj);
 		if (d == -1 && PyErr_Occurred()) throw bad_exception{};
@@ -62,7 +62,7 @@ namespace py
 	}
 
 	template<typename T>
-	vector<T> makeIterToVector(PyObject *iter)
+	inline vector<T> makeIterToVector(PyObject *iter)
 	{
 		PyObject* item;
 		vector<T> v;
@@ -79,40 +79,40 @@ namespace py
 	}
 
 	template<typename _Ty>
-	typename enable_if<numeric_limits<_Ty>::is_integer, PyObject*>::type buildPyValue(_Ty v)
+	inline typename enable_if<numeric_limits<_Ty>::is_integer, PyObject*>::type buildPyValue(_Ty v)
 	{
 		return Py_BuildValue("n", v);
 	}
 
 	template<typename _Ty>
-	typename enable_if<is_enum<_Ty>::value, PyObject*>::type buildPyValue(_Ty v)
+	inline typename enable_if<is_enum<_Ty>::value, PyObject*>::type buildPyValue(_Ty v)
 	{
 		return Py_BuildValue("n", (size_t)v);
 	}
 
-	PyObject* buildPyValue(float v)
+	inline PyObject* buildPyValue(float v)
 	{
 		return Py_BuildValue("f", v);
 	}
 
-	PyObject* buildPyValue(double v)
+	inline PyObject* buildPyValue(double v)
 	{
 		return Py_BuildValue("d", v);
 	}
 
-	PyObject* buildPyValue(const string& v)
+	inline PyObject* buildPyValue(const string& v)
 	{
 		return Py_BuildValue("s", v.c_str());
 	}
 
-	PyObject* buildPyValue(nullptr_t)
+	inline PyObject* buildPyValue(nullptr_t)
 	{
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
 
 	template<typename _Ty1, typename _Ty2>
-	PyObject* buildPyValue(const pair<_Ty1, _Ty2>& v)
+	inline PyObject* buildPyValue(const pair<_Ty1, _Ty2>& v)
 	{
 		auto ret = PyTuple_New(2);
 		size_t id = 0;
@@ -122,7 +122,7 @@ namespace py
 	}
 
 	template<typename _Ty1, typename _Ty2>
-	PyObject* buildPyValue(pair<_Ty1, _Ty2>&& v)
+	inline PyObject* buildPyValue(pair<_Ty1, _Ty2>&& v)
 	{
 		auto ret = PyTuple_New(2);
 		size_t id = 0;
@@ -132,7 +132,7 @@ namespace py
 	}
 
 	template<typename _Ty>
-	PyObject* buildPyValue(const vector<_Ty>& v)
+	inline PyObject* buildPyValue(const vector<_Ty>& v)
 	{
 		auto ret = PyList_New(v.size());
 		size_t id = 0;
@@ -144,7 +144,7 @@ namespace py
 	}
 
 	template<typename _Ty>
-	PyObject* buildPyValue(vector<_Ty>&& v)
+	inline PyObject* buildPyValue(vector<_Ty>&& v)
 	{
 		auto ret = PyList_New(v.size());
 		size_t id = 0;
@@ -156,7 +156,7 @@ namespace py
 	}
 
 	template<typename _Ty>
-	typename enable_if<is_iterator<_Ty>::value, PyObject*>::type buildPyValue(_Ty first, _Ty last)
+	inline typename enable_if<is_iterator<_Ty>::value, PyObject*>::type buildPyValue(_Ty first, _Ty last)
 	{
 		auto ret = PyList_New(distance(first, last));
 		size_t id = 0;
@@ -168,7 +168,7 @@ namespace py
 	}
 
 	template<typename _Ty, typename _Tx>
-	typename enable_if<is_iterator<_Ty>::value, PyObject*>::type buildPyValueTransform(_Ty first, _Ty last, _Tx tx)
+	inline typename enable_if<is_iterator<_Ty>::value, PyObject*>::type buildPyValueTransform(_Ty first, _Ty last, _Tx tx)
 	{
 		auto ret = PyList_New(distance(first, last));
 		size_t id = 0;
