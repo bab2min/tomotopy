@@ -48,6 +48,10 @@ def hdp_example(input_file, save_path):
         for word, prob in mdl.get_topic_words(k):
             print('\t', word, prob, sep='\t')
 
+
+# You can get the sample data file 'enwiki-stemmed-1000.txt'
+# at https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view?usp=sharing
+
 print('Running LDA')
 lda_example('enwiki-stemmed-1000.txt', 'test.lda.bin')
 

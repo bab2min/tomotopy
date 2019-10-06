@@ -5,7 +5,8 @@ tomotopy 란?
 현재 버전의 `tomoto`에서는 다음과 같은 주요 토픽 모델들을 지원하고 있습니다.
 
 * Latent Dirichlet Allocation (`tomotopy.LDAModel`)
-* Supervised Latent Dirichlet Allocation (`tomotopy.SLDAModel`)
+* Labeled LDA (`tomotopy.LLDAModel`)
+* Supervised LDA (`tomotopy.SLDAModel`)
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`)
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`)
 * Multi Grain LDA (`tomotopy.MGLDAModel`) 
@@ -13,7 +14,7 @@ tomotopy 란?
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
 
-tomotopy의 가장 최신버전은 0.2.0 입니다.
+tomotopy의 가장 최신버전은 0.3.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -224,6 +225,12 @@ add_doc은 `tomotopy.LDAModel.train`을 시작하기 전까지만 사용할 수 
 infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `tomotopy.Document` 인스턴스의 `list`를 추론하는데 사용할 수 있습니다. 
 자세한 것은 `tomotopy.LDAModel.infer`을 참조하길 바랍니다.
 
+예제 코드
+--------
+tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/master/example.py 를 확인하시길 바랍니다.
+
+예제 코드에서 사용했던 데이터 파일은 https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view 에서 다운받을 수 있습니다.
+
 라이센스
 ---------
 `tomotopy`는 MIT License 하에 배포됩니다.
@@ -231,7 +238,10 @@ infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `t
 역사
 -------
 * 0.3.0 (2019-10-06)
-    * 
+    * `tomotopy.LLDAModel` 토픽 모델이 새로 추가되었습니다.
+    * `HDPModel`을 학습할 때 프로그램이 종료되는 문제를 해결했습니다.
+    * `HDPModel`의 하이퍼파라미터 추정 기능이 추가되었습니다. 이 때문에 새 버전의 `HDPModel` 결과는 이전 버전과 다를 수 있습니다.
+        이전 버전처럼 하이퍼파라미터 추정을 끄려면, `optim_interval`을 0으로 설정하십시오.
 
 * 0.2.0 (2019-08-18)
     * `tomotopy.CTModel`와 `tomotopy.SLDAModel` 토픽 모델이 새로 추가되었습니다.

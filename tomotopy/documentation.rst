@@ -5,7 +5,8 @@ It utilizes a vectorization of modern CPUs for maximizing speed.
 The current version of `tomoto` supports several major topic models including 
 
 * Latent Dirichlet Allocation (`tomotopy.LDAModel`),
-* Supervised Latent Dirichlet Allocation (`tomotopy.SLDAModel`),
+* Labeled LDA (`tomotopy.LLDAModel`),
+* Supervised LDA (`tomotopy.SLDAModel`),
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`),
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`),
 * Multi Grain LDA (`tomotopy.MGLDAModel`), 
@@ -13,7 +14,7 @@ The current version of `tomoto` supports several major topic models including
 * Hierarchical PA (`tomotopy.HPAModel`),
 * Correlated Topic Model (`tomotopy.CTModel`).
 
-The most recent version of tomotopy is 0.2.0.
+The most recent version of tomotopy is 0.3.0.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -226,6 +227,12 @@ Inference for unseen document should be performed using `tomotopy.LDAModel.infer
 The `infer` method can infer only one instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. 
 See more at `tomotopy.LDAModel.infer`.
 
+Examples
+--------
+You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/master/example.py .
+
+You can also get the data file used in the example code at https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view .
+
 License
 ---------
 `tomotopy` is licensed under the terms of MIT License, 
@@ -234,7 +241,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 History
 -------
 * 0.3.0 (2019-10-06)
-    * 
+    * A new model, `tomotopy.LLDAModel` was added into the package.
+    * A crashing issue of `HDPModel` was fixed.
+    * Since hyperparameter estimation for `HDPModel` was implemented, the result of `HDPModel` may differ from previous versions.
+        If you want to turn off hyperparameter estimation of HDPModel, set `optim_interval` to zero.
 
 * 0.2.0 (2019-08-18)
     * New models including `tomotopy.CTModel` and `tomotopy.SLDAModel` were added into the package.

@@ -521,6 +521,8 @@ DOC_SIGNATURE_EN_KO(HDP___init____doc__,
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 
+Since version 0.3.0, hyperparameter estimation for `alpha` and `gamma` has been added. You can turn off this estimation by setting `optim_interval` to zero.
+
 HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
 
 Parameters
@@ -536,8 +538,10 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 initial_k : int
-    the initial number of topics between 1 ~ 32767.
+    the initial number of topics between 2 ~ 32767.
     The number of topics will be adjusted for data during training.
+	
+	Since version 0.3.0, the default value has been changed to 2 from 1.
 alpha : float
     concentration coeficient of Dirichlet Process for document-table 
 eta : float
@@ -551,6 +555,8 @@ u8R""(이 타입은 Hierarchical Dirichlet Process(HDP) 토픽 모델의 구현�
 
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+
+0.3.0버전부터 `alpha`와 `gamma`에 대한 하이퍼파라미터 추정 기능이 추가되었습니다. `optim_interval`을 0으로 설정함으로써 이 기능을 끌 수 있습니다.
 
 HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
 
@@ -567,7 +573,9 @@ rm_top : int
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 initial_k : int
-    초기 토픽의 개수를 지정하는 1 ~ 32767 범위의 정수.
+    초기 토픽의 개수를 지정하는 2 ~ 32767 범위의 정수.
+	
+	0.3.0버전부터 기본값이 1에서 2로 변경되었습니다.
 alpha : float
     document-table에 대한 Dirichlet Process의 집중 계수
 eta : float
@@ -1381,14 +1389,14 @@ DOC_VARIABLE_EN_KO(SLDA_f__doc__,
 	class LLDA
 */
 DOC_SIGNATURE_EN_KO(LLDA___init____doc__,
-	"LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
+	"LLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
 	u8R""(This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
 
 .. versionadded:: 0.3.0
 
-LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)
+LLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)
 
 Parameters
 ----------
@@ -1415,7 +1423,7 @@ u8R""(이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합�
 
 .. versionadded:: 0.3.0
 	
-LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=?)
+LLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=?)
 
 Parameters
 ----------
