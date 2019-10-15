@@ -24,7 +24,7 @@ elif platform.system() == 'Darwin':
     largs += ['-stdlib=libc++']
     arch_levels = {'':'-march=native'}
 elif 'manylinux' in os.environ.get('AUDITWHEEL_PLAT', ''):
-    cargs = ['-std=c++0x', '-O3', '-fpermissive']
+    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-g0']
     arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx'}
 else:
     cargs = ['-std=c++0x', '-O3', '-fpermissive']
