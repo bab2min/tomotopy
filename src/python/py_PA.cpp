@@ -16,7 +16,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, 
-			K, K2, alpha, eta, tomoto::RANDGEN{ seed });
+			K, K2, alpha, eta, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

@@ -51,7 +51,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDACVB0;
-		static ILDACVB0Model* create(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+		static ILDACVB0Model* create(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;
@@ -69,13 +69,13 @@ namespace tomoto
 		typename _Derived = void, 
 		typename _DocType = DocumentLDACVB0,
 		typename _ModelState = ModelStateLDACVB0>
-	class LDACVB0Model : public TopicModel<_Interface,
+	class LDACVB0Model : public TopicModel<0, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, LDACVB0Model<>, _Derived>::type, 
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LDACVB0Model, _Derived>::type;
-		using BaseClass = TopicModel<_Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = TopicModel<0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 
 		static constexpr const char* TWID = "one";
@@ -138,7 +138,7 @@ namespace tomoto
 			if (DEC) ld.numByTopicWord.col(vid) = ld.numByTopicWord.col(vid).cwiseMax(0);
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -149,7 +149,7 @@ namespace tomoto
 			}
 		}
 
-		void trainOne(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		void trainOne(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
 			const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
@@ -277,15 +277,16 @@ namespace tomoto
 			return Generator{ std::uniform_int_distribution<TID>{0, (TID)(K - 1)} };
 		}
 
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
+		template<bool _Infer>
+		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			doc.Zs.col(i).setZero();
 			doc.Zs(g.theta(rgs), i) = 1;
 			addWordTo<1>(ld, doc, i, doc.words[i], doc.Zs.col(i));
 		}
 
-		template<typename _Generator>
-		void initializeDocState(_DocType& doc, FLOAT* topicDocPtr, _Generator& g, _ModelState& ld, RANDGEN& rgs) const
+		template<bool _Infer, typename _Generator>
+		void initializeDocState(_DocType& doc, FLOAT* topicDocPtr, _Generator& g, _ModelState& ld, RandGen& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
@@ -293,7 +294,7 @@ namespace tomoto
 			for (size_t i = 0; i < doc.words.size(); ++i)
 			{
 				if (doc.words[i] >= this->realV) continue;
-				static_cast<const DerivedClass*>(this)->updateStateWithDoc(g, ld, rgs, doc, i);
+				static_cast<const DerivedClass*>(this)->template updateStateWithDoc<_Infer>(g, ld, rgs, doc, i);
 			}
 		}
 
@@ -311,7 +312,7 @@ namespace tomoto
 		DEFINE_SERIALIZER(alpha, eta, K);
 
 	public:
-		LDACVB0Model(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		LDACVB0Model(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
 			alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(K, alpha);
@@ -356,7 +357,7 @@ namespace tomoto
 				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
 				for (auto& doc : this->docs)
 				{
-					initializeDocState(doc, nullptr, generator, this->globalState, this->rg);
+					initializeDocState<false>(doc, nullptr, generator, this->globalState, this->rg);
 				}
 			}
 			else
@@ -413,7 +414,7 @@ namespace tomoto
 		}
 	}
 
-	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
+	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RandGen& _rg)
 	{
 		return new LDACVB0Model<>(_K, _alpha, _eta, _rg);
 	}

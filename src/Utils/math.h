@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <random>
 #include <cfloat>
 #include "LUT.hpp"
 
@@ -153,10 +154,16 @@ namespace tomoto
 		inline float digammaT(float x) { return detail::LUT_digamma::get(x); }
 
 		template<class _T>
-		inline _T lgammaApprox(_T z)
+		inline auto lgammaApprox(_T z)
 		{
 			// approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))
 			return (z + 2.5) * log(z + 3) - (z + 3) + 0.91893853 + 1. / 12. / (z + 3) - log(z * (z + 1) * (z + 2));
+		}
+
+		template<class _T, class _U>
+		inline auto lgammaSubt(_T z, _U a) // calc lgamma(z + a) - lgamma(z)
+		{
+			return (z + a + 1.5) * log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log(((z + a) * (z + a + 1)) / (z * (z + 1)));
 		}
 
 		template<class _T>
@@ -166,6 +173,13 @@ namespace tomoto
 			return log(z + 4) - 1. / 2. / (z + 4) - 1. / 12. / ((z + 4) * (z + 4)) - 1. / z - 1. / (z + 1) - 1. / (z + 2) - 1. / (z + 3);
 		}
 
+		template<class _T, class _U>
+		inline auto digammaSubt(_T z, _U a) // calc digamma(z + a) - digamma(z)
+		{
+			return log((z + a + 2) / (z + 2)) - (1 / (z + a + 2) - 1 / (z + 2)) / 2 - (1 / (z + a + 2) / (z + a + 2) - 1 / (z + 2) / (z + 2)) / 12
+				- 1. / (z + a) - 1. / (z + a + 1)
+				- 1. / z - 1. / (z + 1);
+		}
 
 		template <typename RealType = double>
 		class beta_distribution

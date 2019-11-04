@@ -25,7 +25,7 @@ elif platform.system() == 'Darwin':
     arch_levels = {'':'-march=native'}
 elif 'manylinux' in os.environ.get('AUDITWHEEL_PLAT', ''):
     cargs = ['-std=c++0x', '-O3', '-fpermissive']
-    arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx'}
+    arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
 else:
     cargs = ['-std=c++0x', '-O3', '-fpermissive']
     arch_levels = {'':'-march=native'}
@@ -47,7 +47,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.3.0',
+    version='0.3.1',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,

@@ -15,7 +15,7 @@ static int CT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&K, &alpha, &eta, &seed)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::ICTModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RANDGEN{ seed });
+		tomoto::ITopicModel* inst = tomoto::ICTModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

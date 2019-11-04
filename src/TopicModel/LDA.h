@@ -3,7 +3,7 @@
 
 namespace tomoto
 {
-    enum class TermWeight { one, idf, pmi, size };
+    enum class TermWeight { one, idf, pmi, idf_one, size };
 
 	template<typename _Scalar>
 	struct ShareableVector : Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>
@@ -43,19 +43,41 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _TW>
+	template<typename _Base, TermWeight _TW>
 	struct SumWordWeight
 	{
 		FLOAT sumWordWeight = 0;
+		FLOAT getSumWordWeight() const
+		{
+			return sumWordWeight;
+		}
+
+		void updateSumWordWeight(size_t realV)
+		{
+			sumWordWeight = std::accumulate(static_cast<_Base*>(this)->wordWeights.begin(), static_cast<_Base*>(this)->wordWeights.end(), 0.f);
+		}
 	};
 
-	template<>
-	struct SumWordWeight<TermWeight::one>
+	template<typename _Base>
+	struct SumWordWeight<_Base, TermWeight::one>
 	{
+		int32_t sumWordWeight = 0;
+		int32_t getSumWordWeight() const
+		{
+			return sumWordWeight;
+		}
+
+		void updateSumWordWeight(size_t realV)
+		{
+			sumWordWeight = std::count_if(static_cast<_Base*>(this)->words.begin(), static_cast<_Base*>(this)->words.end(), [realV](VID w)
+			{
+				return w < realV;
+			});
+		}
 	};
 
-	template<TermWeight _TW, bool _Shared = false>
-	struct DocumentLDA : public DocumentBase, SumWordWeight<_TW>
+	template<TermWeight _TW, size_t _Flags = 0>
+	struct DocumentLDA : public DocumentBase, SumWordWeight<DocumentLDA<_TW, _Flags>, _TW>
 	{
 	public:
 		using DocumentBase::DocumentBase;
@@ -68,29 +90,10 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentBase, Zs, wordWeights);
 
 		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
-
-		template<TermWeight __TW>
-		typename std::enable_if<__TW == TermWeight::one, int32_t>::type getSumWordWeight() const
+		
+		WeightType getWordWeight(size_t idx) const
 		{
-			return this->words.size();
-		}
-
-		template<TermWeight __TW>
-		typename std::enable_if<__TW != TermWeight::one, FLOAT>::type getSumWordWeight() const
-		{
-			//return std::accumulate(wordWeights.begin(), wordWeights.end(), 0.f);
-			return this->sumWordWeight;
-		}
-
-		template<TermWeight __TW>
-		typename std::enable_if<__TW == TermWeight::one>::type updateSumWordWeight()
-		{
-		}
-
-		template<TermWeight __TW>
-		typename std::enable_if<__TW != TermWeight::one>::type updateSumWordWeight()
-		{
-			this->sumWordWeight = std::accumulate(wordWeights.begin(), wordWeights.end(), 0.f);
+			return _TW == TermWeight::one ? 1 : wordWeights[idx];
 		}
 	};
 
@@ -98,7 +101,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDA<TermWeight::one>;
-		static ILDAModel* create(TermWeight _weight, size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+		static ILDAModel* create(TermWeight _weight, size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;

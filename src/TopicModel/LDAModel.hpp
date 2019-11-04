@@ -2,7 +2,7 @@
 #include <unordered_set>
 #include <numeric>
 #include "TopicModel.hpp"
-#include <Eigen/Dense>
+#include "../Utils/EigenAddonOps.hpp"
 #include "../Utils/Utils.hpp"
 #include "../Utils/math.h"
 #include "../Utils/sample.hpp"
@@ -27,6 +27,8 @@ Term Weighting Scheme is based on following paper:
 			return new MDL<TermWeight::idf>(__VA_ARGS__);\
 		case TermWeight::pmi:\
 			return new MDL<TermWeight::pmi>(__VA_ARGS__);\
+		case TermWeight::idf_one:\
+			return new MDL<TermWeight::idf_one>(__VA_ARGS__);\
 		}\
 		return nullptr; } while(0)
 
@@ -40,24 +42,24 @@ namespace tomoto
 		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
 
 		Eigen::Matrix<FLOAT, -1, 1> zLikelihood;
-		Eigen::Matrix<WeightType, -1, 1> numByTopic;
-		Eigen::Matrix<WeightType, -1, -1> numByTopicWord;
+		Eigen::Matrix<WeightType, -1, 1> numByTopic; // Dim: (Topic, 1)
+		Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
 
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
 	};
 
-	template<TermWeight _TW, bool _Shared = false,
+	template<TermWeight _TW, size_t _Flags = 0,
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
-		typename _DocType = DocumentLDA<_TW, _Shared>,
+		typename _DocType = DocumentLDA<_TW, _Flags>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class LDAModel : public TopicModel<_Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_TW, _Shared>, _Derived>::type, 
+	class LDAModel : public TopicModel<_Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_TW, _Flags>, _Derived>::type, 
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LDAModel, _Derived>::type;
-		using BaseClass = TopicModel<_Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = TopicModel<_Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 
 		static constexpr const char* TWID = _TW == TermWeight::one ? "one" : (_TW == TermWeight::idf ? "idf" : "pmi");
@@ -86,12 +88,15 @@ namespace tomoto
 			return ret;
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		/*
+		function for optimizing hyperparameters
+		*/
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			const auto K = this->K;
 			for (size_t i = 0; i < 10; ++i)
 			{
-				FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].template getSumWordWeight<_TW>(); }, this->docs.size(), alphas.sum());
+				FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].getSumWordWeight(); }, this->docs.size(), alphas.sum());
 				for (size_t k = 0; k < K; ++k)
 				{
 					FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas(k));
@@ -127,7 +132,10 @@ namespace tomoto
 			updateCnt<DEC>(ld.numByTopicWord(tid, vid), INC * weight);
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
+		/*
+		main sampling procedure
+		*/
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -139,28 +147,62 @@ namespace tomoto
 			}
 		}
 
-		void trainOne(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		/*
+		reserved for model which needs second sampling
+		*/
+		void sampleDocument_2(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
-			std::vector<std::future<void>> res;
-			try
+		}
+
+		template<typename _DocIter, typename _SamplingFunc>
+		void performSampling(ThreadPool& pool, _ModelState* localData, RandGen* rgs, std::vector<std::future<void>>& res,
+			_DocIter docFirst, _DocIter docLast, _SamplingFunc func) const
+		{
+			if ((_Flags & flags::shared_state))
 			{
-				const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
+				size_t docId = 0;
+				for (auto doc = docFirst; doc != docLast; ++doc)
+				{
+					(static_cast<const DerivedClass*>(this)->*func)(
+						*doc, docId++,
+						*localData, *rgs, this->iterated);
+				}
+			}
+			else
+			{
+				const size_t chStride = std::min(pool.getNumWorkers() * 8, (size_t)std::distance(docFirst, docLast));
 				for (size_t ch = 0; ch < chStride; ++ch)
 				{
 					res.emplace_back(pool.enqueue([&, this, ch, chStride](size_t threadId)
 					{
-						forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
+						forRandom(((size_t)std::distance(docFirst, docLast) - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 						{
-							static_cast<DerivedClass*>(this)->sampleDocument(
-								this->docs[id * chStride + ch], id * chStride + ch,
+							(static_cast<const DerivedClass*>(this)->*func)(
+								docFirst[id * chStride + ch], id * chStride + ch,
 								localData[threadId], rgs[threadId], this->iterated);
 						});
 					}));
 				}
 				for (auto&& r : res) r.get();
 				res.clear();
+			}
+		}
+
+		void trainOne(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		{
+			std::vector<std::future<void>> res;
+			try
+			{
+				performSampling(pool, localData, rgs, res, 
+					this->docs.begin(), this->docs.end(), &DerivedClass::sampleDocument);
+				if(&DerivedClass::sampleDocument_2 != &LDAModel::sampleDocument_2) performSampling(pool, localData, rgs, res,
+					this->docs.begin(), this->docs.end(), &DerivedClass::sampleDocument_2);
 				static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
-				static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData);
+				if (!(_Flags & flags::shared_state))
+				{
+					static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData, rgs);
+				}
+				static_cast<DerivedClass*>(this)->template sampleGlobalLevel<>(&pool, localData, rgs, this->docs.begin(), this->docs.end());
 				if (this->iterated >= this->burnIn && optimInterval && (this->iterated + 1) % optimInterval == 0)
 				{
 					static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData, rgs);
@@ -169,15 +211,22 @@ namespace tomoto
 			catch (const exception::TrainingError& e)
 			{
 				for (auto&& r : res) if(r.valid()) r.get();
-				throw e;
+				throw;
 			}
 		}
 
+		/*
+		updates global informations after sampling documents
+		ex) update new global K at HDP model
+		*/
 		void updateGlobalInfo(ThreadPool& pool, _ModelState* localData)
 		{
 		}
 
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
+		/*
+		merges multithreaded document sampling result
+		*/
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
 
@@ -206,6 +255,21 @@ namespace tomoto
 			for (auto&& r : res) r.get();
 		}
 
+		/*
+		performs sampling which needs global state modification
+		ex) document pathing at hLDA model
+		* if pool is nullptr, workers has been already pooled and cannot branch works more.
+		*/
+		template<typename _DocIter>
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last) const
+		{
+		}
+
+		template<typename _DocIter>
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last)
+		{
+		}
+
 		template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
@@ -214,7 +278,7 @@ namespace tomoto
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphas.sum()) - math::lgammaT(alphas.sum());
+				ll -= math::lgammaT(doc.getSumWordWeight() + alphas.sum()) - math::lgammaT(alphas.sum());
 				for (TID k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]) - math::lgammaT(alphas[k]);
@@ -265,7 +329,7 @@ namespace tomoto
 		
 		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
-			doc.numByTopic.init(_Shared ? topicDocPtr : nullptr, K);
+			doc.numByTopic.init((_Flags & flags::continuous_doc_data) ? topicDocPtr : nullptr, K);
 			doc.Zs = tvector<TID>(wordSize);
 			if(_TW != TermWeight::one) doc.wordWeights.resize(wordSize, 1);
 		}
@@ -279,7 +343,7 @@ namespace tomoto
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(K);
 				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K, V);
 			}
-			if(_Shared) numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(K, this->docs.size());
+			if(_Flags & flags::continuous_doc_data) numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(K, this->docs.size());
 		}
 
 		struct Generator
@@ -292,7 +356,8 @@ namespace tomoto
 			return Generator{ std::uniform_int_distribution<TID>{0, (TID)(K - 1)} };
 		}
 
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
+		template<bool _Infer>
+		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			auto& z = doc.Zs[i];
 			auto w = doc.words[i];
@@ -300,8 +365,8 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z);
 		}
 
-		template<typename _Generator>
-		void initializeDocState(_DocType& doc, WeightType* topicDocPtr, _Generator& g, _ModelState& ld, RANDGEN& rgs) const
+		template<bool _Infer, typename _Generator>
+		void initializeDocState(_DocType& doc, WeightType* topicDocPtr, _Generator& g, _ModelState& ld, RandGen& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
@@ -318,13 +383,17 @@ namespace tomoto
 				{
 					doc.wordWeights[i] = vocabWeights[doc.words[i]];
 				}
+				if (_TW == TermWeight::idf_one)
+				{
+					doc.wordWeights[i] = (vocabWeights[doc.words[i]] + 1) / 2;
+				}
 				else if (_TW == TermWeight::pmi)
 				{
 					doc.wordWeights[i] = std::max((FLOAT)log(tf[doc.words[i]] / vocabWeights[doc.words[i]] / doc.words.size()), (FLOAT)0);
 				}
-				doc.template updateSumWordWeight<_TW>();
-				static_cast<const DerivedClass*>(this)->updateStateWithDoc(g, ld, rgs, doc, i);
+				static_cast<const DerivedClass*>(this)->template updateStateWithDoc<_Infer>(g, ld, rgs, doc, i);
 			}
+			doc.updateSumWordWeight(this->realV);
 		}
 
 		std::vector<size_t> _getTopicsCount() const
@@ -363,38 +432,55 @@ namespace tomoto
 			if (_Together)
 			{
 				// temporary state variable
-				RANDGEN rgc{};
+				RandGen rgc{};
 				auto tmpState = this->globalState, tState = this->globalState;
 				for (auto d = docFirst; d != docLast; ++d)
 				{
-					initializeDocState(*d, nullptr, generator, tmpState, rgc);
+					initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
 				}
 
-				std::vector<decltype(tmpState)> localData(pool.getNumWorkers(), tmpState);
-				std::vector<RANDGEN> rgs;
+				std::vector<decltype(tmpState)> localData((_Flags & flags::shared_state) ? 0 : pool.getNumWorkers(), tmpState);
+				std::vector<RandGen> rgs;
 				for (size_t i = 0; i < pool.getNumWorkers(); ++i) rgs.emplace_back(rgc());
 
 				for (size_t i = 0; i < maxIter; ++i)
 				{
 					std::vector<std::future<void>> res;
-					const size_t chStride = std::min(pool.getNumWorkers() * 8, (size_t)std::distance(docFirst, docLast));
-					for (size_t ch = 0; ch < chStride; ++ch)
-					{
-						res.emplace_back(pool.enqueue([&, i, ch, chStride](size_t threadId)
-						{
-							forRandom((std::distance(docFirst, docLast) - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
-							{
-								static_cast<const DerivedClass*>(this)->sampleDocument(
-									docFirst[id * chStride + ch], -1, localData[threadId], rgs[threadId], i);
-							});
-						}));
-					}
-					for (auto&& r : res) r.get();
-					static_cast<const DerivedClass*>(this)->mergeState(pool, tmpState, tState, localData.data());
+					performSampling(pool, 
+						(_Flags & flags::shared_state) ? &tmpState : localData.data(), rgs.data(), res,
+						docFirst, docLast, &DerivedClass::sampleDocument);
+					if (&DerivedClass::sampleDocument_2 != &LDAModel::sampleDocument_2) performSampling(pool, 
+						(_Flags & flags::shared_state) ? &tmpState : localData.data(), rgs.data(), res,
+						docFirst, docLast, &DerivedClass::sampleDocument_2);
+					if(!(_Flags & flags::shared_state)) static_cast<const DerivedClass*>(this)->mergeState(pool, tmpState, tState, localData.data(), rgs.data());
+					static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
+						&pool, (_Flags & flags::shared_state) ? &tmpState : localData.data(), rgs.data(), docFirst, docLast);
 				}
 				double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 				ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(docFirst, docLast);
 				return { ll };
+			}
+			else if (_Flags & flags::shared_state)
+			{
+				std::vector<double> ret;
+				const double gllRest = static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
+				for (auto d = docFirst; d != docLast; ++d)
+				{
+					RandGen rgc{};
+					auto tmpState = this->globalState;
+					initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
+					for (size_t i = 0; i < maxIter; ++i)
+					{
+						static_cast<const DerivedClass*>(this)->sampleDocument(*d, -1, tmpState, rgc, i);
+						static_cast<const DerivedClass*>(this)->sampleDocument_2(*d, -1, tmpState, rgc, i);
+						static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
+							&pool, &tmpState, &rgc, &*d, &*d + 1);
+					}
+					double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
+					ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&*d, &*d + 1);
+					ret.emplace_back(ll);
+				}
+				return ret;
 			}
 			else
 			{
@@ -404,12 +490,15 @@ namespace tomoto
 				{
 					res.emplace_back(pool.enqueue([&, d](size_t threadId)
 					{
-						RANDGEN rgc{};
+						RandGen rgc{};
 						auto tmpState = this->globalState;
-						initializeDocState(*d, nullptr, generator, tmpState, rgc);
+						initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
 						for (size_t i = 0; i < maxIter; ++i)
 						{
 							static_cast<const DerivedClass*>(this)->sampleDocument(*d, -1, tmpState, rgc, i);
+							static_cast<const DerivedClass*>(this)->sampleDocument_2(*d, -1, tmpState, rgc, i);
+							static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
+								nullptr, &tmpState, &rgc, &*d, &*d + 1);
 						}
 						double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
 						ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&*d, &*d + 1);
@@ -425,7 +514,7 @@ namespace tomoto
 		DEFINE_SERIALIZER(vocabWeights, alpha, alphas, eta, K);
 
 	public:
-		LDAModel(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		LDAModel(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
 			alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(K, alpha);
@@ -469,7 +558,7 @@ namespace tomoto
 			size_t docId = 0;
 			for (auto& doc : this->docs)
 			{
-				doc.template update<>(_Shared ? numByTopicDoc.col(docId++).data() : nullptr, *static_cast<DerivedClass*>(this));
+				doc.template update<>((_Flags & flags::continuous_doc_data) ? numByTopicDoc.col(docId++).data() : nullptr, *static_cast<DerivedClass*>(this));
 			}
 		}
 
@@ -501,7 +590,7 @@ namespace tomoto
 					}
 					totCf = accumulate(this->vocabFrequencies.begin(), this->vocabFrequencies.end(), 0);
 				}
-				if (_TW == TermWeight::idf)
+				if (_TW == TermWeight::idf || _TW == TermWeight::idf_one)
 				{
 					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
@@ -521,13 +610,13 @@ namespace tomoto
 				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
 				for (auto& doc : this->docs)
 				{
-					initializeDocState(doc, _Shared ? numByTopicDoc.col(&doc - &this->docs[0]).data() : nullptr, generator, this->globalState, this->rg);
+					initializeDocState<false>(doc, (_Flags & flags::continuous_doc_data) ? numByTopicDoc.col(&doc - &this->docs[0]).data() : nullptr, generator, this->globalState, this->rg);
 				}
 			}
 			else
 			{
 				static_cast<DerivedClass*>(this)->updateDocs();
-				for (auto& doc : this->docs) doc.template updateSumWordWeight<_TW>();
+				for (auto& doc : this->docs) doc.updateSumWordWeight(this->realV);
 			}
 			static_cast<DerivedClass*>(this)->prepareShared();
 		}
@@ -540,19 +629,16 @@ namespace tomoto
 		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
 		{
 			std::vector<FLOAT> ret(K);
-			FLOAT sum = doc.template getSumWordWeight<_TW>() + K * alpha;
-			transform(doc.numByTopic.data(), doc.numByTopic.data() + K, ret.begin(), [sum, this](size_t n)
-			{
-				return (n + alpha) / sum;
-			});
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), K }.array() = 
+				(doc.numByTopic.array().template cast<FLOAT>() + alphas.array()) / (doc.getSumWordWeight() + alphas.sum());
 			return ret;
 		}
 
 	};
 
-	template<TermWeight _TW, bool _Shared>
+	template<TermWeight _TW, size_t _Flags>
 	template<typename _TopicModel>
-	void DocumentLDA<_TW, _Shared>::update(WeightType* ptr, const _TopicModel& mdl)
+	void DocumentLDA<_TW, _Flags>::update(WeightType* ptr, const _TopicModel& mdl)
 	{
 		numByTopic.init(ptr, mdl.getK());
 		for (size_t i = 0; i < Zs.size(); ++i)

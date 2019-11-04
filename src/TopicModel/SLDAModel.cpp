@@ -10,7 +10,7 @@ namespace tomoto
 		FLOAT _alpha, FLOAT _eta, 
 		const std::vector<FLOAT>& _mu, const std::vector<FLOAT>& _nuSq,
 		const std::vector<FLOAT>& _glmParam,
-		const RANDGEN& _rg)
+		const RandGen& _rg)
 	{
 		SWITCH_TW(_weight, SLDAModel, _K, vars, _alpha, _eta, _mu, _nuSq, _glmParam, _rg);
 	}

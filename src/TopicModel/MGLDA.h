@@ -32,7 +32,7 @@ namespace tomoto
 		using DefaultDocType = DocumentMGLDA<TermWeight::one>;
 		static IMGLDAModel* create(TermWeight _weight, size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
 			FLOAT _alphaG = 0.1, FLOAT _alphaL = 0.1, FLOAT _alphaMG = 0.1, FLOAT _alphaML = 0.1,
-			FLOAT _etaG = 0.01, FLOAT _etaL = 0.01, FLOAT _gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+			FLOAT _etaG = 0.01, FLOAT _etaL = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words, const std::string& delimiter) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::string& delimiter) const = 0;

@@ -14,18 +14,18 @@ namespace tomoto
 		std::vector<size_t> ndimCnt;
 	};
 
-	template<TermWeight _TW, bool _Shared = false,
+	template<TermWeight _TW, size_t _Flags = 0,
 		typename _Interface = IGDMRModel,
 		typename _Derived = void,
-		typename _DocType = DocumentGDMR<_TW, _Shared>,
+		typename _DocType = DocumentGDMR<_TW, _Flags>,
 		typename _ModelState = ModelStateGDMR<_TW>>
-	class GDMRModel : public DMRModel<_TW, _Shared, _Interface,
+	class GDMRModel : public DMRModel<_TW, _Flags, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_TW>, _Derived>::type;
-		using BaseClass = DMRModel<_TW, _Shared, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = DMRModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		friend typename BaseClass::BaseClass::BaseClass;
@@ -121,8 +121,8 @@ namespace tomoto
 							else tmpK[k] = -(math::digammaT(alphas[k]) - math::digammaT(doc.numByTopic[k] + alphas[k]));
 						}
 						FLOAT alphaSum = alphas.sum();
-						ret[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
-						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
+						ret[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.getSumWordWeight() + alphaSum);
+						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.getSumWordWeight() + alphaSum);
 						if (!std::isfinite(alphaSum) && alphaSum > 0)
 						{
 							ret[K * F] = -INFINITY;
@@ -214,7 +214,7 @@ namespace tomoto
 					if (!doc.numByTopic[k]) continue;
 					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]) - math::lgammaT(alphas[k]);
 				}
-				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum) - math::lgammaT(alphaSum);
+				ll -= math::lgammaT(doc.getSumWordWeight() + alphaSum) - math::lgammaT(alphaSum);
 			}
 			return ll;
 		}
@@ -301,7 +301,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, sigma0, degreeByF, mdCoefs, mdIntercepts);
 	public:
 		GDMRModel(size_t _K = 1, const std::vector<size_t>& _degreeByF = {}, FLOAT defaultAlpha = 1.0, FLOAT _sigma = 1.0, FLOAT _eta = 0.01,
-			FLOAT _alphaEps = 1e-10, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+			FLOAT _alphaEps = 1e-10, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), degreeByF(_degreeByF)
 		{
 			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
@@ -346,7 +346,7 @@ namespace tomoto
 				alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
 			}
 			std::vector<FLOAT> ret(this->K);
-			FLOAT sum = doc.template getSumWordWeight<_TW>() + alphas.sum();
+			FLOAT sum = doc.getSumWordWeight() + alphas.sum();
 			for (size_t k = 0; k < this->K; ++k)
 			{
 				ret[k] = (doc.numByTopic[k] + alphas[k]) / sum;

@@ -65,14 +65,23 @@ namespace tomoto
 		return ret;
 	}
 
-	template<typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
+	namespace flags
+	{
+		enum
+		{
+			continuous_doc_data = 1 << 0,
+			shared_state = 1 << 1,
+		};
+	}
+
+	template<size_t _Flags, typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
 	class TopicModel : public _Interface
 	{
 		friend class Document;
 	public:
 		using DocType = _DocType;
 	protected:
-		RANDGEN rg;
+		RandGen rg;
 		std::vector<VID> words;
 		std::vector<uint32_t> wOffsetByDoc;
 
@@ -210,13 +219,13 @@ namespace tomoto
 			}
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			throw e;
 		}
 
 	public:
-		TopicModel(const RANDGEN& _rg) : rg(_rg)
+		TopicModel(const RandGen& _rg) : rg(_rg)
 		{
 		}
 
@@ -244,11 +253,11 @@ namespace tomoto
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 			ThreadPool pool(numWorkers);
 			std::vector<_ModelState> localData;
-			std::vector<RANDGEN> localRG;
+			std::vector<RandGen> localRG;
 			for (size_t i = 0; i < numWorkers; ++i)
 			{
-				localRG.emplace_back(RANDGEN{rg()});
-				localData.emplace_back(static_cast<_Derived*>(this)->globalState);
+				localRG.emplace_back(RandGen{rg()});
+				if(!(_Flags & flags::shared_state)) localData.emplace_back(static_cast<_Derived*>(this)->globalState);
 			}
 
 			for (size_t i = 0; i < iteration; ++i)
@@ -257,13 +266,17 @@ namespace tomoto
 				{
 					try
 					{
-						static_cast<_Derived*>(this)->trainOne(pool, localData.data(), localRG.data());
+						static_cast<_Derived*>(this)->trainOne(pool, 
+							_Flags & flags::shared_state ? &globalState : localData.data(),
+							localRG.data());
 						break;
 					}
 					catch (const exception::TrainingError& e)
 					{
 						std::cerr << e.what() << std::endl;
-						int ret = static_cast<_Derived*>(this)->restoreFromTrainingError(e, pool, localData.data(), localRG.data());
+						int ret = static_cast<_Derived*>(this)->restoreFromTrainingError(e, pool, 
+							_Flags & flags::shared_state ? &globalState : localData.data(),
+							localRG.data());
 						if(ret < 0) return ret;
 					}
 				}

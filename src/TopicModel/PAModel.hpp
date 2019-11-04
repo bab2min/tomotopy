@@ -26,13 +26,13 @@ namespace tomoto
 		typename _Derived = void,
 		typename _DocType = DocumentPA<_TW>,
 		typename _ModelState = ModelStatePA<_TW>>
-	class PAModel : public LDAModel<_TW, false, _Interface,
+	class PAModel : public LDAModel<_TW, 0, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, PAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, false, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -43,7 +43,7 @@ namespace tomoto
 
 		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
 		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * K2
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			const auto K = this->K;
 			std::vector<std::future<void>> res;
@@ -102,7 +102,7 @@ namespace tomoto
 			updateCnt<DEC>(ld.numByTopicWord(z2, vid), INC * weight);
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -116,7 +116,7 @@ namespace tomoto
 			}
 		}
 
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
 
@@ -158,7 +158,7 @@ namespace tomoto
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + K * alpha);
+				ll -= math::lgammaT(doc.getSumWordWeight() + K * alpha);
 				for (TID k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alpha);
@@ -230,7 +230,8 @@ namespace tomoto
 			};
 		}
 
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
+		template<bool _Infer>
+		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			auto w = doc.words[i];
 			doc.Zs[i] = g.theta(rgs);
@@ -241,7 +242,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, K2, subAlphas, subAlphaSum);
 
 	public:
-		PAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		PAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
 			subAlphaSum = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1, _K2 * 0.1);

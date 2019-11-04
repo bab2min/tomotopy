@@ -35,6 +35,7 @@ misrepresented as being the original software.
 #ifdef _MSC_VER
 #define ALIGN32_BEG __declspec(align(32))
 #define ALIGN32_END
+#define __attribute__(x)
 #else
 #define ALIGN32_BEG
 #define ALIGN32_END __attribute__((aligned(32)))
@@ -111,7 +112,7 @@ typedef union imm_xmm_union {
     u.xmm[0]=xmm0_; u.xmm[1]=xmm1_; imm_ = u.imm; \
   }
 
-
+#ifndef _MSC_VER
 #define AVX2_BITOP_USING_SSE2(fn) \
 static inline v8si _mm256_##fn(v8si x, int a) \
 { \
@@ -125,7 +126,6 @@ static inline v8si _mm256_##fn(v8si x, int a) \
   return(ret); \
 }
 
-#warning "Using SSE2 to perform AVX2 bitshift ops"
 AVX2_BITOP_USING_SSE2(slli_epi32)
 AVX2_BITOP_USING_SSE2(srli_epi32)
 
@@ -144,12 +144,13 @@ static inline v8si _mm256_##fn(v8si x, v8si y) \
   return(ret); \
 }
 
-#warning "Using SSE2 to perform AVX2 integer ops"
 AVX2_INTOP_USING_SSE2(and_si128)
 AVX2_INTOP_USING_SSE2(andnot_si128)
 AVX2_INTOP_USING_SSE2(cmpeq_epi32)
 AVX2_INTOP_USING_SSE2(sub_epi32)
 AVX2_INTOP_USING_SSE2(add_epi32)
+
+#endif
 
 #endif /* __AVX2__ */
 
@@ -157,7 +158,7 @@ AVX2_INTOP_USING_SSE2(add_epi32)
 /* natural logarithm computed for 8 simultaneous float
 return NaN for x <= 0
 */
-inline v8sf log256_ps(v8sf x) {
+inline v8sf log_ps(v8sf x) {
 	v8si imm0;
 	v8sf one = *(v8sf*)_ps256_1;
 
@@ -243,7 +244,7 @@ _PS256_CONST(cephes_exp_p3, 4.1665795894E-2);
 _PS256_CONST(cephes_exp_p4, 1.6666665459E-1);
 _PS256_CONST(cephes_exp_p5, 5.0000001201E-1);
 
-inline v8sf exp256_ps(v8sf x) {
+inline v8sf exp_ps(v8sf x) {
 	v8sf tmp = _mm256_setzero_ps(), fx;
 	v8si imm0;
 	v8sf one = *(v8sf*)_ps256_1;
@@ -323,7 +324,7 @@ _PS256_CONST(cephes_FOPI, 1.27323954473516); // 4 / M_PI
 											 surprising but correct result.
 
 											 */
-inline v8sf sin256_ps(v8sf x) { // any x
+inline v8sf sin_ps(v8sf x) { // any x
 	v8sf xmm1, xmm2 = _mm256_setzero_ps(), xmm3, sign_bit, y;
 	v8si imm0, imm2;
 
@@ -450,7 +451,7 @@ inline v8sf sin256_ps(v8sf x) { // any x
 }
 
 /* almost the same as sin_ps */
-inline v8sf cos256_ps(v8sf x) { // any x
+inline v8sf cos_ps(v8sf x) { // any x
 	v8sf xmm1, xmm2 = _mm256_setzero_ps(), xmm3, y;
 	v8si imm0, imm2;
 
@@ -567,7 +568,7 @@ inline v8sf cos256_ps(v8sf x) { // any x
 
 /* since sin256_ps and cos256_ps are almost identical, sincos256_ps could replace both of them..
 it is almost as fast, and gives you a free cosine with your sine */
-inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c) {
+inline void sincos_ps(v8sf x, v8sf *s, v8sf *c) {
 
 	v8sf xmm1, xmm2, xmm3 = _mm256_setzero_ps(), sign_bit_sin, y;
 	v8si imm0, imm2, imm4;

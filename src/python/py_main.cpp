@@ -164,6 +164,7 @@ static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObje
 	try
 	{
 		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
+		if (!self->parentModel->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
 		return py::buildPyValue(self->parentModel->inst->getTopicsByDocSorted(self->doc, topN));
 	}
 	catch (const bad_exception&)
@@ -182,6 +183,7 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 	try
 	{
 		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
+		if (!self->parentModel->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
 		return py::buildPyValue(self->parentModel->inst->getTopicsByDoc(self->doc));
 	}
 	catch (const bad_exception&)

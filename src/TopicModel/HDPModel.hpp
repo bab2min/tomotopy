@@ -26,13 +26,13 @@ namespace tomoto
 		typename _Derived = void,
 		typename _DocType = DocumentHDP<_TW>,
 		typename _ModelState = ModelStateHDP<_TW>>
-	class HDPModel : public LDAModel<_TW, false, _Interface,
+	class HDPModel : public LDAModel<_TW, 0, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, HDPModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HDPModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, false, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -40,7 +40,7 @@ namespace tomoto
 		FLOAT gamma;
 
 		template<typename _NumFunc>
-		static FLOAT estimateConcentrationParameter(_NumFunc ns, FLOAT tableCnt, size_t size, FLOAT alpha, RANDGEN& rgs)
+		static FLOAT estimateConcentrationParameter(_NumFunc ns, FLOAT tableCnt, size_t size, FLOAT alpha, RandGen& rgs)
 		{
 			FLOAT a = 1, b = 1;
 			for (size_t i = 0; i < 10; ++i)
@@ -61,7 +61,7 @@ namespace tomoto
 			return alpha;
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			size_t tableCnt = 0;
 			for (auto& doc : this->docs)
@@ -71,7 +71,7 @@ namespace tomoto
 
 			this->alpha = estimateConcentrationParameter([this](size_t s)
 			{
-				return this->docs[s].template getSumWordWeight<_TW>();
+				return this->docs[s].getSumWordWeight();
 			}, tableCnt, this->docs.size(), this->alpha, *rgs);
 
 			gamma = estimateConcentrationParameter([this](size_t)
@@ -190,7 +190,7 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -280,7 +280,7 @@ namespace tomoto
 			for (auto&& r : res) r.get();
 		}
 
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
 			const size_t V = this->realV;
@@ -341,7 +341,7 @@ namespace tomoto
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				ll += doc.getNumTable() * log(alpha) - math::lgammaT(doc.template getSumWordWeight<_TW>() + alpha) + math::lgammaT(alpha);
+				ll += doc.getNumTable() * log(alpha) - math::lgammaT(doc.getSumWordWeight() + alpha) + math::lgammaT(alpha);
 				for (auto&& nt : doc.numTopicByTable)
 				{
 					if (nt) ll += math::lgammaT(nt.num);
@@ -400,7 +400,8 @@ namespace tomoto
 			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
-		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
+		template<bool _Infer>
+		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			if (doc.getNumTable() == 0)
 			{
@@ -427,7 +428,7 @@ namespace tomoto
 		}
 
 	public:
-		HDPModel(size_t initialK = 2, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		HDPModel(size_t initialK = 2, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(initialK, _alpha, _eta, _rg), gamma(_gamma)
 		{}
 
