@@ -15,14 +15,14 @@ namespace tomoto
 		typename _Derived = void,
 		typename _DocType = DocumentLLDA<_TW>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class LLDAModel : public LDAModel<_TW, false, _Interface,
+	class LLDAModel : public LDAModel<_TW, 0, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 		static constexpr const char* TMID = "LLDA";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, false, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -71,7 +71,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, topicLabelDict);
 
 	public:
-		LLDAModel(size_t _K = 1, FLOAT _alpha = 1.0, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		LLDAModel(size_t _K = 1, FLOAT _alpha = 1.0, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, _alpha, _eta, _rg)
 		{
 		}

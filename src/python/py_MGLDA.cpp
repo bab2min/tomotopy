@@ -18,7 +18,7 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	try
 	{
 		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, 
-			K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, tomoto::RANDGEN{ seed });
+			K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

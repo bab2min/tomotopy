@@ -52,9 +52,9 @@ namespace tomoto
 
 		tvector(iterator first, iterator last)
 		{
-			size_type i, count = last - first;
+			size_type count = last - first;
 			_first = _Alloc{}.allocate(count);
-			for (i = 0; i < count; ++i, ++first)
+			for (size_type i = 0; i < count; ++i, ++first)
 				_first[i] = *first;
 			_last = _first + count;
 			_rsvEnd = _last;
@@ -141,16 +141,16 @@ namespace tomoto
 
 		void assign(iterator first, iterator last)
 		{
-			size_type i, count = last - first;
+			size_type count = last - first;
 			buy(count);
-			for (i = 0; i < count; ++i, ++first)
+			for (size_type i = 0; i < count; ++i, ++first)
 				_first[i] = *first;
 			_last = _first + count;
 		}
 
 		void assign(std::initializer_list<T> lst)
 		{
-			size_type i, count = lst.size();
+			size_type count = lst.size();
 			buy(count);
 			_last = _first;
 			for (auto &item : lst)

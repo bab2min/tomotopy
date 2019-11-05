@@ -56,7 +56,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentHDP<TermWeight::one>;
-		static IHDPModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, FLOAT gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+		static IHDPModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, FLOAT gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual FLOAT getGamma() const = 0;
 		virtual size_t getTotalTables() const = 0;

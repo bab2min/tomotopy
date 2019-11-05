@@ -16,13 +16,13 @@ namespace tomoto
 		typename _Derived = void, 
 		typename _DocType = DocumentMGLDA<_TW>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class MGLDAModel : public LDAModel<_TW, false, _Interface,
+	class MGLDAModel : public LDAModel<_TW, 0, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, false, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -97,7 +97,7 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
 			const auto K = this->K;
 			for (size_t w = 0; w < doc.words.size(); ++w)
@@ -311,7 +311,8 @@ namespace tomoto
 				std::uniform_int_distribution<uint16_t>{ 0, (uint16_t)(T - 1) } };
 		}
 
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RANDGEN& rgs, _DocType& doc, size_t i) const
+		template<bool _Infer>
+		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			doc.numBySent[doc.sents[i]] += _TW == TermWeight::one ? 1 : doc.wordWeights[i];
 			auto& win = doc.Vs[i];
@@ -327,7 +328,7 @@ namespace tomoto
 	public:
 		MGLDAModel(size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
 			FLOAT _alphaG = 0.1, FLOAT _alphaL = 0.1, FLOAT _alphaMG = 0.1, FLOAT _alphaML = 0.1,
-			FLOAT _etaG = 0.01, FLOAT _etaL = 0.01, FLOAT _gamma = 0.1, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+			FLOAT _etaG = 0.01, FLOAT _etaL = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_KG, _alphaG, _etaG, _rg), KL(_KL), T(_T),
 			alphaL(_alphaL), alphaM(_KG ? _alphaMG : 0), alphaML(_alphaML),
 			etaL(_etaL), gamma(_gamma)
@@ -373,6 +374,14 @@ namespace tomoto
 			}
 			doc->numBySent.resize(doc->sents.empty() ? 0 : (doc->sents.back() + 1));
 			return std::unique_ptr<DocumentBase>{ doc };
+		}
+
+		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		{
+			std::vector<FLOAT> ret(this->K + KL);
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), this->K + KL }.array() =
+				doc.numByTopic.array().template cast<FLOAT>() / doc.getSumWordWeight();
+			return ret;
 		}
 
 		GETTER(KL, size_t, KL);

@@ -3,12 +3,12 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW, bool _Shared = false>
-	struct DocumentSLDA : public DocumentLDA<_TW, _Shared>
+    template<TermWeight _TW, size_t _Flags = 0>
+	struct DocumentSLDA : public DocumentLDA<_TW, _Flags>
 	{
-		using DocumentLDA<_TW, _Shared>::DocumentLDA;
+		using DocumentLDA<_TW, _Flags>::DocumentLDA;
 		std::vector<FLOAT> y;
-		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Shared>, y);
+		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Flags>, y);
 	};
 
 	class ISLDAModel : public ILDAModel
@@ -26,7 +26,7 @@ namespace tomoto
 			FLOAT alpha = 0.1, FLOAT _eta = 0.01,
 			const std::vector<FLOAT>& _mu = {}, const std::vector<FLOAT>& _nuSq = {},
 			const std::vector<FLOAT>& _glmParam = {},
-			const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+			const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<FLOAT>& y) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<FLOAT>& y) const = 0;

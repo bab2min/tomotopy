@@ -17,7 +17,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLLDA<TermWeight::one>;
-		static ILLDAModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+		static ILLDAModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& label) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& label) const = 0;

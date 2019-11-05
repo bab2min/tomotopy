@@ -16,19 +16,19 @@ namespace tomoto
 		Eigen::Matrix<FLOAT, -1, 1> tmpK;
 	};
 
-	template<TermWeight _TW, bool _Shared = false,
+	template<TermWeight _TW, size_t _Flags = 0,
 		typename _Interface = IDMRModel,
 		typename _Derived = void,
 		typename _DocType = DocumentDMR<_TW>,
 		typename _ModelState = ModelStateDMR<_TW>>
-	class DMRModel : public LDAModel<_TW, _Shared, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW, _Shared>, _Derived>::type,
+	class DMRModel : public LDAModel<_TW, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 		static constexpr const char* TMID = "DMR";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, _Shared, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -83,8 +83,8 @@ namespace tomoto
 						}
 						//val[K * F] = -(lgammaApprox(alphaDoc.array()) - lgammaApprox(doc.numByTopic.array().cast<FLOAT>() + alphaDoc.array())).sum();
 						//tmpK = -(digammaApprox(alphaDoc.array()) - digammaApprox(doc.numByTopic.array().cast<FLOAT>() + alphaDoc.array()));
-						val[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
-						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
+						val[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.getSumWordWeight() + alphaSum);
+						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.getSumWordWeight() + alphaSum);
 						if (!std::isfinite(alphaSum) && alphaSum > 0)
 						{
 							val[K * F] = -INFINITY;
@@ -116,7 +116,7 @@ namespace tomoto
 			}
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			Eigen::Matrix<FLOAT, -1, -1> bLambda;
 			FLOAT fx = 0, bestFx = INFINITY;
@@ -137,12 +137,19 @@ namespace tomoto
 			}
 			if (!std::isfinite(bestFx))
 			{
-				std::cout << "optimizing parameters has been failed!" << std::endl;
-				throw std::runtime_error{ "optimizing parameters has been failed!" };
+				throw exception::TrainingError{ "optimizing parameters has been failed!" };
 			}
 			lambda = bLambda;
 			//std::cerr << fx << std::endl;
 			expLambda = lambda.array().exp() + alphaEps;
+		}
+
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		{
+			std::cerr << "Failed to optimize! Reset prior and retry!" << std::endl;
+			lambda.setZero();
+			expLambda = lambda.array().exp() + alphaEps;
+			return 0;
 		}
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
@@ -173,7 +180,7 @@ namespace tomoto
 				ll += math::lgammaT(doc.numByTopic[k] + alphaDoc[k]);
 				ll -= math::lgammaT(alphaDoc[k]);
 			}
-			ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum);
+			ll -= math::lgammaT(doc.getSumWordWeight() + alphaSum);
 			ll += math::lgammaT(alphaSum);
 			return ll;
 		}
@@ -194,7 +201,7 @@ namespace tomoto
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alphaDoc[k]) - math::lgammaT(alphaDoc[k]);
 				}
-				ll -= math::lgammaT(doc.template getSumWordWeight<_TW>() + alphaSum) - math::lgammaT(alphaSum);
+				ll -= math::lgammaT(doc.getSumWordWeight() + alphaSum) - math::lgammaT(alphaSum);
 			}
 			return ll;
 		}
@@ -231,7 +238,7 @@ namespace tomoto
 			{
 				lambda = Eigen::Matrix<FLOAT, -1, -1>::Constant(this->K, F, log(this->alpha));
 			}
-			if (_Shared) this->numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, this->docs.size());
+			if (_Flags & flags::continuous_doc_data) this->numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, this->docs.size());
 			expLambda = lambda.array().exp();
 			LBFGSpp::LBFGSParam<FLOAT> param;
 			param.max_iterations = maxBFGSIteration;
@@ -242,7 +249,7 @@ namespace tomoto
 
 	public:
 		DMRModel(size_t _K = 1, FLOAT defaultAlpha = 1.0, FLOAT _sigma = 1.0, FLOAT _eta = 0.01, 
-			FLOAT _alphaEps = 0, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+			FLOAT _alphaEps = 0, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _eta, _rg), sigma(_sigma), alphaEps(_alphaEps)
 		{
 		}
@@ -285,11 +292,8 @@ namespace tomoto
 		{
 			std::vector<FLOAT> ret(this->K);
 			auto alphaDoc = expLambda.col(doc.metadata);
-			FLOAT sum = doc.template getSumWordWeight<_TW>() + alphaDoc.sum();
-			for (size_t k = 0; k < this->K; ++k)
-			{
-				ret[k] = (doc.numByTopic[k] + alphaDoc[k]) / sum;
-			}
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>{ret.data(), this->K}.array() =
+				(doc.numByTopic.array().template cast<FLOAT>() + alphaDoc.array()) / (doc.getSumWordWeight() + alphaDoc.sum());
 			return ret;
 		}
 
@@ -311,11 +315,11 @@ namespace tomoto
 	};
 
 	/* This is for preventing 'undefined symbol' problem in compiling by clang. */
-	template<TermWeight _TW, bool _Shared,
+	template<TermWeight _TW, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr FLOAT DMRModel<_TW, _Shared, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
+		constexpr FLOAT DMRModel<_TW, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
 
-	template<TermWeight _TW, bool _Shared,
+	template<TermWeight _TW, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr size_t DMRModel<_TW, _Shared, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
+		constexpr size_t DMRModel<_TW, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
 }

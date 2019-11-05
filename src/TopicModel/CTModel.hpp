@@ -16,19 +16,19 @@ namespace tomoto
 	{
 	};
 
-	template<TermWeight _TW, bool _Shared = false,
+	template<TermWeight _TW, size_t _Flags = 0,
 		typename _Interface = ICTModel,
 		typename _Derived = void,
 		typename _DocType = DocumentCTM<_TW>,
 		typename _ModelState = ModelStateCTM<_TW>>
-		class CTModel : public LDAModel<_TW, _Shared, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW, _Shared>, _Derived>::type,
+	class CTModel : public LDAModel<_TW, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 		static constexpr const char* TMID = "CTM";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, _Shared, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -50,7 +50,7 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		void updateBeta(_DocType& doc, RANDGEN& rg) const
+		void updateBeta(_DocType& doc, RandGen& rg) const
 		{
 			Eigen::Matrix<FLOAT, -1, 1> pbeta, lowerBound, upperBound;
 			constexpr FLOAT epsilon = 1e-8;
@@ -65,7 +65,7 @@ namespace tomoto
 				for (size_t k = 0; k < this->K; ++k)
 				{
 					FLOAT N_k = doc.numByTopic[k] + this->alpha;
-					FLOAT N_nk = doc.template getSumWordWeight<_TW>() + this->alpha * (this->K + 1) - N_k;
+					FLOAT N_nk = doc.getSumWordWeight() + this->alpha * (this->K + 1) - N_k;
 					FLOAT u1 = std::generate_canonical<FLOAT, 32>(rg), u2 = std::generate_canonical<FLOAT, 32>(rg);
 					FLOAT max_uk = epsilon + pow(u1, (FLOAT)1 / N_k)  * (pbeta[k] - epsilon);
 					FLOAT min_unk = (1 - pow(u2, (FLOAT)1 / N_nk))
@@ -104,7 +104,7 @@ namespace tomoto
 			doc.smBeta /= doc.smBeta.array().sum();
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RANDGEN& rgs, size_t iterationCnt) const
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
 		{
 			BaseClass::sampleDocument(doc, docId, ld, rgs, iterationCnt);
 			if (iterationCnt >= this->burnIn && this->optimInterval && (iterationCnt + 1) % this->optimInterval == 0)
@@ -113,7 +113,7 @@ namespace tomoto
 			}
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			std::cerr << "Failed to sample! Reset prior and retry!" << std::endl;
 			const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
@@ -134,7 +134,7 @@ namespace tomoto
 			return 0;
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RANDGEN* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
 			topicPrior = math::MultiNormalDistribution<FLOAT>::estimate([this](size_t i)
@@ -164,7 +164,7 @@ namespace tomoto
 				}
 				pbeta.array() -= last;
 				ll += topicPrior.getLL(pbeta.head(this->K));
-				ll += math::lgammaT(doc.template getSumWordWeight<_TW>() + alpha * K + 1);
+				ll += math::lgammaT(doc.getSumWordWeight() + alpha * K + 1);
 			}
 			return ll;
 		}
@@ -197,7 +197,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, numBetaSample, numTMNSample, topicPrior);
 
 	public:
-		CTModel(size_t _K = 1, FLOAT smoothingAlpha = 0.1, FLOAT _eta = 0.01, const RANDGEN& _rg = RANDGEN{ std::random_device{}() })
+		CTModel(size_t _K = 1, FLOAT smoothingAlpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, smoothingAlpha, _eta, _rg)
 		{
 			this->optimInterval = 2;
@@ -206,11 +206,8 @@ namespace tomoto
 		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
 		{
 			std::vector<FLOAT> ret(this->K);
-			FLOAT sum = doc.template getSumWordWeight<_TW>();
-			for (size_t k = 0; k < this->K; ++k)
-			{
-				ret[k] = doc.numByTopic[k] / sum;
-			}
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>{ret.data(), this->K}.array() =
+				doc.numByTopic.array().template cast<FLOAT>() / doc.getSumWordWeight();
 			return ret;
 		}
 

@@ -6,7 +6,7 @@ namespace tomoto
 	template class LDAModel<TermWeight::idf>;
 	template class LDAModel<TermWeight::pmi>;
 
-    ILDAModel* ILDAModel::create(TermWeight _weight, size_t _K, FLOAT _alpha, FLOAT _eta, const RANDGEN& _rg)
+    ILDAModel* ILDAModel::create(TermWeight _weight, size_t _K, FLOAT _alpha, FLOAT _eta, const RandGen& _rg)
     {
         SWITCH_TW(_weight, LDAModel, _K, _alpha, _eta, _rg);
     }

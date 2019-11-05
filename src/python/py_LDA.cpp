@@ -17,7 +17,7 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffn", (char**)kwlist, &tw, &minCnt, &rmTop, &K, &alpha, &eta, &seed)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RANDGEN{ seed });
+		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -189,7 +189,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 		{
 			py::AutoReleaser arIter{ iter };
 			std::vector<tomoto::DocumentBase*> docs;
-			while (item = PyIter_Next(iter))
+			while ((item = PyIter_Next(iter)))
 			{
 				py::AutoReleaser arItem{ item };
 				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };

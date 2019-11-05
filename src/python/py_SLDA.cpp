@@ -89,7 +89,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		tomoto::ITopicModel* inst = tomoto::ISLDAModel::create((tomoto::TermWeight)tw, K, varTypes, 
 			alpha, eta, vmu, vnuSq, vglmCoef,
-			tomoto::RANDGEN{ seed });
+			tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

@@ -28,7 +28,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.3.0 입니다.
+tomotopy의 가장 최신버전은 0.3.1 입니다.
 
 시작하기
 ---------------
@@ -195,6 +195,11 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.3.1 (2019-11-05)
+    * `min_cf` 혹은 `rm_top`가 설정되었을 때 `get_topic_dist()`의 반환값이 부정확한 문제를 수정하였습니다.
+    * `tomotopy.MGLDAModel` 모델의 문헌의 `get_topic_dist()`가 지역 토픽에 대한 분포도 함께 반환하도록 수정하였습니다..
+    * `tw=ONE`일때의 학습 속도가 개선되었습니다.
+    
 * 0.3.0 (2019-10-06)
     * `tomotopy.LLDAModel` 토픽 모델이 새로 추가되었습니다.
     * `HDPModel`을 학습할 때 프로그램이 종료되는 문제를 해결했습니다.

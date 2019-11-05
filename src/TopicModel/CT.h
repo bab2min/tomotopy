@@ -3,13 +3,13 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW, bool _Shared = false>
-	struct DocumentCTM : public DocumentLDA<_TW, _Shared>
+    template<TermWeight _TW, size_t _Flags = 0>
+	struct DocumentCTM : public DocumentLDA<_TW, _Flags>
 	{
-		using DocumentLDA<_TW, _Shared>::DocumentLDA;
+		using DocumentLDA<_TW, _Flags>::DocumentLDA;
 		Eigen::Matrix<FLOAT, -1, -1> beta; // Dim: (K, betaSample)
 		Eigen::Matrix<FLOAT, -1, 1> smBeta; // Dim: K
-		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Shared>, smBeta);
+		DEFINE_SERIALIZER_AFTER_BASE2(DocumentLDA<_TW, _Flags>, smBeta);
 	};
 
 	class ICTModel : public ILDAModel
@@ -18,7 +18,7 @@ namespace tomoto
 		using DefaultDocType = DocumentCTM<TermWeight::one>;
 		static ICTModel* create(TermWeight _weight, size_t _K = 1,
 			FLOAT smoothingAlpha = 0.1,  FLOAT _eta = 0.01,
-			const RANDGEN& _rg = RANDGEN{ std::random_device{}() });
+			const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual void setNumBetaSample(size_t numSample) = 0;
 		virtual size_t getNumBetaSample() const = 0;
