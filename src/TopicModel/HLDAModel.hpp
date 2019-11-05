@@ -360,14 +360,14 @@ namespace tomoto
 				}
 			}
 
-			ld.nt->calcWordLikelihood<_TW>(this->eta, this->realV, this->K, pool, doc, newTopicWeights, ld);
+			ld.nt->template calcWordLikelihood<_TW>(this->eta, this->realV, this->K, pool, doc, newTopicWeights, ld);
 
 			ld.nt->nodeLikelihoods = (ld.nt->nodeLikelihoods.array() - ld.nt->nodeLikelihoods.maxCoeff()).exp();
 			sample::prefixSum(ld.nt->nodeLikelihoods.data(), ld.nt->nodeLikelihoods.size());
 			size_t newPath = sample::sampleFromDiscreteAcc(ld.nt->nodeLikelihoods.data(),
 				ld.nt->nodeLikelihoods.data() + ld.nt->nodeLikelihoods.size(), rgs);
 
-			if(_MakeNewPath) newPath = ld.nt->generateLeafNode<_TW>(newPath, this->K, ld);
+			if(_MakeNewPath) newPath = ld.nt->template generateLeafNode<_TW>(newPath, this->K, ld);
 			doc.path.back() = newPath;
 			for (size_t l = this->K - 2; l > 0; --l)
 			{
@@ -460,7 +460,6 @@ namespace tomoto
 		{
 			double ll = 0;
 			auto lgammaAlpha = math::lgammaT(this->alpha);
-			auto& ld = this->globalState;
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;

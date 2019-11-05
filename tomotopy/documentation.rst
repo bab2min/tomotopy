@@ -240,6 +240,11 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.3.1 (2019-11-05)
+    * An issue where `get_topic_dist()` returns incorrect value when `min_cf` or `rm_top` is set was fixed.
+    * The return value of `get_topic_dist()` of `tomotopy.MGLDAModel` document was fixed to include local topics.
+    * The estimation speed with `tw=ONE` was improved.
+
 * 0.3.0 (2019-10-06)
     * A new model, `tomotopy.LLDAModel` was added into the package.
     * A crashing issue of `HDPModel` was fixed.

@@ -189,7 +189,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 		{
 			py::AutoReleaser arIter{ iter };
 			std::vector<tomoto::DocumentBase*> docs;
-			while (item = PyIter_Next(iter))
+			while ((item = PyIter_Next(iter)))
 			{
 				py::AutoReleaser arItem{ item };
 				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };

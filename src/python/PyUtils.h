@@ -66,7 +66,7 @@ namespace py
 	{
 		PyObject* item;
 		vector<T> v;
-		while (item = PyIter_Next(iter))
+		while ((item = PyIter_Next(iter)))
 		{
 			AutoReleaser ar{ item };
 			v.emplace_back(makeObjectToCType<T>(item));

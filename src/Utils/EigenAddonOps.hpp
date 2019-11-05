@@ -79,7 +79,7 @@ namespace Eigen
 	namespace internal
 	{
 		template<typename Scalar, typename Scalar2> struct scalar_lgamma_subt_op {
-			EIGEN_EMPTY_STRUCT_CTOR(scalar_log_approx_op)
+			EIGEN_EMPTY_STRUCT_CTOR(scalar_lgamma_subt_op)
 				EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar operator() (const Scalar& z, const Scalar2& a) const { return tomoto::math::lgammaSubt(z, a); }
 			template<typename Packet>
 			EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Packet packetOp(const Packet& z, const Packet& a) const

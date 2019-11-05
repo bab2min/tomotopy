@@ -69,10 +69,10 @@ namespace tomoto
 		std::vector<FLOAT> vocabWeights;
 		std::vector<TID> sharedZs;
 		std::vector<FLOAT> sharedWordWeights;
+		TID K;
 		FLOAT alpha;
 		Eigen::Matrix<FLOAT, -1, 1> alphas;
 		FLOAT eta;
-		TID K;
 		size_t optimInterval = 10, burnIn = 0;
 		Eigen::Matrix<WeightType, -1, -1> numByTopicDoc;
 
