@@ -131,15 +131,13 @@ PyObject* Document_labels(DocumentObject* self, void* closure)
 	auto makeReturn = [&](const tomoto::DocumentBase* doc, const Eigen::Matrix<int8_t, -1, 1>& labelMask)
 	{
 		auto inst = dynamic_cast<tomoto::ILLDAModel*>(self->parentModel->inst);
-		auto dict = inst->getTopicLabelDict();
-		vector<pair<string, vector<float>>> ret;
+		vector<pair<string, float>> ret;
 		auto topicDist = inst->getTopicsByDoc(doc);
-		for (size_t i = 0; i < dict.size(); ++i)
+		for (size_t i = 0; i < labelMask.size(); ++i)
 		{
-			if (labelMask[i * inst->getNumTopicsPerLabel()])
+			if (labelMask[i])
 			{
-				ret.emplace_back(inst->getTopicLabelDict().toWord(i), 
-					vector<float>{ topicDist[i * inst->getNumTopicsPerLabel()], topicDist[(i + 1) * inst->getNumTopicsPerLabel()] });
+				ret.emplace_back(inst->getTopicLabelDict().toWord(i), topicDist[i]);
 			}
 		}
 		return py::buildPyValue(ret);

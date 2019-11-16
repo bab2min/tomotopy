@@ -430,9 +430,7 @@ namespace tomoto
 	public:
 		HDPModel(size_t initialK = 2, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(initialK, _alpha, _eta, _rg), gamma(_gamma)
-		{
-			if (_gamma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong gamma value (gamma = %f)", _gamma));
-		}
+		{}
 
 		size_t getTotalTables() const override
 		{

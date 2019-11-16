@@ -23,7 +23,5 @@ namespace tomoto
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& label) const = 0;
 
 		virtual const Dictionary& getTopicLabelDict() const = 0;
-
-		virtual size_t getNumTopicsPerLabel() const = 0;
 	};
 }

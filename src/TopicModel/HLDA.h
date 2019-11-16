@@ -12,8 +12,6 @@ namespace tomoto
 		// numByTopic indicates numByLevel in HLDAModel.
 		// Zs indicates level in HLDAModel.
 		std::vector<int32_t> path;
-
-		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, path);
 	};
 
 	class IHLDAModel : public ILDAModel

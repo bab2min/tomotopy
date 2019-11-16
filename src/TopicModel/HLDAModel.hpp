@@ -569,8 +569,6 @@ namespace tomoto
 		HLDAModel(size_t _levelDepth = 4, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_levelDepth, _alpha, _eta, _rg), gamma(_gamma)
 		{
-			if (_levelDepth == 0 || _levelDepth >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong levelDepth value (levelDepth = %zd)", _levelDepth));
-			if (_gamma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong gamma value (gamma = %f)", _gamma));
 			this->globalState.nt = std::make_shared<detail::NodeTrees>();
 		}
 

@@ -35,9 +35,10 @@ namespace tomoto
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->alphas.array())
+				* (doc.labelMask.array().template cast<FLOAT>())
 				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
 				/ (ld.numByTopic.array().template cast<FLOAT>() + V * this->eta);
-			zLikelihood.array() *= doc.labelMask.array().template cast<FLOAT>();
+
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];
 		}
@@ -115,7 +116,5 @@ namespace tomoto
 		}
 
 		const Dictionary& getTopicLabelDict() const { return topicLabelDict; }
-
-		size_t getNumTopicsPerLabel() const { return 1; }
 	};
 }

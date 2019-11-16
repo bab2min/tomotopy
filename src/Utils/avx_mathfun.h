@@ -112,7 +112,7 @@ typedef union imm_xmm_union {
     u.xmm[0]=xmm0_; u.xmm[1]=xmm1_; imm_ = u.imm; \
   }
 
-#ifdef __GNUC__
+#ifndef _MSC_VER
 #define AVX2_BITOP_USING_SSE2(fn) \
 static inline v8si _mm256_##fn(v8si x, int a) \
 { \
