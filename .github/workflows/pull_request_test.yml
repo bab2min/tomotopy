@@ -83,6 +83,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        python -m pip install --upgrade setuptools
         Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
