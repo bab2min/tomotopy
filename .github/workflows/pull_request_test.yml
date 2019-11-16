@@ -82,14 +82,11 @@ jobs:
         architecture: ${{ matrix.architecture }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade setuptools
+        python -m pip install --upgrade pip setuptools
+        python -m pip install -r requirements.txt
         Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
-        Invoke-WebRequest -OutFile py-cpuinfo.tar.gz https://github.com/workhorsy/py-cpuinfo/archive/v5.0.0.tar.gz
-        tar -zxvf py-cpuinfo.tar.gz
-        mv py-cpuinfo-5.0.0/cpuinfo ./
     - name: Build
       run: |
         python setup.py build install
