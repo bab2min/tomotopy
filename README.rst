@@ -17,14 +17,16 @@ What is tomotopy?
 It utilizes a vectorization of modern CPUs for maximizing speed. 
 The current version of `tomoto` supports several major topic models including 
 
-* Latent Dirichlet Allocation (`tomotopy.LDAModel`),
-* Labeled LDA (`tomotopy.LLDAModel`),
-* Supervised LDA (`tomotopy.SLDAModel`),
-* Dirichlet Multinomial Regression (`tomotopy.DMRModel`),
-* Hierarchical Dirichlet Process (`tomotopy.HDPModel`),
-* Multi Grain LDA (`tomotopy.MGLDAModel`), 
-* Pachinko Allocation (`tomotopy.PAModel`),
-* Hierarchical PA (`tomotopy.HPAModel`),
+* Latent Dirichlet Allocation (`tomotopy.LDAModel`)
+* Labeled LDA (`tomotopy.LLDAModel`)
+* Partially Labeled LDA (`tomotopy.PLDAModel`)
+* Supervised LDA (`tomotopy.SLDAModel`)
+* Dirichlet Multinomial Regression (`tomotopy.DMRModel`)
+* Hierarchical Dirichlet Process (`tomotopy.HDPModel`)
+* Hierarchical LDA (`tomotopy.HLDAModel`)
+* Multi Grain LDA (`tomotopy.MGLDAModel`) 
+* Pachinko Allocation (`tomotopy.PAModel`)
+* Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`).
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
