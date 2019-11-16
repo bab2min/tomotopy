@@ -125,8 +125,6 @@ static inline v8si p_mm256_##fn(v8si x, int a) \
   return(ret); \
 }
 
-
-
 #define AVX2_INTOP_USING_SSE2(fn) \
 static inline v8si p_mm256_##fn(v8si x, v8si y) \
 { \
@@ -142,23 +140,36 @@ static inline v8si p_mm256_##fn(v8si x, v8si y) \
   return(ret); \
 }
 
+#define AVX2_INTOP_USING_SSE2_128(fn) \
+static inline v8si p_mm256_##fn##256(v8si x, v8si y) \
+{ \
+  /* use SSE2 instructions to perform the AVX2 integer operation */ \
+  v4si x1, x2; \
+  v4si y1, y2; \
+  v8si ret; \
+  COPY_IMM_TO_XMM(x, x1, x2); \
+  COPY_IMM_TO_XMM(y, y1, y2); \
+  x1 = _mm_##fn##128(x1,y1); \
+  x2 = _mm_##fn##128(x2,y2); \
+  COPY_XMM_TO_IMM(x1, x2, ret); \
+  return(ret); \
+}
 #else
 
 #define AVX2_BITOP_USING_SSE2(fn) \
 static inline v8si p_mm256_##fn(v8si x, int a) { return _mm256_##fn(x, a); }
 
-
-
 #define AVX2_INTOP_USING_SSE2(fn) \
 static inline v8si p_mm256_##fn(v8si x, v8si y) { return _mm256_##fn(x, y); }
+
+#define AVX2_INTOP_USING_SSE2_128(fn) \
+static inline v8si p_mm256_##fn##256(v8si x, v8si y) { return _mm256_##fn##256(x, y); }
 
 #endif /* __AVX2__ */
 
 AVX2_BITOP_USING_SSE2(slli_epi32)
 AVX2_BITOP_USING_SSE2(srli_epi32)
 
-AVX2_INTOP_USING_SSE2(and_si128)
-AVX2_INTOP_USING_SSE2(andnot_si128)
 AVX2_INTOP_USING_SSE2(cmpeq_epi32)
 AVX2_INTOP_USING_SSE2(sub_epi32)
 AVX2_INTOP_USING_SSE2(add_epi32)
