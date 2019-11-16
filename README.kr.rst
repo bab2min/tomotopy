@@ -18,9 +18,11 @@ tomotopy 란?
 
 * Latent Dirichlet Allocation (`tomotopy.LDAModel`)
 * Labeled LDA (`tomotopy.LLDAModel`)
+* Partially Labeled LDA (`tomotopy.PLDAModel`)
 * Supervised LDA (`tomotopy.SLDAModel`)
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`)
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`)
+* Hierarchical LDA (`tomotopy.HLDAModel`)
 * Multi Grain LDA (`tomotopy.MGLDAModel`) 
 * Pachinko Allocation (`tomotopy.PAModel`)
 * Hierarchical PA (`tomotopy.HPAModel`)

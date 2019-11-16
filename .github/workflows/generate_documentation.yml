@@ -1,0 +1,53 @@
+name: Generate the documentation
+
+on:
+  release:
+    types: published
+
+jobs:
+  build_manylinux:
+    name: Build for manylinux
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        language: [kr, en]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
+        tar -zxvf 3.3.7.tar.gz
+        mv eigen-git-mirror-3.3.7 include
+    - name: build
+      run: |
+        python -m pip install pdoc3 requests
+        export TOMOTOPY_LANG=${{ matrix.language }}
+        python setup.py install
+    - name: gen doc
+      run: |
+        export TOMOTOPY_VER="`python -m pip show tomotopy | grep Version | cut -d' ' -f2`"
+        python -m pdoc --html tomotopy
+        sed -i -E 's/(<p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"><\/p>)/<script async defer src="https:\/\/buttons.github.io\/buttons.js"><\/script> <p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy" data-size="large" data-show-count="true" aria-label="Star bab2min\/tomotopy on GitHub">Star<\/a> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy\/issues" data-size="large" data-show-count="true" aria-label="Issue bab2min\/tomotopy on GitHub">Issue<\/a> <\/p>/' html/tomotopy/*.html
+        sed -i -E 's/(<h1>Index<\/h1>)/<header> <a class="homelink" rel="home" title="tomotopy Home" href="\/tomotopy" style="display:block; font-size:2em; font-weight:bold; color:#555; padding-bottom:.5em; border-bottom:1px solid silver;"> <img src="\/tomotopy\/tomoto.png" alt="" style="height:1.5em;"> tomotopy <\/a> <a href="..\/en\/index.html">English<\/a> <a href="..\/kr\/index.html">한국어<\/a> <\/header>\n\1/' html/tomotopy/*.html
+        sed -i -E 's/(<\/body>)/<script async src="https:\/\/www.googletagmanager.com\/gtag\/js?id=UA-35651242-12"><\/script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag("js", new Date()); gtag("config", "UA-35651242-12"); <\/script>\n\1/' html/tomotopy/*.html
+        mkdir -p ../g
+        pushd ../g
+        git clone https://${{ secrets.ACCESS_TOKEN }}@github.com/bab2min/bab2min.github.io
+        mkdir -p bab2min.github.io/tomotopy/v${TOMOTOPY_VER}/${{ matrix.language }}
+        popd
+        cp html/tomotopy/* ../g/bab2min.github.io/tomotopy/v${TOMOTOPY_VER}/${{ matrix.language }}
+        pushd ../g/bab2min.github.io
+        git config user.email "bab2min@gmail.com"
+        git config user.name "bab2min"
+        git add .
+        git commit -m "v${TOMOTOPY_VER} ${{ matrix.language }}"
+        git push
+        popd
+        

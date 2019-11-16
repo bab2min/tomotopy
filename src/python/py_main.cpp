@@ -7,7 +7,9 @@
 #define TM_HPA
 #define TM_CT
 #define TM_SLDA
+#define TM_HLDA
 #define TM_LLDA
+#define TM_PLDA
 
 using namespace std;
 
@@ -276,11 +278,14 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 	try
 	{
 		if (!self->doc) throw runtime_error{ "doc is null!" };
+#ifdef TM_HLDA
+		ret = Document_HLDA_Z(self, closure);
+		if (ret) return ret;
+#endif
 #ifdef TM_HDP
 		ret = Document_HDP_Z(self, closure);
 		if(ret) return ret;
 #endif
-
 		ret = Document_LDA_Z(self, closure);
 		if(ret) return ret;
 		throw runtime_error{ "doc doesn't has 'Zs' field!" };
@@ -525,6 +530,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	Py_INCREF(&HPA_type);
 	PyModule_AddObject(gModule, "HPAModel", (PyObject*)&HPA_type);
 #endif
+#ifdef TM_HLDA
+	if (PyType_Ready(&HLDA_type) < 0) return nullptr;
+	Py_INCREF(&HLDA_type);
+	PyModule_AddObject(gModule, "HLDAModel", (PyObject*)&HLDA_type);
+#endif
 #ifdef TM_CT
 	if (PyType_Ready(&CT_type) < 0) return nullptr;
 	Py_INCREF(&CT_type);
@@ -539,6 +549,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	if (PyType_Ready(&LLDA_type) < 0) return nullptr;
 	Py_INCREF(&LLDA_type);
 	PyModule_AddObject(gModule, "LLDAModel", (PyObject*)&LLDA_type);
+#endif
+#ifdef TM_PLDA
+	if (PyType_Ready(&PLDA_type) < 0) return nullptr;
+	Py_INCREF(&PLDA_type);
+	PyModule_AddObject(gModule, "PLDAModel", (PyObject*)&PLDA_type);
 #endif
 
 #ifdef __AVX2__
