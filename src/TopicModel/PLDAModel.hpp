@@ -1,33 +1,35 @@
 #pragma once
 #include "LDAModel.hpp"
-#include "LLDA.h"
+#include "PLDA.h"
 
 /*
 Implementation of Labeled LDA using Gibbs sampling by bab2min
 
-* Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
+* Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 */
 
 namespace tomoto
 {
 	template<TermWeight _TW,
-		typename _Interface = ILLDAModel,
+		typename _Interface = IPLDAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentLLDA<_TW>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class LLDAModel : public LDAModel<_TW, 0, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_TW>, _Derived>::type,
+	class PLDAModel : public LDAModel<_TW, 0, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
-		static constexpr const char* TMID = "LLDA";
+		static constexpr const char* TMID = "PLDA";
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_TW>, _Derived>::type;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type;
 		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
 		Dictionary topicLabelDict;
+
+		size_t numLatentTopics, numTopicsPerLabel;
 
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
@@ -48,35 +50,42 @@ namespace tomoto
 			if (doc.labelMask.size() == 0)
 			{
 				doc.labelMask.resize(this->K);
-				doc.labelMask.setOnes();
+				doc.labelMask.setZero();
+				doc.labelMask.tail(numLatentTopics).setOnes();
 			}
 			else if (doc.labelMask.size() < this->K)
 			{
 				size_t oldSize = doc.labelMask.size();
 				doc.labelMask.conservativeResize(this->K);
-				doc.labelMask.segment(oldSize, topicLabelDict.size() - oldSize).setZero();
-				doc.labelMask.segment(topicLabelDict.size(), this->K - topicLabelDict.size()).setOnes();
+				doc.labelMask.tail(this->K - oldSize).setZero();
+				doc.labelMask.tail(numLatentTopics).setOnes();
 			}
 		}
 
 		void initGlobalState(bool initDocs)
 		{
-			this->K = std::max(topicLabelDict.size(), (size_t)this->K);
+			this->K = topicLabelDict.size() * numTopicsPerLabel + numLatentTopics;
 			this->alphas.resize(this->K);
 			this->alphas.array() = this->alpha;
 			BaseClass::initGlobalState(initDocs);
 		}
 
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, topicLabelDict);
+		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, topicLabelDict, numLatentTopics, numTopicsPerLabel);
 
 	public:
-		LLDAModel(size_t _K = 1, FLOAT _alpha = 1.0, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
-			: BaseClass(_K, _alpha, _eta, _rg)
+		PLDAModel(size_t _numLatentTopics = 0, size_t _numTopicsPerLabel = 1, 
+			FLOAT _alpha = 1.0, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+			: BaseClass(1, _alpha, _eta, _rg), 
+			numLatentTopics(_numLatentTopics), numTopicsPerLabel(_numTopicsPerLabel)
 		{
+			if (_numLatentTopics >= 0x80000000) 
+				THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong numLatentTopics value (numLatentTopics = %zd)", _numLatentTopics));
+			if (_numTopicsPerLabel == 0 || _numTopicsPerLabel >= 0x80000000) 
+				THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong numTopicsPerLabel value (numTopicsPerLabel = %zd)", _numTopicsPerLabel));
 		}
 
 		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& labels) override
-		{	
+		{
 			auto doc = this->_makeDoc(words);
 
 			if (!labels.empty())
@@ -84,9 +93,9 @@ namespace tomoto
 				std::vector<VID> topicLabelIds;
 				for (auto& label : labels) topicLabelIds.emplace_back(topicLabelDict.add(label));
 				auto maxVal = *std::max_element(topicLabelIds.begin(), topicLabelIds.end());
-				doc.labelMask.resize(maxVal + 1);
+				doc.labelMask.resize((maxVal + 1) * numTopicsPerLabel);
 				doc.labelMask.setZero();
-				for (auto i : topicLabelIds) doc.labelMask[i] = 1;
+				for (auto i : topicLabelIds) doc.labelMask.segment(i * numTopicsPerLabel, numTopicsPerLabel).setOnes();
 			}
 			return this->_addDoc(doc);
 		}
@@ -95,7 +104,8 @@ namespace tomoto
 		{
 			auto doc = this->_makeDocWithinVocab(words);
 			doc.labelMask.resize(this->K);
-			doc.labelMask.setOnes();
+			doc.labelMask.setZero();
+			doc.labelMask.tail(numLatentTopics).setOnes();
 
 			std::vector<VID> topicLabelIds;
 			for (auto& label : labels)
@@ -105,17 +115,15 @@ namespace tomoto
 				topicLabelIds.emplace_back(tid);
 			}
 
-			if (!topicLabelIds.empty())
-			{
-				doc.labelMask.head(topicLabelDict.size()).setZero();
-				for (auto tid : topicLabelIds) doc.labelMask[tid] = 1;
-			}
+			for (auto tid : topicLabelIds) doc.labelMask.segment(tid * numTopicsPerLabel, numTopicsPerLabel).setOnes();
 
 			return make_unique<_DocType>(doc);
 		}
 
 		const Dictionary& getTopicLabelDict() const { return topicLabelDict; }
 
-		size_t getNumTopicsPerLabel() const { return 1; }
+		size_t getNumLatentTopics() const { return numLatentTopics; }
+
+		size_t getNumTopicsPerLabel() const { return numTopicsPerLabel; }
 	};
 }

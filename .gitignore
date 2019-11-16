@@ -8,3 +8,4 @@
 *.pyc
 /tomotopy.egg-info
 build_windows.bat
+*.bin

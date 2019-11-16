@@ -111,6 +111,12 @@ namespace py
 		return Py_None;
 	}
 
+	template<typename _Ty>
+	inline PyObject* buildPyValue(const vector<_Ty>& v);
+
+	template<typename _Ty>
+	inline PyObject* buildPyValue(vector<_Ty>&& v);
+
 	template<typename _Ty1, typename _Ty2>
 	inline PyObject* buildPyValue(const pair<_Ty1, _Ty2>& v)
 	{

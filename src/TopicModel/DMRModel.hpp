@@ -252,6 +252,7 @@ namespace tomoto
 			FLOAT _alphaEps = 0, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _eta, _rg), sigma(_sigma), alphaEps(_alphaEps)
 		{
+			if (_sigma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong sigma value (sigma = %f)", _sigma));
 		}
 
 		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) override
