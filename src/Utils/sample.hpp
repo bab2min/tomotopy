@@ -1,9 +1,5 @@
 #pragma once
 
-#if defined(_WIN64) || defined(__x86_64__)
-#define __SSE2__
-#endif
-
 #include <random>
 #ifdef __AVX__
 #include <immintrin.h>

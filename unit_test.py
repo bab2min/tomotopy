@@ -1,1 +1,0 @@
-import tomotopy as tp

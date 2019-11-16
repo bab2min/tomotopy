@@ -324,7 +324,7 @@ namespace tomoto
 		{
 			for (auto t : varTypes)
 			{
-				if (t != ISLDAModel::GLM::linear && t != ISLDAModel::GLM::binary_logistic) throw std::runtime_error{ "unknown var GLM type in 'vars'" };
+				if (t != ISLDAModel::GLM::linear && t != ISLDAModel::GLM::binary_logistic) THROW_ERROR_WITH_INFO(std::runtime_error, "unknown var GLM type in 'vars'");
 			}
 			mu = decltype(mu)::Zero(F);
 			std::copy(_mu.begin(), _mu.end(), mu.data());

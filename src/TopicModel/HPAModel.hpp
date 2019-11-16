@@ -407,6 +407,7 @@ namespace tomoto
 		HPAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
+			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
 			this->alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1 + 1, _alpha);
 			subAlphas = Eigen::Matrix<FLOAT, -1, -1>::Constant(_K1, _K2 + 1, 0.1);
 			subAlphaSum = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1, (_K2 + 1) * 0.1);

@@ -16,16 +16,16 @@ for f in os.listdir(os.path.join(here, 'src/TopicModel')):
     if f.endswith('.cpp'): sources.append('src/TopicModel/' + f)
 
 largs = []
+arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
 if platform.system() == 'Windows': 
     cargs = ['/O2', '/MT', '/Gy']
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
 elif platform.system() == 'Darwin': 
     cargs = ['-std=c++0x', '-O3', '-fpermissive', '-stdlib=libc++']
     largs += ['-stdlib=libc++']
-    arch_levels = {'':'-march=native'}
-elif 'manylinux' in os.environ.get('AUDITWHEEL_PLAT', ''):
+    if 'many' not in os.environ.get('AUDITWHEEL_PLAT', ''): arch_levels = {'':'-march=native'}
+elif 'many' in os.environ.get('AUDITWHEEL_PLAT', ''):
     cargs = ['-std=c++0x', '-O3', '-fpermissive', '-g0']
-    arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
 else:
     cargs = ['-std=c++0x', '-O3', '-fpermissive']
     arch_levels = {'':'-march=native'}
@@ -50,7 +50,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.3.1',
+    version='0.3.2',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
@@ -69,18 +69,19 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Software Development :: Libraries",
         "Topic :: Text Processing :: Linguistic",
-		"Topic :: Scientific/Engineering :: Information Analysis",
+        "Topic :: Scientific/Engineering :: Information Analysis",
 
         "License :: OSI Approved :: MIT License",
 
         'Programming Language :: Python :: 3',
         'Programming Language :: C++',
-		"Operating System :: Microsoft :: Windows :: Windows Vista",
-		"Operating System :: Microsoft :: Windows :: Windows 7",
-		"Operating System :: Microsoft :: Windows :: Windows 8",
-		"Operating System :: Microsoft :: Windows :: Windows 8.1",
-		"Operating System :: Microsoft :: Windows :: Windows 10",
-		"Operating System :: POSIX"
+        "Operating System :: Microsoft :: Windows :: Windows Vista",
+        "Operating System :: Microsoft :: Windows :: Windows 7",
+        "Operating System :: Microsoft :: Windows :: Windows 8",
+        "Operating System :: Microsoft :: Windows :: Windows 8.1",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Operating System :: POSIX",
+        "Operating System :: MacOS"
     ],
     install_requires=['py-cpuinfo'],
     keywords='NLP,Topic Model',

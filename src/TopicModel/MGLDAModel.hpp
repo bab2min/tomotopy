@@ -332,7 +332,12 @@ namespace tomoto
 			: BaseClass(_KG, _alphaG, _etaG, _rg), KL(_KL), T(_T),
 			alphaL(_alphaL), alphaM(_KG ? _alphaMG : 0), alphaML(_alphaML),
 			etaL(_etaL), gamma(_gamma)
-		{}
+		{
+			if (_KL == 0 || _KL >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong KL value (KL = %zd)", _KL));
+			if (_T == 0 || _T >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong T value (T = %zd)", _T));
+			if (_alphaL <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong alphaL value (alphaL = %f)", _alphaL));
+			if (_etaL <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong etaL value (etaL = %f)", _etaL));
+		}
 
 		size_t addDoc(const std::vector<std::string>& words, const std::string& delimiter) override
 		{
