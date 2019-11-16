@@ -1,0 +1,99 @@
+name: Publish new package
+
+on:
+  release:
+    types: published
+
+jobs:
+  build_manylinux:
+    name: Build for manylinux
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8]
+
+    steps:
+    - name: Use docker
+      uses: docker://quay.io/pypa/manylinux1_x86_64
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
+        tar -zxvf 3.3.7.tar.gz
+        mv eigen-git-mirror-3.3.7 include
+    - name: Deploy
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        export AUDITWHEEL_PLAT=1
+        python -m pip install twine auditwheel
+        python setup.py bdist_wheel
+        python -m auditwheel repair dist/*.whl
+        twine upload wheelhouse/*
+
+  build_macos:
+    name: Build for macOS
+    runs-on: macOS-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
+        tar -zxvf 3.3.7.tar.gz
+        mv eigen-git-mirror-3.3.7 include
+    - name: Deploy
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python -m pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
+
+  build_windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8]
+        architecture: [x86, x64]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }} ${{ matrix.architecture }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.architecture }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
+        tar -zxvf 3.3.7.tar.gz
+        mv eigen-git-mirror-3.3.7 include
+    - name: Deploy
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python -m pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload dist/*

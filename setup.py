@@ -33,6 +33,9 @@ else:
 if struct.calcsize('P') < 8: arch_levels = {k:v for k, v in arch_levels.items() if k in ('', 'sse2')}
 else: arch_levels = {k:v for k, v in arch_levels.items() if k not in ('sse2',)}
 
+lang_macro = []
+if os.environ.get('TOMOTOPY_LANG') == 'kr': lang_macro = [('DOC_KO', '1')]
+
 modules = []
 for arch, aopt in arch_levels.items():
     module_name = '_tomotopy' + ('_' + arch if arch else '')
@@ -40,7 +43,7 @@ for arch, aopt in arch_levels.items():
                     libraries=[],
                     include_dirs=['include'],
                     sources=sources,
-                    define_macros=[('MODULE_NAME', 'PyInit_' + module_name)],
+                    define_macros=[('MODULE_NAME', 'PyInit_' + module_name)] + lang_macro,
                     extra_compile_args=cargs + ([aopt] if aopt else []), extra_link_args=largs))
 
 
