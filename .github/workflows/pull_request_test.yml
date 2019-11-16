@@ -70,7 +70,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
         architecture: [x86, x64]
 
     steps:
@@ -92,7 +92,7 @@ jobs:
         mv py-cpuinfo-5.0.0/cpuinfo ./
     - name: Build
       run: |
-        python setup.py build
+        python setup.py build install
     - name: Test
       run: |
         python -m pip install pytest
