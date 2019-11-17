@@ -35,7 +35,7 @@ jobs:
         export AUDITWHEEL_PLAT=manylinux1_x86_64
         python -m pip install twine wheel
         python setup.py bdist_wheel
-        python -m auditwheel repair dist/*.whl
+        auditwheel repair dist/*.whl
         twine upload wheelhouse/*
 
   build_macos:
