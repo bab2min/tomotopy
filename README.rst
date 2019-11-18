@@ -202,6 +202,9 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.4.0 (2019-11-18)
+    * New models including `tomotopy.PLDAModel` and `tomotopy.HLDAModel` were added into the package.
+
 * 0.3.1 (2019-11-05)
     * An issue where `get_topic_dist()` returns incorrect value when `min_cf` or `rm_top` is set was fixed.
     * The return value of `get_topic_dist()` of `tomotopy.MGLDAModel` document was fixed to include local topics.

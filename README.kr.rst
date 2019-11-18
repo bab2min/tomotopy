@@ -197,6 +197,9 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.4.0 (2019-11-18)
+    * `tomotopy.PLDAModel`와 `tomotopy.HLDAModel` 토픽 모델이 새로 추가되었습니다.
+
 * 0.3.1 (2019-11-05)
     * `min_cf` 혹은 `rm_top`가 설정되었을 때 `get_topic_dist()`의 반환값이 부정확한 문제를 수정하였습니다.
     * `tomotopy.MGLDAModel` 모델의 문헌의 `get_topic_dist()`가 지역 토픽에 대한 분포도 함께 반환하도록 수정하였습니다..
