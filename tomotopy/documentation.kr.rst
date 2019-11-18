@@ -16,7 +16,7 @@ tomotopy 란?
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
 
-tomotopy의 가장 최신버전은 0.3.1 입니다.
+tomotopy의 가장 최신버전은 0.4.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
