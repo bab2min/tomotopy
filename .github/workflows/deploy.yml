@@ -16,6 +16,9 @@ jobs:
     - name: Install dependencies
       run: |
         git clone https://github.com/eigenteam/eigen-git-mirror
+        cd eigen-git-mirror
+        git checkout tags/3.3.7
+        cd ..
         mv eigen-git-mirror include
     - name: Deploy
       env:
