@@ -8,18 +8,14 @@ jobs:
   build_manylinux:
     name: Build for manylinux
     runs-on: ubuntu-latest
+    container:
+      image: docker://quay.io/pypa/manylinux1_x86_64
     strategy:
       max-parallel: 4
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8]
 
-    steps:
-    - name: Use docker
-      uses: docker://quay.io/pypa/manylinux1_x86_64
-      with:
-        entrypoint: /bin/echo
-        args: Test
-        
+    steps:        
     - uses: actions/checkout@v1
 #    - name: Set up Python ${{ matrix.python-version }}
 #      uses: actions/setup-python@v1
@@ -36,7 +32,6 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        export AUDITWHEEL_PLAT=manylinux1_x86_64
         /opt/python/cp35-cp35m/bin/python -m pip install twine wheel
         /opt/python/cp35-cp35m/bin/python setup.py bdist_wheel
         auditwheel repair dist/*.whl
