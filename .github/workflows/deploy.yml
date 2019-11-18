@@ -28,9 +28,10 @@ jobs:
         for cp in cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel
-          /opt/python/${cp}/bin/python setup.py build bdist_wheel
+          /opt/python/${cp}/bin/python setup.py build sdist bdist_wheel
           auditwheel repair dist/*-${cp}-linux_x86_64.whl
         done
+        /opt/python/cp38-cp38/bin/python -m twine upload bdist/*.tar.gz
         /opt/python/cp38-cp38/bin/python -m twine upload wheelhouse/*.whl
 
   build_macos:
@@ -60,7 +61,7 @@ jobs:
       run: |
         export AUDITWHEEL_PLAT=many
         python -m pip install twine wheel
-        python setup.py sdist bdist_wheel
+        python setup.py bdist_wheel
         cat tomotopy/documentation.rst
         twine upload dist/*
 
@@ -92,6 +93,5 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         python -m pip install twine wheel
-        python setup.py sdist bdist_wheel
-        cat tomotopy/documentation.rst
+        python setup.py bdist_wheel
         twine upload dist/*
