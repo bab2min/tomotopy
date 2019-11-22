@@ -21,6 +21,7 @@ jobs:
         cd ..
         mv eigen-git-mirror include
     - name: Deploy
+      continue-on-error: True
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
@@ -55,6 +56,7 @@ jobs:
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
     - name: Deploy
+      continue-on-error: True
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
@@ -88,6 +90,7 @@ jobs:
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
     - name: Deploy
+      continue-on-error: True
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
