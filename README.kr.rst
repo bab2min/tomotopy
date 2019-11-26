@@ -30,7 +30,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.4.0 입니다.
+tomotopy의 가장 최신버전은 0.4.1 입니다.
 
 시작하기
 ---------------
@@ -197,6 +197,9 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.4.1 (2019-11-27)
+    * `tomotopy.PLDAModel` 생성자의 버그를 수정했습니다.
+
 * 0.4.0 (2019-11-18)
     * `tomotopy.PLDAModel`와 `tomotopy.HLDAModel` 토픽 모델이 새로 추가되었습니다.
 
