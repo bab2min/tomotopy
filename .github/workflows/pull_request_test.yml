@@ -21,10 +21,7 @@ jobs:
         git checkout tags/3.3.7
         cd ..
         mv eigen-git-mirror include
-    - name: Deploy
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    - name: Build & Test
       run: |
         for cp in cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
         do
