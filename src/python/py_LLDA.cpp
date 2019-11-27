@@ -40,6 +40,7 @@ static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::ILLDAModel*>(self->inst);
+		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
@@ -48,9 +49,10 @@ static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		vector<string> labels;
 		if(argLabels)
 		{
+			if (PyUnicode_Check(argLabels)) PRINT_WARN("[warn] 'labels' should be an iterable of str.");
 			if (!(iter2 = PyObject_GetIter(argLabels)))
 			{
-				throw runtime_error{ "words must be an iterable of str." };
+				throw runtime_error{ "'labels' must be an iterable of str." };
 			}
 			py::AutoReleaser arIter2{ iter2 };
 			labels = py::makeIterToVector<string>(iter2);
@@ -78,6 +80,7 @@ static PyObject* LLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILLDAModel*>(self->inst);
+		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
@@ -86,9 +89,10 @@ static PyObject* LLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 		vector<string> labels;
 		if (argLabels)
 		{
+			if (PyUnicode_Check(argLabels)) PRINT_WARN("[warn] 'labels' should be an iterable of str.");
 			if (!(iter2 = PyObject_GetIter(argLabels)))
 			{
-				throw runtime_error{ "words must be an iterable of str." };
+				throw runtime_error{ "'labels' must be an iterable of str." };
 			}
 			py::AutoReleaser arIter2{ iter2 };
 			labels = py::makeIterToVector<string>(iter2);

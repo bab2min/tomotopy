@@ -1,10 +1,14 @@
 #pragma once
 #include <Python.h>
+#include <frameobject.h>
 #include <type_traits>
 #include <vector>
 #include <tuple>
+#include <set>
 #include <limits>
 #include <exception>
+#include <string>
+#include <iostream>
 
 namespace py
 {
@@ -184,4 +188,36 @@ namespace py
 		}
 		return ret;
 	}
+
+	class WarningLog
+	{
+		std::set<std::tuple<std::string, int, std::string>> printed;
+
+		WarningLog()
+		{
+		}
+	public:
+		static WarningLog& get()
+		{
+			thread_local WarningLog inst;
+			return inst;
+		}
+
+		void printOnce(std::ostream& ostr, const std::string& msg)
+		{
+			auto frame = PyEval_GetFrame();
+			auto key = std::make_tuple(
+				std::string{ PyUnicode_AsUTF8(frame->f_code->co_filename) }, 
+				PyFrame_GetLineNumber(frame),
+				msg);
+
+			if (!printed.count(key))
+			{
+				ostr << std::get<0>(key) << "(" << std::get<1>(key) << "): " << std::get<2>(key) << std::endl;
+				printed.insert(key);
+			}
+		}
+	};
 }
+
+#define PRINT_WARN(msg) do{ py::WarningLog::get().printOnce(std::cerr, msg); } while(0)

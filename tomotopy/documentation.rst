@@ -16,7 +16,7 @@ The current version of `tomoto` supports several major topic models including
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`).
 
-The most recent version of tomotopy is 0.4.0.
+The most recent version of tomotopy is 0.4.1.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -242,6 +242,9 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.4.1 (2019-11-27)
+    * A bug at init function of `tomotopy.PLDAModel` was fixed.
+
 * 0.4.0 (2019-11-18)
     * New models including `tomotopy.PLDAModel` and `tomotopy.HLDAModel` were added into the package.
 

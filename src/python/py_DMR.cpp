@@ -41,6 +41,7 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
+		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
@@ -71,6 +72,7 @@ static PyObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
+		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
