@@ -145,7 +145,7 @@ namespace tomoto
 		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
 		{
 			std::vector<FLOAT> ret(this->K);
-			auto maskedAlphas = this->alphas.array() * doc.labelMask.cast<FLOAT>().array();
+			auto maskedAlphas = this->alphas.array() * doc.labelMask.template cast<FLOAT>().array();
 			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), this->K }.array() =
 				(doc.numByTopic.array().template cast<FLOAT>() + maskedAlphas)
 				/ (doc.getSumWordWeight() + maskedAlphas.sum());
