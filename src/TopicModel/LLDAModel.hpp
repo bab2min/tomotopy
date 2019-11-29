@@ -85,7 +85,7 @@ namespace tomoto
 			auto& z = doc.Zs[i];
 			auto w = doc.words[i];
 			z = g.theta(rgs);
-			this->addWordTo<1>(ld, doc, i, w, z);
+			this->template addWordTo<1>(ld, doc, i, w, z);
 		}
 
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, topicLabelDict);
