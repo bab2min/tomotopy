@@ -222,7 +222,7 @@ namespace tomoto
 			std::uniform_int_distribution<TID> theta, theta2;
 		};
 
-		Generator makeGeneratorForInit() const
+		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ 
 				std::uniform_int_distribution<TID>{0, (TID)(this->K - 1)},

@@ -136,11 +136,14 @@ DEFINE_LOADER(PLDA, PLDA_type);
 DEFINE_GETTER(tomoto::IPLDAModel, PLDA, getNumLatentTopics);
 DEFINE_GETTER(tomoto::IPLDAModel, PLDA, getNumTopicsPerLabel);
 
+PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs);
+
 static PyMethodDef PLDA_methods[] =
 {
 	{ "add_doc", (PyCFunction)PLDA_addDoc, METH_VARARGS | METH_KEYWORDS, LLDA_add_doc__doc__ },
 	{ "make_doc", (PyCFunction)PLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, LLDA_make_doc__doc__ },
 	{ "load", (PyCFunction)PLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, PLDA_get_topic_words__doc__},
 	{ nullptr }
 };
 

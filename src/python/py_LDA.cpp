@@ -120,7 +120,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 	}
 }
 
-static PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topicId, topN = 10;
 	static const char* kwlist[] = { "topic_id", "top_n", nullptr };

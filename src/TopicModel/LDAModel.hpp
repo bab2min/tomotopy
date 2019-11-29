@@ -48,6 +48,15 @@ namespace tomoto
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
 	};
 
+	namespace flags
+	{
+		enum
+		{
+			generator_by_doc = end_flag_of_TopicModel,
+			end_flag_of_LDAModel = generator_by_doc << 1,
+		};
+	}
+
 	template<TermWeight _TW, size_t _Flags = 0,
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
@@ -351,7 +360,7 @@ namespace tomoto
 			std::uniform_int_distribution<TID> theta;
 		};
 
-		Generator makeGeneratorForInit() const
+		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ std::uniform_int_distribution<TID>{0, (TID)(K - 1)} };
 		}
@@ -426,7 +435,11 @@ namespace tomoto
 		template<bool _Together, typename _Iter>
 		std::vector<double> _infer(_Iter docFirst, _Iter docLast, size_t maxIter, FLOAT tolerance, size_t numWorkers) const
 		{
-			auto generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit();
+			decltype(static_cast<const DerivedClass*>(this)->makeGeneratorForInit(nullptr)) generator;
+			if (!(_Flags & flags::generator_by_doc))
+			{
+				generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(nullptr);
+			}
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 			ThreadPool pool(numWorkers, numWorkers * 8);
 			if (_Together)
@@ -436,6 +449,10 @@ namespace tomoto
 				auto tmpState = this->globalState, tState = this->globalState;
 				for (auto d = docFirst; d != docLast; ++d)
 				{
+					if (_Flags & flags::generator_by_doc)
+					{
+						generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(&*d);
+					}
 					initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
 				}
 
@@ -610,9 +627,11 @@ namespace tomoto
 					}
 				}
 
-				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
+				decltype(static_cast<DerivedClass*>(this)->makeGeneratorForInit(nullptr)) generator;
+				if(!(_Flags & flags::generator_by_doc)) generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit(nullptr);
 				for (auto& doc : this->docs)
 				{
+					if (_Flags & flags::generator_by_doc) generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit(&doc);
 					initializeDocState<false>(doc, (_Flags & flags::continuous_doc_data) ? numByTopicDoc.col(&doc - &this->docs[0]).data() : nullptr, generator, this->globalState, this->rg);
 				}
 			}

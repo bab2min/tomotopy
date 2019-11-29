@@ -199,6 +199,8 @@ struct DocumentObject
 	const tomoto::DocumentBase* doc;
 	bool owner;
 
+	static PyObject* repr(DocumentObject* self);
+
 	static void dealloc(DocumentObject* self);
 };
 
@@ -213,6 +215,8 @@ struct DictionaryObject
 	static Py_ssize_t len(DictionaryObject* self);
 
 	static PyObject* getitem(DictionaryObject* self, Py_ssize_t key);
+
+	static PyObject* repr(DictionaryObject* self);
 
 	static int init(DictionaryObject *self, PyObject *args, PyObject *kwargs);
 };

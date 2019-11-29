@@ -40,6 +40,8 @@ namespace tomoto
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) = 0;
 		virtual std::vector<FLOAT> getWidsByTopic(TID tid) const = 0;
 		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const = 0;
+
+		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 		
 		virtual std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const = 0;
 		virtual std::vector<std::pair<TID, FLOAT>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
@@ -71,6 +73,7 @@ namespace tomoto
 		{
 			continuous_doc_data = 1 << 0,
 			shared_state = 1 << 1,
+			end_flag_of_TopicModel = 1 << 2,
 		};
 	}
 
@@ -318,6 +321,19 @@ namespace tomoto
 		std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const override
 		{
 			return vid2String(getWidsByTopicSorted(tid, topN));
+		}
+
+		std::vector<std::pair<VID, FLOAT>> getWidsByDocSorted(const DocumentBase* doc, size_t topN) const
+		{
+			std::vector<FLOAT> cnt(dict.size());
+			for (auto w : doc->words) cnt[w] += 1;
+			for (auto& c : cnt) c /= doc->words.size();
+			return extractTopN<VID>(cnt, topN);
+		}
+
+		std::vector<std::pair<std::string, FLOAT>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		{
+			return vid2String(getWidsByDocSorted(doc, topN));
 		}
 
 		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, bool together) const override

@@ -32,6 +32,19 @@ void CorpusObject::dealloc(CorpusObject* self)
 	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
+PyObject * DocumentObject::repr(DocumentObject * self)
+{
+	string ret = "<tomotopy.Document with words=\"";
+	for (auto w : self->doc->words)
+	{
+		ret += self->parentModel->inst->getVocabDict().toWord(w);
+		ret.push_back(' ');
+	}
+	ret.pop_back();
+	ret += "\">";
+	return py::buildPyValue(ret);
+}
+
 void DocumentObject::dealloc(DocumentObject* self)
 {
 	DEBUG_LOG("DocumentObject Dealloc " << self->parentModel->ob_base.ob_type << ", " << self->parentModel->ob_base.ob_refcnt);
@@ -90,6 +103,14 @@ PyObject* DictionaryObject::getitem(DictionaryObject* self, Py_ssize_t key)
 	}
 }
 
+PyObject* DictionaryObject::repr(DictionaryObject* self)
+{
+	PyObject* l = PyObject_CallObject((PyObject*)&PyList_Type, Py_BuildValue("(N)", self));
+	PyObject* r = PyObject_Repr(l);
+	Py_XDECREF(l);
+	return r;
+}
+
 int DictionaryObject::init(DictionaryObject *self, PyObject *args, PyObject *kwargs)
 {
 	PyObject* argParent;
@@ -127,7 +148,7 @@ PyTypeObject Dictionary_type = {
 	0,                         /* tp_getattr */
 	0,                         /* tp_setattr */
 	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
+	(reprfunc)DictionaryObject::repr, /* tp_repr */
 	0,                         /* tp_as_number */
 	&Dictionary_seq_methods,                         /* tp_as_sequence */
 	0,                         /* tp_as_mapping */
@@ -199,10 +220,34 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 	}
 }
 
+
+static PyObject* Document_getWords(DocumentObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t topN = 10;
+	static const char* kwlist[] = { "top_n", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
+	try
+	{
+		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
+		return py::buildPyValue(self->parentModel->inst->getWordsByDocSorted(self->doc, topN));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+
 static PyMethodDef Document_methods[] =
 {
 	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, Document_get_topics__doc__ },
 	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, Document_get_topic_dist__doc__ },
+	{ "get_words", (PyCFunction)Document_getWords, METH_VARARGS | METH_KEYWORDS, Document_get_words__doc__ },
 	{ nullptr }
 };
 
@@ -337,7 +382,7 @@ PyTypeObject Document_type = {
 	0,                         /* tp_getattr */
 	0,                         /* tp_setattr */
 	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
+	(reprfunc)DocumentObject::repr, /* tp_repr */
 	0,                         /* tp_as_number */
 	0,                         /* tp_as_sequence */
 	0,                         /* tp_as_mapping */

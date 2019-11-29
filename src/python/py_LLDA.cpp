@@ -143,7 +143,7 @@ PyObject* Document_labels(DocumentObject* self, void* closure)
 			if (labelMask[i * inst->getNumTopicsPerLabel()])
 			{
 				ret.emplace_back(inst->getTopicLabelDict().toWord(i), 
-					vector<float>{ topicDist[i * inst->getNumTopicsPerLabel()], topicDist[(i + 1) * inst->getNumTopicsPerLabel()] });
+					vector<float>{ &topicDist[i * inst->getNumTopicsPerLabel()], &topicDist[(i + 1) * inst->getNumTopicsPerLabel()] });
 			}
 		}
 		return py::buildPyValue(ret);
@@ -182,11 +182,14 @@ PyObject* Document_labels(DocumentObject* self, void* closure)
 
 DEFINE_LOADER(LLDA, LLDA_type);
 
+PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs);
+
 static PyMethodDef LLDA_methods[] =
 {
 	{ "add_doc", (PyCFunction)LLDA_addDoc, METH_VARARGS | METH_KEYWORDS, LLDA_add_doc__doc__ },
 	{ "make_doc", (PyCFunction)LLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, LLDA_make_doc__doc__ },
 	{ "load", (PyCFunction)LLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, LLDA_get_topic_words__doc__},
 	{ nullptr }
 };
 
