@@ -1,8 +1,9 @@
 name: Generate the documentation
 
 on:
-  release:
-    types: published
+  push:
+#  release:
+#    types: published
 
 jobs:
   build_manylinux:
