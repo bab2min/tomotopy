@@ -197,6 +197,10 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.4.2 (2019-11-30)
+    * `tomotopy.LLDAModel`와 `tomotopy.PLDAModel` 모델에서 토픽 할당이 잘못 일어나던 문제를 해결했습니다.
+    * `tomotopy.Document` 및 `tomotopy.Dictionary` 클래스에 가독성이 좋은 __repr__가 추가되었습니다.
+
 * 0.4.1 (2019-11-27)
     * `tomotopy.PLDAModel` 생성자의 버그를 수정했습니다.
 

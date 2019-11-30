@@ -242,6 +242,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.4.2 (2019-11-30)
+    * Wrong topic assignments of `tomotopy.LLDAModel` and `tomotopy.PLDAModel` were fixed.
+    * Readable __repr__ of `tomotopy.Document` and `tomotopy.Dictionary` was implemented.
+
 * 0.4.1 (2019-11-27)
     * A bug at init function of `tomotopy.PLDAModel` was fixed.
 
