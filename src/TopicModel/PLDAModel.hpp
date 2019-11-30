@@ -77,9 +77,9 @@ namespace tomoto
 
 		Generator makeGeneratorForInit(const _DocType* doc) const
 		{
-			std::discrete_distribution<> theta;
-			for (size_t k = 0; k < this->K; ++k) theta.param().probabilities().emplace_back(doc->labelMask(k));
-			return Generator{ theta };
+			return Generator{ 
+				std::discrete_distribution<>{ doc->labelMask.data(), doc->labelMask.data() + doc->labelMask.size() } 
+			};
 		}
 
 		template<bool _Infer>

@@ -379,6 +379,13 @@ namespace tomoto
 		{
 			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
+			_Generator g2;
+			_Generator* selectedG = &g;
+			if (_Flags & flags::generator_by_doc)
+			{
+				g2 = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(&doc);
+				selectedG = &g2;
+			}
 			if (_TW == TermWeight::pmi)
 			{
 				std::fill(tf.begin(), tf.end(), 0);
@@ -400,7 +407,7 @@ namespace tomoto
 				{
 					doc.wordWeights[i] = std::max((FLOAT)log(tf[doc.words[i]] / vocabWeights[doc.words[i]] / doc.words.size()), (FLOAT)0);
 				}
-				static_cast<const DerivedClass*>(this)->template updateStateWithDoc<_Infer>(g, ld, rgs, doc, i);
+				static_cast<const DerivedClass*>(this)->template updateStateWithDoc<_Infer>(*selectedG, ld, rgs, doc, i);
 			}
 			doc.updateSumWordWeight(this->realV);
 		}
@@ -449,10 +456,6 @@ namespace tomoto
 				auto tmpState = this->globalState, tState = this->globalState;
 				for (auto d = docFirst; d != docLast; ++d)
 				{
-					if (_Flags & flags::generator_by_doc)
-					{
-						generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(&*d);
-					}
 					initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
 				}
 
@@ -631,7 +634,6 @@ namespace tomoto
 				if(!(_Flags & flags::generator_by_doc)) generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit(nullptr);
 				for (auto& doc : this->docs)
 				{
-					if (_Flags & flags::generator_by_doc) generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit(&doc);
 					initializeDocState<false>(doc, (_Flags & flags::continuous_doc_data) ? numByTopicDoc.col(&doc - &this->docs[0]).data() : nullptr, generator, this->globalState, this->rg);
 				}
 			}
