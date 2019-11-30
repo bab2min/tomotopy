@@ -15,14 +15,14 @@ namespace tomoto
 		typename _Derived = void,
 		typename _DocType = DocumentLLDA<_TW>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class LLDAModel : public LDAModel<_TW, 0, _Interface,
+	class LLDAModel : public LDAModel<_TW, flags::generator_by_doc, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 		static constexpr const char* TMID = "LLDA";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, flags::generator_by_doc, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -65,6 +65,27 @@ namespace tomoto
 			this->alphas.resize(this->K);
 			this->alphas.array() = this->alpha;
 			BaseClass::initGlobalState(initDocs);
+		}
+
+		struct Generator
+		{
+			std::discrete_distribution<> theta;
+		};
+
+		Generator makeGeneratorForInit(const _DocType* doc) const
+		{
+			std::discrete_distribution<> theta;
+			for(size_t k = 0; k < this->K; ++k) theta.param().probabilities().emplace_back(doc->labelMask(k));
+			return Generator{ theta };
+		}
+
+		template<bool _Infer>
+		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		{
+			auto& z = doc.Zs[i];
+			auto w = doc.words[i];
+			z = g.theta(rgs);
+			this->template addWordTo<1>(ld, doc, i, w, z);
 		}
 
 		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, topicLabelDict);
@@ -112,6 +133,16 @@ namespace tomoto
 			}
 
 			return make_unique<_DocType>(doc);
+		}
+
+		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		{
+			std::vector<FLOAT> ret(this->K);
+			auto maskedAlphas = this->alphas.array() * doc.labelMask.template cast<FLOAT>().array();
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), this->K }.array() =
+				(doc.numByTopic.array().template cast<FLOAT>() + maskedAlphas)
+				/ (doc.getSumWordWeight() + maskedAlphas.sum());
+			return ret;
 		}
 
 		const Dictionary& getTopicLabelDict() const { return topicLabelDict; }

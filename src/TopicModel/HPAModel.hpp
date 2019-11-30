@@ -363,7 +363,7 @@ namespace tomoto
 			std::discrete_distribution<> level;
 		};
 
-		Generator makeGeneratorForInit() const
+		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{
 				std::uniform_int_distribution<TID>{1, (TID)(this->K)},

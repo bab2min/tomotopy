@@ -303,7 +303,7 @@ namespace tomoto
 			std::uniform_int_distribution<uint16_t> psi;
 		};
 
-		Generator makeGeneratorForInit() const
+		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ std::discrete_distribution<uint16_t>{ alphaM, alphaML },
 				std::uniform_int_distribution<TID>{ 0, (TID)(this->K - 1) },

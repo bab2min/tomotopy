@@ -5,6 +5,7 @@ test_case = [
     (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}),
     (tp.LLDAModel, 'test/sample_with_md.txt', 0, None, {'k':5}),
     (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}),
+	(tp.PLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'latent_topics':2, 'topics_per_label':2}),
     (tp.HLDAModel, 'test/sample.txt', 0, None, {'depth':3}),
     (tp.CTModel, 'test/sample.txt', 0, None, {'k':10}),
     (tp.HDPModel, 'test/sample.txt', 0, None, {'initial_k':10}),

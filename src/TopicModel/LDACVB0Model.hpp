@@ -272,7 +272,7 @@ namespace tomoto
 			std::uniform_int_distribution<TID> theta;
 		};
 
-		Generator makeGeneratorForInit() const
+		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ std::uniform_int_distribution<TID>{0, (TID)(K - 1)} };
 		}
@@ -354,7 +354,7 @@ namespace tomoto
 
 			if (initDocs)
 			{
-				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit();
+				auto generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit(nullptr);
 				for (auto& doc : this->docs)
 				{
 					initializeDocState<false>(doc, nullptr, generator, this->globalState, this->rg);

@@ -31,6 +31,15 @@ DOC_SIGNATURE_EN_KO(Document_get_topic_dist__doc__,
 	u8R""(Return a distribution of the topics in the document.)"",
 	u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.)"");
 
+DOC_SIGNATURE_EN_KO(Document_get_words__doc__,
+	"get_words(self, top_n=10)",
+	u8R""(.. versionadded:: 0.4.2
+
+Return the `top_n` words with its probability of the document.)"",
+	u8R""(.. versionadded:: 0.4.2
+
+현재 문헌의 상위 `top_n`개의 단어와 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
+
 DOC_VARIABLE_EN_KO(Document_words__doc__,
 	u8R""(a `list` of IDs for each word (read-only))"",
 	u8R""(문헌 내 단어들의 ID가 담긴 `list` (읽기전용))"");
@@ -76,10 +85,10 @@ DOC_VARIABLE_EN_KO(Document_vars__doc__,
 .. versionadded:: 0.2.0)"");
 
 DOC_VARIABLE_EN_KO(Document_labels__doc__,
-	u8R""(a `list` of (label, probability) of the document (for only `tomotopy.LLDAModel` model, read-only)
+	u8R""(a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.LLDAModel` and `tomotopy.PLDAModel` models, read-only)
 
 .. versionadded:: 0.3.0)"",
-u8R""(문헌에 매겨진 (레이블, 확률)의 `list` (`tomotopy.LLDAModel` 모형에서만 사용됨 , 읽기전용)
+u8R""(문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확률들)의 `list` (`tomotopy.LLDAModel`, `tomotopy.PLDAModel` 모형에서만 사용됨 , 읽기전용)
 
 .. versionadded:: 0.3.0)"");
 
@@ -1488,6 +1497,31 @@ labels : iterable of str
     문헌의 레이블 리스트
 )"");
 
+DOC_SIGNATURE_EN_KO(LLDA_get_topic_words__doc__,
+	"get_topic_words(self, topic_id, top_n=10)",
+	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+The return type is a `list` of (word:`str`, probability:`float`).
+
+Parameters
+----------
+topic_id : int
+    Integers in the range [0, `l`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
+    The label name can be found by looking up `tomotopy.LLDAModel.topic_label_dict`.
+    Integers in the range [`l`, `k`) represent a latent topic which doesn't belongs to the any labels.
+    
+)"",
+u8R""(토픽 `topic_id`에 속하는 상위 `top_n`개의 단어와 각각의 확률을 반환합니다. 
+반환 타입은 (단어:`str`, 확률:`float`) 튜플의 `list`형입니다.
+
+Parameters
+----------
+topic_id : int
+    전체 레이블의 개수를 `l`이라고 할 때, [0, `l`) 범위의 정수는 각각의 레이블에 해당하는 토픽을 가리킵니다. 
+    해당 토픽의 레이블 이름은 `tomotopy.LLDAModel.topic_label_dict`을 열람하여 확인할 수 있습니다.
+    [`l`, `k`) 범위의 정수는 어느 레이블에도 속하지 않는 잠재 토픽을 가리킵니다.
+)"");
+
+
 DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
 	u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
 	u8R""(`tomotopy.Dictionary` 타입의 토픽 레이블 사전 (읽기전용))"");
@@ -1497,7 +1531,7 @@ DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
 */
 DOC_SIGNATURE_EN_KO(PLDA___init____doc__,
 	"PLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
-	u8R""(This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
+	u8R""(This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
@@ -1526,7 +1560,7 @@ eta : float
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
 )"",
-u8R""(이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
+u8R""(이 타입은 Partially Labeled LDA(PLDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
@@ -1556,6 +1590,32 @@ seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
 )"");
+
+
+DOC_SIGNATURE_EN_KO(PLDA_get_topic_words__doc__,
+	"get_topic_words(self, topic_id, top_n=10)",
+	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+The return type is a `list` of (word:`str`, probability:`float`).
+
+Parameters
+----------
+topic_id : int
+    Integers in the range [0, `l` * `topics_per_label`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
+    The label name can be found by looking up `tomotopy.PLDAModel.topic_label_dict`.
+    Integers in the range [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) represent a latent topic which doesn't belongs to the any labels.
+    
+)"",
+u8R""(토픽 `topic_id`에 속하는 상위 `top_n`개의 단어와 각각의 확률을 반환합니다. 
+반환 타입은 (단어:`str`, 확률:`float`) 튜플의 `list`형입니다.
+
+Parameters
+----------
+topic_id : int
+    전체 레이블의 개수를 `l`이라고 할 때, [0, `l` * `topics_per_label`) 범위의 정수는 각각의 레이블에 해당하는 토픽을 가리킵니다. 
+    해당 토픽의 레이블 이름은 `tomotopy.PLDAModel.topic_label_dict`을 열람하여 확인할 수 있습니다.
+    [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) 범위의 정수는 어느 레이블에도 속하지 않는 잠재 토픽을 가리킵니다.
+)"");
+
 
 DOC_VARIABLE_EN_KO(PLDA_topic_label_dict__doc__,
 	u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
