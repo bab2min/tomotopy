@@ -1,0 +1,42 @@
+<header>
+<style>
+#version-link {display:inline-block; position:relative;}
+#version-link span {padding-bottom:1em;}
+#version-link ul {display:none; padding-left:0; position:absolute; left:-1em; right:-1em; top: 1em; z-index:9999; background:#fff; border:1px solid #fbb;}
+#version-link:hover ul, #version-link:active ul {display:block;}
+#version-link ul li a{text-align:center; display:block;}
+#version-link ul li a:hover, #version-link ul li a:active {background:#fee;}
+</style>
+<a class="homelink" rel="home" title="tomotopy Home" href="/tomotopy" style="display:block; font-size:2em; font-weight:bold; color:#555; padding-bottom:.5em; border-bottom:1px solid silver;"> <img src="/tomotopy/tomoto.png" alt="" style="height:1.5em;"> tomotopy </a>
+<a id='lang-en' href="../en/index.html">English</a> <a id='lang-kr' href="../kr/index.html">한국어</a> 
+<div id="version-link">
+<span>v0.4.2</span>
+<ul>
+    <li><a href='/tomotopy/v0.4.2/en'>v0.4.2</a></li>
+    <li><a href='/tomotopy/v0.4.1/en'>v0.4.1</a></li>
+    <li><a href='/tomotopy/v0.4.0/en'>v0.4.0</a></li>
+</ul>
+</div>
+<script>
+(function(){
+	function update(){
+		var match = location.pathname.match(/\/(v[0-9.]+)\//)[1];
+		var lang = location.pathname.match(/\/(en|kr)\//)[1];
+		document.querySelector('#version-link span').textContent = match + ' \u25BC';
+		document.querySelector('#lang-'+ lang).outerHTML = document.querySelector('#lang-'+ lang).outerHTML.replace(/(<\/?)a/g, '$1b');
+		var els = document.querySelectorAll('#version-link a');
+		for(var d in els) if(els[d].href) els[d].href = els[d].href.replace(/en$/g, lang);
+	}
+	if(typeof(fetch) == 'function') {
+		fetch('/tomotopy/version-link.html').then(function(response){
+			return response.text();
+		}).then(function(text){
+			document.querySelector('#version-link').outerHTML = text;
+			update();
+		});
+	} else {
+		update();
+	}
+}());
+</script>
+</header>
