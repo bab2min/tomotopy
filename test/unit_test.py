@@ -26,7 +26,7 @@ def train1(cls, inputFile, mdFields, f, kargs):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(200, workers=1)
+    mdl.train(200, workers=1, parallel=tp.ParallelScheme.COPY_MERGE)
 
 def train4(cls, inputFile, mdFields, f, kargs):
     print('Test train')
@@ -39,7 +39,7 @@ def train4(cls, inputFile, mdFields, f, kargs):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(200, workers=4)
+    mdl.train(200, workers=4, parallel=tp.ParallelScheme.COPY_MERGE)
 
 def train0(cls, inputFile, mdFields, f, kargs):
     print('Test train')
@@ -52,7 +52,7 @@ def train0(cls, inputFile, mdFields, f, kargs):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(200)
+    mdl.train(200, parallel=tp.ParallelScheme.COPY_MERGE)
 
 def save_and_load(cls, inputFile, mdFields, f, kargs):
     print('Test save & load')
@@ -65,10 +65,10 @@ def save_and_load(cls, inputFile, mdFields, f, kargs):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(20)
+    mdl.train(20, parallel=tp.ParallelScheme.COPY_MERGE)
     mdl.save('test.model.{}.bin'.format(cls.__name__))
     mdl = cls.load('test.model.{}.bin'.format(cls.__name__))
-    mdl.train(20)
+    mdl.train(20, parallel=tp.ParallelScheme.COPY_MERGE)
 
 def infer(cls, inputFile, mdFields, f, kargs):
     print('Test infer')
@@ -86,14 +86,14 @@ def infer(cls, inputFile, mdFields, f, kargs):
                 mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
             else:
                 mdl.add_doc(ch)
-    mdl.train(20)
+    mdl.train(20, parallel=tp.ParallelScheme.COPY_MERGE)
     for n, line in enumerate(unseen_docs):
         if mdFields:
             unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
         else:
             unseen_docs[n] = mdl.make_doc(ch)
 
-    mdl.infer(unseen_docs)
+    mdl.infer(unseen_docs, parallel=tp.ParallelScheme.COPY_MERGE)
 
 
 for model_case in model_cases:

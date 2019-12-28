@@ -284,9 +284,11 @@ namespace tomoto
 			case ParallelScheme::copy_merge:
 				if ((_Flags & flags::shared_state)) THROW_ERROR_WITH_INFO(exception::InvalidArgument, 
 					std::string{ "This model doesn't provide ParallelScheme::" } + toString(ps));
+				break;
 			case ParallelScheme::partition:
 				if (!(_Flags & flags::partitioned_multisampling)) THROW_ERROR_WITH_INFO(exception::InvalidArgument,
 					std::string{ "This model doesn't provide ParallelScheme::" } +toString(ps));
+				break;
 			}
 			return ps;
 		}
