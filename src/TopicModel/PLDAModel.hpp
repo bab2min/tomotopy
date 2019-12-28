@@ -15,14 +15,14 @@ namespace tomoto
 		typename _Derived = void,
 		typename _DocType = DocumentLLDA<_TW>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class PLDAModel : public LDAModel<_TW, flags::generator_by_doc, _Interface,
+	class PLDAModel : public LDAModel<_TW, flags::generator_by_doc | flags::partitioned_multisampling, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 		static constexpr const char* TMID = "PLDA";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, flags::generator_by_doc, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, flags::generator_by_doc | flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -152,10 +152,10 @@ namespace tomoto
 			return ret;
 		}
 
-		const Dictionary& getTopicLabelDict() const { return topicLabelDict; }
+		const Dictionary& getTopicLabelDict() const override { return topicLabelDict; }
 
-		size_t getNumLatentTopics() const { return numLatentTopics; }
+		size_t getNumLatentTopics() const override { return numLatentTopics; }
 
-		size_t getNumTopicsPerLabel() const { return numTopicsPerLabel; }
+		size_t getNumTopicsPerLabel() const override { return numTopicsPerLabel; }
 	};
 }

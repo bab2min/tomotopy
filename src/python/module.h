@@ -141,6 +141,40 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 	}\
 }
 
+#define DEFINE_DOCUMENT_GETTER_REORDER(DOCTYPE, NAME, FIELD) \
+PyObject* Document_##NAME(DocumentObject* self, void* closure)\
+{\
+	try\
+	{\
+		if (!self->doc) throw runtime_error{ "doc is null!" };\
+		do\
+		{\
+			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->doc);\
+			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
+		} while (0);\
+		do\
+		{\
+			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->doc);\
+			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
+		} while (0);\
+		do\
+		{\
+			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
+			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
+		} while (0);\
+		throw runtime_error{ "doc doesn't has '" #FIELD "' field!" };\
+	}\
+	catch (const bad_exception&)\
+	{\
+		return nullptr;\
+	}\
+	catch (const exception& e)\
+	{\
+		PyErr_SetString(PyExc_Exception, e.what());\
+		return nullptr;\
+	}\
+}
+
 namespace py
 {
 	template<typename _Ty>
@@ -242,3 +276,40 @@ DEFINE_DOCUMENT_GETTER_PROTOTYPE(beta);
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(y);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(labels);
+
+PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *kwargs);
+PyObject* Document_getSubTopicDist(DocumentObject* self);
+
+template<typename _Target, typename _Order>
+PyObject* buildPyValueReorder(const _Target& target, const _Order& order)
+{
+	if (order.empty())
+	{
+		return py::buildPyValue(target);
+	}
+	else
+	{
+		using _OType = decltype(order[0]);
+		return py::buildPyValueTransform(order.begin(), order.end(), [&](_OType idx)
+		{
+			return target[idx];
+		});
+	}
+}
+
+template<typename _Target, typename _Order, typename _Tx>
+PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& transformer)
+{
+	if (order.empty())
+	{
+		return py::buildPyValueTransform(target.begin(), target.end(), transformer);
+	}
+	else
+	{
+		using _OType = decltype(order[0]);
+		return py::buildPyValueTransform(order.begin(), order.end(), [&](_OType idx)
+		{
+			return transformer(target[idx]);
+		});
+	}
+}

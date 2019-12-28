@@ -138,7 +138,8 @@ namespace tomoto
 			if (DEC) ld.numByTopicWord.col(vid) = ld.numByTopicWord.col(vid).cwiseMax(0);
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -149,6 +150,11 @@ namespace tomoto
 			}
 		}
 
+		void updatePartition(ThreadPool& pool, _ModelState* localData)
+		{
+		}
+
+		template<ParallelScheme _ps>
 		void trainOne(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
@@ -159,13 +165,13 @@ namespace tomoto
 				{
 					forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 					{
-						static_cast<DerivedClass*>(this)->sampleDocument(
+						static_cast<DerivedClass*>(this)->template sampleDocument<ParallelScheme::copy_merge>(
 							this->docs[id * chStride + ch], id * chStride + ch,
 							localData[threadId], rgs[threadId], this->iterated);
 					});
 				}));
 			}
-			for (auto&& r : res) r.get();
+			for (auto& r : res) r.get();
 			static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
 			static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData);
 			if (this->iterated >= 250 && optimInterval && (this->iterated + 1) % optimInterval == 0)
@@ -197,7 +203,7 @@ namespace tomoto
 					localData[i] = this->globalState;
 				});
 			}
-			for (auto&& r : res) r.get();
+			for (auto& r : res) r.get();
 		}
 
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData) const
@@ -346,7 +352,7 @@ namespace tomoto
 			}
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0)
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) override
 		{
 			if (initDocs) this->removeStopwords(minWordCnt, removeTopN);
 			static_cast<DerivedClass*>(this)->updateWeakArray();
@@ -397,7 +403,7 @@ namespace tomoto
 			return ret;
 		}
 
-		template<bool _Together, typename _Iter>
+		template<bool _Together, ParallelScheme _ps, typename _Iter>
 		std::vector<double> _infer(_Iter docFirst, _Iter docLast, size_t maxIter, FLOAT tolerance, size_t numWorkers) const
 		{
 			return {};

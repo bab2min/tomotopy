@@ -14,7 +14,7 @@ namespace tomoto
 		std::vector<size_t> ndimCnt;
 	};
 
-	template<TermWeight _TW, size_t _Flags = 0,
+	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IGDMRModel,
 		typename _Derived = void,
 		typename _DocType = DocumentGDMR<_TW, _Flags>,
@@ -136,7 +136,7 @@ namespace tomoto
 					return ret;
 				}));
 			}
-			for (auto&& r : res)
+			for (auto& r : res)
 			{
 				auto ret = r.get();
 				fx += ret[K * F];
@@ -310,7 +310,7 @@ namespace tomoto
 		GETTER(Fs, const std::vector<size_t>&, degreeByF);
 		GETTER(Sigma0, FLOAT, sigma0);
 
-		void setSigma0(FLOAT _sigma0)
+		void setSigma0(FLOAT _sigma0) override
 		{
 			this->sigma0 = _sigma0;
 		}

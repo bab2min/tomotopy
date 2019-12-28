@@ -68,7 +68,7 @@ namespace tomoto
 			{
 			}
 
-			ISLDAModel::GLM getType() const { return ISLDAModel::GLM::linear; }
+			ISLDAModel::GLM getType() const override { return ISLDAModel::GLM::linear; }
 
 			void updateZLL(
 				Eigen::Matrix<FLOAT, -1, 1>& zLikelihood,
@@ -100,7 +100,7 @@ namespace tomoto
 			}
 
 			FLOAT estimate(const Eigen::Matrix<_WeightType, -1, 1>& numByTopic,
-				FLOAT docSize) const
+				FLOAT docSize) const override
 			{
 				return (this->regressionCoef.array() * numByTopic.array().template cast<FLOAT>()).sum()
 					/ std::max(docSize, 0.01f);
@@ -120,7 +120,7 @@ namespace tomoto
 			{
 			}
 
-			ISLDAModel::GLM getType() const { return ISLDAModel::GLM::binary_logistic; }
+			ISLDAModel::GLM getType() const override { return ISLDAModel::GLM::binary_logistic; }
 
 			void updateZLL(
 				Eigen::Matrix<FLOAT, -1, 1>& zLikelihood,
@@ -161,7 +161,7 @@ namespace tomoto
 			}
 
 			FLOAT estimate(const Eigen::Matrix<_WeightType, -1, 1>& numByTopic,
-				FLOAT docSize) const
+				FLOAT docSize) const override
 			{
 				FLOAT z = (this->regressionCoef.array() * numByTopic.array().template cast<FLOAT>()).sum()
 					/ std::max(docSize, 0.01f);
@@ -172,7 +172,7 @@ namespace tomoto
 		};
 	}
 
-	template<TermWeight _TW, size_t _Flags = 0,
+	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ISLDAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentSLDA<_TW>,
@@ -332,14 +332,14 @@ namespace tomoto
 			std::copy(_nuSq.begin(), _nuSq.end(), nuSq.data());
 		}
 
-		std::vector<FLOAT> getRegressionCoef(size_t f) const
+		std::vector<FLOAT> getRegressionCoef(size_t f) const override
 		{
 			return { responseVars[f]->regressionCoef.data(), responseVars[f]->regressionCoef.data() + this->K };
 		}
 
 		GETTER(F, size_t, F);
 
-		ISLDAModel::GLM getTypeOfVar(size_t f) const
+		ISLDAModel::GLM getTypeOfVar(size_t f) const override
 		{
 			return responseVars[f]->getType();
 		}
@@ -361,7 +361,7 @@ namespace tomoto
 			return make_unique<_DocType>(doc);
 		}
 
-		std::vector<FLOAT> estimateVars(const DocumentBase* doc) const
+		std::vector<FLOAT> estimateVars(const DocumentBase* doc) const override
 		{
 			std::vector<FLOAT> ret;
 			auto pdoc = dynamic_cast<const _DocType*>(doc);

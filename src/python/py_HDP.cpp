@@ -63,17 +63,17 @@ PyObject* Document_HDP_Z(DocumentObject* self, void* closure)
     do
     {
         auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::one>*>(self->doc);
-        if (doc) return py::buildPyValueTransform(doc->Zs.begin(), doc->Zs.end(), [doc](size_t x) { return doc->numTopicByTable[x].topic; });
+        if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
     } while (0);
     do
     {
         auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::idf>*>(self->doc);
-        if (doc) return py::buildPyValueTransform(doc->Zs.begin(), doc->Zs.end(), [doc](size_t x) { return doc->numTopicByTable[x].topic; });
+        if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
     } while (0);
     do
     {
         auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::pmi>*>(self->doc);
-        if (doc) return py::buildPyValueTransform(doc->Zs.begin(), doc->Zs.end(), [doc](size_t x) { return doc->numTopicByTable[x].topic; });
+        if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
     } while (0);
     return nullptr;
 }

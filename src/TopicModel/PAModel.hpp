@@ -37,7 +37,7 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		size_t K2;
+		TID K2;
 		FLOAT epsilon = 1e-5;
 		size_t iteration = 5;
 
@@ -102,51 +102,115 @@ namespace tomoto
 			updateCnt<DEC>(ld.numByTopicWord(z2, vid), INC * weight);
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
-			for (size_t w = 0; w < doc.words.size(); ++w)
+			size_t b = 0, e = doc.words.size();
+			if (_ps == ParallelScheme::partition)
+			{
+				b = this->chunkOffsetByDoc(partitionId, docId);
+				e = this->chunkOffsetByDoc(partitionId + 1, docId);
+			}
+
+			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? this->vChunkOffset[partitionId - 1] : 0;
+			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
-				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
-				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w]);
+				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
+				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w] - vOffset);
 				auto z = sample::sampleFromDiscreteAcc(dist, dist + this->K * K2, rgs);
 				doc.Zs[w] = z / K2;
 				doc.Z2s[w] = z % K2;
-				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
+				addWordTo<1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
 			}
 		}
 
+		void distributePartition(ThreadPool& pool, _ModelState* localData)
+		{
+			std::vector<std::future<void>> res = pool.enqueueToAll([&](size_t partitionId)
+			{
+				size_t b = partitionId ? this->vChunkOffset[partitionId - 1] : 0,
+					e = this->vChunkOffset[partitionId];
+
+				localData[partitionId].numByTopicWord = this->globalState.numByTopicWord.block(0, b, this->globalState.numByTopicWord.rows(), e - b);
+				localData[partitionId].numByTopic = this->globalState.numByTopic;
+				localData[partitionId].numByTopic1_2 = this->globalState.numByTopic1_2;
+				localData[partitionId].numByTopic2 = this->globalState.numByTopic2;
+				if (!localData[partitionId].zLikelihood.size()) localData[partitionId].zLikelihood = this->globalState.zLikelihood;
+			});
+
+			for (auto& r : res) r.get();
+		}
+
+		template<ParallelScheme _ps>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
-			std::vector<std::future<void>> res(pool.getNumWorkers());
+			std::vector<std::future<void>> res;
 
-			tState = globalState;
-			globalState = localData[0];
-			for (size_t i = 1; i < pool.getNumWorkers(); ++i)
+			if (_ps == ParallelScheme::copy_merge)
 			{
-				globalState.numByTopic += localData[i].numByTopic - tState.numByTopic;
-				globalState.numByTopic1_2 += localData[i].numByTopic1_2 - tState.numByTopic1_2;
-				globalState.numByTopic2 += localData[i].numByTopic2 - tState.numByTopic2;
-				globalState.numByTopicWord += localData[i].numByTopicWord - tState.numByTopicWord;
-			}
-
-			// make all count being positive
-			if (_TW != TermWeight::one)
-			{
-				globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
-				globalState.numByTopic1_2 = globalState.numByTopic1_2.cwiseMax(0);
-				globalState.numByTopic2 = globalState.numByTopic2.cwiseMax(0);
-				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
-			}
-
-			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
-			{
-				res[i] = pool.enqueue([&, this, i](size_t threadId)
+				tState = globalState;
+				globalState = localData[0];
+				for (size_t i = 1; i < pool.getNumWorkers(); ++i)
 				{
-					localData[i] = globalState;
+					globalState.numByTopic += localData[i].numByTopic - tState.numByTopic;
+					globalState.numByTopic1_2 += localData[i].numByTopic1_2 - tState.numByTopic1_2;
+					globalState.numByTopic2 += localData[i].numByTopic2 - tState.numByTopic2;
+					globalState.numByTopicWord += localData[i].numByTopicWord - tState.numByTopicWord;
+				}
+
+				// make all count being positive
+				if (_TW != TermWeight::one)
+				{
+					globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
+					globalState.numByTopic1_2 = globalState.numByTopic1_2.cwiseMax(0);
+					globalState.numByTopic2 = globalState.numByTopic2.cwiseMax(0);
+					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
+				}
+
+				for (size_t i = 0; i < pool.getNumWorkers(); ++i)
+				{
+					res.emplace_back(pool.enqueue([&, this, i](size_t threadId)
+					{
+						localData[i] = globalState;
+					}));
+				}
+			}
+			else if (_ps == ParallelScheme::partition)
+			{
+				res = pool.enqueueToAll([&](size_t partitionId)
+				{
+					size_t b = partitionId ? this->vChunkOffset[partitionId - 1] : 0,
+						e = this->vChunkOffset[partitionId];
+					globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b) = localData[partitionId].numByTopicWord;
+				});
+				for (auto& r : res) r.get();
+				res.clear();
+
+				tState.numByTopic1_2 = globalState.numByTopic1_2;
+				globalState.numByTopic1_2 = localData[0].numByTopic1_2;
+				for (size_t i = 1; i < pool.getNumWorkers(); ++i)
+				{
+					globalState.numByTopic1_2 += localData[i].numByTopic1_2 - tState.numByTopic1_2;
+				}
+
+				// make all count being positive
+				if (_TW != TermWeight::one)
+				{
+					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
+				}
+				globalState.numByTopic = globalState.numByTopic1_2.rowwise().sum();
+				globalState.numByTopic2 = globalState.numByTopicWord.rowwise().sum();
+
+				res = pool.enqueueToAll([&](size_t threadId)
+				{
+					localData[threadId].numByTopic = globalState.numByTopic;
+					localData[threadId].numByTopic1_2 = globalState.numByTopic1_2;
+					localData[threadId].numByTopic2 = globalState.numByTopic2;
 				});
 			}
-			for (auto&& r : res) r.get();
+
+			for (auto& r : res) r.get();
 		}
 
 		template<typename _DocIter>
@@ -262,7 +326,7 @@ namespace tomoto
 
 		FLOAT getSubAlpha(TID k1, TID k2) const override { return subAlphas(k1, k2); }
 
-		std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const
+		std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const override
 		{
 			assert(k < this->K);
 			FLOAT sum = this->globalState.numByTopic[k] + subAlphaSum[k];
@@ -270,9 +334,27 @@ namespace tomoto
 			return { ret.data(), ret.data() + K2 };
 		}
 
-		std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const
+		std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const override
 		{
 			return extractTopN<TID>(getSubTopicBySuperTopic(k), topN);
+		}
+
+		std::vector<FLOAT> getSubTopicsByDoc(const _DocType& doc) const
+		{
+			std::vector<FLOAT> ret(K2);
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), K2 }.array() =
+				((doc.numByTopic1_2.array().template cast<FLOAT>() + subAlphas.array()).colwise().sum()) / (doc.getSumWordWeight() + subAlphas.sum());
+			return ret;
+		}
+
+		std::vector<FLOAT> getSubTopicsByDoc(const DocumentBase* doc) const override
+		{
+			return static_cast<const DerivedClass*>(this)->getSubTopicsByDoc(*static_cast<const _DocType*>(doc));
+		}
+
+		std::vector<std::pair<TID, FLOAT>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		{
+			return extractTopN<TID>(getSubTopicsByDoc(doc), topN);
 		}
 
 		std::vector<FLOAT> _getWidsByTopic(TID k2) const

@@ -31,6 +31,37 @@ class TermWeight(IntEnum):
     Use Pointwise Mutual Information term weighting.
     """
 
+class ParallelScheme(IntEnum):
+    """
+    This enumeration is for Parallelizing Scheme:
+    There are three options for parallelizing and the basic one is DEFAULT. Not all models supports all options. 
+    """
+
+    DEFAULT = 0
+    """tomotopy chooses the best available parallelism scheme for your model"""
+
+    NONE = 1
+    """ 
+    Turn off multi-threading for Gibbs sampling at training or inference. Operations other than Gibbs sampling may use multithreading.
+    """
+
+    COPY_MERGE = 2
+    """
+    Use Copy and Merge algorithm from AD-LDA. It consumes RAM in proportion to the number of workers. 
+    This has advantages when you have a small number of workers and a small number of topics and vocabulary sizes in the model.
+    Prior to version 0.5, all models used this algorithm by default. 
+    
+    > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+    """
+
+    PARTITION = 3
+    """
+    Use Partitioning algorithm from PCGS. It consumes only twice as much RAM as a single-threaded algorithm, regardless of the number of workers.
+    This has advantages when you have a large number of workers or a large number of topics and vocabulary sizes in the model.
+    
+    > * Yan, F., Xu, N., & Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
+    """
+
 isa = ''
 """
 Indicate which SIMD instruction set is used for acceleration.
@@ -80,4 +111,20 @@ if os.environ.get('TOMOTOPY_LANG') == 'kr':
 따라서 모든 문헌에 거의 골고루 등장하는 용어의 경우 낮은 가중치를 가지게 되며, 
 소수의 특정 문헌에만 집중적으로 등장하는 용어의 경우 높은 가중치를 가지게 됩니다."""
     __pdoc__['TermWeight.PMI'] = """점별 상호정보량(PMI)을 가중치로 사용합니다."""
+    __pdoc__['ParallelScheme'] = """병렬화 기법을 선택하는 데에 사용되는 열거형입니다. 총 3가지 기법을 사용할 수 있으나, 모든 모델이 아래의 기법을 전부 지원하지는 않습니다."""
+    __pdoc__['ParallelScheme.DEFAULT'] = """tomotopy가 모델에 따라 적합한 병럴화 기법을 선택하도록 합니다. 이 값이 기본값입니다."""
+    __pdoc__['ParallelScheme.NONE'] = """깁스 샘플링에 병렬화 기법을 사용하지 않습니다. 깁스 샘플링을 제외한 다른 연산들은 여전히 병렬로 처리될 수 있습니다."""
+    __pdoc__['ParallelScheme.COPY_MERGE'] = """
+AD-LDA에서 제안된 복사 후 합치기 알고리즘을 사용합니다. 이는 작업자 수에 비례해 메모리를 소모합니다. 
+작업자 수가 적거나, 토픽 개수 혹은 어휘 집합의 크기가 작을 때 유리합니다.
+0.5버전 이전까지는 모든 모델은 이 알고리즘을 기본으로 사용했습니다.
+    
+> * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+"""
+    __pdoc__['ParallelScheme.PARTITION'] =     """
+PCGS에서 제안된 분할 샘플링 알고리즈을 사용합니다. 작업자 수에 관계없이 단일 스레드 알고리즘에 2배의 메모리만 소모합니다.
+작업자 수가 많거나, 토픽 개수 혹은 어휘 집합의 크기가 클 때 유리합니다.
+    
+> * Yan, F., Xu, N., & Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
+"""
 del _load, IntEnum, os

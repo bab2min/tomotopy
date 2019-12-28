@@ -144,8 +144,53 @@ static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 	}
 }
 
+
+PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *kwargs)
+{
+	size_t topN = 10;
+	static const char* kwlist[] = { "top_n", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
+	try
+	{
+		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->parentModel->inst);
+		if (!self->parentModel->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		return py::buildPyValue(inst->getSubTopicsByDocSorted(self->doc, topN));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+PyObject* Document_getSubTopicDist(DocumentObject* self)
+{
+	try
+	{
+		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->parentModel->inst);
+		if (!self->parentModel->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		return py::buildPyValue(inst->getSubTopicsByDoc(self->doc));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+
 DEFINE_GETTER(tomoto::IPAModel, PA, getK2);
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentPA, Z2, Z2s);
+DEFINE_DOCUMENT_GETTER_REORDER(tomoto::DocumentPA, Z2, Z2s);
 DEFINE_LOADER(PA, PA_type);
 
 static PyMethodDef PA_methods[] =

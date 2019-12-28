@@ -1,7 +1,6 @@
-import sys
 import tomotopy as tp
 
-test_case = [
+model_cases = [
     (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}),
     (tp.LLDAModel, 'test/sample_with_md.txt', 0, None, {'k':5}),
     (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}),
@@ -16,33 +15,61 @@ test_case = [
     (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}),
 ]
 
-def test_train():
+def train(cls, inputFile, mdFields, f, kargs):
+    print('Test train')
     tw = 0
-    for cls, inputFile, mdFields, f, kargs in test_case:
-        print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]), file=sys.stderr, flush=True)
-        mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
-        print('Adding docs...', file=sys.stderr, flush=True)
-        unseen_docs = []
-        for n, line in enumerate(open(inputFile, encoding='utf-8')):
-            ch = line.strip().split()
-            if len(ch) < mdFields + 1: continue
-            if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
-            else: mdl.add_doc(ch)
-        mdl.train(200)
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+        else: mdl.add_doc(ch)
+    mdl.train(200)
 
-def test_save_and_load():
+def save_and_load(cls, inputFile, mdFields, f, kargs):
+    print('Test save & load')
     tw = 0
-    for cls, inputFile, mdFields, f, kargs in test_case:
-        print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]), file=sys.stderr, flush=True)
-        mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
-        print('Adding docs...', file=sys.stderr, flush=True)
-        unseen_docs = []
-        for n, line in enumerate(open(inputFile, encoding='utf-8')):
-            ch = line.strip().split()
-            if len(ch) < mdFields + 1: continue
-            if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
-            else: mdl.add_doc(ch)
-        mdl.train(20)
-        mdl.save('test.model.{}.bin'.format(cls.__name__))
-        mdl = cls.load('test.model.{}.bin'.format(cls.__name__))
-        mdl.train(20)
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+        else: mdl.add_doc(ch)
+    mdl.train(20)
+    mdl.save('test.model.{}.bin'.format(cls.__name__))
+    mdl = cls.load('test.model.{}.bin'.format(cls.__name__))
+    mdl.train(20)
+
+def infer(cls, inputFile, mdFields, f, kargs):
+    print('Test infer')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    unseen_docs = []
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if n < 20: unseen_docs.append(line)
+        else:
+            if mdFields:
+                mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+            else:
+                mdl.add_doc(ch)
+    mdl.train(20)
+    for n, line in enumerate(unseen_docs):
+        if mdFields:
+            unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
+        else:
+            unseen_docs[n] = mdl.make_doc(ch)
+
+    mdl.infer(unseen_docs)
+
+
+for model_case in model_cases:
+    for func in [train, save_and_load, infer]:
+        locals()['test_{}_{}'.format(model_case[0].__name__, func.__name__)] = (lambda f, mc: lambda: f(*mc))(func, model_case)

@@ -158,7 +158,7 @@ DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getAlphaML);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getEtaL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getT);
 
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentMGLDA, windows, Vs);
+DEFINE_DOCUMENT_GETTER_REORDER(tomoto::DocumentMGLDA, windows, Vs);
 
 DEFINE_LOADER(MGLDA, MGLDA_type);
 

@@ -31,6 +31,16 @@ DOC_SIGNATURE_EN_KO(Document_get_topic_dist__doc__,
 	u8R""(Return a distribution of the topics in the document.)"",
 	u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.)"");
 
+DOC_SIGNATURE_EN_KO(Document_get_sub_topics__doc__,
+	"get_topics(self, top_n=10)",
+	u8R""(Return the `top_n` sub topics with its probability of the document. (for only `tomotopy.PAModel`))"",
+	u8R""(현재 문헌의 상위 `top_n`개의 하위 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용))"");
+
+DOC_SIGNATURE_EN_KO(Document_get_sub_topic_dist__doc__,
+	"get_topic_dist(self)",
+	u8R""(Return a distribution of the sub topics in the document. (for only `tomotopy.PAModel`))"",
+	u8R""(현재 문헌의 하위 토픽 확률 분포를 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용))"");
+
 DOC_SIGNATURE_EN_KO(Document_get_words__doc__,
 	"get_words(self, top_n=10)",
 	u8R""(.. versionadded:: 0.4.2
@@ -189,7 +199,7 @@ words : iterable of str
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_train__doc__,
-	"train(self, iter=10, workers=0)",
+	"train(self, iter=10, workers=0, parallel=0)",
 	u8R""(Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
 After calling this method, you cannot `tomotopy.LDAModel.add_doc` more.
 
@@ -200,6 +210,10 @@ iter : int
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
+parallel : int or tomotopy.ParallelScheme
+    .. versionadded:: 0.5.0
+    
+    the parallelism scheme for training. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
 )"",
 u8R""(깁스 샘플링을 `iter` 회 반복하여 현재 모델을 학습시킵니다. 반환값은 `None`입니다. 
 이 메소드가 호출된 이후에는 더 이상 `tomotopy.LDAModel.add_doc`로 현재 모델에 새로운 학습 문헌을 추가시킬 수 없습니다.
@@ -211,6 +225,10 @@ iter : int
 workers : int
     깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다. 
     만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.
+parallel : int or tomotopy.ParallelScheme
+    .. versionadded:: 0.5.0
+
+    학습에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_words__doc__,
@@ -274,6 +292,10 @@ tolerance : float
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
+parallel : int or tomotopy.ParallelScheme
+    .. versionadded:: 0.5.0
+    
+    the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
 together : bool
     all `doc`s are infered together in one process if True, otherwise each `doc` is infered independently. Its default value is `False`.
 )"",
@@ -293,6 +315,10 @@ tolerance : float
 workers : int
     깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다. 
     만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.
+parallel : int or tomotopy.ParallelScheme
+    .. versionadded:: 0.5.0
+
+    추론에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.
 together : bool
     이 값이 True인 경우 입력한 `doc` 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
     False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 `False`입니다.

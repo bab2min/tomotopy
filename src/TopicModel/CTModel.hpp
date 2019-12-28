@@ -16,7 +16,7 @@ namespace tomoto
 	{
 	};
 
-	template<TermWeight _TW, size_t _Flags = 0,
+	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ICTModel,
 		typename _Derived = void,
 		typename _DocType = DocumentCTM<_TW>,
@@ -55,6 +55,8 @@ namespace tomoto
 			Eigen::Matrix<FLOAT, -1, 1> pbeta, lowerBound, upperBound;
 			constexpr FLOAT epsilon = 1e-8;
 			constexpr size_t burnIn = 3;
+			sample::FastRealGenerator frg;
+
 			pbeta = lowerBound = upperBound = Eigen::Matrix<FLOAT, -1, 1>::Zero(this->K);
 			for (size_t i = 0; i < numBetaSample + burnIn; ++i)
 			{
@@ -66,7 +68,7 @@ namespace tomoto
 				{
 					FLOAT N_k = doc.numByTopic[k] + this->alpha;
 					FLOAT N_nk = doc.getSumWordWeight() + this->alpha * (this->K + 1) - N_k;
-					FLOAT u1 = std::generate_canonical<FLOAT, 32>(rg), u2 = std::generate_canonical<FLOAT, 32>(rg);
+					FLOAT u1 = frg(rg), u2 = frg(rg);
 					FLOAT max_uk = epsilon + pow(u1, (FLOAT)1 / N_k)  * (pbeta[k] - epsilon);
 					FLOAT min_unk = (1 - pow(u2, (FLOAT)1 / N_nk))
 						* (1 - pbeta[k]) + pbeta[k];
@@ -104,12 +106,47 @@ namespace tomoto
 			doc.smBeta /= doc.smBeta.array().sum();
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
-			BaseClass::sampleDocument(doc, docId, ld, rgs, iterationCnt);
-			if (iterationCnt >= this->burnIn && this->optimInterval && (iterationCnt + 1) % this->optimInterval == 0)
+			BaseClass::template sampleDocument<_ps>(doc, docId, ld, rgs, iterationCnt, partitionId);
+			/*if (iterationCnt >= this->burnIn && this->optimInterval && (iterationCnt + 1) % this->optimInterval == 0)
 			{
 				updateBeta(doc, rgs);
+			}*/
+		}
+
+		template<typename _DocIter>
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last) const
+		{
+			if (this->iterated < this->burnIn || !this->optimInterval || (this->iterated + 1) % this->optimInterval != 0) return;
+
+			if (pool)
+			{
+				std::vector<std::future<void>> res;
+				const size_t chStride = pool->getNumWorkers() * 8;
+				size_t dist = std::distance(first, last);
+				for (size_t ch = 0; ch < chStride; ++ch)
+				{
+					auto b = first, e = first;
+					std::advance(b, dist * ch / chStride);
+					std::advance(e, dist * (ch + 1) / chStride);
+					res.emplace_back(pool->enqueue([&, ch, chStride](size_t threadId, _DocIter b, _DocIter e)
+					{
+						for (auto doc = b; doc != e; ++doc)
+						{
+							updateBeta(*doc, rgs[threadId]);
+						}
+					}, b, e));
+				}
+				for (auto& r : res) r.get();
+			}
+			else
+			{
+				for (auto doc = first; doc != last; ++doc)
+				{
+					updateBeta(*doc, rgs[0]);
+				}
 			}
 		}
 
@@ -130,7 +167,7 @@ namespace tomoto
 					}
 				}, ch));
 			}
-			for (auto&& r : res) r.get();
+			for (auto& r : res) r.get();
 			return 0;
 		}
 
@@ -211,17 +248,17 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> getPriorMean() const
+		std::vector<FLOAT> getPriorMean() const override
 		{
 			return { topicPrior.mean.data(), topicPrior.mean.data() + topicPrior.mean.size() };
 		}
 
-		std::vector<FLOAT> getPriorCov() const
+		std::vector<FLOAT> getPriorCov() const override
 		{
 			return { topicPrior.cov.data(), topicPrior.cov.data() + topicPrior.cov.size() };
 		}
 
-		std::vector<FLOAT> getCorrelationTopic(TID k) const
+		std::vector<FLOAT> getCorrelationTopic(TID k) const override
 		{
 			Eigen::Matrix<FLOAT, -1, 1> ret = topicPrior.cov.col(k).array() / (topicPrior.cov.diagonal().array() * topicPrior.cov(k, k)).sqrt();
 			return { ret.data(), ret.data() + ret.size() };
@@ -229,21 +266,21 @@ namespace tomoto
 
 		GETTER(NumBetaSample, size_t, numBetaSample);
 
-		void setNumBetaSample(size_t _numSample)
+		void setNumBetaSample(size_t _numSample) override
 		{
 			numBetaSample = _numSample;
 		}
 
 		GETTER(NumDocBetaSample, size_t, numDocBetaSample);
 
-		void setNumDocBetaSample(size_t _numSample)
+		void setNumDocBetaSample(size_t _numSample) override
 		{
 			numDocBetaSample = _numSample;
 		}
 
 		GETTER(NumTMNSample, size_t, numTMNSample);
 
-		void setNumTMNSample(size_t _numSample)
+		void setNumTMNSample(size_t _numSample) override
 		{
 			numTMNSample = _numSample;
 		}

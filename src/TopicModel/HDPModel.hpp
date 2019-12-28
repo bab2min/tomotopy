@@ -190,7 +190,8 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -277,9 +278,10 @@ namespace tomoto
 					}
 				}, this->docs.size() * i / pool.getNumWorkers(), this->docs.size() * (i + 1) / pool.getNumWorkers());
 			}
-			for (auto&& r : res) r.get();
+			for (auto& r : res) r.get();
 		}
 
+		template<ParallelScheme _ps>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
@@ -328,7 +330,7 @@ namespace tomoto
 					localData[i] = globalState;
 				});
 			}
-			for (auto&& r : res) r.get();
+			for (auto& r : res) r.get();
 		}
 
 		/* this LL calculation is based on https://github.com/blei-lab/hdp/blob/master/hdp/state.cpp */
@@ -342,7 +344,7 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				ll += doc.getNumTable() * log(alpha) - math::lgammaT(doc.getSumWordWeight() + alpha) + math::lgammaT(alpha);
-				for (auto&& nt : doc.numTopicByTable)
+				for (auto& nt : doc.numTopicByTable)
 				{
 					if (nt) ll += math::lgammaT(nt.num);
 				}

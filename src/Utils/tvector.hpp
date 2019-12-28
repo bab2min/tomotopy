@@ -492,7 +492,7 @@ namespace tomoto
 			T* dp = dest.data() + dend;
 			for (auto it = srcBegin; it != srcEnd; ++it)
 			{
-				auto&& tv = **it;
+				auto& tv = **it;
 				std::copy(tv.begin(), tv.end(), dp);
 				tv = tvector<T>{ dp, tv.size() };
 				dp += tv.size();

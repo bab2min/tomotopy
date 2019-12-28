@@ -21,6 +21,20 @@ namespace tomoto
 		DEFINE_SERIALIZER(serializer::MagicConstant("Document"), weight, words, wOrder);
 	};
 
+	enum class ParallelScheme { default_, none, copy_merge, partition, size };
+
+	inline const char* toString(ParallelScheme ps)
+	{
+		switch (ps)
+		{
+		case ParallelScheme::default_: return "default";
+		case ParallelScheme::none: return "none";
+		case ParallelScheme::copy_merge: return "copy_merge";
+		case ParallelScheme::partition: return "partition";
+		default: return "unknown";
+		}
+	}
+
 	class ITopicModel
 	{
 	public:
@@ -36,7 +50,7 @@ namespace tomoto
 		virtual const Dictionary& getVocabDict() const = 0;
 		virtual const std::vector<size_t>& getVocabFrequencies() const = 0;
 
-		virtual int train(size_t iteration, size_t numWorkers) = 0;
+		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_) = 0;
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) = 0;
 		virtual std::vector<FLOAT> getWidsByTopic(TID tid) const = 0;
 		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const = 0;
@@ -45,7 +59,7 @@ namespace tomoto
 		
 		virtual std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const = 0;
 		virtual std::vector<std::pair<TID, FLOAT>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
-		virtual std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, bool together) const = 0;
+		virtual std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, ParallelScheme ps, bool together) const = 0;
 		virtual ~ITopicModel() {}
 	};
 
@@ -55,7 +69,7 @@ namespace tomoto
 		typedef std::pair<_TyKey, _TyValue> pair_t;
 		std::vector<pair_t> ret;
 		_TyKey k = 0;
-		for (auto&& t : vec)
+		for (auto& t : vec)
 		{
 			ret.emplace_back(std::make_pair(k++, t));
 		}
@@ -73,7 +87,8 @@ namespace tomoto
 		{
 			continuous_doc_data = 1 << 0,
 			shared_state = 1 << 1,
-			end_flag_of_TopicModel = 1 << 2,
+			partitioned_multisampling = 1 << 2,
+			end_flag_of_TopicModel = 1 << 3,
 		};
 	}
 
@@ -95,6 +110,8 @@ namespace tomoto
 		Dictionary dict;
 		size_t realV = 0; // vocab size after removing stopwords
 		size_t realN = 0; // total word size after removing stopwords
+
+		std::unique_ptr<ThreadPool> cachedPool;
 
 		void _saveModel(std::ostream& writer, bool fullModel) const
 		{
@@ -206,7 +223,7 @@ namespace tomoto
 			if (minWordCnt <= 1 && removeTopN == 0) realV = dict.size();
 			std::vector<VID> order;
 			sortAndWriteOrder(vocabFrequencies, order, removeTopN, std::greater<size_t>());
-			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end(), [minWordCnt](size_t a) 
+			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end() - std::min(removeTopN, vocabFrequencies.size()), [minWordCnt](size_t a) 
 			{ 
 				return a < minWordCnt; 
 			}) - vocabFrequencies.begin();
@@ -251,35 +268,77 @@ namespace tomoto
 		{
 		}
 
-		int train(size_t iteration, size_t numWorkers) override
+		static ParallelScheme getRealScheme(ParallelScheme ps)
+		{
+			switch (ps)
+			{
+			case ParallelScheme::default_:
+				if ((_Flags & flags::partitioned_multisampling)) return ParallelScheme::partition;
+				if ((_Flags & flags::shared_state)) return ParallelScheme::none;
+				return ParallelScheme::copy_merge;
+			case ParallelScheme::copy_merge:
+				if ((_Flags & flags::shared_state)) THROW_ERROR_WITH_INFO(exception::InvalidArgument, 
+					std::string{ "This model doesn't provide ParallelScheme::" } + toString(ps));
+			case ParallelScheme::partition:
+				if (!(_Flags & flags::partitioned_multisampling)) THROW_ERROR_WITH_INFO(exception::InvalidArgument,
+					std::string{ "This model doesn't provide ParallelScheme::" } +toString(ps));
+			}
+			return ps;
+		}
+
+		int train(size_t iteration, size_t numWorkers, ParallelScheme ps) override
 		{
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
-			ThreadPool pool(numWorkers);
+			ps = getRealScheme(ps);
+			if (numWorkers == 1 || (_Flags & flags::shared_state)) ps = ParallelScheme::none;
+			if (!cachedPool || cachedPool->getNumWorkers() != numWorkers)
+			{
+				cachedPool = make_unique<ThreadPool>(numWorkers);
+			}
+
 			std::vector<_ModelState> localData;
 			std::vector<RandGen> localRG;
 			for (size_t i = 0; i < numWorkers; ++i)
 			{
 				localRG.emplace_back(RandGen{rg()});
-				if(!(_Flags & flags::shared_state)) localData.emplace_back(static_cast<_Derived*>(this)->globalState);
+				if(ps == ParallelScheme::copy_merge) localData.emplace_back(static_cast<_Derived*>(this)->globalState);
 			}
 
+			if (ps == ParallelScheme::partition)
+			{
+				localData.resize(numWorkers);
+				static_cast<_Derived*>(this)->updatePartition(*cachedPool, localData.data());
+			}
+
+			auto state = ps == ParallelScheme::none ? &globalState : localData.data();
 			for (size_t i = 0; i < iteration; ++i)
 			{
 				while (1)
 				{
 					try
 					{
-						static_cast<_Derived*>(this)->trainOne(pool, 
-							_Flags & flags::shared_state ? &globalState : localData.data(),
-							localRG.data());
+						switch (ps)
+						{
+						case ParallelScheme::none:
+							static_cast<_Derived*>(this)->template trainOne<ParallelScheme::none>(
+								*cachedPool, state, localRG.data());
+							break;
+						case ParallelScheme::copy_merge:
+							static_cast<_Derived*>(this)->template trainOne<ParallelScheme::copy_merge>(
+								*cachedPool, state, localRG.data());
+							break;
+						case ParallelScheme::partition:
+							static_cast<_Derived*>(this)->template trainOne<ParallelScheme::partition>(
+								*cachedPool, state, localRG.data());
+							break;
+						}
 						break;
 					}
 					catch (const exception::TrainingError& e)
 					{
 						std::cerr << e.what() << std::endl;
-						int ret = static_cast<_Derived*>(this)->restoreFromTrainingError(e, pool, 
-							_Flags & flags::shared_state ? &globalState : localData.data(),
-							localRG.data());
+						int ret = static_cast<_Derived*>(this)->restoreFromTrainingError(
+							e, *cachedPool, state, localRG.data());
 						if(ret < 0) return ret;
 					}
 				}
@@ -298,7 +357,7 @@ namespace tomoto
 			return exp(-getLLPerWord());
 		}
 
-		std::vector<FLOAT> getWidsByTopic(TID tid) const
+		std::vector<FLOAT> getWidsByTopic(TID tid) const override
 		{
 			return static_cast<const _Derived*>(this)->_getWidsByTopic(tid);
 		}
@@ -336,15 +395,39 @@ namespace tomoto
 			return vid2String(getWidsByDocSorted(doc, topN));
 		}
 
-		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, bool together) const override
+		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, ParallelScheme ps, bool together) const override
 		{
+			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
+			ps = getRealScheme(ps);
+			if (numWorkers == 1) ps = ParallelScheme::none;
 			auto tx = [](DocumentBase* p)->DocType& { return *static_cast<DocType*>(p); };
-			if(together) return static_cast<const _Derived*>(this)->template _infer<true>(
-				makeTransformIter(docs.begin(), tx), makeTransformIter(docs.end(), tx),
-				maxIter, tolerance, numWorkers);
-			else return static_cast<const _Derived*>(this)->template _infer<false>(
-				makeTransformIter(docs.begin(), tx), makeTransformIter(docs.end(), tx),
-				maxIter, tolerance, numWorkers);
+			auto b = makeTransformIter(docs.begin(), tx), e = makeTransformIter(docs.end(), tx);
+
+			if (together)
+			{
+				switch (ps)
+				{
+				case ParallelScheme::none:
+					return static_cast<const _Derived*>(this)->template _infer<true, ParallelScheme::none>(b, e, maxIter, tolerance, numWorkers);
+				case ParallelScheme::copy_merge:
+					return static_cast<const _Derived*>(this)->template _infer<true, ParallelScheme::copy_merge>(b, e, maxIter, tolerance, numWorkers);
+				case ParallelScheme::partition:
+					return static_cast<const _Derived*>(this)->template _infer<true, ParallelScheme::partition>(b, e, maxIter, tolerance, numWorkers);
+				}
+			}
+			else
+			{
+				switch (ps)
+				{
+				case ParallelScheme::none:
+					return static_cast<const _Derived*>(this)->template _infer<false, ParallelScheme::none>(b, e, maxIter, tolerance, numWorkers);
+				case ParallelScheme::copy_merge:
+					return static_cast<const _Derived*>(this)->template _infer<false, ParallelScheme::copy_merge>(b, e, maxIter, tolerance, numWorkers);
+				case ParallelScheme::partition:
+					return static_cast<const _Derived*>(this)->template _infer<false, ParallelScheme::partition>(b, e, maxIter, tolerance, numWorkers);
+				}
+			}
+			throw std::invalid_argument{ "invalid ParallelScheme" };
 		}
 
 		std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const override

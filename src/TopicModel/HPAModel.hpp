@@ -173,14 +173,24 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
+			size_t b = 0, e = doc.words.size();
+			if (_ps == ParallelScheme::partition)
+			{
+				b = this->chunkOffsetByDoc(partitionId, docId);
+				e = this->chunkOffsetByDoc(partitionId + 1, docId);
+			}
+
+			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? this->vChunkOffset[partitionId - 1] : 0;
+
 			const auto K = this->K;
-			for (size_t w = 0; w < doc.words.size(); ++w)
+			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
-				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
-				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w]);
+				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
+				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w] - vOffset);
 				if (_Exclusive)
 				{
 					auto z = sample::sampleFromDiscreteAcc(dist, dist + K2 + K + 1, rgs);
@@ -219,10 +229,15 @@ namespace tomoto
 						doc.Z2s[w] = 0;
 					}
 				}
-				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.Z2s[w]);
+				addWordTo<1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
 			}
 		}
 
+		void distributePartition(ThreadPool& pool, _ModelState* localData)
+		{
+		}
+
+		template<ParallelScheme _ps>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
 			std::vector<std::future<void>> res(pool.getNumWorkers());
@@ -259,12 +274,32 @@ namespace tomoto
 					localData[i] = globalState;
 				});
 			}
-			for (auto&& r : res) r.get();
+			for (auto& r : res) r.get();
 		}
 
 		std::vector<size_t> _getTopicsCount() const
 		{
-			return { };
+			std::vector<size_t> cnt(1 + this->K + K2);
+			for (auto& doc : this->docs)
+			{
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] >= this->realV) continue;
+					if (doc.Zs[i] == 0 && doc.Z2s[i] == 0)
+					{
+						++cnt[0];
+					}
+					else if (doc.Zs[i] && doc.Z2s[i] == 0)
+					{
+						++cnt[doc.Zs[i]];
+					}
+					else
+					{
+						++cnt[this->K + doc.Z2s[i]];
+					}
+				}
+			}
+			return cnt;
 		}
 
 		template<typename _DocIter>
@@ -484,6 +519,17 @@ namespace tomoto
 			}
 			return ret;
 		}
+
+		std::vector<FLOAT> getSubTopicsByDoc(const DocumentBase* doc) const override
+		{
+			throw std::runtime_error{ "not applicable" };
+		}
+
+		std::vector<std::pair<TID, FLOAT>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		{
+			throw std::runtime_error{ "not applicable" };
+		}
+
 	};
 
 	template<TermWeight _TW>
