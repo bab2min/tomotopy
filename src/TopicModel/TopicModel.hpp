@@ -267,6 +267,8 @@ namespace tomoto
 
 		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) override
 		{
+			maxThreads[(size_t)ParallelScheme::default_] = -1;
+			maxThreads[(size_t)ParallelScheme::none] = -1;
 			maxThreads[(size_t)ParallelScheme::copy_merge] = static_cast<_Derived*>(this)->template estimateMaxThreads<ParallelScheme::copy_merge>();
 			maxThreads[(size_t)ParallelScheme::partition] = static_cast<_Derived*>(this)->template estimateMaxThreads<ParallelScheme::partition>();
 		}
