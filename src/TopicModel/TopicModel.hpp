@@ -110,6 +110,7 @@ namespace tomoto
 		Dictionary dict;
 		size_t realV = 0; // vocab size after removing stopwords
 		size_t realN = 0; // total word size after removing stopwords
+		size_t maxThreads[(size_t)ParallelScheme::size] = { 0, };
 
 		std::unique_ptr<ThreadPool> cachedPool;
 
@@ -266,6 +267,8 @@ namespace tomoto
 
 		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) override
 		{
+			maxThreads[(size_t)ParallelScheme::copy_merge] = static_cast<_Derived*>(this)->template estimateMaxThreads<ParallelScheme::copy_merge>();
+			maxThreads[(size_t)ParallelScheme::partition] = static_cast<_Derived*>(this)->template estimateMaxThreads<ParallelScheme::partition>();
 		}
 
 		static ParallelScheme getRealScheme(ParallelScheme ps)
@@ -290,6 +293,7 @@ namespace tomoto
 		{
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 			ps = getRealScheme(ps);
+			numWorkers = std::min(numWorkers, maxThreads[(size_t)ps]);
 			if (numWorkers == 1 || (_Flags & flags::shared_state)) ps = ParallelScheme::none;
 			if (!cachedPool || cachedPool->getNumWorkers() != numWorkers)
 			{

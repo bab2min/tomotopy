@@ -277,6 +277,20 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps>
+		size_t estimateMaxThreads() const
+		{
+			if (_ps == ParallelScheme::partition)
+			{
+				return this->realV / 4;
+			}
+			if (_ps == ParallelScheme::copy_merge)
+			{
+				return this->docs.size() / 2;
+			}
+			return (size_t)-1;
+		}
+
+		template<ParallelScheme _ps>
 		void trainOne(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
@@ -549,9 +563,11 @@ namespace tomoto
 			{
 				generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(nullptr);
 			}
-			ThreadPool pool(numWorkers, numWorkers * 8);
+
 			if (_Together)
 			{
+				numWorkers = std::min(numWorkers, this->maxThreads[(size_t)_ps]);
+				ThreadPool pool{ numWorkers };
 				// temporary state variable
 				RandGen rgc{};
 				auto tmpState = this->globalState, tState = this->globalState;
@@ -580,6 +596,7 @@ namespace tomoto
 			}
 			else if (m_flags & flags::shared_state)
 			{
+				ThreadPool pool{ numWorkers };
 				std::vector<double> ret;
 				const double gllRest = static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 				for (auto d = docFirst; d != docLast; ++d)
@@ -601,6 +618,7 @@ namespace tomoto
 			}
 			else
 			{
+				ThreadPool pool{ numWorkers, numWorkers * 8 };
 				std::vector<std::future<double>> res;
 				const double gllRest = static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 				for (auto d = docFirst; d != docLast; ++d)
@@ -739,6 +757,7 @@ namespace tomoto
 				for (auto& doc : this->docs) doc.updateSumWordWeight(this->realV);
 			}
 			static_cast<DerivedClass*>(this)->prepareShared();
+			BaseClass::prepare(initDocs, minWordCnt, removeTopN);
 		}
 
 		std::vector<size_t> getCountByTopic() const override
