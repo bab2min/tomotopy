@@ -93,8 +93,7 @@ static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 
 static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t iteration = 10, workers = 0;
-	tomoto::ParallelScheme ps = tomoto::ParallelScheme::default_;
+	size_t iteration = 10, workers = 0, ps = 0;
 	static const char* kwlist[] = { "iter", "workers", "parallel", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnn", (char**)kwlist, &iteration, &workers, &ps)) return nullptr;
 	try
@@ -106,7 +105,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 			inst->prepare(true, self->minWordCnt, self->removeTopWord);
 			self->isPrepared = true;
 		}
-		inst->train(iteration, workers, ps);
+		inst->train(iteration, workers, (tomoto::ParallelScheme)ps);
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
@@ -180,8 +179,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argDoc, *iter = nullptr, *item;
-	size_t iteration = 100, workers = 0, together = 0;
-	tomoto::ParallelScheme ps = tomoto::ParallelScheme::default_;
+	size_t iteration = 100, workers = 0, together = 0, ps = 0;
 	float tolerance = -1;
 	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "parallel", "together", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnnp", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &ps, &together)) return nullptr;
@@ -207,7 +205,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 				self->inst->prepare(true, self->minWordCnt, self->removeTopWord);
 				self->isPrepared = true;
 			}
-			auto ll = self->inst->infer(docs, iteration, tolerance, workers, ps, !!together);
+			auto ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
 			PyObject* ret = PyList_New(docs.size());
 			size_t i = 0;
 			for (auto d : docs)
@@ -238,7 +236,7 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 			{
 				std::vector<tomoto::DocumentBase*> docs;
 				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
-				float ll = self->inst->infer(docs, iteration, tolerance, workers, ps, !!together)[0];
+				float ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
 				return Py_BuildValue("(Nf)", py::buildPyValue(self->inst->getTopicsByDoc(doc->doc)), ll);
 			}
 			else
