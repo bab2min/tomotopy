@@ -177,7 +177,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 	}
 }
 
-static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argDoc;
 	size_t iteration = 100, workers = 0, together = 0, ps = 0;

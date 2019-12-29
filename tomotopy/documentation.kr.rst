@@ -16,7 +16,7 @@ tomotopy 란?
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
 
-tomotopy의 가장 최신버전은 0.4.2 입니다.
+tomotopy의 가장 최신버전은 0.5.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -239,6 +239,13 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.5.0 (2019-12-30)
+    * `tomotopy.PAModel.infer`가 topic distribution과 sub-topic distribution을 동시에 반환합니다.
+    * `tomotopy.Document`에 get_sub_topics, get_sub_topic_dist 메소드가 추가되었습니다. (PAModel 전용)
+    * `tomotopy.LDAModel.train` 및 `tomotopy.LDAModel.infer` 메소드에 parallel 옵션이 추가되었습니다. 이를 통해 학습 및 추론시 사용할 병렬화 알고리즘을 선택할 수 있습니다.
+    * `tomotopy.ParallelScheme.PARTITION` 알고리즘이 추가되었습니다. 이 알고리즘은 작업자 수가 많거나 토픽의 개수나 어휘 크기가 클 때도 효율적으로 작동합니다.
+    * 모델 생성시 min_cf < 2일때 rm_top 옵션이 적용되지 않는 문제를 수정하였습니다.
+
 * 0.4.2 (2019-11-30)
     * `tomotopy.LLDAModel`와 `tomotopy.PLDAModel` 모델에서 토픽 할당이 잘못 일어나던 문제를 해결했습니다.
     * `tomotopy.Document` 및 `tomotopy.Dictionary` 클래스에 가독성이 좋은 __repr__가 추가되었습니다.

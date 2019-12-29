@@ -31,7 +31,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.4.2.
+The most recent version of tomotopy is 0.5.0.
 
 Getting Started
 ---------------
@@ -202,6 +202,13 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.5.0 (2019-12-30)
+    * Now `tomotopy.PAModel.infer` returns both topic distribution nd sub-topic distribution.
+    * New methods get_sub_topics and get_sub_topic_dist were added into `tomotopy.Document`. (for PAModel)
+    * New parameter `parallel` was added for `tomotopy.LDAModel.train` and `tomotopy.LDAModel.infer` method. You can select parallelism algorithm by changing this parameter.
+    * `tomotopy.ParallelScheme.PARTITION`, a new algorithm, was added. It works efficiently when the number of workers is large, the number of topics or the size of vocabulary is big.
+    * A bug where `rm_top` didn't work at `min_cf` < 2 was fixed.
+
 * 0.4.2 (2019-11-30)
     * Wrong topic assignments of `tomotopy.LLDAModel` and `tomotopy.PLDAModel` were fixed.
     * Readable __repr__ of `tomotopy.Document` and `tomotopy.Dictionary` was implemented.

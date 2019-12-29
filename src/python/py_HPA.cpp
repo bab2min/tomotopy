@@ -88,12 +88,14 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 }
 DEFINE_LOADER(HPA, HPA_type);
 
+PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs);
 
 static PyMethodDef HPA_methods[] =
 {
 	{ "load", (PyCFunction)HPA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
 	{ "get_topic_words", (PyCFunction)HPA_getTopicWords, METH_VARARGS | METH_KEYWORDS, HPA_get_topic_words__doc__ },
 	{ "get_topic_word_dist", (PyCFunction)HPA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, HPA_get_topic_word_dist__doc__ },
+	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, LDA_infer__doc__ },
 	{ nullptr }
 };
 

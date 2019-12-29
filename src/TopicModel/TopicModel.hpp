@@ -9,6 +9,22 @@
 
 namespace tomoto
 {
+#if _WIN32 || _WIN64
+#if _WIN64
+	typedef std::mt19937_64 RandGen;
+#else
+	typedef std::mt19937 RandGen;
+#endif
+#endif
+
+#if __GNUC__
+#if __x86_64__ || __ppc64__
+	typedef std::mt19937_64 RandGen;
+#else
+	typedef std::mt19937 RandGen;
+#endif
+#endif
+
 	class DocumentBase
 	{
 	public:

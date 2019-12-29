@@ -188,6 +188,91 @@ PyObject* Document_getSubTopicDist(DocumentObject* self)
 	}
 }
 
+static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	PyObject *argDoc;
+	size_t iteration = 100, workers = 0, together = 0, ps = 0;
+	float tolerance = -1;
+	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "parallel", "together", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnnp", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &ps, &together)) return nullptr;
+	DEBUG_LOG("infer " << self->ob_base.ob_type << ", " << self->ob_base.ob_refcnt);
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto inst = static_cast<tomoto::IPAModel*>(self->inst);
+		py::UniqueObj iter;
+		if ((iter = PyObject_GetIter(argDoc)) != nullptr)
+		{
+			std::vector<tomoto::DocumentBase*> docs;
+			py::UniqueObj item;
+			while ((item = PyIter_Next(iter)))
+			{
+				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
+				auto* doc = (DocumentObject*)item.get();
+				if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
+				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
+			}
+			if (PyErr_Occurred()) throw bad_exception{};
+			if (!self->isPrepared)
+			{
+				inst->prepare(true, self->minWordCnt, self->removeTopWord);
+				self->isPrepared = true;
+			}
+			auto ll = inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
+			PyObject* ret = PyList_New(docs.size());
+			size_t i = 0;
+			for (auto d : docs)
+			{
+				PyList_SetItem(ret, i++, Py_BuildValue("(NN)", 
+					py::buildPyValue(inst->getTopicsByDoc(d)),
+					py::buildPyValue(inst->getSubTopicsByDoc(d))
+				));
+			}
+			if (together)
+			{
+				return Py_BuildValue("(Nf)", ret, ll[0]);
+			}
+			else
+			{
+				return Py_BuildValue("(NN)", ret, py::buildPyValue(ll));
+			}
+		}
+		else
+		{
+			PyErr_Clear();
+			if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
+			auto* doc = (DocumentObject*)argDoc;
+			if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
+			if (!self->isPrepared)
+			{
+				inst->prepare(true, self->minWordCnt, self->removeTopWord);
+				self->isPrepared = true;
+			}
+			if (doc->owner)
+			{
+				std::vector<tomoto::DocumentBase*> docs;
+				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
+				float ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
+				return Py_BuildValue("((NN)f)", py::buildPyValue(inst->getTopicsByDoc(doc->doc)), 
+					py::buildPyValue(inst->getSubTopicsByDoc(doc->doc)), ll);
+			}
+			else
+			{
+				return Py_BuildValue("((NN)s)", py::buildPyValue(inst->getTopicsByDoc(doc->doc)),
+					py::buildPyValue(inst->getSubTopicsByDoc(doc->doc)), nullptr);
+			}
+		}
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
 
 DEFINE_GETTER(tomoto::IPAModel, PA, getK2);
 DEFINE_DOCUMENT_GETTER_REORDER(tomoto::DocumentPA, Z2, Z2s);
@@ -200,6 +285,7 @@ static PyMethodDef PA_methods[] =
 	{ "get_sub_topics", (PyCFunction)PA_getSubTopics, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topics__doc__ },
 	{ "get_topic_words", (PyCFunction)PA_getTopicWords, METH_VARARGS | METH_KEYWORDS, PA_get_topic_words__doc__},
 	{ "get_topic_word_dist", (PyCFunction)PA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, PA_get_topic_word_dist__doc__ },
+	{ "infer", (PyCFunction)PA_infer, METH_VARARGS | METH_KEYWORDS, PA_infer__doc__ },
 	{ nullptr }
 };
 
