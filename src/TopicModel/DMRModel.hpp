@@ -16,7 +16,7 @@ namespace tomoto
 		Eigen::Matrix<FLOAT, -1, 1> tmpK;
 	};
 
-	template<TermWeight _TW, size_t _Flags = 0,
+	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IDMRModel,
 		typename _Derived = void,
 		typename _DocType = DocumentDMR<_TW>,
@@ -69,6 +69,7 @@ namespace tomoto
 				res.emplace_back(pool.enqueue([&](size_t threadId)
 				{
 					auto& tmpK = localData[threadId].tmpK;
+					if (!tmpK.size()) tmpK.resize(this->K);
 					Eigen::Matrix<FLOAT, -1, 1> val = Eigen::Matrix<FLOAT, -1, 1>::Zero(K * F + 1);
 					for (size_t docId = ch; docId < this->docs.size(); docId += chStride)
 					{
@@ -95,7 +96,7 @@ namespace tomoto
 					return val;
 				}));
 			}
-			for (auto&& r : res)
+			for (auto& r : res)
 			{
 				auto ret = r.get();
 				fx += ret[K * F];
@@ -279,12 +280,12 @@ namespace tomoto
 		GETTER(AlphaEps, FLOAT, alphaEps);
 		GETTER(OptimRepeat, size_t, optimRepeat);
 
-		void setAlphaEps(FLOAT _alphaEps)
+		void setAlphaEps(FLOAT _alphaEps) override
 		{
 			alphaEps = _alphaEps;
 		}
 
-		void setOptimRepeat(size_t _optimRepeat)
+		void setOptimRepeat(size_t _optimRepeat) override
 		{
 			optimRepeat = _optimRepeat;
 		}
@@ -312,7 +313,7 @@ namespace tomoto
 			return { l.data(), l.data() + F };
 		}
 
-		const Dictionary& getMetadataDict() const { return metadataDict; }
+		const Dictionary& getMetadataDict() const override { return metadataDict; }
 	};
 
 	/* This is for preventing 'undefined symbol' problem in compiling by clang. */

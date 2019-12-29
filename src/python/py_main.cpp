@@ -35,8 +35,9 @@ void CorpusObject::dealloc(CorpusObject* self)
 PyObject * DocumentObject::repr(DocumentObject * self)
 {
 	string ret = "<tomotopy.Document with words=\"";
-	for (auto w : self->doc->words)
+	for (size_t i = 0; i < self->doc->words.size(); ++i)
 	{
+		auto w = self->doc->wOrder.empty() ? self->doc->words[i] : self->doc->words[self->doc->wOrder[i]];
 		ret += self->parentModel->inst->getVocabDict().toWord(w);
 		ret.push_back(' ');
 	}
@@ -105,9 +106,9 @@ PyObject* DictionaryObject::getitem(DictionaryObject* self, Py_ssize_t key)
 
 PyObject* DictionaryObject::repr(DictionaryObject* self)
 {
-	PyObject* l = PyObject_CallObject((PyObject*)&PyList_Type, Py_BuildValue("(N)", self));
+	py::UniqueObj args = Py_BuildValue("(O)", self);
+	py::UniqueObj l = PyObject_CallObject((PyObject*)&PyList_Type, args);
 	PyObject* r = PyObject_Repr(l);
-	Py_XDECREF(l);
 	return r;
 }
 
@@ -220,7 +221,6 @@ static PyObject* Document_getTopicDist(DocumentObject* self)
 	}
 }
 
-
 static PyObject* Document_getWords(DocumentObject* self, PyObject* args, PyObject *kwargs)
 {
 	size_t topN = 10;
@@ -247,6 +247,10 @@ static PyMethodDef Document_methods[] =
 {
 	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, Document_get_topics__doc__ },
 	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, Document_get_topic_dist__doc__ },
+#ifdef TM_PA
+	{ "get_sub_topics", (PyCFunction)Document_getSubTopics, METH_VARARGS | METH_KEYWORDS, Document_get_sub_topics__doc__ },
+	{ "get_sub_topic_dist", (PyCFunction)Document_getSubTopicDist, METH_NOARGS, Document_get_sub_topic_dist__doc__ },
+#endif
 	{ "get_words", (PyCFunction)Document_getWords, METH_VARARGS | METH_KEYWORDS, Document_get_words__doc__ },
 	{ nullptr }
 };
@@ -285,7 +289,7 @@ static PyObject* Document_words(DocumentObject* self, void* closure)
 	try
 	{
 		if (!self->doc) throw runtime_error{ "doc is null!" };
-		return py::buildPyValue(self->doc->words);
+		return buildPyValueReorder(self->doc->words, self->doc->wOrder);
 	}
 	catch (const bad_exception&)
 	{
@@ -441,7 +445,8 @@ static PyObject* Corpus_getitem(CorpusObject* self, Py_ssize_t key)
 			PyErr_SetString(PyExc_IndexError, "");
 			throw bad_exception{};
 		}
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self->parentModel, key, 0));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self->parentModel, key, 0);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{

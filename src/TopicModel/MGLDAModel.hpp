@@ -16,13 +16,13 @@ namespace tomoto
 		typename _Derived = void, 
 		typename _DocType = DocumentMGLDA<_TW>,
 		typename _ModelState = ModelStateLDA<_TW>>
-	class MGLDAModel : public LDAModel<_TW, 0, _Interface,
+	class MGLDAModel : public LDAModel<_TW, flags::partitioned_multisampling, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_TW, flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -97,18 +97,28 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
+			size_t b = 0, e = doc.words.size();
+			if (_ps == ParallelScheme::partition)
+			{
+				b = this->chunkOffsetByDoc(partitionId, docId);
+				e = this->chunkOffsetByDoc(partitionId + 1, docId);
+			}
+
+			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? this->vChunkOffset[partitionId - 1] : 0;
+
 			const auto K = this->K;
-			for (size_t w = 0; w < doc.words.size(); ++w)
+			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
-				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
-				auto dist = getVZLikelihoods(ld, doc, doc.words[w], doc.sents[w]);
+				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
+				auto dist = getVZLikelihoods(ld, doc, doc.words[w] - vOffset, doc.sents[w]);
 				auto vz = sample::sampleFromDiscreteAcc(dist, dist + T * (K + KL), rgs);
 				doc.Vs[w] = vz / (K + KL);
 				doc.Zs[w] = vz % (K + KL);
-				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
+				addWordTo<1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
 			}
 		}
 
@@ -206,7 +216,7 @@ namespace tomoto
 			if(K) ll += (math::lgammaT(K*alpha) - math::lgammaT(alpha)*K) * this->docs.size();
 			for (size_t i = 0; i < this->docs.size(); ++i)
 			{
-				auto&& doc = this->docs[i];
+				auto& doc = this->docs[i];
 				const size_t S = doc.numBySent.size();
 				if (K)
 				{
@@ -272,6 +282,13 @@ namespace tomoto
 
 		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
 		{
+			sortAndWriteOrder(doc.words, doc.wOrder);
+			auto tmp = doc.sents;
+			for (size_t i = 0; i < doc.wOrder.size(); ++i)
+			{
+				doc.sents[doc.wOrder[i]] = tmp[i];
+			}
+
 			const size_t S = doc.numBySent.size();
 			std::fill(doc.numBySent.begin(), doc.numBySent.end(), 0);
 			doc.Zs = tvector<TID>(wordSize);

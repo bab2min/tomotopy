@@ -9,3 +9,4 @@
 /tomotopy.egg-info
 build_windows.bat
 *.bin
+/venv/

@@ -33,7 +33,7 @@ static int PLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *argLabels = nullptr, *iter = nullptr, *iter2 = nullptr;
+	PyObject *argWords, *argLabels = nullptr;
 	static const char* kwlist[] = { "words", "labels", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
 	try
@@ -42,20 +42,20 @@ static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IPLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		vector<string> labels;
 		if(argLabels)
 		{
 			if (PyUnicode_Check(argLabels)) PRINT_WARN("[warn] 'labels' should be an iterable of str.");
+			py::UniqueObj iter2;
 			if (!(iter2 = PyObject_GetIter(argLabels)))
 			{
 				throw runtime_error{ "'labels' must be an iterable of str." };
 			}
-			py::AutoReleaser arIter2{ iter2 };
 			labels = py::makeIterToVector<string>(iter2);
 		}
 		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), labels);
@@ -74,7 +74,7 @@ static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 
 static PyObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *argLabels = nullptr, *iter = nullptr, *iter2 = nullptr;
+	PyObject *argWords, *argLabels = nullptr;
 	static const char* kwlist[] = { "words", "labels", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
 	try
@@ -82,24 +82,25 @@ static PyObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		vector<string> labels;
 		if (argLabels)
 		{
 			if (PyUnicode_Check(argLabels)) PRINT_WARN("[warn] 'labels' should be an iterable of str.");
+			py::UniqueObj iter2;
 			if (!(iter2 = PyObject_GetIter(argLabels)))
 			{
 				throw runtime_error{ "'labels' must be an iterable of str." };
 			}
-			py::AutoReleaser arIter2{ iter2 };
 			labels = py::makeIterToVector<string>(iter2);
 		}
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), labels);
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -117,8 +118,9 @@ static PyObject* PLDA_getTopicLabelDict(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self,
-			&static_cast<tomoto::IPLDAModel*>(self->inst)->getTopicLabelDict()));
+		py::UniqueObj args = Py_BuildValue("(On)", self,
+			&static_cast<tomoto::IPLDAModel*>(self->inst)->getTopicLabelDict());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
 	}
 	catch (const bad_exception&)
 	{

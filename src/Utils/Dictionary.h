@@ -14,8 +14,6 @@ namespace tomoto
 	typedef uint16_t TID;
 	typedef float FLOAT;
 
-	typedef std::mt19937_64 RandGen;
-
 	class Dictionary
 	{
 	protected:

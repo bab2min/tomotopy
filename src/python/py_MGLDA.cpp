@@ -35,7 +35,7 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr;
+	PyObject *argWords;
 	const char* delimiter = ".";
 	static const char* kwlist[] = { "words", "delimiter", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &delimiter)) return nullptr;
@@ -45,11 +45,11 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), delimiter);
 		return py::buildPyValue(ret);
 	}
@@ -66,7 +66,7 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 
 static PyObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr;
+	PyObject *argWords;
 	const char* delimiter = ".";
 	static const char* kwlist[] = { "words", "delimiter", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &delimiter)) return nullptr;
@@ -75,13 +75,14 @@ static PyObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject 
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), delimiter);
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -158,7 +159,7 @@ DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getAlphaML);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getEtaL);
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getT);
 
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentMGLDA, windows, Vs);
+DEFINE_DOCUMENT_GETTER_REORDER(tomoto::DocumentMGLDA, windows, Vs);
 
 DEFINE_LOADER(MGLDA, MGLDA_type);
 

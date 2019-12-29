@@ -32,7 +32,7 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr;
+	PyObject *argWords;
 	const char* metadata = "";
 	static const char* kwlist[] = { "words", "metadata", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &metadata)) return nullptr;
@@ -42,11 +42,11 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), { string{metadata} });
 		return py::buildPyValue(ret);
 	}
@@ -64,7 +64,7 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 
 static PyObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr;
+	PyObject *argWords;
 	const char* metadata = "";
 	static const char* kwlist[] = { "words", "metadata", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &metadata)) return nullptr;
@@ -73,13 +73,14 @@ static PyObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), { string{metadata} });
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -97,8 +98,9 @@ static PyObject* DMR_getMetadataDict(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self, 
-			&static_cast<tomoto::IDMRModel*>(self->inst)->getMetadataDict()));
+		py::UniqueObj args = Py_BuildValue("(On)", self,
+			&static_cast<tomoto::IDMRModel*>(self->inst)->getMetadataDict());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
 	}
 	catch (const bad_exception&)
 	{

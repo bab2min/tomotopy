@@ -29,5 +29,8 @@ namespace tomoto
 		virtual FLOAT getSubAlpha(TID k1, TID k2) const = 0;
 		virtual std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const = 0;
 		virtual std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const = 0;
+
+		virtual std::vector<FLOAT> getSubTopicsByDoc(const DocumentBase* doc) const = 0;
+		virtual std::vector<std::pair<TID, FLOAT>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 	};
 }

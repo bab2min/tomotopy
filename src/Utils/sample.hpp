@@ -127,10 +127,29 @@ namespace tomoto
 			return z;
 		}
 
+		struct FastRealGenerator
+		{
+			template<class Random>
+			float operator()(Random& rg)
+			{
+				union
+				{
+					float f;
+					uint32_t u;
+				};
+
+				u = rg();
+				u = (127 << 23) | (u & 0x7FFFFF);
+				return f - 1;
+			}
+		};
+
 		template<class RealIt, class Random>
 		inline size_t sampleFromDiscreteAcc(RealIt begin, RealIt end, Random& rg)
 		{
-			auto r = std::generate_canonical<float, 32>(rg) * *(end - 1);
+			//auto r = std::generate_canonical<float, 32>(rg) * *(end - 1);
+			FastRealGenerator dist;
+			auto r = dist(rg) * *(end - 1);
 			size_t K = std::distance(begin, end);
 			size_t z = 0;
 #ifdef __AVX__

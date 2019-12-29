@@ -222,13 +222,31 @@ namespace tomoto
 				};
 
 				// we elide the likelihood for root node because its weight applied to all path and can be seen as constant.
-				for (size_t b = 0; b < levelBlocks.size(); ++b)
+				if (pool)
 				{
-					if (!levelBlocks[b]) continue;
-					if(pool) futures.emplace_back(pool->enqueue(calc, b));
-					else calc(0, b);
+					const size_t chStride = pool->getNumWorkers() * 8;
+					for (size_t ch = 0; ch < chStride; ++ch)
+					{
+						futures.emplace_back(pool->enqueue([&](size_t threadId, size_t bBegin, size_t bEnd)
+						{
+							for (size_t b = bBegin; b < bEnd; ++b)
+							{
+								if (!levelBlocks[b]) continue;
+								calc(threadId, b);
+							}
+						}, levelBlocks.size() * ch / chStride, levelBlocks.size() * (ch + 1) / chStride));
+					}
+					for (auto& f : futures) f.get();
 				}
-				for (auto& f : futures) f.get();
+				else
+				{
+					for (size_t b = 0; b < levelBlocks.size(); ++b)
+					{
+						if (!levelBlocks[b]) continue;
+						calc(0, b);
+					}
+				}
+				
 				updateWordLikelihood<_TW>(eta, realV, levelDepth, doc, newTopicWeights, &nodes[0]);
 			}
 
@@ -431,7 +449,8 @@ namespace tomoto
 			}
 		}
 
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		template<ParallelScheme _ps>
+		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			sampleTopics(doc, docId, ld, rgs);
 		}
@@ -629,4 +648,16 @@ namespace tomoto
 			return ret;
 		}
 	};
+
+	template<TermWeight _TW>
+	template<typename _TopicModel>
+	inline void DocumentHLDA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	{
+		this->numByTopic.init(ptr, mdl.getLevelDepth());
+		for (size_t i = 0; i < this->Zs.size(); ++i)
+		{
+			if (this->words[i] >= mdl.getV()) continue;
+			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+		}
+	}
 }

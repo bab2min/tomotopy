@@ -20,12 +20,11 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&mu, &nuSq, &glmCoef, &seed)) return -1;
 	try
 	{
-		PyObject* iter;
 		vector<tomoto::ISLDAModel::GLM> varTypes;
 		if (vars)
 		{
+			py::UniqueObj iter;
 			if (!(iter = PyObject_GetIter(vars))) throw runtime_error{ "'vars' must be an iterable." };
-			py::AutoReleaser ar{ iter };
 			auto vs = py::makeIterToVector<string>(iter);
 			for (auto& s : vs)
 			{
@@ -44,9 +43,9 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			if ((fTemp = PyFloat_AsDouble(mu)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
+				py::UniqueObj iter;
 				if (!(iter = PyObject_GetIter(mu))) throw runtime_error{ "'mu' must be float or iterable of float." };
 
-				py::AutoReleaser ar{ iter };
 				vmu = py::makeIterToVector<tomoto::FLOAT>(iter);
 			}
 			else
@@ -60,9 +59,9 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			if ((fTemp = PyFloat_AsDouble(nuSq)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
+				py::UniqueObj iter;
 				if (!(iter = PyObject_GetIter(nuSq))) throw runtime_error{ "'nu_sq' must be float or iterable of float." };
 
-				py::AutoReleaser ar{ iter };
 				vnuSq = py::makeIterToVector<tomoto::FLOAT>(iter);
 			}
 			else
@@ -76,9 +75,9 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			if ((fTemp = PyFloat_AsDouble(glmCoef)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
+				py::UniqueObj iter;
 				if (!(iter = PyObject_GetIter(glmCoef))) throw runtime_error{ "'glm_param' must be float or iterable of float." };
 
-				py::AutoReleaser ar{ iter };
 				vglmCoef = py::makeIterToVector<tomoto::FLOAT>(iter);
 			}
 			else
@@ -107,7 +106,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr, *argY = nullptr;
+	PyObject *argWords, *argY = nullptr;
 	static const char* kwlist[] = { "words", "y", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argY)) return nullptr;
 	try
@@ -116,18 +115,18 @@ static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "'words' must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto words = py::makeIterToVector<string>(iter);
 		vector<tomoto::FLOAT> ys;
 		if (argY)
 		{
-			if (!(iter = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
-			py::AutoReleaser arIter{ iter };
-			ys = py::makeIterToVector<tomoto::FLOAT>(iter);
+			py::UniqueObj iter2;
+			if (!(iter2 = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
+			ys = py::makeIterToVector<tomoto::FLOAT>(iter2);
 		}
 		auto ret = inst->addDoc(words, ys);
 		return py::buildPyValue(ret);
@@ -145,7 +144,7 @@ static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 
 static PyObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr, *argY = nullptr;
+	PyObject *argWords, *argY = nullptr;
 	static const char* kwlist[] = { "words", "y", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argY)) return nullptr;
 	try
@@ -153,21 +152,22 @@ static PyObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto words = py::makeIterToVector<string>(iter);
 		vector<tomoto::FLOAT> ys;
 		if (argY)
 		{
-			if (!(iter = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
-			py::AutoReleaser arIter{ iter };
-			ys = py::makeIterToVector<tomoto::FLOAT>(iter);
+			py::UniqueObj iter2;
+			if (!(iter2 = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
+			ys = py::makeIterToVector<tomoto::FLOAT>(iter2);
 		}
 		auto ret = inst->makeDoc(words, ys);
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
