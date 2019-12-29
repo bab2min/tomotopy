@@ -13,6 +13,8 @@ namespace tomoto
 		// Zs indicates level in HLDAModel.
 		std::vector<int32_t> path;
 
+		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
+
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, path);
 	};
 

@@ -49,7 +49,7 @@ namespace tomoto
 			std::vector<std::future<void>> res;
 			for (size_t k = 0; k < K; ++k)
 			{
-				pool.enqueue([&, k](size_t)
+				res.emplace_back(pool.enqueue([&, k](size_t)
 				{
 					for (size_t i = 0; i < iteration; ++i)
 					{
@@ -61,7 +61,7 @@ namespace tomoto
 						}
 						subAlphaSum[k] = subAlphas.row(k).sum();
 					}
-				});
+				}));
 			}
 			for (auto& r : res) r.get();
 		}

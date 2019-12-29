@@ -34,7 +34,7 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr;
+	PyObject *argWords;
 	static const char* kwlist[] = { "words", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &argWords)) return nullptr;
 	try
@@ -43,11 +43,11 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto ret = inst->addDoc(py::makeIterToVector<string>(iter));
 		return py::buildPyValue(ret);
 	}
@@ -64,7 +64,7 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 
 static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argWords, *iter = nullptr;
+	PyObject *argWords = nullptr;
 	static const char* kwlist[] = { "words", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &argWords)) return nullptr;
 	try
@@ -72,11 +72,11 @@ static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
+		py::UniqueObj iter;
 		if (!(iter = PyObject_GetIter(argWords)))
 		{
 			throw runtime_error{ "words must be an iterable of str." };
 		}
-		py::AutoReleaser arIter{ iter };
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter));
 		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
 	}
@@ -178,7 +178,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 
 static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argDoc, *iter = nullptr, *item;
+	PyObject *argDoc;
 	size_t iteration = 100, workers = 0, together = 0, ps = 0;
 	float tolerance = -1;
 	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "parallel", "together", nullptr };
@@ -187,15 +187,15 @@ static PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwa
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
+		py::UniqueObj iter;
 		if ((iter = PyObject_GetIter(argDoc)) != nullptr)
 		{
-			py::AutoReleaser arIter{ iter };
 			std::vector<tomoto::DocumentBase*> docs;
+			py::UniqueObj item;
 			while ((item = PyIter_Next(iter)))
 			{
-				py::AutoReleaser arItem{ item };
 				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
-				auto* doc = (DocumentObject*)item;
+				auto* doc = (DocumentObject*)item.get();
 				if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
 				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
 			}

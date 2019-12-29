@@ -648,4 +648,16 @@ namespace tomoto
 			return ret;
 		}
 	};
+
+	template<TermWeight _TW>
+	template<typename _TopicModel>
+	inline void DocumentHLDA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	{
+		this->numByTopic.init(ptr, mdl.getLevelDepth());
+		for (size_t i = 0; i < this->Zs.size(); ++i)
+		{
+			if (this->words[i] >= mdl.getV()) continue;
+			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+		}
+	}
 }

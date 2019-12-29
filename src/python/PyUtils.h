@@ -14,13 +14,42 @@ namespace py
 {
 	using namespace std;
 
-	struct AutoReleaser
+	struct UniqueObj
 	{
-		PyObject*& obj;
-		AutoReleaser(PyObject*& _obj) : obj(_obj) {}
-		~AutoReleaser()
+		PyObject* obj;
+		UniqueObj(PyObject* _obj = nullptr) : obj(_obj) {}
+		~UniqueObj()
 		{
 			Py_XDECREF(obj);
+		}
+
+		UniqueObj(const UniqueObj&) = delete;
+		UniqueObj& operator=(const UniqueObj&) = delete;
+
+		UniqueObj(UniqueObj&& o)
+		{
+			std::swap(obj, o.obj);
+		}
+
+		UniqueObj& operator=(UniqueObj&& o)
+		{
+			std::swap(obj, o.obj);
+			return *this;
+		}
+
+		PyObject* get() const
+		{
+			return obj;
+		}
+
+		operator bool() const
+		{
+			return !!obj;
+		}
+
+		operator PyObject*() const
+		{
+			return obj;
 		}
 	};
 
@@ -68,11 +97,10 @@ namespace py
 	template<typename T>
 	inline vector<T> makeIterToVector(PyObject *iter)
 	{
-		PyObject* item;
+		UniqueObj item;
 		vector<T> v;
 		while ((item = PyIter_Next(iter)))
 		{
-			AutoReleaser ar{ item };
 			v.emplace_back(makeObjectToCType<T>(item));
 		}
 		if (PyErr_Occurred())

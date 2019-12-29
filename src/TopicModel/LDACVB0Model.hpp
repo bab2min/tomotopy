@@ -182,7 +182,7 @@ namespace tomoto
 
 		void updateGlobalInfo(ThreadPool& pool, _ModelState* localData)
 		{
-			std::vector<std::future<void>> res(pool.getNumWorkers());
+			std::vector<std::future<void>> res;
 
 			this->globalState.numByTopic.setZero();
 			this->globalState.numByTopicWord.setZero();
@@ -198,10 +198,10 @@ namespace tomoto
 
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
-				res[i] = pool.enqueue([&, i](size_t threadId)
+				res.emplace_back(pool.enqueue([&, i](size_t threadId)
 				{
 					localData[i] = this->globalState;
-				});
+				}));
 			}
 			for (auto& r : res) r.get();
 		}

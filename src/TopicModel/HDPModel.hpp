@@ -140,7 +140,7 @@ namespace tomoto
 			const size_t V = this->realV;
 			const auto K = ld.numByTopic.size();
 			ld.topicLikelihood.resize(K + 1);
-			ld.topicLikelihood.head(K) = ld.zLikelihood.array().template cast<FLOAT>() * ld.numTableByTopic.array().template cast<FLOAT>();
+			ld.topicLikelihood.head(K) = ld.zLikelihood.head(K).array().template cast<FLOAT>() * ld.numTableByTopic.array().template cast<FLOAT>();
 			ld.topicLikelihood[K] = ld.zLikelihood[K] * gamma;
 			sample::prefixSum(ld.topicLikelihood.data(), ld.topicLikelihood.size());
 			return &ld.topicLikelihood[0];
@@ -255,7 +255,7 @@ namespace tomoto
 
 		void updateGlobalInfo(ThreadPool& pool, _ModelState* localData)
 		{
-			std::vector<std::future<void>> res(pool.getNumWorkers());
+			std::vector<std::future<void>> res;
 			auto& K = this->K;
 			K = 0;
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
@@ -266,7 +266,7 @@ namespace tomoto
 			// synchronize topic size of all documents
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
-				res[i] = pool.enqueue([&, this](size_t threadId, size_t b, size_t e)
+				res.emplace_back(pool.enqueue([&, this](size_t threadId, size_t b, size_t e)
 				{
 					for (size_t j = b; j < e; ++j)
 					{
@@ -276,7 +276,7 @@ namespace tomoto
 						doc.numByTopic.conservativeResize(K);
 						doc.numByTopic.tail(K - oldSize).setZero();
 					}
-				}, this->docs.size() * i / pool.getNumWorkers(), this->docs.size() * (i + 1) / pool.getNumWorkers());
+				}, this->docs.size() * i / pool.getNumWorkers(), this->docs.size() * (i + 1) / pool.getNumWorkers()));
 			}
 			for (auto& r : res) r.get();
 		}
@@ -284,7 +284,7 @@ namespace tomoto
 		template<ParallelScheme _ps>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
 		{
-			std::vector<std::future<void>> res(pool.getNumWorkers());
+			std::vector<std::future<void>> res;
 			const size_t V = this->realV;
 			auto K = this->K;
 
@@ -325,10 +325,10 @@ namespace tomoto
 			
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
-				res[i] = pool.enqueue([&, this, i](size_t threadId)
+				res.emplace_back(pool.enqueue([&, this, i](size_t threadId)
 				{
 					localData[i] = globalState;
-				});
+				}));
 			}
 			for (auto& r : res) r.get();
 		}
