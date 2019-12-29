@@ -227,6 +227,18 @@ add_doc은 `tomotopy.LDAModel.train`을 시작하기 전까지만 사용할 수 
 infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `tomotopy.Document` 인스턴스의 `list`를 추론하는데 사용할 수 있습니다. 
 자세한 것은 `tomotopy.LDAModel.infer`을 참조하길 바랍니다.
 
+병렬 샘플링 알고리즘
+----------------------------
+`tomotopy`는 0.5.0버전부터 병렬 알고리즘을 고를 수 있는 선택지를 제공합니다.
+0.4.2 이전버전까지 제공되던 알고리즘은 `COPY_MERGE`로 이 기법은 모든 토픽 모델에 사용 가능합니다.
+새로운 알고리즘인 `PARTITION`은 0.5.0이후부터 사용가능하며, 이를 사용하면 더 빠르고 메모리 효율적으로 학습을 수행할 수 있습니다. 단 이 기법은 일부 토픽 모델에 대해서만 사용 가능합니다.
+
+다음 차트는 토픽 개수와 코어 개수에 따라 두 기법의 속도 차이를 보여줍니다.
+
+.. image:: https://bab2min.github.io/tomotopy/images/algo_comp.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
+
 예제 코드
 --------
 tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/master/example.py 를 확인하시길 바랍니다.

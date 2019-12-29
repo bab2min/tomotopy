@@ -229,6 +229,18 @@ Inference for unseen document should be performed using `tomotopy.LDAModel.infer
 The `infer` method can infer only one instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. 
 See more at `tomotopy.LDAModel.infer`.
 
+Parallel Sampling Algorithms
+----------------------------
+Since version 0.5.0, `tomotopy` allows you to choose a parallelism algorithm. 
+The algorithm provided in versions prior to 0.4.2 is `COPY_MERGE`, which is provided for all topic models.
+The new algorithm `PARTITION`, available since 0.5.0, makes training generally faster and more memory-efficient, but it is available at not all topic models.
+
+The following chart shows the speed difference between the two algorithms based on the number of topics and the number of workers.
+
+.. image:: https://bab2min.github.io/tomotopy/images/algo_comp.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
+
 Examples
 --------
 You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/master/example.py .
