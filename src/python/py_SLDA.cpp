@@ -166,7 +166,8 @@ static PyObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 			ys = py::makeIterToVector<tomoto::FLOAT>(iter2);
 		}
 		auto ret = inst->makeDoc(words, ys);
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{

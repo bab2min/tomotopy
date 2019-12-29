@@ -81,7 +81,8 @@ static PyObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject 
 			throw runtime_error{ "words must be an iterable of str." };
 		}
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), delimiter);
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{

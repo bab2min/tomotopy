@@ -99,7 +99,8 @@ static PyObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 			labels = py::makeIterToVector<string>(iter2);
 		}
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), labels);
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -117,8 +118,9 @@ static PyObject* PLDA_getTopicLabelDict(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self,
-			&static_cast<tomoto::IPLDAModel*>(self->inst)->getTopicLabelDict()));
+		py::UniqueObj args = Py_BuildValue("(On)", self,
+			&static_cast<tomoto::IPLDAModel*>(self->inst)->getTopicLabelDict());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
 	}
 	catch (const bad_exception&)
 	{

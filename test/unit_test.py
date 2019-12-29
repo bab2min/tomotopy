@@ -87,7 +87,6 @@ def infer(cls, inputFile, mdFields, f, kargs, ps):
             else:
                 mdl.add_doc(ch)
     mdl.train(20, parallel=ps)
-    return
     for n, line in enumerate(unseen_docs):
         if mdFields:
             unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))

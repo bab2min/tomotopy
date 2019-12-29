@@ -78,7 +78,8 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)\
 		{\
 			str.seekg(0);\
-			auto* p = PyObject_CallObject((PyObject*)&TYPE, Py_BuildValue("(n)", i));\
+			py::UniqueObj args = Py_BuildValue("(n)", i);\
+			auto* p = PyObject_CallObject((PyObject*)&TYPE, args);\
 			try\
 			{\
 				((TopicModelObject*)p)->inst->loadModel(str);\

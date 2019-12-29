@@ -79,7 +79,8 @@ static PyObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			throw runtime_error{ "words must be an iterable of str." };
 		}
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), { string{metadata} });
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -97,8 +98,9 @@ static PyObject* DMR_getMetadataDict(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self, 
-			&static_cast<tomoto::IDMRModel*>(self->inst)->getMetadataDict()));
+		py::UniqueObj args = Py_BuildValue("(On)", self,
+			&static_cast<tomoto::IDMRModel*>(self->inst)->getMetadataDict());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
 	}
 	catch (const bad_exception&)
 	{

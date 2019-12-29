@@ -106,9 +106,9 @@ PyObject* DictionaryObject::getitem(DictionaryObject* self, Py_ssize_t key)
 
 PyObject* DictionaryObject::repr(DictionaryObject* self)
 {
-	PyObject* l = PyObject_CallObject((PyObject*)&PyList_Type, Py_BuildValue("(N)", self));
+	py::UniqueObj args = Py_BuildValue("(O)", self);
+	py::UniqueObj l = PyObject_CallObject((PyObject*)&PyList_Type, args);
 	PyObject* r = PyObject_Repr(l);
-	Py_XDECREF(l);
 	return r;
 }
 
@@ -445,7 +445,8 @@ static PyObject* Corpus_getitem(CorpusObject* self, Py_ssize_t key)
 			PyErr_SetString(PyExc_IndexError, "");
 			throw bad_exception{};
 		}
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self->parentModel, key, 0));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self->parentModel, key, 0);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{

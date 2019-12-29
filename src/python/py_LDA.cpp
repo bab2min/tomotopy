@@ -78,7 +78,8 @@ static PyObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			throw runtime_error{ "words must be an iterable of str." };
 		}
 		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter));
-		return PyObject_CallObject((PyObject*)&Document_type, Py_BuildValue("(Nnn)", self, ret.release(), 1));
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
+		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -287,7 +288,8 @@ static PyObject* LDA_getDocs(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		return PyObject_CallObject((PyObject*)&Corpus_type, Py_BuildValue("(O)", self));
+		py::UniqueObj args = Py_BuildValue("(O)", self);
+		return PyObject_CallObject((PyObject*)&Corpus_type, args);
 	}
 	catch (const bad_exception&)
 	{
@@ -305,7 +307,8 @@ static PyObject* LDA_getVocabs(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		return PyObject_CallObject((PyObject*)&Dictionary_type, Py_BuildValue("(Nn)", self, &self->inst->getVocabDict()));
+		py::UniqueObj args = Py_BuildValue("(On)", self, &self->inst->getVocabDict());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
 	}
 	catch (const bad_exception&)
 	{
