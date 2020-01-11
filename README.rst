@@ -31,7 +31,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.5.0.
+The most recent version of tomotopy is 0.5.1.
 
 Getting Started
 ---------------
@@ -215,6 +215,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.5.1 (2020-01-11)
+    * A bug was fixed that `tomotopy.SLDAModel.make_doc` doesn't support missing values for `y`.
+    * Now `tomotopy.SLDAModel` fully supports missing values for response variables `y`. Documents with missing values (NaN) are included in modeling topic, but excluded from regression of response variables.
+
 * 0.5.0 (2019-12-30)
     * Now `tomotopy.PAModel.infer` returns both topic distribution nd sub-topic distribution.
     * New methods get_sub_topics and get_sub_topic_dist were added into `tomotopy.Document`. (for PAModel)

@@ -30,7 +30,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.5.0 입니다.
+tomotopy의 가장 최신버전은 0.5.1 입니다.
 
 시작하기
 ---------------
@@ -210,6 +210,10 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.5.1 (2020-01-11)
+    * `tomotopy.SLDAModel.make_doc`에서 결측값을 지원하지 않던 문제를 해결했습니다.
+    * `tomotopy.SLDAModel`이 이제 결측값을 지원합니다. 결측값을 가진 문헌은 토픽 모델링에는 참여하지만, 응답 변수 회귀에서는 제외됩니다.
+
 * 0.5.0 (2019-12-30)
     * `tomotopy.PAModel.infer`가 topic distribution과 sub-topic distribution을 동시에 반환합니다.
     * `tomotopy.Document`에 get_sub_topics, get_sub_topic_dist 메소드가 추가되었습니다. (PAModel 전용)

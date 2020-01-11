@@ -235,7 +235,27 @@ static PyObject* SLDA_estimateVars(TopicModelObject* self, PyObject* args, PyObj
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
-		if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type" };
+		if (py::UniqueObj iter = PyObject_GetIter(argDoc))
+		{
+			py::UniqueObj nextDoc;
+			std::vector<const tomoto::DocumentBase*> docs;
+			while ((nextDoc = PyIter_Next(iter)))
+			{
+				if (Py_TYPE(nextDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document or list of tomotopy.Document" };
+				docs.emplace_back(((DocumentObject*)nextDoc.get())->doc);
+			}
+			if (PyErr_Occurred()) return nullptr;
+			return py::buildPyValueTransform(docs.begin(), docs.end(), [&](const tomoto::DocumentBase* d)
+			{
+				return inst->estimateVars(d);
+			});
+		}
+		else
+		{
+			PyErr_Clear();
+		}
+
+		if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document or list of tomotopy.Document" };
 		auto* doc = (DocumentObject*)argDoc;
 		if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
 
