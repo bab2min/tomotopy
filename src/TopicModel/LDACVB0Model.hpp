@@ -315,6 +315,20 @@ namespace tomoto
 			return { cnt.data(), cnt.data() + K };
 		}
 
+		template<ParallelScheme _ps>
+		size_t estimateMaxThreads() const
+		{
+			if (_ps == ParallelScheme::partition)
+			{
+				return this->realV / 4;
+			}
+			if (_ps == ParallelScheme::copy_merge)
+			{
+				return this->docs.size() / 2;
+			}
+			return (size_t)-1;
+		}
+
 		DEFINE_SERIALIZER(alpha, eta, K);
 
 	public:

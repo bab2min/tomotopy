@@ -30,7 +30,6 @@ namespace tomoto
 
 			virtual void optimizeCoef(
 				const Eigen::Matrix<FLOAT, -1, -1>& normZ,
-				const Eigen::Matrix<FLOAT, -1, -1>& normZZT,
 				FLOAT mu, FLOAT nuSq,
 				Eigen::Block<Eigen::Matrix<FLOAT, -1, -1>, -1, 1, true> ys
 			) = 0;
@@ -83,13 +82,14 @@ namespace tomoto
 
 			void optimizeCoef(
 				const Eigen::Matrix<FLOAT, -1, -1>& normZ,
-				const Eigen::Matrix<FLOAT, -1, -1>& normZZT,
 				FLOAT mu, FLOAT nuSq,
 				Eigen::Block<Eigen::Matrix<FLOAT, -1, -1>, -1, 1, true> ys
 			) override
 			{
-				this->regressionCoef = (normZZT + Eigen::Matrix<FLOAT, -1, -1>::Identity(normZZT.cols(), normZZT.cols()) / nuSq)
-					.colPivHouseholderQr().solve(normZ * ys);
+				Eigen::Matrix<FLOAT, -1, -1> selectedNormZ = normZ.array().rowwise() * (!ys.array().transpose().isNaN()).template cast<FLOAT>();
+				Eigen::Matrix<FLOAT, -1, -1> normZZT = selectedNormZ * selectedNormZ.transpose();
+				normZZT += Eigen::Matrix<FLOAT, -1, -1>::Identity(normZZT.cols(), normZZT.cols()) / nuSq;
+				this->regressionCoef = normZZT.colPivHouseholderQr().solve(selectedNormZ * ys.array().isNaN().select(0, ys).matrix());
 			}
 
 			double getLL(FLOAT y, const Eigen::Matrix<_WeightType, -1, 1>& numByTopic,
@@ -135,19 +135,22 @@ namespace tomoto
 
 			void optimizeCoef(
 				const Eigen::Matrix<FLOAT, -1, -1>& normZ,
-				const Eigen::Matrix<FLOAT, -1, -1>& normZZT,
 				FLOAT mu, FLOAT nuSq,
 				Eigen::Block<Eigen::Matrix<FLOAT, -1, -1>, -1, 1, true> ys
 			) override
 			{
-				this->regressionCoef = ((normZ * Eigen::DiagonalMatrix<FLOAT, -1>{ omega }) * normZ.transpose()
-					+ Eigen::Matrix<FLOAT, -1, -1>::Identity(normZZT.cols(), normZZT.cols()) / nuSq)
-					.colPivHouseholderQr().solve(normZ * (b * (ys - decltype(ys)::Constant(ys.size(), 0.5f)))
-						+ Eigen::Matrix<FLOAT, -1, 1>::Constant(normZ.rows(), mu / nuSq));
+				Eigen::Matrix<FLOAT, -1, -1> selectedNormZ = normZ.array().rowwise() * (!ys.array().transpose().isNaN()).template cast<FLOAT>();
+				Eigen::Matrix<FLOAT, -1, -1> normZZT = selectedNormZ * Eigen::DiagonalMatrix<FLOAT, -1>{ omega } * selectedNormZ.transpose();
+				normZZT += Eigen::Matrix<FLOAT, -1, -1>::Identity(normZZT.cols(), normZZT.cols()) / nuSq;
+
+				this->regressionCoef = normZZT
+					.colPivHouseholderQr().solve(selectedNormZ * ys.array().isNaN().select(0, b * (ys.array() - 0.5f)).matrix()
+						+ Eigen::Matrix<FLOAT, -1, 1>::Constant(selectedNormZ.rows(), mu / nuSq));
 
 				RandGen rng;
 				for (size_t i = 0; i < omega.size(); ++i)
 				{
+					if (std::isnan(ys[i])) continue;
 					omega[i] = math::drawPolyaGamma(b, (this->regressionCoef.array() * normZ.col(i).array()).sum(), rng);
 				}
 			}
@@ -208,13 +211,12 @@ namespace tomoto
 			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->alphas.array())
 				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
 				/ (ld.numByTopic.array().template cast<FLOAT>() + V * this->eta);
-			if (docId != (size_t)-1)
+
+			for (size_t f = 0; f < F; ++f)
 			{
-				for (size_t f = 0; f < F; ++f)
-				{
-					responseVars[f]->updateZLL(zLikelihood, doc.y[f], doc.numByTopic,
-						docId, doc.getSumWordWeight());
-				}
+				if (std::isnan(doc.y[f])) continue;
+				responseVars[f]->updateZLL(zLikelihood, doc.y[f], doc.numByTopic,
+					docId, doc.getSumWordWeight());
 			}
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];
@@ -227,10 +229,10 @@ namespace tomoto
 				normZ.col(i) = this->docs[i].numByTopic.array().template cast<FLOAT>() / 
 					std::max((FLOAT)this->docs[i].getSumWordWeight(), 0.01f);
 			}
-			Eigen::Matrix<FLOAT, -1, -1> normZZT = normZ * normZ.transpose();
+
 			for (size_t f = 0; f < F; ++f)
 			{
-				responseVars[f]->optimizeCoef(normZ, normZZT, mu[f], nuSq[f], Ys.col(f));
+				responseVars[f]->optimizeCoef(normZ, mu[f], nuSq[f], Ys.col(f));
 			}
 		}
 
@@ -256,6 +258,7 @@ namespace tomoto
 				ll -= math::lgammaT(doc.getSumWordWeight() + this->alphas.sum()) - math::lgammaT(this->alphas.sum());
 				for (size_t f = 0; f < F; ++f)
 				{
+					if (std::isnan(doc.y[f])) continue;
 					ll += responseVars[f]->getLL(doc.y[f], doc.numByTopic, doc.getSumWordWeight());
 				}
 				for (TID k = 0; k < K; ++k)
@@ -357,7 +360,14 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<FLOAT>& y) const override
 		{
 			auto doc = this->_makeDocWithinVocab(words);
+			if (y.size() > F) throw std::runtime_error{ text::format(
+				"size of 'y' is greater than the number of vars.\n"
+				"size of 'y' : %zd, number of vars: %zd", y.size(), F) };
 			doc.y = y;
+			while (doc.y.size() < F)
+			{
+				doc.y.emplace_back(NAN);
+			}
 			return make_unique<_DocType>(doc);
 		}
 
