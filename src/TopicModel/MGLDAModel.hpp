@@ -97,17 +97,17 @@ namespace tomoto
 			}
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
 			{
-				b = this->chunkOffsetByDoc(partitionId, docId);
-				e = this->chunkOffsetByDoc(partitionId + 1, docId);
+				b = edd.chunkOffsetByDoc(partitionId, docId);
+				e = edd.chunkOffsetByDoc(partitionId + 1, docId);
 			}
 
-			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? this->vChunkOffset[partitionId - 1] : 0;
+			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? edd.vChunkOffset[partitionId - 1] : 0;
 
 			const auto K = this->K;
 			for (size_t w = b; w < e; ++w)

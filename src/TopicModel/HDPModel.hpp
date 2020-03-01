@@ -190,8 +190,8 @@ namespace tomoto
 			}
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -200,7 +200,7 @@ namespace tomoto
 				calcWordTopicProb(ld, doc.words[w]);
 				auto topicDist = getTopicLikelihoods(ld);
 				auto dist = getTableLikelihoods(ld, doc, doc.words[w]);
-				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + 1, rgs);
+				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + (_infer ? 0 : 1), rgs);
 				if (doc.Zs[w] == doc.numTopicByTable.size()) // create new table
 				{
 					size_t K = ld.numByTopic.size();
@@ -281,8 +281,8 @@ namespace tomoto
 			for (auto& r : res) r.get();
 		}
 
-		template<ParallelScheme _ps>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
+		template<ParallelScheme _ps, typename _ExtraDocData>
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 			const size_t V = this->realV;
@@ -456,6 +456,13 @@ namespace tomoto
 		bool isLiveTopic(TID tid) const override
 		{
 			return this->globalState.numTableByTopic[tid];
+		}
+
+		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		{
+			std::vector<FLOAT> ret(this->K);
+			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), this->K }.array() = doc.numByTopic.array().template cast<FLOAT>() / doc.getSumWordWeight();
+			return ret;
 		}
 	};
 

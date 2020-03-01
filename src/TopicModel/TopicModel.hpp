@@ -303,7 +303,7 @@ namespace tomoto
 				break;
 			case ParallelScheme::partition:
 				if (!(_Flags & flags::partitioned_multisampling)) THROW_ERROR_WITH_INFO(exception::InvalidArgument,
-					std::string{ "This model doesn't provide ParallelScheme::" } +toString(ps));
+					std::string{ "This model doesn't provide ParallelScheme::" } + toString(ps));
 				break;
 			}
 			return ps;
@@ -331,7 +331,8 @@ namespace tomoto
 			if (ps == ParallelScheme::partition)
 			{
 				localData.resize(numWorkers);
-				static_cast<_Derived*>(this)->updatePartition(*cachedPool, localData.data());
+				static_cast<_Derived*>(this)->updatePartition(*cachedPool, globalState, localData.data(), docs.begin(), docs.end(), 
+					static_cast<_Derived*>(this)->eddTrain);
 			}
 
 			auto state = ps == ParallelScheme::none ? &globalState : localData.data();
@@ -451,7 +452,7 @@ namespace tomoto
 					return static_cast<const _Derived*>(this)->template _infer<false, ParallelScheme::partition>(b, e, maxIter, tolerance, numWorkers);
 				}
 			}
-			throw std::invalid_argument{ "invalid ParallelScheme" };
+			THROW_ERROR_WITH_INFO(exception::InvalidArgument, "invalid ParallelScheme");
 		}
 
 		std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const override

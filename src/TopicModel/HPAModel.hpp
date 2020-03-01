@@ -88,6 +88,7 @@ namespace tomoto
 			return std::make_pair<size_t, size_t>(ceil(k * (float)K2 / this->K), ceil((k + 1) * (float)K2 / this->K));
 		}
 
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
@@ -173,24 +174,32 @@ namespace tomoto
 			}
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
 			{
-				b = this->chunkOffsetByDoc(partitionId, docId);
-				e = this->chunkOffsetByDoc(partitionId + 1, docId);
+				b = edd.chunkOffsetByDoc(partitionId, docId);
+				e = edd.chunkOffsetByDoc(partitionId + 1, docId);
 			}
 
-			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? this->vChunkOffset[partitionId - 1] : 0;
+			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? edd.vChunkOffset[partitionId - 1] : 0;
 
 			const auto K = this->K;
 			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
-				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w] - vOffset);
+				FLOAT* dist;
+				if (this->etaByTopicWord.size())
+				{
+					THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
+				}
+				else
+				{
+					dist = getZLikelihoods<false>(ld, doc, docId, doc.words[w] - vOffset);
+				}
 				if (_Exclusive)
 				{
 					auto z = sample::sampleFromDiscreteAcc(dist, dist + K2 + K + 1, rgs);
@@ -233,12 +242,13 @@ namespace tomoto
 			}
 		}
 
-		void distributePartition(ThreadPool& pool, _ModelState* localData)
+		template<typename _ExtraDocData>
+		void distributePartition(ThreadPool& pool, const _ModelState& globalState, _ModelState* localData, const _ExtraDocData& edd) const
 		{
 		}
 
-		template<ParallelScheme _ps>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
+		template<ParallelScheme _ps, typename _ExtraDocData>
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 

@@ -11,3 +11,4 @@ build_windows.bat
 *.bin
 enwiki-stemmed-1000.txt
 /venv/
+.vscode/

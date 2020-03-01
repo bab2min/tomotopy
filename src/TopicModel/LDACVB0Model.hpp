@@ -63,6 +63,9 @@ namespace tomoto
 		virtual size_t getK() const = 0;
 		virtual FLOAT getAlpha() const = 0;
 		virtual FLOAT getEta() const = 0;
+
+		virtual std::vector<FLOAT> getWordPrior(const std::string& word) const { return {}; }
+		virtual void setWordPrior(const std::string& word, const std::vector<FLOAT>& priors) {}
 	};
 
 	template<typename _Interface = ILDACVB0Model,
@@ -90,13 +93,9 @@ namespace tomoto
 		template<typename _List>
 		static FLOAT calcDigammaSum(_List list, size_t len, FLOAT alpha)
 		{
-			FLOAT ret = 0;
+			auto listExpr = Eigen::Matrix<FLOAT, -1, 1>::NullaryExpr(len, list);
 			auto dAlpha = math::digammaT(alpha);
-			for (size_t i = 0; i < len; ++i)
-			{
-				ret += math::digammaT(list(i) + alpha) - dAlpha;
-			}
-			return ret;
+			return (math::digammaApprox(listExpr.array() + alpha) - dAlpha).sum();
 		}
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData)
@@ -138,8 +137,8 @@ namespace tomoto
 			if (DEC) ld.numByTopicWord.col(vid) = ld.numByTopicWord.col(vid).cwiseMax(0);
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -150,7 +149,8 @@ namespace tomoto
 			}
 		}
 
-		void updatePartition(ThreadPool& pool, _ModelState* localData)
+		template<typename _DocIter, typename _ExtraDocData>
+		void updatePartition(ThreadPool& pool, _ModelState* localData, _DocIter first, _DocIter last, _ExtraDocData& edd)
 		{
 		}
 
@@ -166,7 +166,7 @@ namespace tomoto
 					forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 					{
 						static_cast<DerivedClass*>(this)->template sampleDocument<ParallelScheme::copy_merge>(
-							this->docs[id * chStride + ch], id * chStride + ch,
+							this->docs[id * chStride + ch], 0, id * chStride + ch,
 							localData[threadId], rgs[threadId], this->iterated);
 					});
 				}));

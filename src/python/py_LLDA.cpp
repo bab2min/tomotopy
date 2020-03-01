@@ -51,7 +51,7 @@ static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		{
 			py::UniqueObj iter2;
 			if (PyUnicode_Check(argLabels)) PRINT_WARN("[warn] 'labels' should be an iterable of str.");
-			if (!(iter = PyObject_GetIter(argLabels)))
+			if (!(iter2 = PyObject_GetIter(argLabels)))
 			{
 				throw runtime_error{ "'labels' must be an iterable of str." };
 			}

@@ -11,6 +11,12 @@ namespace tomoto
 			using std::runtime_error::runtime_error;
 		};
 
+		class Unimplemented : public std::runtime_error
+		{
+		public:
+			using std::runtime_error::runtime_error;
+		};
+
 		class InvalidArgument : public std::invalid_argument
 		{
 		public:

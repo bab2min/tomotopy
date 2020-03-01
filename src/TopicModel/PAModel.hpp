@@ -67,14 +67,17 @@ namespace tomoto
 		}
 
 		// topic 1 & 2 assignment likelihoods for new word. ret K*K2 FLOATs
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			const auto eta = this->eta;
 			assert(vid < V);
+			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
 			
-			ld.subTmp = (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + eta) / (ld.numByTopic2.array().template cast<FLOAT>() + V * eta);
+			ld.subTmp = (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic2.array().template cast<FLOAT>() + etaHelper.getEtaSum());
 
 			for (size_t k = 0; k < this->K; ++k)
 			{
@@ -102,22 +105,30 @@ namespace tomoto
 			updateCnt<DEC>(ld.numByTopicWord(z2, vid), INC * weight);
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
 			{
-				b = this->chunkOffsetByDoc(partitionId, docId);
-				e = this->chunkOffsetByDoc(partitionId + 1, docId);
+				b = edd.chunkOffsetByDoc(partitionId, docId);
+				e = edd.chunkOffsetByDoc(partitionId + 1, docId);
 			}
 
-			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? this->vChunkOffset[partitionId - 1] : 0;
+			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? edd.vChunkOffset[partitionId - 1] : 0;
 			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
-				auto dist = getZLikelihoods(ld, doc, docId, doc.words[w] - vOffset);
+				FLOAT* dist;
+				if (this->etaByTopicWord.size())
+				{
+					dist = getZLikelihoods<true>(ld, doc, docId, doc.words[w] - vOffset);
+				}
+				else
+				{
+					dist = getZLikelihoods<false>(ld, doc, docId, doc.words[w] - vOffset);
+				}
 				auto z = sample::sampleFromDiscreteAcc(dist, dist + this->K * K2, rgs);
 				doc.Zs[w] = z / K2;
 				doc.Z2s[w] = z % K2;
@@ -125,25 +136,26 @@ namespace tomoto
 			}
 		}
 
-		void distributePartition(ThreadPool& pool, _ModelState* localData)
+		template<typename _ExtraDocData>
+		void distributePartition(ThreadPool& pool, const _ModelState& globalState, _ModelState* localData, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res = pool.enqueueToAll([&](size_t partitionId)
 			{
-				size_t b = partitionId ? this->vChunkOffset[partitionId - 1] : 0,
-					e = this->vChunkOffset[partitionId];
+				size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
+					e = edd.vChunkOffset[partitionId];
 
-				localData[partitionId].numByTopicWord = this->globalState.numByTopicWord.block(0, b, this->globalState.numByTopicWord.rows(), e - b);
-				localData[partitionId].numByTopic = this->globalState.numByTopic;
-				localData[partitionId].numByTopic1_2 = this->globalState.numByTopic1_2;
-				localData[partitionId].numByTopic2 = this->globalState.numByTopic2;
-				if (!localData[partitionId].zLikelihood.size()) localData[partitionId].zLikelihood = this->globalState.zLikelihood;
+				localData[partitionId].numByTopicWord = globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b);
+				localData[partitionId].numByTopic = globalState.numByTopic;
+				localData[partitionId].numByTopic1_2 = globalState.numByTopic1_2;
+				localData[partitionId].numByTopic2 = globalState.numByTopic2;
+				if (!localData[partitionId].zLikelihood.size()) localData[partitionId].zLikelihood = globalState.zLikelihood;
 			});
 
 			for (auto& r : res) r.get();
 		}
 
-		template<ParallelScheme _ps>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*) const
+		template<ParallelScheme _ps, typename _ExtraDocData>
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 
@@ -180,8 +192,8 @@ namespace tomoto
 			{
 				res = pool.enqueueToAll([&](size_t partitionId)
 				{
-					size_t b = partitionId ? this->vChunkOffset[partitionId - 1] : 0,
-						e = this->vChunkOffset[partitionId];
+					size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
+						e = edd.vChunkOffset[partitionId];
 					globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b) = localData[partitionId].numByTopicWord;
 				});
 				for (auto& r : res) r.get();
@@ -266,6 +278,21 @@ namespace tomoto
 
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2);
 			doc.Z2s = tvector<TID>(wordSize);
+		}
+
+		void prepareWordPriors()
+		{
+			if (this->etaByWord.empty()) return;
+			this->etaByTopicWord.resize(K2, this->realV);
+			this->etaSumByTopic.resize(K2);
+			this->etaByTopicWord.array() = this->eta;
+			for (auto& it : this->etaByWord)
+			{
+				auto id = this->dict.toWid(it.first);
+				if (id == (VID)-1 || id >= this->realV) continue;
+				this->etaByTopicWord.col(id) = Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>{ it.second.data(), (Eigen::Index)it.second.size() };
+			}
+			this->etaSumByTopic = this->etaByTopicWord.rowwise().sum();
 		}
 
 		void initGlobalState(bool initDocs)
@@ -369,6 +396,17 @@ namespace tomoto
 				ret[v] = (r[v] + this->eta) / sum;
 			}
 			return ret;
+		}
+
+		void setWordPrior(const std::string& word, const std::vector<FLOAT>& priors) override
+		{
+			if (priors.size() != K2) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors.size() must be equal to K2.");
+			for (auto p : priors)
+			{
+				if (p < 0) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors must not be less than 0.");
+			}
+			this->dict.add(word);
+			this->etaByWord.emplace(word, priors);
 		}
 	};
 	

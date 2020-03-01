@@ -38,14 +38,16 @@ namespace tomoto
 		size_t numDocBetaSample = -1;
 		math::MultiNormalDistribution<FLOAT> topicPrior;
 		
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
+			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = doc.smBeta.array()
-				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
-				/ (ld.numByTopic.array().template cast<FLOAT>() + V * this->eta);
+				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic.array().template cast<FLOAT>() + etaHelper.getEtaSum());
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];
 		}
@@ -106,10 +108,10 @@ namespace tomoto
 			doc.smBeta /= doc.smBeta.array().sum();
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
-			BaseClass::template sampleDocument<_ps>(doc, docId, ld, rgs, iterationCnt, partitionId);
+			BaseClass::template sampleDocument<_ps, _infer>(doc, edd, docId, ld, rgs, iterationCnt, partitionId);
 			/*if (iterationCnt >= this->burnIn && this->optimInterval && (iterationCnt + 1) % this->optimInterval == 0)
 			{
 				updateBeta(doc, rgs);
