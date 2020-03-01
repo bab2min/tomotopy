@@ -2,7 +2,7 @@ import tomotopy as tp
 
 model_cases = [
     (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}, None),
-    (tp.LLDAModel, 'test/sample_with_md.txt', 0, None, {'k':5}, None),
+    (tp.LLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'k':5}, None),
     (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
     (tp.PLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'latent_topics':2, 'topics_per_label':2}, None),
     (tp.HLDAModel, 'test/sample.txt', 0, None, {'depth':3}, [tp.ParallelScheme.NONE]),
@@ -95,6 +95,31 @@ def infer(cls, inputFile, mdFields, f, kargs, ps):
 
     mdl.infer(unseen_docs, parallel=ps)
 
+def infer_together(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test infer')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    unseen_docs = []
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if n < 20: unseen_docs.append(line)
+        else:
+            if mdFields:
+                mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+            else:
+                mdl.add_doc(ch)
+    mdl.train(20, parallel=ps)
+    for n, line in enumerate(unseen_docs):
+        if mdFields:
+            unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
+        else:
+            unseen_docs[n] = mdl.make_doc(ch)
+
+    mdl.infer(unseen_docs, parallel=ps, together=True)
+
 def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile='test/sample_with_md.txt', mdFields=1, f=lambda x:list(map(float, x)), kargs={'k':10, 'vars':'b'}, ps=tp.ParallelScheme.PARTITION):
     print('Test estimate')
     tw = 0
@@ -122,5 +147,5 @@ for model_case in model_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train1, train4, train0, save_and_load, infer]:
+        for func in [train1, train4, train0, save_and_load, infer, infer_together]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)

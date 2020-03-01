@@ -12,6 +12,43 @@ namespace tomoto
 {
 	namespace serializer
 	{
+		namespace detail
+		{
+			template<class _T> using Invoke = typename _T::type;
+
+			template<size_t...> struct seq { using type = seq; };
+
+			template<class _S1, class _S2> struct concat;
+
+			template<size_t... _i1, size_t... _i2>
+			struct concat<seq<_i1...>, seq<_i2...>>
+				: seq<_i1..., (sizeof...(_i1) + _i2)...> {};
+
+			template<class _S1, class _S2>
+			using Concat = Invoke<concat<_S1, _S2>>;
+
+			template<size_t _n> struct gen_seq;
+			template<size_t _n> using GenSeq = Invoke<gen_seq<_n>>;
+
+			template<size_t _n>
+			struct gen_seq : Concat<GenSeq<_n / 2>, GenSeq<_n - _n / 2>> {};
+
+			template<> struct gen_seq<0> : seq<> {};
+			template<> struct gen_seq<1> : seq<0> {};
+
+			template <size_t _n, size_t ... _is>
+			std::array<char, _n - 1> to_array(const char(&a)[_n], seq<_is...>)
+			{
+				return { {a[_is]...} };
+			}
+
+			template <size_t _n>
+			constexpr std::array<char, _n - 1> to_array(const char(&a)[_n])
+			{
+				return to_array(a, GenSeq<_n - 1>{});
+			}
+		}
+
 		template<typename _Ty> inline void writeToStream(std::ostream& ostr, const _Ty& v);
 		template<typename _Ty> inline void readFromStream(std::istream& istr, _Ty& v);
 		template<typename _Ty> inline _Ty readFromStream(std::istream& istr);
@@ -27,6 +64,29 @@ namespace tomoto
 			MagicConstant(const char* _m) : m(_m)
 			{}
 		};
+
+		template<size_t _len>
+		struct Key
+		{
+			std::array<char, _len> m;
+			Key(const std::array<char, _len>& _m) : m(_m)
+			{
+			}
+
+			Key(std::array<char, _len>&& _m) : m(_m)
+			{
+			}
+
+			Key(const char(&a)[_len + 1]) : Key{ detail::to_array(a) }
+			{
+			}
+		};
+
+		template<size_t _n>
+		constexpr Key<_n - 1> to_key(const char(&a)[_n])
+		{
+			return Key<_n - 1>{detail::to_array(a)};
+		}
 
 		inline void writeMany(std::ostream& ostr)
 		{
@@ -69,6 +129,32 @@ namespace tomoto
 				throw UnfitException(std::string("'") + first.m + std::string("' is needed but '") + m + std::string("'"));
 			}
 			readMany(istr, std::forward<_RestTy>(rest)...);
+		}
+
+		inline void writeManyKV(std::ostream& ostr)
+		{
+			// do nothing
+		}
+
+		template<size_t _len, typename _ValTy, typename ... _RestTy>
+		inline void writeManyKV(std::ostream& ostr, const Key<_len>& key, const _ValTy& value, _RestTy&& ... rest)
+		{
+			
+			writeToStream(ostr, value);
+			writeManyKV(ostr, std::forward<_RestTy>(rest)...);
+		}
+
+		inline void readManyKV(std::istream& istr)
+		{
+			// do nothing
+		}
+
+		template<size_t _len, typename _ValTy, typename ... _RestTy>
+		inline void readManyKV(std::istream& istr, const Key<_len>& key, _ValTy& value, _RestTy&& ... rest)
+		{
+
+			readFromStream(istr, value);
+			readManyKV(istr, std::forward<_RestTy>(rest)...);
 		}
 
 		namespace detail

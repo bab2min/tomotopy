@@ -113,20 +113,6 @@ namespace tomoto
 			}
 		}
 #endif
-
-		template<class RealIt, class Random>
-		inline size_t sampleFromDiscrete(RealIt begin, RealIt end, Random& rg)
-		{
-			auto r = std::generate_canonical<float, 32>(rg) * std::accumulate(begin, end, 0.f);
-			size_t K = std::distance(begin, end);
-			size_t z = 0;
-			for (; r >= *begin && z < K - 1; ++z, ++begin)
-			{
-				r -= *begin;
-			}
-			return z;
-		}
-
 		struct FastRealGenerator
 		{
 			template<class Random>
@@ -143,6 +129,20 @@ namespace tomoto
 				return f - 1;
 			}
 		};
+
+		template<class RealIt, class Random>
+		inline size_t sampleFromDiscrete(RealIt begin, RealIt end, Random& rg)
+		{
+			FastRealGenerator dist;
+			auto r = dist(rg) * std::accumulate(begin, end, 0.f);
+			size_t K = std::distance(begin, end);
+			size_t z = 0;
+			for (; r > *begin && z < K - 1; ++z, ++begin)
+			{
+				r -= *begin;
+			}
+			return z;
+		}
 
 		template<class RealIt, class Random>
 		inline size_t sampleFromDiscreteAcc(RealIt begin, RealIt end, Random& rg)

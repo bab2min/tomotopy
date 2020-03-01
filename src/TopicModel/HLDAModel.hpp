@@ -422,6 +422,7 @@ namespace tomoto
 			addWordToOnlyLocal<INC>(ld, doc, pid, vid, level);
 		}
 
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
@@ -443,14 +444,23 @@ namespace tomoto
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
-				auto dist = static_cast<const DerivedClass*>(this)->getZLikelihoods(ld, doc, docId, doc.words[w]);
+				FLOAT* dist;
+				if (this->etaByTopicWord.size())
+				{
+					THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
+				}
+				else
+				{
+					dist = static_cast<const DerivedClass*>(this)->template
+						getZLikelihoods<false>(ld, doc, docId, doc.words[w]);
+				}
 				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + this->K, rgs);
 				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 			}
 		}
 
-		template<ParallelScheme _ps>
-		void sampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			sampleTopics(doc, docId, ld, rgs);
 		}

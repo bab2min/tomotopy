@@ -29,6 +29,7 @@ namespace tomoto
 
 		Dictionary topicLabelDict;
 
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;

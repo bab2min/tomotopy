@@ -114,7 +114,10 @@ namespace tomoto
 		virtual std::vector<size_t> getCountByTopic() const = 0;
 		virtual size_t getK() const = 0;
 		virtual FLOAT getAlpha() const = 0;
-		virtual FLOAT getAlpha(TID k1) const = 0;
+		virtual FLOAT getAlpha(TID k) const = 0;
 		virtual FLOAT getEta() const = 0;
+
+		virtual std::vector<FLOAT> getWordPrior(const std::string& word) const = 0;
+		virtual void setWordPrior(const std::string& word, const std::vector<FLOAT>& priors) = 0;
 	};
 }

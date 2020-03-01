@@ -203,14 +203,16 @@ namespace tomoto
 		Eigen::Matrix<FLOAT, -1, -1> normZ; // topic proportions for all docs, Dim : (K, D)
 		Eigen::Matrix<FLOAT, -1, -1> Ys; // response variables, Dim : (D, F)
 
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
+			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->alphas.array())
-				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
-				/ (ld.numByTopic.array().template cast<FLOAT>() + V * this->eta);
+				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic.array().template cast<FLOAT>() + etaHelper.getEtaSum());
 
 			for (size_t f = 0; f < F; ++f)
 			{

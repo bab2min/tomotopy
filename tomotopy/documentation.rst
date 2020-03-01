@@ -254,6 +254,11 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.5.2 (2020-03-01)
+    * A segmentation fault problem was fixed in `tomotopy.LLDAModel.add_doc`.
+    * A bug was fixed that `infer` of `tomotopy.HDPModel` sometimes crashes the program.
+    * A crash issue was fixed of `tomotopy.LDAModel.infer` with ps=tomotopy.ParallelScheme.PARTITION, together=True.
+
 * 0.5.1 (2020-01-11)
     * A bug was fixed that `tomotopy.SLDAModel.make_doc` doesn't support missing values for `y`.
     * Now `tomotopy.SLDAModel` fully supports missing values for response variables `y`. Documents with missing values (NaN) are included in modeling topic, but excluded from regression of response variables.

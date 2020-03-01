@@ -31,14 +31,16 @@ namespace tomoto
 
 		size_t numLatentTopics, numTopicsPerLabel;
 
+		template<bool _asymEta>
 		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
+			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
 			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->alphas.array())
-				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + this->eta)
-				/ (ld.numByTopic.array().template cast<FLOAT>() + V * this->eta);
+				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic.array().template cast<FLOAT>() + etaHelper.getEtaSum());
 			zLikelihood.array() *= doc.labelMask.array().template cast<FLOAT>();
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];

@@ -90,6 +90,8 @@ def _load():
         except:
             if isa == isas[-1]: raise
 _load()
+
+from tomotopy.corpus import *
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':
     __doc__ = """`tomotopy` 패키지는 Python에서 사용가능한 다양한 토픽 모델링 타입과 함수를 제공합니다.
