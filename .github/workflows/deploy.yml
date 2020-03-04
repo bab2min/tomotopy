@@ -26,6 +26,7 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+        /opt/python/cp35-cp35m/bin/python setup.py sdist upload
         for cp in cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel
@@ -33,7 +34,6 @@ jobs:
           auditwheel repair dist/*-${cp}-linux_x86_64.whl
         done
         /opt/python/cp38-cp38/bin/python -m twine upload wheelhouse/*.whl
-        /opt/python/cp38-cp38/bin/python -m twine upload dist/*.tar.gz
 
   build_macos:
     name: Build for macOS
