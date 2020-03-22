@@ -19,7 +19,9 @@ jobs:
         cd eigen-git-mirror
         git checkout tags/3.3.7
         cd ..
-        mv eigen-git-mirror include
+        mkdir include
+        mv eigen-git-mirror/Eigen/ include/
+        rm -rf eigen-git-mirror/
     - name: Deploy
       continue-on-error: True
       env:
