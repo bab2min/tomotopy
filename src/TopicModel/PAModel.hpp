@@ -16,7 +16,7 @@ namespace tomoto
 		using WeightType = typename ModelStateLDA<_TW>::WeightType;
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 		Eigen::Matrix<WeightType, -1, 1> numByTopic2;
-		Eigen::Matrix<FLOAT, -1, 1> subTmp;
+		Eigen::Matrix<Float, -1, 1> subTmp;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numByTopic1_2, numByTopic2);
 	};
@@ -37,12 +37,12 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		TID K2;
-		FLOAT epsilon = 1e-5;
+		Tid K2;
+		Float epsilon = 1e-5;
 		size_t iteration = 5;
 
-		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
-		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * K2
+		Eigen::Matrix<Float, -1, 1> subAlphaSum; // len = K
+		Eigen::Matrix<Float, -1, -1> subAlphas; // len = K * K2
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			const auto K = this->K;
@@ -53,10 +53,10 @@ namespace tomoto
 				{
 					for (size_t i = 0; i < iteration; ++i)
 					{
-						FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), subAlphaSum[k]);
+						Float denom = this->template calcDigammaSum<>(nullptr, [&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), subAlphaSum[k]);
 						for (size_t k2 = 0; k2 < K2; ++k2)
 						{
-							FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
+							Float nom = this->template calcDigammaSum<>(nullptr, [&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
 							subAlphas(k, k2) = std::max(nom / denom * subAlphas(k, k2), epsilon);
 						}
 						subAlphaSum[k] = subAlphas.row(k).sum();
@@ -68,7 +68,7 @@ namespace tomoto
 
 		// topic 1 & 2 assignment likelihoods for new word. ret K*K2 FLOATs
 		template<bool _asymEta>
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
+		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			const auto eta = this->eta;
@@ -76,13 +76,13 @@ namespace tomoto
 			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
 			
-			ld.subTmp = (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
-				/ (ld.numByTopic2.array().template cast<FLOAT>() + etaHelper.getEtaSum());
+			ld.subTmp = (ld.numByTopicWord.col(vid).array().template cast<Float>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic2.array().template cast<Float>() + etaHelper.getEtaSum());
 
 			for (size_t k = 0; k < this->K; ++k)
 			{
 				zLikelihood.segment(K2 * k, K2) = (doc.numByTopic[k] + this->alpha)
-					* (doc.numByTopic1_2.row(k).transpose().array().template cast<FLOAT>() + subAlphas.row(k).transpose().array()) / (doc.numByTopic[k] + subAlphaSum[k])
+					* (doc.numByTopic1_2.row(k).transpose().array().template cast<Float>() + subAlphas.row(k).transpose().array()) / (doc.numByTopic[k] + subAlphaSum[k])
 					* ld.subTmp.array();
 			}
 			sample::prefixSum(zLikelihood.data(), zLikelihood.size());
@@ -90,7 +90,7 @@ namespace tomoto
 		}
 
 		template<int INC> 
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID z1, TID z2) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
@@ -120,7 +120,7 @@ namespace tomoto
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
-				FLOAT* dist;
+				Float* dist;
 				if (this->etaByTopicWord.size())
 				{
 					dist = getZLikelihoods<true>(ld, doc, docId, doc.words[w] - vOffset);
@@ -235,7 +235,7 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				ll -= math::lgammaT(doc.getSumWordWeight() + K * alpha);
-				for (TID k = 0; k < K; ++k)
+				for (Tid k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alpha);
 				}
@@ -250,21 +250,21 @@ namespace tomoto
 			const auto eta = this->eta;
 		
 			double ll = 0;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll += math::lgammaT(subAlphaSum[k]);
 				ll -= math::lgammaT(ld.numByTopic[k] + subAlphaSum[k]);
-				for (TID k2 = 0; k2 < K2; ++k2)
+				for (Tid k2 = 0; k2 < K2; ++k2)
 				{
 					ll -= math::lgammaT(subAlphas(k, k2));
 					ll += math::lgammaT(ld.numByTopic1_2(k, k2) + subAlphas(k, k2));
 				}
 			}
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K2;
-			for (TID k2 = 0; k2 < K2; ++k2)
+			for (Tid k2 = 0; k2 < K2; ++k2)
 			{
 				ll -= math::lgammaT(ld.numByTopic2[k2] + V * eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					ll += math::lgammaT(ld.numByTopicWord(k2, v) + eta);
 				}
@@ -277,7 +277,7 @@ namespace tomoto
 			BaseClass::prepareDoc(doc, topicDocPtr, wordSize);
 
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2);
-			doc.Z2s = tvector<TID>(wordSize);
+			doc.Z2s = tvector<Tid>(wordSize);
 		}
 
 		void prepareWordPriors()
@@ -289,8 +289,8 @@ namespace tomoto
 			for (auto& it : this->etaByWord)
 			{
 				auto id = this->dict.toWid(it.first);
-				if (id == (VID)-1 || id >= this->realV) continue;
-				this->etaByTopicWord.col(id) = Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>{ it.second.data(), (Eigen::Index)it.second.size() };
+				if (id == (Vid)-1 || id >= this->realV) continue;
+				this->etaByTopicWord.col(id) = Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ it.second.data(), (Eigen::Index)it.second.size() };
 			}
 			this->etaSumByTopic = this->etaByTopicWord.rowwise().sum();
 		}
@@ -298,7 +298,7 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(this->K * K2);
+			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(this->K * K2);
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K);
@@ -310,14 +310,14 @@ namespace tomoto
 
 		struct Generator
 		{
-			std::uniform_int_distribution<TID> theta, theta2;
+			std::uniform_int_distribution<Tid> theta, theta2;
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ 
-				std::uniform_int_distribution<TID>{0, (TID)(this->K - 1)},
-				std::uniform_int_distribution<TID>{0, (TID)(K2 - 1)},
+				std::uniform_int_distribution<Tid>{0, (Tid)(this->K - 1)},
+				std::uniform_int_distribution<Tid>{0, (Tid)(K2 - 1)},
 			};
 		}
 
@@ -326,19 +326,28 @@ namespace tomoto
 		{
 			auto w = doc.words[i];
 			doc.Zs[i] = g.theta(rgs);
-			doc.Z2s[i] = g.theta2(rgs);
+			if (this->etaByTopicWord.size())
+			{
+				auto col = this->etaByTopicWord.col(w);
+				doc.Z2s[i] = sample::sampleFromDiscrete(col.data(), col.data() + col.size(), rgs);
+			}
+			else
+			{
+				doc.Z2s[i] = g.theta2(rgs);
+			}
 			addWordTo<1>(ld, doc, i, w, doc.Zs[i], doc.Z2s[i]);
 		}
 
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, K2, subAlphas, subAlphaSum);
-
 	public:
-		PAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
+
+		PAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
 			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
-			subAlphaSum = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1, _K2 * 0.1);
-			subAlphas = Eigen::Matrix<FLOAT, -1, -1>::Constant(_K1, _K2, 0.1);
+			subAlphaSum = Eigen::Matrix<Float, -1, 1>::Constant(_K1, _K2 * 0.1);
+			subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(_K1, _K2, 0.1);
 			this->optimInterval = 1;
 		}
 
@@ -351,45 +360,45 @@ namespace tomoto
 			iteration = iter;
 		}
 
-		FLOAT getSubAlpha(TID k1, TID k2) const override { return subAlphas(k1, k2); }
+		Float getSubAlpha(Tid k1, Tid k2) const override { return subAlphas(k1, k2); }
 
-		std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const override
+		std::vector<Float> getSubTopicBySuperTopic(Tid k) const override
 		{
 			assert(k < this->K);
-			FLOAT sum = this->globalState.numByTopic[k] + subAlphaSum[k];
-			Eigen::Matrix<FLOAT, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<FLOAT>() + subAlphas.row(k).array()) / sum;
+			Float sum = this->globalState.numByTopic[k] + subAlphaSum[k];
+			Eigen::Matrix<Float, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<Float>() + subAlphas.row(k).array()) / sum;
 			return { ret.data(), ret.data() + K2 };
 		}
 
-		std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const override
+		std::vector<std::pair<Tid, Float>> getSubTopicBySuperTopicSorted(Tid k, size_t topN) const override
 		{
-			return extractTopN<TID>(getSubTopicBySuperTopic(k), topN);
+			return extractTopN<Tid>(getSubTopicBySuperTopic(k), topN);
 		}
 
-		std::vector<FLOAT> getSubTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getSubTopicsByDoc(const _DocType& doc) const
 		{
-			std::vector<FLOAT> ret(K2);
-			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), K2 }.array() =
-				((doc.numByTopic1_2.array().template cast<FLOAT>() + subAlphas.array()).colwise().sum()) / (doc.getSumWordWeight() + subAlphas.sum());
+			std::vector<Float> ret(K2);
+			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), K2 }.array() =
+				((doc.numByTopic1_2.array().template cast<Float>() + subAlphas.array()).colwise().sum()) / (doc.getSumWordWeight() + subAlphas.sum());
 			return ret;
 		}
 
-		std::vector<FLOAT> getSubTopicsByDoc(const DocumentBase* doc) const override
+		std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc) const override
 		{
 			return static_cast<const DerivedClass*>(this)->getSubTopicsByDoc(*static_cast<const _DocType*>(doc));
 		}
 
-		std::vector<std::pair<TID, FLOAT>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		std::vector<std::pair<Tid, Float>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
 		{
-			return extractTopN<TID>(getSubTopicsByDoc(doc), topN);
+			return extractTopN<Tid>(getSubTopicsByDoc(doc), topN);
 		}
 
-		std::vector<FLOAT> _getWidsByTopic(TID k2) const
+		std::vector<Float> _getWidsByTopic(Tid k2) const
 		{
 			assert(k2 < K2);
 			const size_t V = this->realV;
-			std::vector<FLOAT> ret(V);
-			FLOAT sum = this->globalState.numByTopic2[k2] + V * this->eta;
+			std::vector<Float> ret(V);
+			Float sum = this->globalState.numByTopic2[k2] + V * this->eta;
 			auto r = this->globalState.numByTopicWord.row(k2);
 			for (size_t v = 0; v < V; ++v)
 			{
@@ -398,7 +407,7 @@ namespace tomoto
 			return ret;
 		}
 
-		void setWordPrior(const std::string& word, const std::vector<FLOAT>& priors) override
+		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
 			if (priors.size() != K2) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors.size() must be equal to K2.");
 			for (auto p : priors)

@@ -6,21 +6,36 @@ using namespace std;
 
 static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0, rmTop = 0;
+	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 2;
 	float alpha = 0.1, eta = 0.01, gamma = 0.1;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "initial_k", "alpha", "eta", "gamma", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfffn", (char**)kwlist, &tw, &minCnt, &rmTop,
-		&K, &alpha, &eta, &gamma, &seed)) return -1;
+	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "initial_k", "alpha", "eta", "gamma", "seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &alpha, &eta, &gamma, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
+		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
+		{
+			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
+		}
+
 		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+
+		if (objCorpus)
+		{
+			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
+				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
+			py::UniqueObj ret = PyObject_CallObject(feeder, param);
+			if(!ret) return -1;
+		}
 	}
 	catch (const exception& e)
 	{
@@ -42,7 +57,7 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->isLiveTopic(topicId));

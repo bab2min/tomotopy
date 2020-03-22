@@ -4,6 +4,7 @@ including LDA, DMR, HDP, MG-LDA, PA and HPA. It is written in C++ for speed and 
 
 .. include:: ./documentation.rst
 """
+import tomotopy.utils as utils
 from enum import IntEnum
 
 class TermWeight(IntEnum):
@@ -91,11 +92,10 @@ def _load():
             if isa == isas[-1]: raise
 _load()
 
-#from tomotopy.corpus import *
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':
     __doc__ = """`tomotopy` 패키지는 Python에서 사용가능한 다양한 토픽 모델링 타입과 함수를 제공합니다.
-이 모듈은 c++로 작성되어 컴파일되기 때문에 빠른 속도를 자랑합니다.
+내부 모듈은 c++로 작성되었기 때문에 빠른 속도를 자랑합니다.
 
 .. include:: ./documentation.kr.rst
 """
@@ -124,7 +124,7 @@ AD-LDA에서 제안된 복사 후 합치기 알고리즘을 사용합니다. 이
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 """
     __pdoc__['ParallelScheme.PARTITION'] =     """
-PCGS에서 제안된 분할 샘플링 알고리즈을 사용합니다. 작업자 수에 관계없이 단일 스레드 알고리즘에 2배의 메모리만 소모합니다.
+PCGS에서 제안된 분할 샘플링 알고리즘을 사용합니다. 작업자 수에 관계없이 단일 스레드 알고리즘에 비해 2배의 메모리만 소모합니다.
 작업자 수가 많거나, 토픽 개수 혹은 어휘 집합의 크기가 클 때 유리합니다.
     
 > * Yan, F., Xu, N., & Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).

@@ -5,14 +5,43 @@
 #include <typeinfo>
 #include <algorithm>
 #include <memory>
+#include <mutex>
 
 namespace tomoto
 {
-	template<typename T, typename... Args>
+	template<typename T, typename... Args, 
+		typename std::enable_if<!std::is_array<T>::value, int>::type = 0>
 	std::unique_ptr<T> make_unique(Args&&... args)
 	{
 		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 	}
+
+	template<typename T,
+		typename std::enable_if<std::is_array<T>::value, int>::type = 0>
+	std::unique_ptr<T> make_unique(size_t size)
+	{
+		return std::unique_ptr<T>(new typename std::remove_extent<T>::type [size]);
+	}
+
+	template<typename T>
+	constexpr T * as_mutable(const T * value) noexcept {
+		return const_cast<T *>(value);
+	}
+
+	template<bool _lock>
+	class OptionalLock : public std::lock_guard<std::mutex>
+	{
+	public:
+		using std::lock_guard<std::mutex>::lock_guard;
+	};
+
+	template<>
+	class OptionalLock<false>
+	{
+	public:
+		OptionalLock(const std::mutex& mtx)
+		{}
+	};
 
 	template<bool _Dec, typename _Ty>
 	struct CntUpdater

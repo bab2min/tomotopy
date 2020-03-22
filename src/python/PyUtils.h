@@ -65,7 +65,8 @@ namespace py
 		static constexpr bool value = true;
 	};
 
-	template<typename T>
+	template<typename T,
+		typename std::enable_if<!std::is_integral<T>::value, int>::type = 0>
 	inline T makeObjectToCType(PyObject *obj)
 	{
 	}
@@ -92,6 +93,15 @@ namespace py
 		double d = PyFloat_AsDouble(obj);
 		if (d == -1 && PyErr_Occurred()) throw bad_exception{};
 		return d;
+	}
+
+	template<typename T,
+		typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+	inline T makeObjectToCType(PyObject *obj)
+	{
+		long long v = PyLong_AsLongLong(obj);
+		if (v == -1 && PyErr_Occurred()) throw bad_exception{};
+		return (T)v;
 	}
 
 	template<typename T>

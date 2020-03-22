@@ -114,13 +114,13 @@ namespace tomoto
 			static constexpr size_t blockSize = 8;
 			std::vector<NCRPNode> nodes;
 			std::vector<uint8_t> levelBlocks;
-			Eigen::Matrix<FLOAT, -1, 1> nodeLikelihoods; // 
-			Eigen::Matrix<FLOAT, -1, 1> nodeWLikelihoods; //
+			Eigen::Matrix<Float, -1, 1> nodeLikelihoods; // 
+			Eigen::Matrix<Float, -1, 1> nodeWLikelihoods; //
 
 			DEFINE_SERIALIZER(nodes, levelBlocks);
 
 			template<bool _MakeNewPath = true>
-			void calcNodeLikelihood(FLOAT gamma, size_t levelDepth)
+			void calcNodeLikelihood(Float gamma, size_t levelDepth)
 			{
 				nodeLikelihoods.resize(nodes.size());
 				nodeLikelihoods.array() = -INFINITY;
@@ -128,10 +128,10 @@ namespace tomoto
 			}
 
 			template<bool _MakeNewPath = true>
-			void updateNodeLikelihood(FLOAT gamma, size_t levelDepth, NCRPNode* node, FLOAT weight = 0)
+			void updateNodeLikelihood(Float gamma, size_t levelDepth, NCRPNode* node, Float weight = 0)
 			{
 				size_t idx = node - nodes.data();
-				const FLOAT pNewNode = _MakeNewPath ? log(gamma / (node->numCustomers + gamma)) : -INFINITY;
+				const Float pNewNode = _MakeNewPath ? log(gamma / (node->numCustomers + gamma)) : -INFINITY;
 				nodeLikelihoods[idx] = weight + ((node->level < levelDepth - 1) ? pNewNode : 0);
 				for(auto * child = node->getChild(); child; child = child->getSibling())
 				{
@@ -178,8 +178,8 @@ namespace tomoto
 			}
 
 			template<TermWeight _TW>
-			void calcWordLikelihood(FLOAT eta, size_t realV, size_t levelDepth, ThreadPool* pool,
-				const DocumentHLDA<_TW>& doc, const std::vector<FLOAT>& newTopicWeights,
+			void calcWordLikelihood(Float eta, size_t realV, size_t levelDepth, ThreadPool* pool,
+				const DocumentHLDA<_TW>& doc, const std::vector<Float>& newTopicWeights,
 				const ModelStateLDA<_TW>& ld)
 			{
 				nodeWLikelihoods.resize(nodes.size());
@@ -189,8 +189,8 @@ namespace tomoto
 
 				auto calc = [this, eta, realV, &doc, &ld](size_t threadId, size_t b)
 				{
-					FLOAT cnt = 0;
-					VID prevWord = -1;
+					Float cnt = 0;
+					Vid prevWord = -1;
 					const size_t bStart = blockSize + b * blockSize;
 					for (size_t w = 0; w < doc.words.size(); ++w)
 					{
@@ -198,27 +198,27 @@ namespace tomoto
 						if (doc.Zs[w] != levelBlocks[b]) continue;
 						if (doc.words[w] != prevWord)
 						{
-							if (prevWord != (VID)-1)
+							if (prevWord != (Vid)-1)
 							{
 								if (cnt == 1) nodeWLikelihoods.segment(bStart, blockSize).array()
-									+= (ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<FLOAT>() + eta).log();
+									+= (ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<Float>() + eta).log();
 								else nodeWLikelihoods.segment(bStart, blockSize).array()
-									+= Eigen::lgamma_subt(ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<FLOAT>() + eta, cnt);
+									+= Eigen::lgamma_subt(ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<Float>() + eta, cnt);
 							}
 							cnt = 0;
 							prevWord = doc.words[w];
 						}
 						cnt += doc.getWordWeight(w);
 					}
-					if (prevWord != (VID)-1)
+					if (prevWord != (Vid)-1)
 					{
 						if (cnt == 1) nodeWLikelihoods.segment(bStart, blockSize).array()
-							+= (ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<FLOAT>() + eta).log();
+							+= (ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<Float>() + eta).log();
 						else nodeWLikelihoods.segment(bStart, blockSize).array()
-							+= Eigen::lgamma_subt(ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<FLOAT>() + eta, cnt);
+							+= Eigen::lgamma_subt(ld.numByTopicWord.col(prevWord).segment(bStart, blockSize).array().template cast<Float>() + eta, cnt);
 					}
 					nodeWLikelihoods.segment(bStart, blockSize).array()
-						-= Eigen::lgamma_subt(ld.numByTopic.segment(bStart, blockSize).array().template cast<FLOAT>() + realV * eta, (FLOAT)doc.numByTopic[levelBlocks[b]]);
+						-= Eigen::lgamma_subt(ld.numByTopic.segment(bStart, blockSize).array().template cast<Float>() + realV * eta, (Float)doc.numByTopic[levelBlocks[b]]);
 				};
 
 				// we elide the likelihood for root node because its weight applied to all path and can be seen as constant.
@@ -251,9 +251,9 @@ namespace tomoto
 			}
 
 			template<TermWeight _TW>
-			void updateWordLikelihood(FLOAT eta, size_t realV, size_t levelDepth,
-				const DocumentHLDA<_TW>& doc, const std::vector<FLOAT>& newTopicWeights,
-				detail::NCRPNode* node, FLOAT weight = 0)
+			void updateWordLikelihood(Float eta, size_t realV, size_t levelDepth,
+				const DocumentHLDA<_TW>& doc, const std::vector<Float>& newTopicWeights,
+				detail::NCRPNode* node, Float weight = 0)
 			{
 				size_t idx = node - nodes.data();
 				weight += nodeWLikelihoods[idx];
@@ -321,7 +321,7 @@ namespace tomoto
 		typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
-		static constexpr const char* TMID = "hLDA";
+		static constexpr const char TMID[] = "hLDA";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_TW>, _Derived>::type;
 		using BaseClass = LDAModel<_TW, flags::shared_state, _Interface, DerivedClass, _DocType, _ModelState>;
@@ -329,7 +329,7 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		FLOAT gamma;
+		Float gamma;
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
@@ -346,9 +346,9 @@ namespace tomoto
 			if(_MakeNewPath) ld.nt->nodes[doc.path.back()].dropPathOne();
 			ld.nt->template calcNodeLikelihood<_MakeNewPath>(gamma, this->K);
 
-			std::vector<FLOAT> newTopicWeights(this->K - 1);
+			std::vector<Float> newTopicWeights(this->K - 1);
 			std::vector<WeightType> cntByLevel(this->K);
-			VID prevWord = -1;
+			Vid prevWord = -1;
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
 				if (doc.words[w] >= this->realV) break;
@@ -401,7 +401,7 @@ namespace tomoto
 		}
 
 		template<int INC>
-		inline void addWordToOnlyLocal(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID level) const
+		inline void addWordToOnlyLocal(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
@@ -412,7 +412,7 @@ namespace tomoto
 		}
 
 		template<int INC>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID level) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
@@ -423,12 +423,12 @@ namespace tomoto
 		}
 
 		template<bool _asymEta>
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
+		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
-			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->alphas.array());
+			zLikelihood = (doc.numByTopic.array().template cast<Float>() + this->alphas.array());
 			for (size_t l = 0; l < this->K; ++l)
 			{
 				zLikelihood[l] *= (ld.numByTopicWord(doc.path[l], vid) + this->eta)
@@ -444,7 +444,7 @@ namespace tomoto
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
-				FLOAT* dist;
+				Float* dist;
 				if (this->etaByTopicWord.size())
 				{
 					THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
@@ -493,14 +493,14 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				// doc-path distribution
-				for (TID l = 1; l < this->K; ++l)
+				for (Tid l = 1; l < this->K; ++l)
 				{
 					ll += log(this->globalState.nt->nodes[doc.path[l]].numCustomers / (this->globalState.nt->nodes[doc.path[l - 1]].numCustomers + gamma));
 				}
 
 				// doc-level distribution
 				ll -= math::lgammaT(doc.getSumWordWeight() + this->alpha * this->K);
-				for (TID l = 0; l < this->K; ++l)
+				for (Tid l = 0; l < this->K; ++l)
 				{
 					ll += math::lgammaT(doc.numByTopic[l] + this->alpha) - lgammaAlpha;
 				}
@@ -517,12 +517,12 @@ namespace tomoto
 			size_t liveK = 0;
 			// topic-word distribution
 			auto lgammaEta = math::lgammaT(this->eta);
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				if (!ld.nt->nodes[k]) continue;
 				++liveK;
 				ll -= math::lgammaT(ld.numByTopic[k] + V * this->eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					if (!ld.numByTopicWord(k, v)) continue;
 					ll += math::lgammaT(ld.numByTopicWord(k, v) + this->eta) - lgammaEta;
@@ -547,7 +547,7 @@ namespace tomoto
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
 			doc.numByTopic.init(topicDocPtr, this->K);
-			doc.Zs = tvector<TID>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize);
 			doc.path.resize(this->K);
 			for (size_t l = 0; l < this->K; ++l) doc.path[l] = l;
 			
@@ -595,7 +595,10 @@ namespace tomoto
 		}
 
 	public:
-		HLDAModel(size_t _levelDepth = 4, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
+
+		HLDAModel(size_t _levelDepth = 4, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_levelDepth, _alpha, _eta, _rg), gamma(_gamma)
 		{
 			if (_levelDepth == 0 || _levelDepth >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong levelDepth value (levelDepth = %zd)", _levelDepth));
@@ -621,33 +624,32 @@ namespace tomoto
 			return this->K;
 		}
 
-		GETTER(Gamma, FLOAT, gamma);
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, gamma);
+		GETTER(Gamma, Float, gamma);
 
-		bool isLiveTopic(TID tid) const override
+		bool isLiveTopic(Tid tid) const override
 		{
 			return this->globalState.nt->nodes[tid];
 		}
 
-		size_t getParentTopicId(TID tid) const override
+		size_t getParentTopicId(Tid tid) const override
 		{
 			if (!isLiveTopic(tid)) return (size_t)-1;
 			return this->globalState.nt->nodes[tid].parent ? (tid + this->globalState.nt->nodes[tid].parent) : (size_t)-1;
 		}
 
-		size_t getNumDocsOfTopic(TID tid) const override
+		size_t getNumDocsOfTopic(Tid tid) const override
 		{
 			if (!isLiveTopic(tid)) return 0;
 			return this->globalState.nt->nodes[tid].numCustomers;
 		}
 
-		size_t getLevelOfTopic(TID tid) const override
+		size_t getLevelOfTopic(Tid tid) const override
 		{
 			if (!isLiveTopic(tid)) return (size_t)-1;
 			return this->globalState.nt->nodes[tid].level;
 		}
 
-		std::vector<size_t> getChildTopicId(TID tid) const override
+		std::vector<size_t> getChildTopicId(Tid tid) const override
 		{
 			std::vector<size_t> ret;
 			if (!isLiveTopic(tid)) return ret;
@@ -656,6 +658,11 @@ namespace tomoto
 				ret.emplace_back(node - this->globalState.nt->nodes.data());
 			}
 			return ret;
+		}
+
+		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
+		{
+			THROW_ERROR_WITH_INFO(exception::Unimplemented, "HLDAModel doesn't provide setWordPrior function.");
 		}
 	};
 

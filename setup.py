@@ -14,6 +14,8 @@ for f in os.listdir(os.path.join(here, 'src/python')):
     if f.endswith('.cpp'): sources.append('src/python/' + f)
 for f in os.listdir(os.path.join(here, 'src/TopicModel')):
     if f.endswith('.cpp'): sources.append('src/TopicModel/' + f)
+for f in os.listdir(os.path.join(here, 'src/Labeling')):
+    if f.endswith('.cpp'): sources.append('src/Labeling/' + f)
 
 largs = []
 arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
@@ -50,7 +52,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.5.2',
+    version='0.6.0',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,

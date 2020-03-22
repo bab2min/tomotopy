@@ -6,22 +6,37 @@ using namespace std;
 
 static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0, rmTop = 0;
+	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1, eta = 0.01;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k1", "k2", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffn", (char**)kwlist, &tw, &minCnt, &rmTop,
-		&K, &K2, &alpha, &eta, &seed)) return -1;
+	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k1", "k2", "alpha", "eta", "seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &K2, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
+		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
+		{
+			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
+		}
+
 		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, 
 			K, K2, alpha, eta, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+
+		if (objCorpus)
+		{
+			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
+				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
+			py::UniqueObj ret = PyObject_CallObject(feeder, param);
+			if(!ret) return -1;
+		}
 	}
 	catch (const exception& e)
 	{
@@ -43,7 +58,7 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId));
@@ -71,7 +86,7 @@ static PyObject* PA_getSubTopics(TopicModelObject* self, PyObject* args, PyObjec
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getSubTopicBySuperTopicSorted(topicId, topN));
@@ -100,7 +115,7 @@ static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
@@ -128,7 +143,7 @@ static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
 		if (!self->isPrepared)
 		{
-			inst->prepare(true, self->minWordCnt, self->removeTopWord);
+			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
@@ -215,7 +230,7 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 			if (PyErr_Occurred()) throw bad_exception{};
 			if (!self->isPrepared)
 			{
-				inst->prepare(true, self->minWordCnt, self->removeTopWord);
+				inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 				self->isPrepared = true;
 			}
 			auto ll = inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
@@ -245,7 +260,7 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 			if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
 			if (!self->isPrepared)
 			{
-				inst->prepare(true, self->minWordCnt, self->removeTopWord);
+				inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 				self->isPrepared = true;
 			}
 			if (doc->owner)

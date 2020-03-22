@@ -13,7 +13,7 @@ namespace tomoto
 	template<TermWeight _TW>
 	struct ModelStateDMR : public ModelStateLDA<_TW>
 	{
-		Eigen::Matrix<FLOAT, -1, 1> tmpK;
+		Eigen::Matrix<Float, -1, 1> tmpK;
 	};
 
 	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
@@ -25,7 +25,7 @@ namespace tomoto
 		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
-		static constexpr const char* TMID = "DMR";
+		static constexpr const char TMID[] = "DMR";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW>, _Derived>::type;
 		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
@@ -33,36 +33,36 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		Eigen::Matrix<FLOAT, -1, -1> lambda;
-		Eigen::Matrix<FLOAT, -1, -1> expLambda;
-		FLOAT sigma;
+		Eigen::Matrix<Float, -1, -1> lambda;
+		Eigen::Matrix<Float, -1, -1> expLambda;
+		Float sigma;
 		size_t F = 0;
 		size_t optimRepeat = 5;
-		FLOAT alphaEps = 1e-10;
-		FLOAT temperatureScale = 0;
-		static constexpr FLOAT maxLambda = 10;
+		Float alphaEps = 1e-10;
+		Float temperatureScale = 0;
+		static constexpr Float maxLambda = 10;
 		static constexpr size_t maxBFGSIteration = 10;
 
 		Dictionary metadataDict;
-		LBFGSpp::LBFGSSolver<FLOAT, LBFGSpp::LineSearchBracketing> solver;
+		LBFGSpp::LBFGSSolver<Float, LBFGSpp::LineSearchBracketing> solver;
 
-		FLOAT getNegativeLambdaLL(Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g) const
+		Float getNegativeLambdaLL(Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g) const
 		{
 			g = (x.array() - log(this->alpha)) / pow(sigma, 2);
 			return (x.array() - log(this->alpha)).pow(2).sum() / 2 / pow(sigma, 2);
 		}
 
-		FLOAT evaluateLambdaObj(Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g, ThreadPool& pool, _ModelState* localData) const
+		Float evaluateLambdaObj(Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g, ThreadPool& pool, _ModelState* localData) const
 		{
 			// if one of x is greater than maxLambda, return +inf for preventing searching more
 			if ((x.array() > maxLambda).any()) return INFINITY;
 
 			const auto K = this->K;
 
-			FLOAT fx = - static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
+			Float fx = - static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
 			auto alphas = (x.array().exp() + alphaEps).eval();
 
-			std::vector<std::future<Eigen::Matrix<FLOAT, -1, 1>>> res;
+			std::vector<std::future<Eigen::Matrix<Float, -1, 1>>> res;
 			const size_t chStride = pool.getNumWorkers() * 8;
 			for (size_t ch = 0; ch < chStride; ++ch)
 			{
@@ -70,22 +70,22 @@ namespace tomoto
 				{
 					auto& tmpK = localData[threadId].tmpK;
 					if (!tmpK.size()) tmpK.resize(this->K);
-					Eigen::Matrix<FLOAT, -1, 1> val = Eigen::Matrix<FLOAT, -1, 1>::Zero(K * F + 1);
+					Eigen::Matrix<Float, -1, 1> val = Eigen::Matrix<Float, -1, 1>::Zero(K * F + 1);
 					for (size_t docId = ch; docId < this->docs.size(); docId += chStride)
 					{
 						const auto& doc = this->docs[docId];
 						auto alphaDoc = alphas.segment(doc.metadata * K, K);
-						FLOAT alphaSum = alphaDoc.sum();
-						for (TID k = 0; k < K; ++k)
+						Float alphaSum = alphaDoc.sum();
+						for (Tid k = 0; k < K; ++k)
 						{
 							val[K * F] -= math::lgammaT(alphaDoc[k]) - math::lgammaT(doc.numByTopic[k] + alphaDoc[k]);
 							if (!std::isfinite(alphaDoc[k]) && alphaDoc[k] > 0) tmpK[k] = 0;
 							else tmpK[k] = -(math::digammaT(alphaDoc[k]) - math::digammaT(doc.numByTopic[k] + alphaDoc[k]));
 						}
-						//val[K * F] = -(lgammaApprox(alphaDoc.array()) - lgammaApprox(doc.numByTopic.array().cast<FLOAT>() + alphaDoc.array())).sum();
-						//tmpK = -(digammaApprox(alphaDoc.array()) - digammaApprox(doc.numByTopic.array().cast<FLOAT>() + alphaDoc.array()));
+						//val[K * F] = -(lgammaApprox(alphaDoc.array()) - lgammaApprox(doc.numByTopic.array().cast<Float>() + alphaDoc.array())).sum();
+						//tmpK = -(digammaApprox(alphaDoc.array()) - digammaApprox(doc.numByTopic.array().cast<Float>() + alphaDoc.array()));
 						val[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.getSumWordWeight() + alphaSum);
-						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.getSumWordWeight() + alphaSum);
+						Float t = math::digammaT(alphaSum) - math::digammaT(doc.getSumWordWeight() + alphaSum);
 						if (!std::isfinite(alphaSum) && alphaSum > 0)
 						{
 							val[K * F] = -INFINITY;
@@ -110,7 +110,7 @@ namespace tomoto
 
 		void initParameters()
 		{
-			auto dist = std::normal_distribution<FLOAT>(log(this->alpha), sigma);
+			auto dist = std::normal_distribution<Float>(log(this->alpha), sigma);
 			for (size_t i = 0; i < this->K; ++i) for (size_t j = 0; j < F; ++j)
 			{
 				lambda(i, j) = dist(this->rg);
@@ -119,15 +119,15 @@ namespace tomoto
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
-			Eigen::Matrix<FLOAT, -1, -1> bLambda;
-			FLOAT fx = 0, bestFx = INFINITY;
+			Eigen::Matrix<Float, -1, -1> bLambda;
+			Float fx = 0, bestFx = INFINITY;
 			for (size_t i = 0; i < optimRepeat; ++i)
 			{
 				static_cast<DerivedClass*>(this)->initParameters();
-				int ret = solver.minimize([this, &pool, localData](Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g)
+				int ret = solver.minimize([this, &pool, localData](Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g)
 				{
 					return static_cast<DerivedClass*>(this)->evaluateLambdaObj(x, g, pool, localData);
-				}, Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>(lambda.data(), lambda.size()), fx);
+				}, Eigen::Map<Eigen::Matrix<Float, -1, 1>>(lambda.data(), lambda.size()), fx);
 
 				if (fx < bestFx)
 				{
@@ -154,15 +154,15 @@ namespace tomoto
 		}
 
 		template<bool _asymEta>
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
+		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
-			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + this->expLambda.col(doc.metadata).array())
-				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
-				/ (ld.numByTopic.array().template cast<FLOAT>() + etaHelper.getEtaSum());
+			zLikelihood = (doc.numByTopic.array().template cast<Float>() + this->expLambda.col(doc.metadata).array())
+				* (ld.numByTopicWord.col(vid).array().template cast<Float>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic.array().template cast<Float>() + etaHelper.getEtaSum());
 
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];
@@ -176,9 +176,9 @@ namespace tomoto
 
 			auto alphaDoc = expLambda.col(doc.metadata);
 
-			FLOAT ll = 0;
-			FLOAT alphaSum = alphaDoc.sum();
-			for (TID k = 0; k < K; ++k)
+			Float ll = 0;
+			Float alphaSum = alphaDoc.sum();
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll += math::lgammaT(doc.numByTopic[k] + alphaDoc[k]);
 				ll -= math::lgammaT(alphaDoc[k]);
@@ -198,9 +198,9 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				auto alphaDoc = expLambda.col(doc.metadata);
-				FLOAT alphaSum = alphaDoc.sum();
+				Float alphaSum = alphaDoc.sum();
 
-				for (TID k = 0; k < K; ++k)
+				for (Tid k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alphaDoc[k]) - math::lgammaT(alphaDoc[k]);
 				}
@@ -220,10 +220,10 @@ namespace tomoto
 			// topic-word distribution
 			auto lgammaEta = math::lgammaT(eta);
 			ll += math::lgammaT(V*eta) * K;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					if (!ld.numByTopicWord(k, v)) continue;
 					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
@@ -235,54 +235,96 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			BaseClass::initGlobalState(initDocs);
-			this->globalState.tmpK = Eigen::Matrix<FLOAT, -1, 1>::Zero(this->K);
+			this->globalState.tmpK = Eigen::Matrix<Float, -1, 1>::Zero(this->K);
 			F = metadataDict.size();
 			if (initDocs)
 			{
-				lambda = Eigen::Matrix<FLOAT, -1, -1>::Constant(this->K, F, log(this->alpha));
+				lambda = Eigen::Matrix<Float, -1, -1>::Constant(this->K, F, log(this->alpha));
 			}
 			if (_Flags & flags::continuous_doc_data) this->numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, this->docs.size());
 			expLambda = lambda.array().exp();
-			LBFGSpp::LBFGSParam<FLOAT> param;
+			LBFGSpp::LBFGSParam<Float> param;
 			param.max_iterations = maxBFGSIteration;
 			solver = decltype(solver){ param };
 		}
 
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, sigma, alphaEps, metadataDict, lambda);
-
 	public:
-		DMRModel(size_t _K = 1, FLOAT defaultAlpha = 1.0, FLOAT _sigma = 1.0, FLOAT _eta = 0.01, 
-			FLOAT _alphaEps = 0, const RandGen& _rg = RandGen{ std::random_device{}() })
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma, alphaEps, metadataDict, lambda);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma, alphaEps, metadataDict, lambda);
+
+		DMRModel(size_t _K = 1, Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _eta = 0.01, 
+			Float _alphaEps = 0, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _eta, _rg), sigma(_sigma), alphaEps(_alphaEps)
 		{
 			if (_sigma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong sigma value (sigma = %f)", _sigma));
 		}
 
-		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) override
+		template<bool _const = false>
+		_DocType& _updateDoc(_DocType& doc, const std::vector<std::string>& metadata)
 		{
 			std::string metadataJoined = text::join(metadata.begin(), metadata.end(), "_");
-			VID xid = metadataDict.add(metadataJoined);
-			auto doc = this->_makeDoc(words);
+			Vid xid;
+			if (_const)
+			{
+				xid = metadataDict.toWid(metadataJoined);
+				if (xid == (Vid)-1) throw std::invalid_argument("unknown metadata");
+			}
+			else
+			{
+				xid = metadataDict.add(metadataJoined);
+			}
 			doc.metadata = xid;
-			return this->_addDoc(doc);
+			return doc;
+		}
+
+		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) override
+		{
+			auto doc = this->_makeDoc(words);
+			return this->_addDoc(_updateDoc(doc, metadata));
 		}
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) const override
 		{
-			std::string metadataJoined = text::join(metadata.begin(), metadata.end(), "_");
-			VID xid = metadataDict.toWid(metadataJoined);
-			if (xid == (VID)-1) throw std::invalid_argument("unknown metadata");
-			auto doc = this->_makeDocWithinVocab(words);
-			doc.metadata = xid;
-			return make_unique<_DocType>(doc);
+			auto doc = as_mutable(this)->template _makeDoc<true>(words);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
+		}
+
+		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer, 
+			const std::vector<std::string>& metadata) override
+		{
+			auto doc = this->template _makeRawDoc<false>(rawStr, tokenizer);
+			return this->_addDoc(_updateDoc(doc, metadata));
+		}
+
+		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer, 
+			const std::vector<std::string>& metadata) const override
+		{
+			auto doc = as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
+		}
+
+		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, 
+			const std::vector<std::string>& metadata) override
+		{
+			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
+			return this->_addDoc(_updateDoc(doc, metadata));
+		}
+
+		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, 
+			const std::vector<std::string>& metadata) const override
+		{
+			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
 		}
 
 		GETTER(F, size_t, F);
-		GETTER(Sigma, FLOAT, sigma);
-		GETTER(AlphaEps, FLOAT, alphaEps);
+		GETTER(Sigma, Float, sigma);
+		GETTER(AlphaEps, Float, alphaEps);
 		GETTER(OptimRepeat, size_t, optimRepeat);
 
-		void setAlphaEps(FLOAT _alphaEps) override
+		void setAlphaEps(Float _alphaEps) override
 		{
 			alphaEps = _alphaEps;
 		}
@@ -292,23 +334,23 @@ namespace tomoto
 			optimRepeat = _optimRepeat;
 		}
 
-		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
 		{
-			std::vector<FLOAT> ret(this->K);
+			std::vector<Float> ret(this->K);
 			auto alphaDoc = expLambda.col(doc.metadata);
-			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>>{ret.data(), this->K}.array() =
-				(doc.numByTopic.array().template cast<FLOAT>() + alphaDoc.array()) / (doc.getSumWordWeight() + alphaDoc.sum());
+			Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ret.data(), this->K}.array() =
+				(doc.numByTopic.array().template cast<Float>() + alphaDoc.array()) / (doc.getSumWordWeight() + alphaDoc.sum());
 			return ret;
 		}
 
-		std::vector<FLOAT> getLambdaByMetadata(size_t metadataId) const override
+		std::vector<Float> getLambdaByMetadata(size_t metadataId) const override
 		{
 			assert(metadataId < metadataDict.size());
 			auto l = lambda.col(metadataId);
 			return { l.data(), l.data() + this->K };
 		}
 
-		std::vector<FLOAT> getLambdaByTopic(TID tid) const override
+		std::vector<Float> getLambdaByTopic(Tid tid) const override
 		{
 			assert(tid < this->K);
 			auto l = lambda.row(tid);
@@ -321,7 +363,7 @@ namespace tomoto
 	/* This is for preventing 'undefined symbol' problem in compiling by clang. */
 	template<TermWeight _TW, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr FLOAT DMRModel<_TW, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
+		constexpr Float DMRModel<_TW, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
 
 	template<TermWeight _TW, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>

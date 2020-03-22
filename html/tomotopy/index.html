@@ -1,0 +1,2803 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.7.5" />
+<title>tomotopy API documentation</title>
+<meta name="description" content="`tomotopy` 패키지는 Python에서 사용가능한 다양한 토픽 모델링 타입과 함수를 제공합니다.
+내부 모듈은 c++로 작성되었기 때문에 빠른 속도를 자랑합니다 …" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>tomotopy</code></h1>
+</header>
+<section id="section-intro">
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a> 패키지는 Python에서 사용가능한 다양한 토픽 모델링 타입과 함수를 제공합니다.
+내부 모듈은 c++로 작성되었기 때문에 빠른 속도를 자랑합니다.</p>
+<h2 id="tomotopy">tomotopy 란?</h2>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 토픽 모델링 툴인 <code>tomoto</code>의 Python 확장 버전입니다. <code>tomoto</code>는 c++로 작성된 깁스 샘플링 기반의 토픽 모델링 라이브러리로,
+최신 CPU의 벡터화 기술을 활용하여 처리 속도를 최대로 끌어올렸습니다.
+현재 버전의 <code>tomoto</code>에서는 다음과 같은 주요 토픽 모델들을 지원하고 있습니다.</p>
+<ul>
+<li>Latent Dirichlet Allocation (<a title="tomotopy.LDAModel" href="#tomotopy.LDAModel"><code>LDAModel</code></a>)</li>
+<li>Labeled LDA (<a title="tomotopy.LLDAModel" href="#tomotopy.LLDAModel"><code>LLDAModel</code></a>)</li>
+<li>Partially Labeled LDA (<a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel"><code>PLDAModel</code></a>)</li>
+<li>Supervised LDA (<a title="tomotopy.SLDAModel" href="#tomotopy.SLDAModel"><code>SLDAModel</code></a>)</li>
+<li>Dirichlet Multinomial Regression (<a title="tomotopy.DMRModel" href="#tomotopy.DMRModel"><code>DMRModel</code></a>)</li>
+<li>Hierarchical Dirichlet Process (<a title="tomotopy.HDPModel" href="#tomotopy.HDPModel"><code>HDPModel</code></a>)</li>
+<li>Hierarchical LDA (<a title="tomotopy.HLDAModel" href="#tomotopy.HLDAModel"><code>HLDAModel</code></a>)</li>
+<li>Multi Grain LDA (<a title="tomotopy.MGLDAModel" href="#tomotopy.MGLDAModel"><code>MGLDAModel</code></a>) </li>
+<li>Pachinko Allocation (<a title="tomotopy.PAModel" href="#tomotopy.PAModel"><code>PAModel</code></a>)</li>
+<li>Hierarchical PA (<a title="tomotopy.HPAModel" href="#tomotopy.HPAModel"><code>HPAModel</code></a>)</li>
+<li>Correlated Topic Model (<a title="tomotopy.CTModel" href="#tomotopy.CTModel"><code>CTModel</code></a>)</li>
+</ul>
+<p>tomotopy의 가장 최신버전은 0.6.0 입니다.</p>
+<p><img alt="" src="https://badge.fury.io/py/tomotopy.svg"></p>
+<h2 id="_1">시작하기</h2>
+<p>다음과 같이 pip를 이용하면 tomotopy를 쉽게 설치할 수 있습니다. (<a href="https://pypi.org/project/tomotopy/">https://pypi.org/project/tomotopy/</a>)
+::</p>
+<pre><code>$ pip install tomotopy
+</code></pre>
+<p>Linux에서는 c++11 코드를 컴파일하기 위해 gcc 5 이상이 필수적으로 설치되어 있어야 합니다.
+설치가 끝난 뒤에는 다음과 같이 Python3에서 바로 import하여 tomotopy를 사용할 수 있습니다.
+::</p>
+<pre><code>import tomotopy as tp
+print(tp.isa) # 'avx2'나 'avx', 'sse2', 'none'를 출력합니다.
+</code></pre>
+<p>현재 tomotopy는 가속을 위해 AVX2, AVX or SSE2 SIMD 명령어 세트를 활용할 수 있습니다.
+패키지가 import될 때 현재 환경에서 활용할 수 있는 최선의 명령어 세트를 확인하여 최상의 모듈을 자동으로 가져옵니다.
+만약 <code>tp.isa</code>가 <code>none</code>이라면 현재 환경에서 활용 가능한 SIMD 명령어 세트가 없는 것이므로 훈련에 오랜 시간이 걸릴 수 있습니다.
+그러나 최근 대부분의 Intel 및 AMD CPU에서는 SIMD 명령어 세트를 지원하므로 SIMD 가속이 성능을 크게 향상시킬 수 있을 것입니다.</p>
+<p>간단한 예제로 'sample.txt' 파일로 LDA 모델을 학습하는 코드는 다음과 같습니다.
+::</p>
+<pre><code>import tomotopy as tp
+mdl = tp.LDAModel(k=20)
+for line in open('sample.txt'):
+    mdl.add_doc(line.strip().split())
+
+for i in range(0, 100, 10):
+    mdl.train(10)
+    print('Iteration: {}\tLog-likelihood: {}'.format(i, mdl.ll_per_word))
+
+for k in range(mdl.k):
+    print('Top 10 words of topic #{}'.format(k))
+    print(mdl.get_topic_words(k, top_n=10))
+</code></pre>
+<h2 id="tomotopy_1">tomotopy의 성능</h2>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 주제 분포와 단어 분포를 추론하기 위해 Collapsed Gibbs-Sampling(CGS) 기법을 사용합니다.
+일반적으로 CGS는 <a href="https://radimrehurek.com/gensim/models/ldamodel.html">gensim의 LdaModel</a>가 이용하는 Variational Bayes(VB) 보다 느리게 수렴하지만 각각의 반복은 빠르게 계산 가능합니다.
+게다가 <a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 멀티스레드를 지원하므로 SIMD 명령어 세트뿐만 아니라 다중 코어 CPU의 장점까지 활용할 수 있습니다. 이 덕분에 각각의 반복이 훨씬 빠르게 계산 가능합니다.</p>
+<p>다음의 차트는 <a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>와 <code>gensim</code>의 LDA 모형 실행 시간을 비교하여 보여줍니다.
+입력 문헌은 영어 위키백과에서 가져온 1000개의 임의 문서이며 전체 문헌 집합은 총 1,506,966개의 단어로 구성되어 있습니다. (약 10.1 MB).
+<a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 200회를, <code>gensim</code> 10회를 반복 학습하였습니다.</p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/tmt_i5.png"></p>
+<p>↑ Intel i5-6600, x86-64 (4 cores)에서의 성능</p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/tmt_xeon.png"></p>
+<p>↑ Intel Xeon E5-2620 v4, x86-64 (8 cores, 16 threads)에서의 성능</p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/tmt_r7_3700x.png"></p>
+<p>↑ AMD Ryzen7 3700X, x86-64 (8 cores, 16 threads)에서의 성능</p>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>가 20배 더 많이 반복하였지만 전체 실행시간은 <code>gensim</code>보다 5~10배 더 빨랐습니다. 또한 <a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 전반적으로 안정적인 결과를 보여주고 있습니다.</p>
+<p>CGS와 VB는 서로 접근방법이 아예 다른 기법이기 때문에 둘을 직접적으로 비교하기는 어렵습니다만, 실용적인 관점에서 두 기법의 속도와 결과물을 비교해볼 수 있습니다.
+다음의 차트에는 두 기법이 학습 후 보여준 단어당 로그 가능도 값이 표현되어 있습니다.</p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/LLComp.png"></p>
+<table style='width:100%'>
+<tbody><tr><th colspan="2"><a title="tomotopy" href="#tomotopy">`tomotopy`</a>가 생성한 주제들의 상위 단어</th></tr>
+<tr><th>#1</th><td>use, acid, cell, form, also, effect</td></tr>
+<tr><th>#2</th><td>use, number, one, set, comput, function</td></tr>
+<tr><th>#3</th><td>state, use, may, court, law, person</td></tr>
+<tr><th>#4</th><td>state, american, nation, parti, new, elect</td></tr>
+<tr><th>#5</th><td>film, music, play, song, anim, album</td></tr>
+<tr><th>#6</th><td>art, work, design, de, build, artist</td></tr>
+<tr><th>#7</th><td>american, player, english, politician, footbal, author</td></tr>
+<tr><th>#8</th><td>appl, use, comput, system, softwar, compani</td></tr>
+<tr><th>#9</th><td>day, unit, de, state, german, dutch</td></tr>
+<tr><th>#10</th><td>team, game, first, club, leagu, play</td></tr>
+<tr><th>#11</th><td>church, roman, god, greek, centuri, bc</td></tr>
+<tr><th>#12</th><td>atom, use, star, electron, metal, element</td></tr>
+<tr><th>#13</th><td>alexand, king, ii, emperor, son, iii</td></tr>
+<tr><th>#14</th><td>languag, arab, use, word, english, form</td></tr>
+<tr><th>#15</th><td>speci, island, plant, famili, order, use</td></tr>
+<tr><th>#16</th><td>work, univers, world, book, human, theori</td></tr>
+<tr><th>#17</th><td>citi, area, region, popul, south, world</td></tr>
+<tr><th>#18</th><td>forc, war, armi, militari, jew, countri</td></tr>
+<tr><th>#19</th><td>year, first, would, later, time, death</td></tr>
+<tr><th>#20</th><td>apollo, use, aircraft, flight, mission, first</td></tr>
+</tbody></table>
+<table style='width:100%'>
+<tbody><tr><th colspan="2">`gensim`이 생성한 주제들의 상위 단어</th></tr>
+<tr><th>#1</th><td>use, acid, may, also, azerbaijan, cell</td></tr>
+<tr><th>#2</th><td>use, system, comput, one, also, time</td></tr>
+<tr><th>#3</th><td>state, citi, day, nation, year, area</td></tr>
+<tr><th>#4</th><td>state, lincoln, american, war, union, bell</td></tr>
+<tr><th>#5</th><td>anim, game, anal, atari, area, sex</td></tr>
+<tr><th>#6</th><td>art, use, work, also, includ, first</td></tr>
+<tr><th>#7</th><td>american, player, english, politician, footbal, author</td></tr>
+<tr><th>#8</th><td>new, american, team, season, leagu, year</td></tr>
+<tr><th>#9</th><td>appl, ii, martin, aston, magnitud, star</td></tr>
+<tr><th>#10</th><td>bc, assyrian, use, speer, also, abort</td></tr>
+<tr><th>#11</th><td>use, arsen, also, audi, one, first</td></tr>
+<tr><th>#12</th><td>algebra, use, set, ture, number, tank</td></tr>
+<tr><th>#13</th><td>appl, state, use, also, includ, product</td></tr>
+<tr><th>#14</th><td>use, languag, word, arab, also, english</td></tr>
+<tr><th>#15</th><td>god, work, one, also, greek, name</td></tr>
+<tr><th>#16</th><td>first, one, also, time, work, film</td></tr>
+<tr><th>#17</th><td>church, alexand, arab, also, anglican, use</td></tr>
+<tr><th>#18</th><td>british, american, new, war, armi, alfr</td></tr>
+<tr><th>#19</th><td>airlin, vote, candid, approv, footbal, air</td></tr>
+<tr><th>#20</th><td>apollo, mission, lunar, first, crew, land</td></tr>
+</tbody></table>
+<p>어떤 SIMD 명령어 세트를 사용하는지는 성능에 큰 영향을 미칩니다.
+다음 차트는 SIMD 명령어 세트에 따른 성능 차이를 보여줍니다.</p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/SIMDComp.png"></p>
+<p>다행히도 최신 x86-64 CPU들은 대부분 AVX2 명령어 세트를 지원하기 때문에 대부분의 경우 AVX2의 높은 성능을 활용할 수 있을 것입니다.</p>
+<h2 id="_2">모델의 저장과 불러오기</h2>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 각각의 토픽 모델 클래스에 대해 <code>save</code>와 <code>load</code> 메소드를 제공합니다.
+따라서 학습이 끝난 모델을 언제든지 파일에 저장하거나, 파일로부터 다시 읽어와서 다양한 작업을 수행할 수 있습니다.
+::</p>
+<pre><code>import tomotopy as tp
+
+mdl = tp.HDPModel()
+for line in open('sample.txt'):
+    mdl.add_doc(line.strip().split())
+
+for i in range(0, 100, 10):
+    mdl.train(10)
+    print('Iteration: {}\tLog-likelihood: {}'.format(i, mdl.ll_per_word))
+
+# 파일에 저장
+mdl.save('sample_hdp_model.bin')
+
+# 파일로부터 불러오기
+mdl = tp.HDPModel.load('sample_hdp_model.bin')
+for k in range(mdl.k):
+    if not mdl.is_live_topic(k): continue
+    print('Top 10 words of topic #{}'.format(k))
+    print(mdl.get_topic_words(k, top_n=10))
+
+# 저장된 모델이 HDP 모델이었기 때문에, 
+# LDA 모델에서 이 파일을 읽어오려고 하면 예외가 발생합니다.
+mdl = tp.LDAModel.load('sample_hdp_model.bin')
+</code></pre>
+<p>파일로부터 모델을 불러올 때는 반드시 저장된 모델의 타입과 읽어올 모델의 타입이 일치해야합니다.</p>
+<p>이에 대해서는 <a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save"><code>LDAModel.save()</code></a>와 <a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load"><code>LDAModel.load()</code></a>에서 더 자세한 내용을 확인할 수 있습니다.</p>
+<h2 id="_3">모델 안의 문헌과 모델 밖의 문헌</h2>
+<p>토픽 모델은 크게 2가지 목적으로 사용할 수 있습니다.
+기본적으로는 문헌 집합으로부터 모델을 학습하여 문헌 내의 주제들을 발견하기 위해 토픽 모델을 사용할 수 있으며,
+더 나아가 학습된 모델을 활용하여 학습할 때는 주어지지 않았던 새로운 문헌에 대해 주제 분포를 추론하는 것도 가능합니다.
+전자의 과정에서 사용되는 문헌(학습 과정에서 사용되는 문헌)을 <strong>모델 안의 문헌</strong>,
+후자의 과정에서 주어지는 새로운 문헌(학습 과정에 포함되지 않았던 문헌)을 <strong>모델 밖의 문헌</strong>이라고 가리키도록 하겠습니다.</p>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>에서 이 두 종류의 문헌을 생성하는 방법은 다릅니다. <strong>모델 안의 문헌</strong>은 <a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc"><code>LDAModel.add_doc()</code></a>을 이용하여 생성합니다.
+add_doc은 <a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train"><code>LDAModel.train()</code></a>을 시작하기 전까지만 사용할 수 있습니다.
+즉 train을 시작한 이후로는 학습 문헌 집합이 고정되기 때문에 add_doc을 이용하여 새로운 문헌을 모델 내에 추가할 수 없습니다.</p>
+<p>또한 생성된 문헌의 인스턴스를 얻기 위해서는 다음과 같이 <a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs"><code>LDAModel.docs</code></a>를 사용해야 합니다.</p>
+<p>::</p>
+<pre><code>mdl = tp.LDAModel(k=20)
+idx = mdl.add_doc(words)
+if idx &lt; 0: raise RuntimeError("Failed to add doc")
+doc_inst = mdl.docs[idx]
+# doc_inst is an instance of the added document
+</code></pre>
+<p><strong>모델 밖의 문헌</strong>은 <a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc"><code>LDAModel.make_doc()</code></a>을 이용해 생성합니다. make_doc은 add_doc과 반대로 train을 시작한 이후에 사용할 수 있습니다.
+만약 train을 시작하기 전에 make_doc을 사용할 경우 올바르지 않은 결과를 얻게 되니 이 점 유의하시길 바랍니다. make_doc은 바로 인스턴스를 반환하므로 반환값을 받아 바로 사용할 수 있습니다.</p>
+<p>::</p>
+<pre><code>mdl = tp.LDAModel(k=20)
+# add_doc ...
+mdl.train(100)
+doc_inst = mdl.make_doc(unseen_words) # doc_inst is an instance of the unseen document
+</code></pre>
+<h2 id="_4">새로운 문헌에 대해 추론하기</h2>
+<p><a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc"><code>LDAModel.make_doc()</code></a>을 이용해 새로운 문헌을 생성했다면 이를 모델에 입력해 주제 분포를 추론하도록 할 수 있습니다.
+새로운 문헌에 대한 추론은 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a>를 사용합니다.</p>
+<p>::</p>
+<pre><code>mdl = tp.LDAModel(k=20)
+# add_doc ...
+mdl.train(100)
+doc_inst = mdl.make_doc(unseen_words)
+topic_dist, ll = mdl.infer(doc_inst)
+print("Topic Distribution for Unseen Docs: ", topic_dist)
+print("Log-likelihood of inference: ", ll)
+</code></pre>
+<p>infer 메소드는 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스 하나를 추론하거나 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스의 <code>list</code>를 추론하는데 사용할 수 있습니다.
+자세한 것은 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a>을 참조하길 바랍니다.</p>
+<h2 id="_5">병렬 샘플링 알고리즘</h2>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 0.5.0버전부터 병렬 알고리즘을 고를 수 있는 선택지를 제공합니다.
+0.4.2 이전버전까지 제공되던 알고리즘은 <code>COPY_MERGE</code>로 이 기법은 모든 토픽 모델에 사용 가능합니다.
+새로운 알고리즘인 <code>PARTITION</code>은 0.5.0이후부터 사용가능하며, 이를 사용하면 더 빠르고 메모리 효율적으로 학습을 수행할 수 있습니다. 단 이 기법은 일부 토픽 모델에 대해서만 사용 가능합니다.</p>
+<p>다음 차트는 토픽 개수와 코어 개수에 따라 두 기법의 속도 차이를 보여줍니다.</p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/algo_comp.png"></p>
+<p><img alt="" src="https://bab2min.github.io/tomotopy/images/algo_comp2.png"></p>
+<h2 id="_6">예제 코드</h2>
+<p>tomotopy의 Python3 예제 코드는 <a href="https://github.com/bab2min/tomotopy/blob/master/example.py">https://github.com/bab2min/tomotopy/blob/master/example.py</a> 를 확인하시길 바랍니다.</p>
+<p>예제 코드에서 사용했던 데이터 파일은 <a href="https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view">https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view</a> 에서 다운받을 수 있습니다.</p>
+<h2 id="_7">라이센스</h2>
+<p><a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>는 MIT License 하에 배포됩니다.</p>
+<h2 id="_8">역사</h2>
+<ul>
+<li>
+<p>0.5.2 (2020-03-01)</p>
+<ul>
+<li><a title="tomotopy.LLDAModel.add_doc" href="#tomotopy.LLDAModel.add_doc"><code>LLDAModel.add_doc()</code></a> 실행시 segmentation fault가 발생하는 문제를 해결했습니다.</li>
+<li><a title="tomotopy.HDPModel" href="#tomotopy.HDPModel"><code>HDPModel</code></a>에서 <code>infer</code> 실행시 종종 프로그램이 종료되는 문제를 해결했습니다.</li>
+<li><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a>에서 ps=tomotopy.ParallelScheme.PARTITION, together=True로 실행시 발생하는 오류를 해결했습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.5.1 (2020-01-11)</p>
+<ul>
+<li><a title="tomotopy.SLDAModel.make_doc" href="#tomotopy.SLDAModel.make_doc"><code>SLDAModel.make_doc()</code></a>에서 결측값을 지원하지 않던 문제를 해결했습니다.</li>
+<li><a title="tomotopy.SLDAModel" href="#tomotopy.SLDAModel"><code>SLDAModel</code></a>이 이제 결측값을 지원합니다. 결측값을 가진 문헌은 토픽 모델링에는 참여하지만, 응답 변수 회귀에서는 제외됩니다.</li>
+</ul>
+</li>
+<li>
+<p>0.5.0 (2019-12-30)</p>
+<ul>
+<li><a title="tomotopy.PAModel.infer" href="#tomotopy.PAModel.infer"><code>PAModel.infer()</code></a>가 topic distribution과 sub-topic distribution을 동시에 반환합니다.</li>
+<li><a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a>에 get_sub_topics, get_sub_topic_dist 메소드가 추가되었습니다. (PAModel 전용)</li>
+<li><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train"><code>LDAModel.train()</code></a> 및 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 parallel 옵션이 추가되었습니다. 이를 통해 학습 및 추론시 사용할 병렬화 알고리즘을 선택할 수 있습니다.</li>
+<li><a title="tomotopy.ParallelScheme.PARTITION" href="#tomotopy.ParallelScheme.PARTITION"><code>ParallelScheme.PARTITION</code></a> 알고리즘이 추가되었습니다. 이 알고리즘은 작업자 수가 많거나 토픽의 개수나 어휘 크기가 클 때도 효율적으로 작동합니다.</li>
+<li>모델 생성시 min_cf &lt; 2일때 rm_top 옵션이 적용되지 않는 문제를 수정하였습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.4.2 (2019-11-30)</p>
+<ul>
+<li><a title="tomotopy.LLDAModel" href="#tomotopy.LLDAModel"><code>LLDAModel</code></a>와 <a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel"><code>PLDAModel</code></a> 모델에서 토픽 할당이 잘못 일어나던 문제를 해결했습니다.</li>
+<li><a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 및 <a title="tomotopy.Dictionary" href="#tomotopy.Dictionary"><code>Dictionary</code></a> 클래스에 가독성이 좋은 __repr__가 추가되었습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.4.1 (2019-11-27)</p>
+<ul>
+<li><a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel"><code>PLDAModel</code></a> 생성자의 버그를 수정했습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.4.0 (2019-11-18)</p>
+<ul>
+<li><a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel"><code>PLDAModel</code></a>와 <a title="tomotopy.HLDAModel" href="#tomotopy.HLDAModel"><code>HLDAModel</code></a> 토픽 모델이 새로 추가되었습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.3.1 (2019-11-05)</p>
+<ul>
+<li><code>min_cf</code> 혹은 <code>rm_top</code>가 설정되었을 때 <code>get_topic_dist()</code>의 반환값이 부정확한 문제를 수정하였습니다.</li>
+<li><a title="tomotopy.MGLDAModel" href="#tomotopy.MGLDAModel"><code>MGLDAModel</code></a> 모델의 문헌의 <code>get_topic_dist()</code>가 지역 토픽에 대한 분포도 함께 반환하도록 수정하였습니다..</li>
+<li><code>tw=ONE</code>일때의 학습 속도가 개선되었습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.3.0 (2019-10-06)</p>
+<ul>
+<li><a title="tomotopy.LLDAModel" href="#tomotopy.LLDAModel"><code>LLDAModel</code></a> 토픽 모델이 새로 추가되었습니다.</li>
+<li><a title="tomotopy.HDPModel" href="#tomotopy.HDPModel"><code>HDPModel</code></a>을 학습할 때 프로그램이 종료되는 문제를 해결했습니다.</li>
+<li><a title="tomotopy.HDPModel" href="#tomotopy.HDPModel"><code>HDPModel</code></a>의 하이퍼파라미터 추정 기능이 추가되었습니다. 이 때문에 새 버전의 <a title="tomotopy.HDPModel" href="#tomotopy.HDPModel"><code>HDPModel</code></a> 결과는 이전 버전과 다를 수 있습니다.
+이전 버전처럼 하이퍼파라미터 추정을 끄려면, <code>optim_interval</code>을 0으로 설정하십시오.</li>
+</ul>
+</li>
+<li>
+<p>0.2.0 (2019-08-18)</p>
+<ul>
+<li><a title="tomotopy.CTModel" href="#tomotopy.CTModel"><code>CTModel</code></a>와 <a title="tomotopy.SLDAModel" href="#tomotopy.SLDAModel"><code>SLDAModel</code></a> 토픽 모델이 새로 추가되었습니다.</li>
+<li><code>rm_top</code> 파라미터 옵션이 모든 토픽 모델에 추가되었습니다.</li>
+<li><a title="tomotopy.PAModel" href="#tomotopy.PAModel"><code>PAModel</code></a>과 <a title="tomotopy.HPAModel" href="#tomotopy.HPAModel"><code>HPAModel</code></a> 모델에서 <code>save</code>와 <code>load</code>가 제대로 작동하지 않는 문제를 해결하였습니다.</li>
+<li><a title="tomotopy.HDPModel" href="#tomotopy.HDPModel"><code>HDPModel</code></a> 인스턴스를 파일로부터 로딩할 때 종종 프로그램이 종료되는 문제를 해결하였습니다.</li>
+<li><code>min_cf</code> &gt; 0으로 설정하였을 때 <code>ll_per_word</code> 값이 잘못 계산되는 문제를 해결하였습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.1.6 (2019-08-09)</p>
+<ul>
+<li>macOS와 clang에서 제대로 컴파일되지 않는 문제를 해결했습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.1.4 (2019-08-05)</p>
+<ul>
+<li><code>add_doc</code> 메소드가 빈 리스트를 받았을 때 발생하는 문제를 해결하였습니다.</li>
+<li><a title="tomotopy.PAModel.get_topic_words" href="#tomotopy.PAModel.get_topic_words"><code>PAModel.get_topic_words()</code></a>가 하위토픽의 단어 분포를 제대로 반환하지 못하는 문제를 해결하였습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.1.3 (2019-05-19)</p>
+<ul>
+<li><code>min_cf</code> 파라미터와 불용어 제거 기능이 모든 토픽 모델에 추가되었습니다.</li>
+</ul>
+</li>
+<li>
+<p>0.1.0 (2019-05-12)</p>
+<ul>
+<li><strong>tomotopy</strong>의 최초 버전</li>
+</ul>
+</li>
+</ul>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+Python package `tomotopy` provides types and functions for various Topic Model 
+including LDA, DMR, HDP, MG-LDA, PA and HPA. It is written in C++ for speed and provides Python extension.
+
+.. include:: ./documentation.rst
+&#34;&#34;&#34;
+import tomotopy.utils as utils
+from enum import IntEnum
+
+class TermWeight(IntEnum):
+    &#34;&#34;&#34;
+    This enumeration is for Term Weighting Scheme and it is based on following paper:
+    
+    &gt; * Wilson, A. T., &amp; Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.
+    
+    There are three options for term weighting and the basic one is ONE. The others also can be applied for all topic models in `tomotopy`. 
+    &#34;&#34;&#34;
+
+    ONE = 0
+    &#34;&#34;&#34; Consider every term equal (default)&#34;&#34;&#34;
+
+    IDF = 1
+    &#34;&#34;&#34; 
+    Use Inverse Document Frequency term weighting.
+    
+    Thus, a term occurring at almost every document has very low weighting
+    and a term occurring at a few document has high weighting. 
+    &#34;&#34;&#34;
+
+    PMI = 2
+    &#34;&#34;&#34;
+    Use Pointwise Mutual Information term weighting.
+    &#34;&#34;&#34;
+
+class ParallelScheme(IntEnum):
+    &#34;&#34;&#34;
+    This enumeration is for Parallelizing Scheme:
+    There are three options for parallelizing and the basic one is DEFAULT. Not all models supports all options. 
+    &#34;&#34;&#34;
+
+    DEFAULT = 0
+    &#34;&#34;&#34;tomotopy chooses the best available parallelism scheme for your model&#34;&#34;&#34;
+
+    NONE = 1
+    &#34;&#34;&#34; 
+    Turn off multi-threading for Gibbs sampling at training or inference. Operations other than Gibbs sampling may use multithreading.
+    &#34;&#34;&#34;
+
+    COPY_MERGE = 2
+    &#34;&#34;&#34;
+    Use Copy and Merge algorithm from AD-LDA. It consumes RAM in proportion to the number of workers. 
+    This has advantages when you have a small number of workers and a small number of topics and vocabulary sizes in the model.
+    Prior to version 0.5, all models used this algorithm by default. 
+    
+    &gt; * Newman, D., Asuncion, A., Smyth, P., &amp; Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+    &#34;&#34;&#34;
+
+    PARTITION = 3
+    &#34;&#34;&#34;
+    Use Partitioning algorithm from PCGS. It consumes only twice as much RAM as a single-threaded algorithm, regardless of the number of workers.
+    This has advantages when you have a large number of workers or a large number of topics and vocabulary sizes in the model.
+    
+    &gt; * Yan, F., Xu, N., &amp; Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
+    &#34;&#34;&#34;
+
+isa = &#39;&#39;
+&#34;&#34;&#34;
+Indicate which SIMD instruction set is used for acceleration.
+It can be one of `&#39;avx2&#39;`, `&#39;avx&#39;`, `&#39;sse2&#39;` and `&#39;none&#39;`.
+&#34;&#34;&#34;
+
+# This code is an autocomplete-hint for IDE.
+# The object imported here will be overwritten by _load() function.
+try: from _tomotopy import *
+except: pass
+
+def _load():
+    import importlib, os
+    from cpuinfo import get_cpu_info
+    flags = get_cpu_info()[&#39;flags&#39;]
+    env_setting = os.environ.get(&#39;TOMOTOPY_ISA&#39;, &#39;&#39;).split(&#39;,&#39;)
+    if not env_setting[0]: env_setting = []
+    isas = [&#39;avx2&#39;, &#39;avx&#39;, &#39;sse2&#39;, &#39;none&#39;]
+    isas = [isa for isa in isas if (env_setting and isa in env_setting) or (not env_setting and (isa in flags or isa == &#39;none&#39;))]
+    if not isas: raise RuntimeError(&#34;No isa option for &#34; + str(env_setting))
+    for isa in isas:
+        try:
+            mod_name = &#39;_tomotopy&#39; + (&#39;_&#39; + isa if isa != &#39;none&#39; else &#39;&#39;)
+            globals().update({k:v for k, v in vars(importlib.import_module(mod_name)).items() if not k.startswith(&#39;_&#39;)})
+            return
+        except:
+            if isa == isas[-1]: raise
+#_load()
+
+import os
+if os.environ.get(&#39;TOMOTOPY_LANG&#39;) == &#39;kr&#39;:
+    __doc__ = &#34;&#34;&#34;`tomotopy` 패키지는 Python에서 사용가능한 다양한 토픽 모델링 타입과 함수를 제공합니다.
+내부 모듈은 c++로 작성되었기 때문에 빠른 속도를 자랑합니다.
+
+.. include:: ./documentation.kr.rst
+&#34;&#34;&#34;
+    __pdoc__ = {}
+    __pdoc__[&#39;isa&#39;] = &#34;&#34;&#34;현재 로드된 모듈이 어떤 SIMD 명령어 세트를 사용하는지 표시합니다. 
+이 값은 `&#39;avx2&#39;`, `&#39;avx&#39;`, `&#39;sse2&#39;`, `&#39;none&#39;` 중 하나입니다.&#34;&#34;&#34;
+    __pdoc__[&#39;TermWeight&#39;] = &#34;&#34;&#34;용어 가중치 기법을 선택하는 데에 사용되는 열거형입니다. 여기에 제시된 용어 가중치 기법들은 다음 논문을 바탕으로 하였습니다:
+    
+&gt; * Wilson, A. T., &amp; Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.
+
+총 3가지 가중치 기법을 사용할 수 있으며 기본값은 ONE입니다. 기본값뿐만 아니라 다른 모든 기법들도 `tomotopy`의 모든 토픽 모델에 사용할 수 있습니다. &#34;&#34;&#34;
+    __pdoc__[&#39;TermWeight.ONE&#39;] = &#34;&#34;&#34;모든 용어를 동일하게 간주합니다. (기본값)&#34;&#34;&#34;
+    __pdoc__[&#39;TermWeight.IDF&#39;] = &#34;&#34;&#34;역문헌빈도(IDF)를 가중치로 사용합니다.
+
+따라서 모든 문헌에 거의 골고루 등장하는 용어의 경우 낮은 가중치를 가지게 되며, 
+소수의 특정 문헌에만 집중적으로 등장하는 용어의 경우 높은 가중치를 가지게 됩니다.&#34;&#34;&#34;
+    __pdoc__[&#39;TermWeight.PMI&#39;] = &#34;&#34;&#34;점별 상호정보량(PMI)을 가중치로 사용합니다.&#34;&#34;&#34;
+    __pdoc__[&#39;ParallelScheme&#39;] = &#34;&#34;&#34;병렬화 기법을 선택하는 데에 사용되는 열거형입니다. 총 3가지 기법을 사용할 수 있으나, 모든 모델이 아래의 기법을 전부 지원하지는 않습니다.&#34;&#34;&#34;
+    __pdoc__[&#39;ParallelScheme.DEFAULT&#39;] = &#34;&#34;&#34;tomotopy가 모델에 따라 적합한 병럴화 기법을 선택하도록 합니다. 이 값이 기본값입니다.&#34;&#34;&#34;
+    __pdoc__[&#39;ParallelScheme.NONE&#39;] = &#34;&#34;&#34;깁스 샘플링에 병렬화 기법을 사용하지 않습니다. 깁스 샘플링을 제외한 다른 연산들은 여전히 병렬로 처리될 수 있습니다.&#34;&#34;&#34;
+    __pdoc__[&#39;ParallelScheme.COPY_MERGE&#39;] = &#34;&#34;&#34;
+AD-LDA에서 제안된 복사 후 합치기 알고리즘을 사용합니다. 이는 작업자 수에 비례해 메모리를 소모합니다. 
+작업자 수가 적거나, 토픽 개수 혹은 어휘 집합의 크기가 작을 때 유리합니다.
+0.5버전 이전까지는 모든 모델은 이 알고리즘을 기본으로 사용했습니다.
+    
+&gt; * Newman, D., Asuncion, A., Smyth, P., &amp; Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+&#34;&#34;&#34;
+    __pdoc__[&#39;ParallelScheme.PARTITION&#39;] =     &#34;&#34;&#34;
+PCGS에서 제안된 분할 샘플링 알고리즘을 사용합니다. 작업자 수에 관계없이 단일 스레드 알고리즘에 비해 2배의 메모리만 소모합니다.
+작업자 수가 많거나, 토픽 개수 혹은 어휘 집합의 크기가 클 때 유리합니다.
+    
+&gt; * Yan, F., Xu, N., &amp; Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
+&#34;&#34;&#34;
+del _load, IntEnum, os</code></pre>
+</details>
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="tomotopy.label" href="label.html">tomotopy.label</a></code></dt>
+<dd>
+<section class="desc"><p><a title="tomotopy.label" href="label.html"><code>tomotopy.label</code></a> 서브모듈은 자동 토픽 라벨링 기법을 제공합니다.
+아래에 나온 코드처럼 간단한 작업을 통해 토픽 모델의 결과에 이름을 붙일 수 있습니다. 그 결과는 코드 하단에 첨부되어 있습니다 …</p></section>
+</dd>
+<dt><code class="name"><a title="tomotopy.utils" href="utils.html">tomotopy.utils</a></code></dt>
+<dd>
+<section class="desc"><p><a title="tomotopy.utils" href="utils.html"><code>tomotopy.utils</code></a> 서브모듈은 토픽 모델링에 유용한 여러 유틸리티를 제공합니다.
+<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a> 클래스는 대량의 문헌을 관리할 수 있게 돕습니다. <code>Corpus</code>에 입력된 문헌들은 다양한 토픽 모델에 바로 입력될 수 있습니다.
+…</p></section>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="tomotopy.isa"><code class="name">var <span class="ident">isa</span></code></dt>
+<dd>
+<section class="desc"><p>현재 로드된 모듈이 어떤 SIMD 명령어 세트를 사용하는지 표시합니다.
+이 값은 <code>'avx2'</code>, <code>'avx'</code>, <code>'sse2'</code>, <code>'none'</code> 중 하나입니다.</p></section>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="tomotopy.CTModel"><code class="flex name class">
+<span>class <span class="ident">CTModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0</p>
+</div>
+<p>이 타입은 Correlated Topic Model (CTM)의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Blei, D., &amp; Lafferty, J. (2006). Correlated topic models. Advances in neural information processing systems, 18, 147.</li>
+<li>Mimno, D., Wallach, H., &amp; McCallum, A. (2008, December). Gibbs sampling for logistic normal topic models with graph-based priors. In NIPS Workshop on Analyzing Graphs (Vol. 61).</li>
+</ul>
+</blockquote>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽의 개수, 1 ~ 32767 사이의 정수</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.CTModel.num_beta_sample"><code class="name">var <span class="ident">num_beta_sample</span></code></dt>
+<dd>
+<section class="desc"><p>beta 파라미터를 표집하는 횟수, 기본값은 10.</p>
+<p>CTModel은 각 문헌마다 총 <code>num_beta_sample</code> 개수의 beta 파라미터를 표집합니다.
+beta 파라미터를 더 많이 표집할 수록, 전체 분포는 정교해지지만 학습 시간이 더 많이 걸립니다.
+만약 모형 내에 문헌의 개수가 적은 경우 이 값을 크게하면 더 정확한 결과를 얻을 수 있습니다.</p></section>
+</dd>
+<dt id="tomotopy.CTModel.num_tmn_sample"><code class="name">var <span class="ident">num_tmn_sample</span></code></dt>
+<dd>
+<section class="desc"><p>절단된 다변수 정규분포에서 표본을 추출하기 위한 반복 횟수, 기본값은 5.</p>
+<p>만약 결과에서 토픽 간 상관관계가 편향되게 나올 경우 이 값을 키우면 편향을 해소하는 데에 도움이 될 수 있습니다.</p></section>
+</dd>
+<dt id="tomotopy.CTModel.prior_cov"><code class="name">var <span class="ident">prior_cov</span></code></dt>
+<dd>
+<section class="desc"><p>토픽의 사전 분포인 로지스틱 정규 분포의 공분산 행렬 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.CTModel.prior_mean"><code class="name">var <span class="ident">prior_mean</span></code></dt>
+<dd>
+<section class="desc"><p>토픽의 사전 분포인 로지스틱 정규 분포의 평균 벡터 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.CTModel.get_correlations"><code class="name flex">
+<span>def <span class="ident">get_correlations</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>와 나머지 토픽들 간의 상관관계를 반환합니다.
+반환값은 <a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k"><code>LDAModel.k</code></a> 길이의 <code>float</code>의 <code>list</code>입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 지정하는 [0, <code>k</code>), 범위의 정수</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_words" href="#tomotopy.LDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.DMRModel"><code class="flex name class">
+<span>class <span class="ident">DMRModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=1e-10, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Dirichlet Multinomial Regression(DMR) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Mimno, D., &amp; McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.</li>
+</ul>
+</blockquote>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</p>
+</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽의 개수, 1 ~ 32767 범위의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>sigma</code></strong> :&ensp;<code>float</code></dt>
+<dd><code>lambdas</code> 파라미터의 표준 편차</dd>
+<dt><strong><code>alpha_epsilon</code></strong> :&ensp;<code>float</code></dt>
+<dd><code>exp(lambdas)</code>가 0이 되는 것을 방지하는 평탄화 계수</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.DMRModel.alpha_epsilon"><code class="name">var <span class="ident">alpha_epsilon</span></code></dt>
+<dd>
+<section class="desc"><p>평탄화 계수 alpha-epsilon (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.DMRModel.f"><code class="name">var <span class="ident">f</span></code></dt>
+<dd>
+<section class="desc"><p>메타데이터 자질 종류의 개수 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.DMRModel.lambdas"><code class="name">var <span class="ident">lambdas</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모형의 lambda 파라미터를 보여주는 <code>list</code> (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.DMRModel.metadata_dict"><code class="name">var <span class="ident">metadata_dict</span></code></dt>
+<dd>
+<section class="desc"><p><a title="tomotopy.Dictionary" href="#tomotopy.Dictionary"><code>Dictionary</code></a> 타입의 메타데이터 사전 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.DMRModel.sigma"><code class="name">var <span class="ident">sigma</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 sigma (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.DMRModel.add_doc"><code class="name flex">
+<span>def <span class="ident">add_doc</span></span>(<span>self, words, metadata='')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 <code>metadata</code>를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>str</code></dt>
+<dd>문헌의 메타데이터 (예로 저자나 제목, 작성연도 등)</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.DMRModel.make_doc"><code class="name flex">
+<span>def <span class="ident">make_doc</span></span>(<span>self, words, metadata='')</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>words</code> 단어를 바탕으로 새로운 문헌인 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스를 반환합니다. 이 인스턴스는 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>str</code></dt>
+<dd>문헌의 메타데이터 (예를 들어 저자나 제목, 작성연도 등)</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_words" href="#tomotopy.LDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.Dictionary"><code class="flex name class">
+<span>class <span class="ident">Dictionary</span></span>
+<span>(</span><span>...)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>list</code>-like Dictionary interface for vocabularies</p></section>
+</dd>
+<dt id="tomotopy.Document"><code class="flex name class">
+<span>class <span class="ident">Document</span></span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 토픽 모델에 사용되는 문헌들에 접근할 수 있는 추상 인터페이스을 제공합니다.</p></section>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.Document.beta"><code class="name">var <span class="ident">beta</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 각 토픽별 beta 파라미터를 보여주는 <code>list</code> (<a title="tomotopy.CTModel" href="#tomotopy.CTModel"><code>CTModel</code></a> 모형에서만 사용됨, 읽기전용)</p>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0</p>
+</div></section>
+</dd>
+<dt id="tomotopy.Document.labels"><code class="name">var <span class="ident">labels</span></code></dt>
+<dd>
+<section class="desc"><p>문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확률들)의 <code>list</code> (<a title="tomotopy.LLDAModel" href="#tomotopy.LLDAModel"><code>LLDAModel</code></a>, <a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel"><code>PLDAModel</code></a> 모형에서만 사용됨 , 읽기전용)</p>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.3.0</p>
+</div></section>
+</dd>
+<dt id="tomotopy.Document.metadata"><code class="name">var <span class="ident">metadata</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 메타데이터 (<a title="tomotopy.DMRModel" href="#tomotopy.DMRModel"><code>DMRModel</code></a> 모형에서만 사용됨, 읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.Document.subtopics"><code class="name">var <span class="ident">subtopics</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 단어들이 각각 할당된 하위 토픽을 보여주는 <code>list</code> (<a title="tomotopy.PAModel" href="#tomotopy.PAModel"><code>PAModel</code></a>와 <a title="tomotopy.HPAModel" href="#tomotopy.HPAModel"><code>HPAModel</code></a> 모형에서만 사용됨, 읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.Document.topics"><code class="name">var <span class="ident">topics</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 단어들이 각각 할당된 토픽을 보여주는 <code>list</code> (읽기 전용)</p>
+<p><a title="tomotopy.PAModel" href="#tomotopy.PAModel"><code>PAModel</code></a>와 <a title="tomotopy.HPAModel" href="#tomotopy.HPAModel"><code>HPAModel</code></a> 모형에서는 이 값이 상위토픽의 ID를 가리킵니다.</p></section>
+</dd>
+<dt id="tomotopy.Document.vars"><code class="name">var <span class="ident">vars</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 응답 변수를 보여주는 <code>list</code> (<a title="tomotopy.SLDAModel" href="#tomotopy.SLDAModel"><code>SLDAModel</code></a> 모형에서만 사용됨 , 읽기전용)</p>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0</p>
+</div></section>
+</dd>
+<dt id="tomotopy.Document.weight"><code class="name">var <span class="ident">weight</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 가중치 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.Document.windows"><code class="name">var <span class="ident">windows</span></code></dt>
+<dd>
+<section class="desc"><p>문헌의 단어들이 할당된 윈도우의 ID를 보여주는 <code>list</code> (<a title="tomotopy.MGLDAModel" href="#tomotopy.MGLDAModel"><code>MGLDAModel</code></a> 모형에서만 사용됨, 읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.Document.words"><code class="name">var <span class="ident">words</span></code></dt>
+<dd>
+<section class="desc"><p>문헌 내 단어들의 ID가 담긴 <code>list</code> (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.Document.get_sub_topic_dist"><code class="name flex">
+<span>def <span class="ident">get_sub_topic_dist</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>현재 문헌의 하위 토픽 확률 분포를 <code>list</code> 형태로 반환합니다. (<a title="tomotopy.PAModel" href="#tomotopy.PAModel"><code>PAModel</code></a> 전용)</p></section>
+</dd>
+<dt id="tomotopy.Document.get_sub_topics"><code class="name flex">
+<span>def <span class="ident">get_sub_topics</span></span>(<span>self, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>현재 문헌의 상위 <code>top_n</code>개의 하위 토픽과 그 확률을 <code>tuple</code>의 <code>list</code> 형태로 반환합니다. (<a title="tomotopy.PAModel" href="#tomotopy.PAModel"><code>PAModel</code></a> 전용)</p></section>
+</dd>
+<dt id="tomotopy.Document.get_topic_dist"><code class="name flex">
+<span>def <span class="ident">get_topic_dist</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 문헌의 토픽 확률 분포를 <code>list</code> 형태로 반환합니다.</p></section>
+</dd>
+<dt id="tomotopy.Document.get_topics"><code class="name flex">
+<span>def <span class="ident">get_topics</span></span>(<span>self, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 문헌의 상위 <code>top_n</code>개의 토픽과 그 확률을 <code>tuple</code>의 <code>list</code> 형태로 반환합니다.</p></section>
+</dd>
+<dt id="tomotopy.Document.get_words"><code class="name flex">
+<span>def <span class="ident">get_words</span></span>(<span>self, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.4.2</p>
+</div>
+<p>현재 문헌의 상위 <code>top_n</code>개의 단어와 그 확률을 <code>tuple</code>의 <code>list</code> 형태로 반환합니다.</p></section>
+</dd>
+</dl>
+</dd>
+<dt id="tomotopy.HDPModel"><code class="flex name class">
+<span>class <span class="ident">HDPModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Hierarchical Dirichlet Process(HDP) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Teh, Y. W., Jordan, M. I., Beal, M. J., &amp; Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).</li>
+<li>Newman, D., Asuncion, A., Smyth, P., &amp; Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.</li>
+</ul>
+</blockquote>
+<p>0.3.0버전부터 <code>alpha</code>와 <code>gamma</code>에 대한 하이퍼파라미터 추정 기능이 추가되었습니다. <code>optim_interval</code>을 0으로 설정함으로써 이 기능을 끌 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</p>
+</dd>
+<dt><strong><code>initial_k</code></strong> :&ensp;<code>int</code></dt>
+<dd>초기 토픽의 개수를 지정하는 2 ~ 32767 범위의 정수.<pre><code>0.3.0버전부터 기본값이 1에서 2로 변경되었습니다.
+</code></pre>
+</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>document-table에 대한 Dirichlet Process의 집중 계수</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>gamma</code></strong> :&ensp;<code>float</code></dt>
+<dd>table-topic에 대한 Dirichlet Process의 집중 계수</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.HDPModel.gamma"><code class="name">var <span class="ident">gamma</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 gamma (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.HDPModel.live_k"><code class="name">var <span class="ident">live_k</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델 내의 유효한 토픽의 개수 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.HDPModel.num_tables"><code class="name">var <span class="ident">num_tables</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델 내의 총 테이블 개수 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.HDPModel.is_live_topic"><code class="name flex">
+<span>def <span class="ident">is_live_topic</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>topic_id</code>가 유효한 토픽을 가리키는 경우 <code>True</code>, 아닌 경우 <code>False</code>를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_words" href="#tomotopy.LDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.HLDAModel"><code class="flex name class">
+<span>class <span class="ident">HLDAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Hierarchical LDA 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Griffiths, T. L., Jordan, M. I., Tenenbaum, J. B., &amp; Blei, D. M. (2004). Hierarchical topic models and the nested Chinese restaurant process. In Advances in neural information processing systems (pp. 17-24).</li>
+</ul>
+</blockquote>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.4.0</p>
+</div>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</p>
+</dd>
+<dt><strong><code>depth</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽 계층의 깊이를 지정하는 2 ~ 32767 범위의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>gamma</code></strong> :&ensp;<code>float</code></dt>
+<dd>Dirichlet Process의 집중 계수</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.HLDAModel.depth"><code class="name">var <span class="ident">depth</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델의 총 깊이 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.HLDAModel.gamma"><code class="name">var <span class="ident">gamma</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 gamma (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.HLDAModel.live_k"><code class="name">var <span class="ident">live_k</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델 내의 유효한 토픽의 개수 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.HLDAModel.children_topics"><code class="name flex">
+<span>def <span class="ident">children_topics</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>topic_id</code> 토픽의 자식 토픽들의 ID를 list로 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.HLDAModel.is_live_topic"><code class="name flex">
+<span>def <span class="ident">is_live_topic</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>topic_id</code>가 유효한 토픽을 가리키는 경우 <code>True</code>, 아닌 경우 <code>False</code>를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.HLDAModel.level"><code class="name flex">
+<span>def <span class="ident">level</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>topic_id</code> 토픽의 레벨을 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.HLDAModel.num_docs_of_topic"><code class="name flex">
+<span>def <span class="ident">num_docs_of_topic</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>topic_id</code> 토픽에 속하는 문헌의 개수를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.HLDAModel.parent_topic"><code class="name flex">
+<span>def <span class="ident">parent_topic</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>topic_id</code> 토픽의 부모 토픽의 ID를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_words" href="#tomotopy.LDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.HPAModel"><code class="flex name class">
+<span>class <span class="ident">HPAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Hierarchical Pachinko Allocation(HPA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Mimno, D., Li, W., &amp; McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.</li>
+</ul>
+</blockquote>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.* <code>k1</code> : 상위 토픽의 개수, 1 ~ 32767 사이의 정수.</p>
+</dd>
+<dt><strong><code>k1</code></strong> :&ensp;<code>int</code></dt>
+<dd>상위 토픽의 개수, 1 ~ 32767 사이의 정수</dd>
+<dt><strong><code>k2</code></strong> :&ensp;<code>int</code></dt>
+<dd>하위 토픽의 개수, 1 ~ 32767 사이의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-상위 토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>하위 토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.PAModel" href="#tomotopy.PAModel">PAModel</a></li>
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.HPAModel.get_topic_word_dist"><code class="name flex">
+<span>def <span class="ident">get_topic_word_dist</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>의 단어 분포를 반환합니다.
+반환하는 값은 현재 하위 토픽 내 각각의 단어들의 발생확률을 나타내는 <code>len(vocabs)</code>개의 소수로 구성된 <code>list</code>입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>0일 경우 최상위 토픽을 가리키며,
+[1, 1 + <code>k1</code>) 범위의 정수는 상위 토픽을,
+[1 + <code>k1</code>, 1 + <code>k1</code> + <code>k2</code>) 범위의 정수는 하위 토픽을 가리킵니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.HPAModel.get_topic_words"><code class="name flex">
+<span>def <span class="ident">get_topic_words</span></span>(<span>self, topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>에 속하는 상위 <code>top_n</code>개의 단어와 각각의 확률을 반환합니다.
+반환 타입은 (단어:<code>str</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>0일 경우 최상위 토픽을 가리키며,
+[1, 1 + <code>k1</code>) 범위의 정수는 상위 토픽을,
+[1 + <code>k1</code>, 1 + <code>k1</code> + <code>k2</code>) 범위의 정수는 하위 토픽을 가리킵니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.HPAModel.infer"><code class="name flex">
+<span>def <span class="ident">infer</span></span>(<span>self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>새로운 문헌인 <code>doc</code>에 대해 각각의 주제 분포를 추론하여 반환합니다.
+반환 타입은 (<code>doc</code>의 주제 분포, 로그가능도) 또는 (<code>doc</code>의 주제 분포로 구성된 <code>list</code>, 로그가능도)입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>doc</code></strong> :&ensp;<code>Union</code>[<code>tomotopy.Document</code>, <code>Iterable</code>[<code>tomotopy.Document</code>]]</dt>
+<dd>추론에 사용할 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a>의 인스턴스이거나 이 인스턴스들의 <code>list</code>.
+이 인스턴스들은 <a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc"><code>LDAModel.make_doc()</code></a> 메소드를 통해 얻을 수 있습니다.</dd>
+<dt><strong><code>iter</code></strong> :&ensp;<code>int</code></dt>
+<dd><code>doc</code>의 주제 분포를 추론하기 위해 학습을 반복할 횟수입니다.
+이 값이 클 수록 더 정확한 결과를 낼 수 있습니다.</dd>
+<dt><strong><code>tolerance</code></strong> :&ensp;<code>float</code></dt>
+<dd>현재는 사용되지 않음</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code></dt>
+<dd>깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다.
+만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.ParallelScheme</code>]</dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>추론에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.</p>
+</dd>
+<dt><strong><code>together</code></strong> :&ensp;<code>bool</code></dt>
+<dd>이 값이 True인 경우 입력한 <code>doc</code> 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
+False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 <code>False</code>입니다.</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.PAModel" href="#tomotopy.PAModel">PAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.PAModel.add_doc" href="#tomotopy.LDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.PAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.PAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.PAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.PAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_sub_topic_dist" href="#tomotopy.PAModel.get_sub_topic_dist">get_sub_topic_dist</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_sub_topics" href="#tomotopy.PAModel.get_sub_topics">get_sub_topics</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.PAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.PAModel.k1" href="#tomotopy.PAModel.k1">k1</a></code></li>
+<li><code><a title="tomotopy.PAModel.k2" href="#tomotopy.PAModel.k2">k2</a></code></li>
+<li><code><a title="tomotopy.PAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.PAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.PAModel.make_doc" href="#tomotopy.LDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.PAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.PAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.PAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.PAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.PAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.PAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.PAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.PAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.PAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.PAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.PAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.LDAModel"><code class="flex name class">
+<span>class <span class="ident">LDAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Latent Dirichlet Allocation(LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Blei, D.M., Ng, A.Y., &amp;Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.</li>
+<li>Newman, D., Asuncion, A., Smyth, P., &amp;Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.</li>
+</ul>
+</blockquote>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</p>
+</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽의 개수, 1 ~ 32767 범위의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="tomotopy.CTModel" href="#tomotopy.CTModel">CTModel</a></li>
+<li><a title="tomotopy.DMRModel" href="#tomotopy.DMRModel">DMRModel</a></li>
+<li><a title="tomotopy.HDPModel" href="#tomotopy.HDPModel">HDPModel</a></li>
+<li><a title="tomotopy.HLDAModel" href="#tomotopy.HLDAModel">HLDAModel</a></li>
+<li><a title="tomotopy.LLDAModel" href="#tomotopy.LLDAModel">LLDAModel</a></li>
+<li><a title="tomotopy.MGLDAModel" href="#tomotopy.MGLDAModel">MGLDAModel</a></li>
+<li><a title="tomotopy.PAModel" href="#tomotopy.PAModel">PAModel</a></li>
+<li><a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel">PLDAModel</a></li>
+<li><a title="tomotopy.SLDAModel" href="#tomotopy.SLDAModel">SLDAModel</a></li>
+</ul>
+<h3>Static methods</h3>
+<dl>
+<dt id="tomotopy.LDAModel.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>filename)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>filename</code> 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.</p></section>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.LDAModel.alpha"><code class="name">var <span class="ident">alpha</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 alpha (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.burn_in"><code class="name">var <span class="ident">burn_in</span></code></dt>
+<dd>
+<section class="desc"><p>파라미터 학습 초기의 Burn-in 단계의 반복 횟수를 얻거나 설정합니다.</p>
+<p>기본값은 0입니다.</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.docs"><code class="name">var <span class="ident">docs</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 포함된 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a>에 접근할 수 있는 <code>list</code>형 인터페이스 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.eta"><code class="name">var <span class="ident">eta</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 eta (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.k"><code class="name">var <span class="ident">k</span></code></dt>
+<dd>
+<section class="desc"><p>토픽의 개수 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.ll_per_word"><code class="name">var <span class="ident">ll_per_word</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델의 단어당 로그 가능도 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.num_vocabs"><code class="name">var <span class="ident">num_vocabs</span></code></dt>
+<dd>
+<section class="desc"><p>작은 빈도의 단어들을 제거한 뒤 남은 어휘의 개수 (읽기전용)</p>
+<p><code>train</code>이 호출되기 전에는 이 값은 0입니다.</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.num_words"><code class="name">var <span class="ident">num_words</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 포함된 문헌들 전체의 단어 개수 (읽기전용)</p>
+<p><code>train</code>이 호출되기 전에는 이 값은 0입니다.</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.optim_interval"><code class="name">var <span class="ident">optim_interval</span></code></dt>
+<dd>
+<section class="desc"><p>파라미터 최적화의 주기를 얻거나 설정합니다.</p>
+<p>기본값은 10이며, 0으로 설정할 경우 학습 과정에서 파라미터 최적화를 수행하지 않습니다.</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.perplexity"><code class="name">var <span class="ident">perplexity</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델의 Perplexity (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.removed_top_words"><code class="name">var <span class="ident">removed_top_words</span></code></dt>
+<dd>
+<section class="desc"><p>모델 생성시 <code>rm_top</code> 파라미터를 1 이상으로 설정한 경우, 빈도수가 높아서 모델에서 제외된 단어의 목록을 보여줍니다. (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.tw"><code class="name">var <span class="ident">tw</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델의 용어 가중치 계획 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.vocab_freq"><code class="name">var <span class="ident">vocab_freq</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 포함된 어휘들의 빈도를 보여주는 <code>list</code> (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.vocabs"><code class="name">var <span class="ident">vocabs</span></code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 포함된 어휘들을 보여주는 <a title="tomotopy.Dictionary" href="#tomotopy.Dictionary"><code>Dictionary</code></a> 타입의 어휘 사전 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.LDAModel.add_doc"><code class="name flex">
+<span>def <span class="ident">add_doc</span></span>(<span>self, words)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다. 이 메소드는 <a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train"><code>LDAModel.train()</code></a>를 호출하기 전에만 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.get_count_by_topics"><code class="name flex">
+<span>def <span class="ident">get_count_by_topics</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>각각의 토픽에 할당된 단어의 개수를 <code>list</code>형태로 반환합니다.</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.get_topic_word_dist"><code class="name flex">
+<span>def <span class="ident">get_topic_word_dist</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>의 단어 분포를 반환합니다.
+반환하는 값은 현재 토픽 내 각각의 단어들의 발생확률을 나타내는 <code>len(vocabs)</code>개의 소수로 구성된 <code>list</code>입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.get_topic_words"><code class="name flex">
+<span>def <span class="ident">get_topic_words</span></span>(<span>self, topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>에 속하는 상위 <code>top_n</code>개의 단어와 각각의 확률을 반환합니다.
+반환 타입은 (단어:<code>str</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽을 가리키는 [0, <code>k</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.get_word_prior"><code class="name flex">
+<span>def <span class="ident">get_word_prior</span></span>(<span>self, word)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p><code>word</code>에 대한 사전 주제 분포를 반환합니다. 별도로 설정된 값이 없을 경우 빈 리스트가 반환됩니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>word</code></strong> :&ensp;<code>str</code></dt>
+<dd>어휘</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.infer"><code class="name flex">
+<span>def <span class="ident">infer</span></span>(<span>self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>새로운 문헌인 <code>doc</code>에 대해 각각의 주제 분포를 추론하여 반환합니다.
+반환 타입은 (<code>doc</code>의 주제 분포, 로그가능도) 또는 (<code>doc</code>의 주제 분포로 구성된 <code>list</code>, 로그가능도)입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>doc</code></strong> :&ensp;<code>Union</code>[<code>tomotopy.Document</code>, <code>Iterable</code>[<code>tomotopy.Document</code>]]</dt>
+<dd>추론에 사용할 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a>의 인스턴스이거나 이 인스턴스들의 <code>list</code>.
+이 인스턴스들은 <a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc"><code>LDAModel.make_doc()</code></a> 메소드를 통해 얻을 수 있습니다.</dd>
+<dt><strong><code>iter</code></strong> :&ensp;<code>int</code></dt>
+<dd><code>doc</code>의 주제 분포를 추론하기 위해 학습을 반복할 횟수입니다.
+이 값이 클 수록 더 정확한 결과를 낼 수 있습니다.</dd>
+<dt><strong><code>tolerance</code></strong> :&ensp;<code>float</code></dt>
+<dd>현재는 사용되지 않음</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code></dt>
+<dd>깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다.
+만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.ParallelScheme</code>]</dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>추론에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.</p>
+</dd>
+<dt><strong><code>together</code></strong> :&ensp;<code>bool</code></dt>
+<dd>이 값이 True인 경우 입력한 <code>doc</code> 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
+False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 <code>False</code>입니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.make_doc"><code class="name flex">
+<span>def <span class="ident">make_doc</span></span>(<span>self, words)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>words</code> 단어를 바탕으로 새로운 문헌인 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스를 반환합니다. 이 인스턴스는 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 사용될 수 있습니다..</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self, filename, full=True)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델을 <code>filename</code> 경로의 파일에 저장합니다. <code>None</code>을 반환합니다.</p>
+<p><code>full</code>이 <code>True</code>일 경우, 모델의 전체 상태가 파일에 모두 저장됩니다. 저장된 모델을 다시 읽어들여 학습(<code>train</code>)을 더 진행하고자 한다면 <code>full</code> = <code>True</code>로 하여 저장하십시오.
+반면 <code>False</code>일 경우, 토픽 추론에 관련된 파라미터만 파일에 저장됩니다. 이 경우 파일의 용량은 작아지지만, 추가 학습은 불가하고 새로운 문헌에 대해 추론(<code>infer</code>)하는 것만 가능합니다.</p></section>
+</dd>
+<dt id="tomotopy.LDAModel.set_word_prior"><code class="name flex">
+<span>def <span class="ident">set_word_prior</span></span>(<span>self, word, prior)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>어휘-주제 사전 분포를 설정합니다. 이 메소드는 <a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train"><code>LDAModel.train()</code></a>를 호출하기 전에만 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>word</code></strong> :&ensp;<code>str</code></dt>
+<dd>설정할 어휘</dd>
+<dt><strong><code>prior</code></strong> :&ensp;<code>Iterable</code>[<code>float</code>]</dt>
+<dd>어휘 <code>word</code>의 주제 분포. <code>prior</code>의 길이는 <a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k"><code>LDAModel.k</code></a>와 동일해야 합니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LDAModel.train"><code class="name flex">
+<span>def <span class="ident">train</span></span>(<span>self, iter=10, workers=0, parallel=0)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>깁스 샘플링을 <code>iter</code> 회 반복하여 현재 모델을 학습시킵니다. 반환값은 <code>None</code>입니다.
+이 메소드가 호출된 이후에는 더 이상 <a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc"><code>LDAModel.add_doc()</code></a>로 현재 모델에 새로운 학습 문헌을 추가시킬 수 없습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>iter</code></strong> :&ensp;<code>int</code></dt>
+<dd>깁스 샘플링의 반복 횟수</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code></dt>
+<dd>깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다.
+만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.ParallelScheme</code>]</dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>학습에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.</p>
+</dd>
+</dl></section>
+</dd>
+</dl>
+</dd>
+<dt id="tomotopy.LLDAModel"><code class="flex name class">
+<span>class <span class="ident">LLDAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Ramage, D., Hall, D., Nallapati, R., &amp; Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.</li>
+</ul>
+</blockquote>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.3.0</p>
+</div>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽의 개수, 1 ~ 32767 범위의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.LLDAModel.topic_label_dict"><code class="name">var <span class="ident">topic_label_dict</span></code></dt>
+<dd>
+<section class="desc"><p><a title="tomotopy.Dictionary" href="#tomotopy.Dictionary"><code>Dictionary</code></a> 타입의 토픽 레이블 사전 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.LLDAModel.add_doc"><code class="name flex">
+<span>def <span class="ident">add_doc</span></span>(<span>self, words, labels=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 <code>labels</code>를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 레이블 리스트</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LLDAModel.get_topic_words"><code class="name flex">
+<span>def <span class="ident">get_topic_words</span></span>(<span>self, topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>에 속하는 상위 <code>top_n</code>개의 단어와 각각의 확률을 반환합니다.
+반환 타입은 (단어:<code>str</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>전체 레이블의 개수를 <code>l</code>이라고 할 때, [0, <code>l</code>) 범위의 정수는 각각의 레이블에 해당하는 토픽을 가리킵니다.
+해당 토픽의 레이블 이름은 <a title="tomotopy.LLDAModel.topic_label_dict" href="#tomotopy.LLDAModel.topic_label_dict"><code>LLDAModel.topic_label_dict</code></a>을 열람하여 확인할 수 있습니다.
+[<code>l</code>, <code>k</code>) 범위의 정수는 어느 레이블에도 속하지 않는 잠재 토픽을 가리킵니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.LLDAModel.make_doc"><code class="name flex">
+<span>def <span class="ident">make_doc</span></span>(<span>self, words, labels=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>words</code> 단어를 바탕으로 새로운 문헌인 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스를 반환합니다. 이 인스턴스는 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 레이블 리스트</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.MGLDAModel"><code class="flex name class">
+<span>class <span class="ident">MGLDAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Multi Grain Latent Dirichlet Allocation(MG-LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Titov, I., &amp; McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.</li>
+</ul>
+</blockquote>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</p>
+</dd>
+<dt><strong><code>k_g</code></strong> :&ensp;<code>int</code></dt>
+<dd>전역 토픽의 개수를 지정하는 1 ~ 32767 사이의 정수</dd>
+<dt><strong><code>k_l</code></strong> :&ensp;<code>int</code></dt>
+<dd>지역 토픽의 개수를 지정하는 1 ~ 32767 사이의 정수</dd>
+<dt><strong><code>t</code></strong> :&ensp;<code>int</code></dt>
+<dd>문장 윈도우의 크기</dd>
+<dt><strong><code>alpha_g</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-전역 토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>alpha_l</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-지역 토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>alpha_mg</code></strong> :&ensp;<code>float</code></dt>
+<dd>전역/지역 선택 디리클레 분포의 하이퍼 파라미터 (전역 부분 계수)</dd>
+<dt><strong><code>alpha_ml</code></strong> :&ensp;<code>float</code></dt>
+<dd>전역/지역 선택 디리클레 분포의 하이퍼 파라미터 (지역 부분 계수)</dd>
+<dt><strong><code>eta_g</code></strong> :&ensp;<code>float</code></dt>
+<dd>전역 토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta_l</code></strong> :&ensp;<code>float</code></dt>
+<dd>지역 토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>gamma</code></strong> :&ensp;<code>float</code></dt>
+<dd>문장-윈도우 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.MGLDAModel.alpha_g"><code class="name">var <span class="ident">alpha_g</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 alpha_g (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.alpha_l"><code class="name">var <span class="ident">alpha_l</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 alpha_l (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.alpha_mg"><code class="name">var <span class="ident">alpha_mg</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 alpha_mg (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.alpha_ml"><code class="name">var <span class="ident">alpha_ml</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 alpha_ml (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.eta_g"><code class="name">var <span class="ident">eta_g</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 eta_g (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.eta_l"><code class="name">var <span class="ident">eta_l</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 eta_l (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.gamma"><code class="name">var <span class="ident">gamma</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 gamma (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.k_g"><code class="name">var <span class="ident">k_g</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 k_g (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.k_l"><code class="name">var <span class="ident">k_l</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 k_l (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.t"><code class="name">var <span class="ident">t</span></code></dt>
+<dd>
+<section class="desc"><p>하이퍼 파라미터 t (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.MGLDAModel.add_doc"><code class="name flex">
+<span>def <span class="ident">add_doc</span></span>(<span>self, words, delimiter='.')</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 <code>metadata</code>를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>delimiter</code></strong> :&ensp;<code>str</code></dt>
+<dd>문장 구분자, <code>words</code>는 이 값을 기준으로 문장 단위로 반할됩니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.get_topic_word_dist"><code class="name flex">
+<span>def <span class="ident">get_topic_word_dist</span></span>(<span>self, topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>의 단어 분포를 반환합니다.
+반환하는 값은 현재 토픽 내 각각의 단어들의 발생확률을 나타내는 <code>len(vocabs)</code>개의 소수로 구성된 <code>list</code>입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>[0, <code>k_g</code>) 범위의 정수는 전역 토픽을, [<code>k_g</code>, <code>k_g</code> + <code>k_l</code>) 범위의 정수는 지역 토픽을 가리킵니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.get_topic_words"><code class="name flex">
+<span>def <span class="ident">get_topic_words</span></span>(<span>self, topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>에 속하는 상위 <code>top_n</code>개의 단어와 각각의 확률을 반환합니다.
+반환 타입은 (단어:<code>str</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>[0, <code>k_g</code>) 범위의 정수는 전역 토픽을, [<code>k_g</code>, <code>k_g</code> + <code>k_l</code>) 범위의 정수는 지역 토픽을 가리킵니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.MGLDAModel.make_doc"><code class="name flex">
+<span>def <span class="ident">make_doc</span></span>(<span>self, words, delimiter='.')</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>words</code> 단어를 바탕으로 새로운 문헌인 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스를 반환합니다. 이 인스턴스는 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>delimiter</code></strong> :&ensp;<code>str</code></dt>
+<dd>문장 구분자, <code>words</code>는 이 값을 기준으로 문장 단위로 반할됩니다.</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.PAModel"><code class="flex name class">
+<span>class <span class="ident">PAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Pachinko Allocation(PA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Li, W., &amp; McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.</li>
+</ul>
+</blockquote>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0
+</p>
+</div>
+<p>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.* <code>k1</code> : 상위 토픽의 개수, 1 ~ 32767 사이의 정수.</p>
+</dd>
+<dt><strong><code>k1</code></strong> :&ensp;<code>int</code></dt>
+<dd>상위 토픽의 개수, 1 ~ 32767 사이의 정수</dd>
+<dt><strong><code>k2</code></strong> :&ensp;<code>int</code></dt>
+<dd>하위 토픽의 개수, 1 ~ 32767 사이의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-상위 토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>하위 토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="tomotopy.HPAModel" href="#tomotopy.HPAModel">HPAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.PAModel.k1"><code class="name">var <span class="ident">k1</span></code></dt>
+<dd>
+<section class="desc"><p>k1, 상위 토픽의 개수 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.PAModel.k2"><code class="name">var <span class="ident">k2</span></code></dt>
+<dd>
+<section class="desc"><p>k2, 하위 토픽의 개수 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.PAModel.get_sub_topic_dist"><code class="name flex">
+<span>def <span class="ident">get_sub_topic_dist</span></span>(<span>self, super_topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>상위 토픽 <code>super_topic_id</code>의 하위 토픽 분포를 반환합니다.
+반환하는 값은 현재 상위 토픽 내 각각의 하위 토픽들의 발생확률을 나타내는 <code>k2</code>개의 소수로 구성된 <code>list</code>입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>super_topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>상위 토픽을 가리키는 [0, <code>k1</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.PAModel.get_sub_topics"><code class="name flex">
+<span>def <span class="ident">get_sub_topics</span></span>(<span>self, super_topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.1.4</p>
+</div>
+<p>상위 토픽 <code>super_topic_id</code>에 속하는 상위 <code>top_n</code>개의 하위 토픽과 각각의 확률을 반환합니다.
+반환 타입은 (하위토픽:<code>int</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>super_topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>상위 토픽을 가리키는 [0, <code>k1</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.PAModel.get_topic_word_dist"><code class="name flex">
+<span>def <span class="ident">get_topic_word_dist</span></span>(<span>self, sub_topic_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>하위 토픽 <code>sub_topic_id</code>의 단어 분포를 반환합니다.
+반환하는 값은 현재 하위 토픽 내 각각의 단어들의 발생확률을 나타내는 <code>len(vocabs)</code>개의 소수로 구성된 <code>list</code>입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>sub_topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>하위 토픽을 가리키는 [0, <code>k2</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.PAModel.get_topic_words"><code class="name flex">
+<span>def <span class="ident">get_topic_words</span></span>(<span>self, sub_topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>하위 토픽 <code>sub_topic_id</code>에 속하는 상위 <code>top_n</code>개의 단어와 각각의 확률을 반환합니다.
+반환 타입은 (단어:<code>str</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>sub_topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>하위 토픽을 가리키는 [0, <code>k2</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.PAModel.infer"><code class="name flex">
+<span>def <span class="ident">infer</span></span>(<span>self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>새로운 문헌인 <code>doc</code>에 대해 각각의 주제 분포를 추론하여 반환합니다.
+반환 타입은 ((<code>doc</code>의 주제 분포, <code>doc</code>의 하위 주제 분포), 로그가능도) 또는 ((<code>doc</code>의 주제 분포, <code>doc</code>의 하위 주제 분포)로 구성된 <code>list</code>, 로그가능도)입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>doc</code></strong> :&ensp;<code>Union</code>[<code>tomotopy.Document</code>, <code>Iterable</code>[<code>tomotopy.Document</code>]]</dt>
+<dd>추론에 사용할 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a>의 인스턴스이거나 이 인스턴스들의 <code>list</code>.
+이 인스턴스들은 <a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc"><code>LDAModel.make_doc()</code></a> 메소드를 통해 얻을 수 있습니다.</dd>
+<dt><strong><code>iter</code></strong> :&ensp;<code>int</code></dt>
+<dd><code>doc</code>의 주제 분포를 추론하기 위해 학습을 반복할 횟수입니다.
+이 값이 클 수록 더 정확한 결과를 낼 수 있습니다.</dd>
+<dt><strong><code>tolerance</code></strong> :&ensp;<code>float</code></dt>
+<dd>현재는 사용되지 않음</dd>
+<dt><strong><code>workers</code></strong> :&ensp;<code>int</code></dt>
+<dd>깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다.
+만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.ParallelScheme</code>]</dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.0</p>
+</div>
+<p>추론에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.</p>
+</dd>
+<dt><strong><code>together</code></strong> :&ensp;<code>bool</code></dt>
+<dd>이 값이 True인 경우 입력한 <code>doc</code> 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
+False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 <code>False</code>입니다.</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.PLDAModel"><code class="flex name class">
+<span>class <span class="ident">PLDAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 Partially Labeled LDA(PLDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Ramage, D., Manning, C. D., &amp; Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.</li>
+</ul>
+</blockquote>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.4.0</p>
+</div>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</dd>
+<dt><strong><code>latent_topics</code></strong> :&ensp;<code>int</code></dt>
+<dd>모든 문헌에 공유되는 잠재 토픽의 개수, 1 ~ 32767 사이의 정수.</dd>
+<dt><strong><code>topics_per_label</code></strong> :&ensp;<code>int</code></dt>
+<dd>레이블별 토픽의 개수, 1 ~ 32767 사이의 정수.</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.PLDAModel.latent_topics"><code class="name">var <span class="ident">latent_topics</span></code></dt>
+<dd>
+<section class="desc"><p>잠재 토픽의 개수 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.PLDAModel.topic_label_dict"><code class="name">var <span class="ident">topic_label_dict</span></code></dt>
+<dd>
+<section class="desc"><p><a title="tomotopy.Dictionary" href="#tomotopy.Dictionary"><code>Dictionary</code></a> 타입의 토픽 레이블 사전 (읽기전용)</p></section>
+</dd>
+<dt id="tomotopy.PLDAModel.topics_per_label"><code class="name">var <span class="ident">topics_per_label</span></code></dt>
+<dd>
+<section class="desc"><p>레이블별 토픽의 개수 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.PLDAModel.add_doc"><code class="name flex">
+<span>def <span class="ident">add_doc</span></span>(<span>self, words, labels=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 <code>labels</code>를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 레이블 리스트</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.PLDAModel.get_topic_words"><code class="name flex">
+<span>def <span class="ident">get_topic_words</span></span>(<span>self, topic_id, top_n=10)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>토픽 <code>topic_id</code>에 속하는 상위 <code>top_n</code>개의 단어와 각각의 확률을 반환합니다.
+반환 타입은 (단어:<code>str</code>, 확률:<code>float</code>) 튜플의 <code>list</code>형입니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>topic_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>전체 레이블의 개수를 <code>l</code>이라고 할 때, [0, <code>l</code> * <code>topics_per_label</code>) 범위의 정수는 각각의 레이블에 해당하는 토픽을 가리킵니다.
+해당 토픽의 레이블 이름은 <a title="tomotopy.PLDAModel.topic_label_dict" href="#tomotopy.PLDAModel.topic_label_dict"><code>PLDAModel.topic_label_dict</code></a>을 열람하여 확인할 수 있습니다.
+[<code>l</code> * <code>topics_per_label</code>, <code>l</code> * <code>topics_per_label</code> + <code>latent_topics</code>) 범위의 정수는 어느 레이블에도 속하지 않는 잠재 토픽을 가리킵니다.</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.PLDAModel.make_doc"><code class="name flex">
+<span>def <span class="ident">make_doc</span></span>(<span>self, words, labels=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>words</code> 단어를 바탕으로 새로운 문헌인 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스를 반환합니다. 이 인스턴스는 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 레이블 리스트</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.ParallelScheme"><code class="flex name class">
+<span>class <span class="ident">ParallelScheme</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>병렬화 기법을 선택하는 데에 사용되는 열거형입니다. 총 3가지 기법을 사용할 수 있으나, 모든 모델이 아래의 기법을 전부 지원하지는 않습니다.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ParallelScheme(IntEnum):
+    &#34;&#34;&#34;
+    This enumeration is for Parallelizing Scheme:
+    There are three options for parallelizing and the basic one is DEFAULT. Not all models supports all options. 
+    &#34;&#34;&#34;
+
+    DEFAULT = 0
+    &#34;&#34;&#34;tomotopy chooses the best available parallelism scheme for your model&#34;&#34;&#34;
+
+    NONE = 1
+    &#34;&#34;&#34; 
+    Turn off multi-threading for Gibbs sampling at training or inference. Operations other than Gibbs sampling may use multithreading.
+    &#34;&#34;&#34;
+
+    COPY_MERGE = 2
+    &#34;&#34;&#34;
+    Use Copy and Merge algorithm from AD-LDA. It consumes RAM in proportion to the number of workers. 
+    This has advantages when you have a small number of workers and a small number of topics and vocabulary sizes in the model.
+    Prior to version 0.5, all models used this algorithm by default. 
+    
+    &gt; * Newman, D., Asuncion, A., Smyth, P., &amp; Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
+    &#34;&#34;&#34;
+
+    PARTITION = 3
+    &#34;&#34;&#34;
+    Use Partitioning algorithm from PCGS. It consumes only twice as much RAM as a single-threaded algorithm, regardless of the number of workers.
+    This has advantages when you have a large number of workers or a large number of topics and vocabulary sizes in the model.
+    
+    &gt; * Yan, F., Xu, N., &amp; Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
+    &#34;&#34;&#34;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.IntEnum</li>
+<li>builtins.int</li>
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="tomotopy.ParallelScheme.COPY_MERGE"><code class="name">var <span class="ident">COPY_MERGE</span></code></dt>
+<dd>
+<section class="desc"><p>AD-LDA에서 제안된 복사 후 합치기 알고리즘을 사용합니다. 이는 작업자 수에 비례해 메모리를 소모합니다.
+작업자 수가 적거나, 토픽 개수 혹은 어휘 집합의 크기가 작을 때 유리합니다.
+0.5버전 이전까지는 모든 모델은 이 알고리즘을 기본으로 사용했습니다.</p>
+<blockquote>
+<ul>
+<li>Newman, D., Asuncion, A., Smyth, P., &amp; Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.</li>
+</ul>
+</blockquote></section>
+</dd>
+<dt id="tomotopy.ParallelScheme.DEFAULT"><code class="name">var <span class="ident">DEFAULT</span></code></dt>
+<dd>
+<section class="desc"><p>tomotopy가 모델에 따라 적합한 병럴화 기법을 선택하도록 합니다. 이 값이 기본값입니다.</p></section>
+</dd>
+<dt id="tomotopy.ParallelScheme.NONE"><code class="name">var <span class="ident">NONE</span></code></dt>
+<dd>
+<section class="desc"><p>깁스 샘플링에 병렬화 기법을 사용하지 않습니다. 깁스 샘플링을 제외한 다른 연산들은 여전히 병렬로 처리될 수 있습니다.</p></section>
+</dd>
+<dt id="tomotopy.ParallelScheme.PARTITION"><code class="name">var <span class="ident">PARTITION</span></code></dt>
+<dd>
+<section class="desc"><p>PCGS에서 제안된 분할 샘플링 알고리즘을 사용합니다. 작업자 수에 관계없이 단일 스레드 알고리즘에 비해 2배의 메모리만 소모합니다.
+작업자 수가 많거나, 토픽 개수 혹은 어휘 집합의 크기가 클 때 유리합니다.</p>
+<blockquote>
+<ul>
+<li>Yan, F., Xu, N., &amp; Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).</li>
+</ul>
+</blockquote></section>
+</dd>
+</dl>
+</dd>
+<dt id="tomotopy.SLDAModel"><code class="flex name class">
+<span>class <span class="ident">SLDAModel</span></span>
+<span>(</span><span>tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>이 타입은 supervised Latent Dirichlet Allocation(sLDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:</p>
+<blockquote>
+<ul>
+<li>Mcauliffe, J. D., &amp; Blei, D. M. (2008). Supervised topic models. In Advances in neural information processing systems (pp. 121-128).</li>
+<li>Python version implementation using Gibbs sampling : <a href="https://github.com/Savvysherpa/slda">https://github.com/Savvysherpa/slda</a></li>
+</ul>
+</blockquote>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.2.0</p>
+</div>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>tw</code></strong> :&ensp;<code>Union</code>[<code>int</code>, <code>tomotopy.TermWeight</code>]</dt>
+<dd>용어 가중치 기법을 나타내는 <a title="tomotopy.TermWeight" href="#tomotopy.TermWeight"><code>TermWeight</code></a>의 열거값. 기본값은 TermWeight.ONE 입니다.</dd>
+<dt><strong><code>min_cf</code></strong> :&ensp;<code>int</code></dt>
+<dd>단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 <code>min_cf</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</dd>
+<dt><strong><code>min_df</code></strong> :&ensp;<code>int</code></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>단어의 최소 문헌 빈도. 출현한 문헌 숫자가 <code>min_df</code>보다 작은 단어들은 모델에서 제외시킵니다.
+기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.</p>
+</dd>
+<dt><strong><code>rm_top</code></strong> :&ensp;<code>int</code></dt>
+<dd>제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.</dd>
+<dt><strong><code>k</code></strong> :&ensp;<code>int</code></dt>
+<dd>토픽의 개수, 1 ~ 32767 사이의 정수</dd>
+<dt><strong><code>vars</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>
+<p>응답변수의 종류를 지정합니다.
+<code>vars</code>의 길이는 모형이 사용하는 응답 변수의 개수를 결정하며, <code>vars</code>의 요소는 각 응답 변수의 종류를 결정합니다.
+사용가능한 종류는 다음과 같습니다:</p>
+<blockquote>
+<ul>
+<li>'l': 선형 변수 (아무 실수 값이나 가능)</li>
+<li>'b': 이진 변수 (0 혹은 1만 가능)</li>
+</ul>
+</blockquote>
+</dd>
+<dt><strong><code>alpha</code></strong> :&ensp;<code>float</code></dt>
+<dd>문헌-토픽 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>eta</code></strong> :&ensp;<code>float</code></dt>
+<dd>토픽-단어 디리클레 분포의 하이퍼 파라미터</dd>
+<dt><strong><code>mu</code></strong> :&ensp;<code>Union</code>[<code>float</code>, <code>Iterable</code>[<code>float</code>]]</dt>
+<dd>회귀 계수의 평균값</dd>
+<dt><strong><code>nu_sq</code></strong> :&ensp;<code>Union</code>[<code>float</code>, <code>Iterable</code>[<code>float</code>]]</dt>
+<dd>회귀 계수의 분산값</dd>
+<dt><strong><code>glm_param</code></strong> :&ensp;<code>Union</code>[<code>float</code>, <code>Iterable</code>[<code>float</code>]]</dt>
+<dd>일반화 선형 모형에서 사용될 파라미터</dd>
+<dt><strong><code>seed</code></strong> :&ensp;<code>int</code></dt>
+<dd>난수의 시드값. 기본값은 C++의 <code>std::random_device{}</code>이 생성하는 임의의 정수입니다.
+이 값을 고정하더라도 <code>train</code>시 <code>workers</code>를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.</dd>
+<dt><strong><code>corpus</code></strong> :&ensp;<a title="tomotopy.utils.Corpus" href="utils.html#tomotopy.utils.Corpus"><code>Corpus</code></a></dt>
+<dd>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.6.0</p>
+</div>
+<p>토픽 모델에 추가될 문헌들의 집합을 지정합니다.</p>
+</dd>
+</dl></section>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="tomotopy.SLDAModel.f"><code class="name">var <span class="ident">f</span></code></dt>
+<dd>
+<section class="desc"><p>응답 변수의 개수 (읽기전용)</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="tomotopy.SLDAModel.add_doc"><code class="name flex">
+<span>def <span class="ident">add_doc</span></span>(<span>self, words, y=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p>현재 모델에 응답 변수 <code>y</code>를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>y</code></strong> :&ensp;<code>Iterable</code>[<code>float</code>]</dt>
+<dd>
+<p>문헌의 응답 변수로 쓰일 <code>float</code>의 <code>list</code>. <code>y</code>의 길이는 모델의 응답 변수의 개수인 <a title="tomotopy.SLDAModel.f" href="#tomotopy.SLDAModel.f"><code>SLDAModel.f</code></a>와 일치해야 합니다.</p>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;0.5.1</p>
+</div>
+<p>만약 결측값이 있을 경우, 해당 항목을 <code>NaN</code>으로 설정할 수 있습니다. 이 경우 <code>NaN</code>값을 가진 문헌은 토픽을 모델링하는데에는 포함되지만, 응답 변수 회귀에서는 제외됩니다.</p>
+</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.SLDAModel.estimate"><code class="name flex">
+<span>def <span class="ident">estimate</span></span>(<span>self, doc)</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>doc</code>의 추정된 응답 변수를 반환합니다.
+만약 <code>doc</code>이 <a title="tomotopy.SLDAModel.make_doc" href="#tomotopy.SLDAModel.make_doc"><code>SLDAModel.make_doc()</code></a>에 의해 생성된 인스턴스라면, 먼저 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a>를 통해 토픽 추론을 실시한 다음 이 메소드를 사용해야 합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>doc</code></strong> :&ensp;<a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a></dt>
+<dd>응답 변수를 추정하려하는 문헌의 인스턴스 혹은 인스턴스들의 list</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.SLDAModel.get_regression_coef"><code class="name flex">
+<span>def <span class="ident">get_regression_coef</span></span>(<span>self, var_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>응답 변수 <code>var_id</code>의 회귀 계수를 반환합니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>var_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>응답 변수를 지정하는 [0, <code>f</code>) 범위의 정수</dd>
+</dl></section>
+</dd>
+<dt id="tomotopy.SLDAModel.get_var_type"><code class="name flex">
+<span>def <span class="ident">get_var_type</span></span>(<span>self, var_id)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>응답 변수 <code>var_id</code>의 종류를 반환합니다. 'l'은 선형 변수, 'b'는 이진 변수를 뜻합니다.</p></section>
+</dd>
+<dt id="tomotopy.SLDAModel.make_doc"><code class="name flex">
+<span>def <span class="ident">make_doc</span></span>(<span>self, words, y=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p><code>words</code> 단어를 바탕으로 새로운 문헌인 <a title="tomotopy.Document" href="#tomotopy.Document"><code>Document</code></a> 인스턴스를 반환합니다. 이 인스턴스는 <a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer"><code>LDAModel.infer()</code></a> 메소드에 사용될 수 있습니다.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>words</code></strong> :&ensp;<code>Iterable</code>[<code>str</code>]</dt>
+<dd>문헌의 각 단어를 나열하는 <code>str</code> 타입의 iterable</dd>
+<dt><strong><code>y</code></strong> :&ensp;<code>Iterable</code>[<code>float</code>]</dt>
+<dd>문헌의 응답 변수로 쓰일 <code>float</code>의 <code>list</code>.
+<code>y</code>의 길이는 모델의 응답 변수의 개수인 <a title="tomotopy.SLDAModel.f" href="#tomotopy.SLDAModel.f"><code>SLDAModel.f</code></a>와 꼭 일치할 필요는 없습니다.
+<code>y</code>의 길이가 <a title="tomotopy.SLDAModel.f" href="#tomotopy.SLDAModel.f"><code>SLDAModel.f</code></a>보다 짧을 경우, 모자란 값들은 자동으로 <code>NaN</code>으로 채워집니다.</dd>
+</dl></section>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></b></code>:
+<ul class="hlist">
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_words" href="#tomotopy.LDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="tomotopy.TermWeight"><code class="flex name class">
+<span>class <span class="ident">TermWeight</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>용어 가중치 기법을 선택하는 데에 사용되는 열거형입니다. 여기에 제시된 용어 가중치 기법들은 다음 논문을 바탕으로 하였습니다:</p>
+<blockquote>
+<ul>
+<li>Wilson, A. T., &amp; Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.</li>
+</ul>
+</blockquote>
+<p>총 3가지 가중치 기법을 사용할 수 있으며 기본값은 ONE입니다. 기본값뿐만 아니라 다른 모든 기법들도 <a title="tomotopy" href="#tomotopy"><code>tomotopy</code></a>의 모든 토픽 모델에 사용할 수 있습니다. </p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class TermWeight(IntEnum):
+    &#34;&#34;&#34;
+    This enumeration is for Term Weighting Scheme and it is based on following paper:
+    
+    &gt; * Wilson, A. T., &amp; Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.
+    
+    There are three options for term weighting and the basic one is ONE. The others also can be applied for all topic models in `tomotopy`. 
+    &#34;&#34;&#34;
+
+    ONE = 0
+    &#34;&#34;&#34; Consider every term equal (default)&#34;&#34;&#34;
+
+    IDF = 1
+    &#34;&#34;&#34; 
+    Use Inverse Document Frequency term weighting.
+    
+    Thus, a term occurring at almost every document has very low weighting
+    and a term occurring at a few document has high weighting. 
+    &#34;&#34;&#34;
+
+    PMI = 2
+    &#34;&#34;&#34;
+    Use Pointwise Mutual Information term weighting.
+    &#34;&#34;&#34;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.IntEnum</li>
+<li>builtins.int</li>
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="tomotopy.TermWeight.IDF"><code class="name">var <span class="ident">IDF</span></code></dt>
+<dd>
+<section class="desc"><p>역문헌빈도(IDF)를 가중치로 사용합니다.</p>
+<p>따라서 모든 문헌에 거의 골고루 등장하는 용어의 경우 낮은 가중치를 가지게 되며,
+소수의 특정 문헌에만 집중적으로 등장하는 용어의 경우 높은 가중치를 가지게 됩니다.</p></section>
+</dd>
+<dt id="tomotopy.TermWeight.ONE"><code class="name">var <span class="ident">ONE</span></code></dt>
+<dd>
+<section class="desc"><p>모든 용어를 동일하게 간주합니다. (기본값)</p></section>
+</dd>
+<dt id="tomotopy.TermWeight.PMI"><code class="name">var <span class="ident">PMI</span></code></dt>
+<dd>
+<section class="desc"><p>점별 상호정보량(PMI)을 가중치로 사용합니다.</p></section>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul>
+<li><a href="#tomotopy">tomotopy 란?</a></li>
+<li><a href="#_1">시작하기</a></li>
+<li><a href="#tomotopy_1">tomotopy의 성능</a></li>
+<li><a href="#_2">모델의 저장과 불러오기</a></li>
+<li><a href="#_3">모델 안의 문헌과 모델 밖의 문헌</a></li>
+<li><a href="#_4">새로운 문헌에 대해 추론하기</a></li>
+<li><a href="#_5">병렬 샘플링 알고리즘</a></li>
+<li><a href="#_6">예제 코드</a></li>
+<li><a href="#_7">라이센스</a></li>
+<li><a href="#_8">역사</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="tomotopy.label" href="label.html">tomotopy.label</a></code></li>
+<li><code><a title="tomotopy.utils" href="utils.html">tomotopy.utils</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="">
+<li><code><a title="tomotopy.isa" href="#tomotopy.isa">isa</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="tomotopy.CTModel" href="#tomotopy.CTModel">CTModel</a></code></h4>
+<ul class="">
+<li><code><a title="tomotopy.CTModel.get_correlations" href="#tomotopy.CTModel.get_correlations">get_correlations</a></code></li>
+<li><code><a title="tomotopy.CTModel.num_beta_sample" href="#tomotopy.CTModel.num_beta_sample">num_beta_sample</a></code></li>
+<li><code><a title="tomotopy.CTModel.num_tmn_sample" href="#tomotopy.CTModel.num_tmn_sample">num_tmn_sample</a></code></li>
+<li><code><a title="tomotopy.CTModel.prior_cov" href="#tomotopy.CTModel.prior_cov">prior_cov</a></code></li>
+<li><code><a title="tomotopy.CTModel.prior_mean" href="#tomotopy.CTModel.prior_mean">prior_mean</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.DMRModel" href="#tomotopy.DMRModel">DMRModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.DMRModel.add_doc" href="#tomotopy.DMRModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.DMRModel.alpha_epsilon" href="#tomotopy.DMRModel.alpha_epsilon">alpha_epsilon</a></code></li>
+<li><code><a title="tomotopy.DMRModel.f" href="#tomotopy.DMRModel.f">f</a></code></li>
+<li><code><a title="tomotopy.DMRModel.lambdas" href="#tomotopy.DMRModel.lambdas">lambdas</a></code></li>
+<li><code><a title="tomotopy.DMRModel.make_doc" href="#tomotopy.DMRModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.DMRModel.metadata_dict" href="#tomotopy.DMRModel.metadata_dict">metadata_dict</a></code></li>
+<li><code><a title="tomotopy.DMRModel.sigma" href="#tomotopy.DMRModel.sigma">sigma</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.Dictionary" href="#tomotopy.Dictionary">Dictionary</a></code></h4>
+</li>
+<li>
+<h4><code><a title="tomotopy.Document" href="#tomotopy.Document">Document</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.Document.beta" href="#tomotopy.Document.beta">beta</a></code></li>
+<li><code><a title="tomotopy.Document.get_sub_topic_dist" href="#tomotopy.Document.get_sub_topic_dist">get_sub_topic_dist</a></code></li>
+<li><code><a title="tomotopy.Document.get_sub_topics" href="#tomotopy.Document.get_sub_topics">get_sub_topics</a></code></li>
+<li><code><a title="tomotopy.Document.get_topic_dist" href="#tomotopy.Document.get_topic_dist">get_topic_dist</a></code></li>
+<li><code><a title="tomotopy.Document.get_topics" href="#tomotopy.Document.get_topics">get_topics</a></code></li>
+<li><code><a title="tomotopy.Document.get_words" href="#tomotopy.Document.get_words">get_words</a></code></li>
+<li><code><a title="tomotopy.Document.labels" href="#tomotopy.Document.labels">labels</a></code></li>
+<li><code><a title="tomotopy.Document.metadata" href="#tomotopy.Document.metadata">metadata</a></code></li>
+<li><code><a title="tomotopy.Document.subtopics" href="#tomotopy.Document.subtopics">subtopics</a></code></li>
+<li><code><a title="tomotopy.Document.topics" href="#tomotopy.Document.topics">topics</a></code></li>
+<li><code><a title="tomotopy.Document.vars" href="#tomotopy.Document.vars">vars</a></code></li>
+<li><code><a title="tomotopy.Document.weight" href="#tomotopy.Document.weight">weight</a></code></li>
+<li><code><a title="tomotopy.Document.windows" href="#tomotopy.Document.windows">windows</a></code></li>
+<li><code><a title="tomotopy.Document.words" href="#tomotopy.Document.words">words</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.HDPModel" href="#tomotopy.HDPModel">HDPModel</a></code></h4>
+<ul class="">
+<li><code><a title="tomotopy.HDPModel.gamma" href="#tomotopy.HDPModel.gamma">gamma</a></code></li>
+<li><code><a title="tomotopy.HDPModel.is_live_topic" href="#tomotopy.HDPModel.is_live_topic">is_live_topic</a></code></li>
+<li><code><a title="tomotopy.HDPModel.live_k" href="#tomotopy.HDPModel.live_k">live_k</a></code></li>
+<li><code><a title="tomotopy.HDPModel.num_tables" href="#tomotopy.HDPModel.num_tables">num_tables</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.HLDAModel" href="#tomotopy.HLDAModel">HLDAModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.HLDAModel.children_topics" href="#tomotopy.HLDAModel.children_topics">children_topics</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.depth" href="#tomotopy.HLDAModel.depth">depth</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.gamma" href="#tomotopy.HLDAModel.gamma">gamma</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.is_live_topic" href="#tomotopy.HLDAModel.is_live_topic">is_live_topic</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.level" href="#tomotopy.HLDAModel.level">level</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.live_k" href="#tomotopy.HLDAModel.live_k">live_k</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.num_docs_of_topic" href="#tomotopy.HLDAModel.num_docs_of_topic">num_docs_of_topic</a></code></li>
+<li><code><a title="tomotopy.HLDAModel.parent_topic" href="#tomotopy.HLDAModel.parent_topic">parent_topic</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.HPAModel" href="#tomotopy.HPAModel">HPAModel</a></code></h4>
+<ul class="">
+<li><code><a title="tomotopy.HPAModel.get_topic_word_dist" href="#tomotopy.HPAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.HPAModel.get_topic_words" href="#tomotopy.HPAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.HPAModel.infer" href="#tomotopy.HPAModel.infer">infer</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.LDAModel" href="#tomotopy.LDAModel">LDAModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.LDAModel.add_doc" href="#tomotopy.LDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.alpha" href="#tomotopy.LDAModel.alpha">alpha</a></code></li>
+<li><code><a title="tomotopy.LDAModel.burn_in" href="#tomotopy.LDAModel.burn_in">burn_in</a></code></li>
+<li><code><a title="tomotopy.LDAModel.docs" href="#tomotopy.LDAModel.docs">docs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.eta" href="#tomotopy.LDAModel.eta">eta</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_count_by_topics" href="#tomotopy.LDAModel.get_count_by_topics">get_count_by_topics</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_word_dist" href="#tomotopy.LDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_topic_words" href="#tomotopy.LDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.get_word_prior" href="#tomotopy.LDAModel.get_word_prior">get_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.infer" href="#tomotopy.LDAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.LDAModel.k" href="#tomotopy.LDAModel.k">k</a></code></li>
+<li><code><a title="tomotopy.LDAModel.ll_per_word" href="#tomotopy.LDAModel.ll_per_word">ll_per_word</a></code></li>
+<li><code><a title="tomotopy.LDAModel.load" href="#tomotopy.LDAModel.load">load</a></code></li>
+<li><code><a title="tomotopy.LDAModel.make_doc" href="#tomotopy.LDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_vocabs" href="#tomotopy.LDAModel.num_vocabs">num_vocabs</a></code></li>
+<li><code><a title="tomotopy.LDAModel.num_words" href="#tomotopy.LDAModel.num_words">num_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.optim_interval" href="#tomotopy.LDAModel.optim_interval">optim_interval</a></code></li>
+<li><code><a title="tomotopy.LDAModel.perplexity" href="#tomotopy.LDAModel.perplexity">perplexity</a></code></li>
+<li><code><a title="tomotopy.LDAModel.removed_top_words" href="#tomotopy.LDAModel.removed_top_words">removed_top_words</a></code></li>
+<li><code><a title="tomotopy.LDAModel.save" href="#tomotopy.LDAModel.save">save</a></code></li>
+<li><code><a title="tomotopy.LDAModel.set_word_prior" href="#tomotopy.LDAModel.set_word_prior">set_word_prior</a></code></li>
+<li><code><a title="tomotopy.LDAModel.train" href="#tomotopy.LDAModel.train">train</a></code></li>
+<li><code><a title="tomotopy.LDAModel.tw" href="#tomotopy.LDAModel.tw">tw</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocab_freq" href="#tomotopy.LDAModel.vocab_freq">vocab_freq</a></code></li>
+<li><code><a title="tomotopy.LDAModel.vocabs" href="#tomotopy.LDAModel.vocabs">vocabs</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.LLDAModel" href="#tomotopy.LLDAModel">LLDAModel</a></code></h4>
+<ul class="">
+<li><code><a title="tomotopy.LLDAModel.add_doc" href="#tomotopy.LLDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.LLDAModel.get_topic_words" href="#tomotopy.LLDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.LLDAModel.make_doc" href="#tomotopy.LLDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.LLDAModel.topic_label_dict" href="#tomotopy.LLDAModel.topic_label_dict">topic_label_dict</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.MGLDAModel" href="#tomotopy.MGLDAModel">MGLDAModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.MGLDAModel.add_doc" href="#tomotopy.MGLDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.alpha_g" href="#tomotopy.MGLDAModel.alpha_g">alpha_g</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.alpha_l" href="#tomotopy.MGLDAModel.alpha_l">alpha_l</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.alpha_mg" href="#tomotopy.MGLDAModel.alpha_mg">alpha_mg</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.alpha_ml" href="#tomotopy.MGLDAModel.alpha_ml">alpha_ml</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.eta_g" href="#tomotopy.MGLDAModel.eta_g">eta_g</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.eta_l" href="#tomotopy.MGLDAModel.eta_l">eta_l</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.gamma" href="#tomotopy.MGLDAModel.gamma">gamma</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.get_topic_word_dist" href="#tomotopy.MGLDAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.get_topic_words" href="#tomotopy.MGLDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.k_g" href="#tomotopy.MGLDAModel.k_g">k_g</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.k_l" href="#tomotopy.MGLDAModel.k_l">k_l</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.make_doc" href="#tomotopy.MGLDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.MGLDAModel.t" href="#tomotopy.MGLDAModel.t">t</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.PAModel" href="#tomotopy.PAModel">PAModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.PAModel.get_sub_topic_dist" href="#tomotopy.PAModel.get_sub_topic_dist">get_sub_topic_dist</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_sub_topics" href="#tomotopy.PAModel.get_sub_topics">get_sub_topics</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_topic_word_dist" href="#tomotopy.PAModel.get_topic_word_dist">get_topic_word_dist</a></code></li>
+<li><code><a title="tomotopy.PAModel.get_topic_words" href="#tomotopy.PAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.PAModel.infer" href="#tomotopy.PAModel.infer">infer</a></code></li>
+<li><code><a title="tomotopy.PAModel.k1" href="#tomotopy.PAModel.k1">k1</a></code></li>
+<li><code><a title="tomotopy.PAModel.k2" href="#tomotopy.PAModel.k2">k2</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.PLDAModel" href="#tomotopy.PLDAModel">PLDAModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.PLDAModel.add_doc" href="#tomotopy.PLDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.PLDAModel.get_topic_words" href="#tomotopy.PLDAModel.get_topic_words">get_topic_words</a></code></li>
+<li><code><a title="tomotopy.PLDAModel.latent_topics" href="#tomotopy.PLDAModel.latent_topics">latent_topics</a></code></li>
+<li><code><a title="tomotopy.PLDAModel.make_doc" href="#tomotopy.PLDAModel.make_doc">make_doc</a></code></li>
+<li><code><a title="tomotopy.PLDAModel.topic_label_dict" href="#tomotopy.PLDAModel.topic_label_dict">topic_label_dict</a></code></li>
+<li><code><a title="tomotopy.PLDAModel.topics_per_label" href="#tomotopy.PLDAModel.topics_per_label">topics_per_label</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.ParallelScheme" href="#tomotopy.ParallelScheme">ParallelScheme</a></code></h4>
+<ul class="">
+<li><code><a title="tomotopy.ParallelScheme.COPY_MERGE" href="#tomotopy.ParallelScheme.COPY_MERGE">COPY_MERGE</a></code></li>
+<li><code><a title="tomotopy.ParallelScheme.DEFAULT" href="#tomotopy.ParallelScheme.DEFAULT">DEFAULT</a></code></li>
+<li><code><a title="tomotopy.ParallelScheme.NONE" href="#tomotopy.ParallelScheme.NONE">NONE</a></code></li>
+<li><code><a title="tomotopy.ParallelScheme.PARTITION" href="#tomotopy.ParallelScheme.PARTITION">PARTITION</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.SLDAModel" href="#tomotopy.SLDAModel">SLDAModel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="tomotopy.SLDAModel.add_doc" href="#tomotopy.SLDAModel.add_doc">add_doc</a></code></li>
+<li><code><a title="tomotopy.SLDAModel.estimate" href="#tomotopy.SLDAModel.estimate">estimate</a></code></li>
+<li><code><a title="tomotopy.SLDAModel.f" href="#tomotopy.SLDAModel.f">f</a></code></li>
+<li><code><a title="tomotopy.SLDAModel.get_regression_coef" href="#tomotopy.SLDAModel.get_regression_coef">get_regression_coef</a></code></li>
+<li><code><a title="tomotopy.SLDAModel.get_var_type" href="#tomotopy.SLDAModel.get_var_type">get_var_type</a></code></li>
+<li><code><a title="tomotopy.SLDAModel.make_doc" href="#tomotopy.SLDAModel.make_doc">make_doc</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="tomotopy.TermWeight" href="#tomotopy.TermWeight">TermWeight</a></code></h4>
+<ul class="">
+<li><code><a title="tomotopy.TermWeight.IDF" href="#tomotopy.TermWeight.IDF">IDF</a></code></li>
+<li><code><a title="tomotopy.TermWeight.ONE" href="#tomotopy.TermWeight.ONE">ONE</a></code></li>
+<li><code><a title="tomotopy.TermWeight.PMI" href="#tomotopy.TermWeight.PMI">PMI</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.7.5</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

@@ -16,7 +16,7 @@ namespace tomoto
 
 		std::array<Eigen::Matrix<WeightType, -1, -1>, 3> numByTopicWord;
 		std::array<Eigen::Matrix<WeightType, -1, 1>, 3> numByTopic;
-		std::array<Eigen::Matrix<FLOAT, -1, 1>, 2> subTmp;
+		std::array<Eigen::Matrix<Float, -1, 1>, 2> subTmp;
 
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 
@@ -41,24 +41,24 @@ namespace tomoto
 		using WeightType = typename BaseClass::WeightType;
 
 		size_t K2;
-		FLOAT epsilon = 0.00001;
+		Float epsilon = 0.00001;
 		size_t iteration = 5;
 
-		//Eigen::Matrix<FLOAT, -1, 1> alphas; // len = (K + 1)
+		//Eigen::Matrix<Float, -1, 1> alphas; // len = (K + 1)
 
-		Eigen::Matrix<FLOAT, -1, 1> subAlphaSum; // len = K
-		Eigen::Matrix<FLOAT, -1, -1> subAlphas; // len = K * (K2 + 1)
+		Eigen::Matrix<Float, -1, 1> subAlphaSum; // len = K
+		Eigen::Matrix<Float, -1, -1> subAlphas; // len = K * (K2 + 1)
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
 		{
 			const auto K = this->K;
 			for (size_t i = 0; i < iteration; ++i)
 			{
-				FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].getSumWordWeight(); }, this->docs.size(), this->alphas.sum());
+				Float denom = this->template calcDigammaSum<>(&pool, [&](size_t i) { return this->docs[i].getSumWordWeight(); }, this->docs.size(), this->alphas.sum());
 
 				for (size_t k = 0; k <= K; ++k)
 				{
-					FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), this->alphas[k]);
+					Float nom = this->template calcDigammaSum<>(&pool, [&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), this->alphas[k]);
 					this->alphas[k] = std::max(nom / denom * this->alphas[k], epsilon);
 				}
 			}
@@ -70,10 +70,10 @@ namespace tomoto
 				{
 					for (size_t i = 0; i < iteration; ++i)
 					{
-						FLOAT denom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic[k + 1]; }, this->docs.size(), subAlphaSum[k]);
+						Float denom = this->template calcDigammaSum<>(nullptr, [&](size_t i) { return this->docs[i].numByTopic[k + 1]; }, this->docs.size(), subAlphaSum[k]);
 						for (size_t k2 = 0; k2 <= K2; ++k2)
 						{
-							FLOAT nom = this->template calcDigammaSum<>([&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
+							Float nom = this->template calcDigammaSum<>(nullptr, [&](size_t i) { return this->docs[i].numByTopic1_2(k, k2); }, this->docs.size(), subAlphas(k, k2));
 							subAlphas(k, k2) = std::max(nom / denom * subAlphas(k, k2), epsilon);
 						}
 						subAlphaSum[k] = subAlphas.row(k).sum();
@@ -89,7 +89,7 @@ namespace tomoto
 		}
 
 		template<bool _asymEta>
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
+		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			const auto K = this->K;
@@ -97,9 +97,9 @@ namespace tomoto
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
 
-			FLOAT rootWordProb = (ld.numByTopicWord[0](0, vid) + eta) / (ld.numByTopic[0](0) + V * eta);
-			ld.subTmp[0] = (ld.numByTopicWord[1].col(vid).array().template cast<FLOAT>() + eta) / (ld.numByTopic[1].array().template cast<FLOAT>() + V * eta);
-			ld.subTmp[1] = (ld.numByTopicWord[2].col(vid).array().template cast<FLOAT>() + eta) / (ld.numByTopic[2].array().template cast<FLOAT>() + V * eta);
+			Float rootWordProb = (ld.numByTopicWord[0](0, vid) + eta) / (ld.numByTopic[0](0) + V * eta);
+			ld.subTmp[0] = (ld.numByTopicWord[1].col(vid).array().template cast<Float>() + eta) / (ld.numByTopic[1].array().template cast<Float>() + V * eta);
+			ld.subTmp[1] = (ld.numByTopicWord[2].col(vid).array().template cast<Float>() + eta) / (ld.numByTopic[2].array().template cast<Float>() + V * eta);
 
 			if (_Exclusive)
 			{
@@ -108,14 +108,14 @@ namespace tomoto
 					auto r = getRangeOfK(k);
 					auto r1 = r.first, r2 = r.second;
 					zLikelihood.segment(r1, r2 - r1) = (doc.numByTopic[k + 1] + this->alphas[k + 1])
-						* (doc.numByTopic1_2.row(k).segment(r1 + 1, r2 - r1).array().transpose().template cast<FLOAT>() + subAlphas.row(k).segment(r1 + 1, r2 - r1).array().transpose())
+						* (doc.numByTopic1_2.row(k).segment(r1 + 1, r2 - r1).array().transpose().template cast<Float>() + subAlphas.row(k).segment(r1 + 1, r2 - r1).array().transpose())
 						/ (doc.numByTopic[k + 1] + subAlphaSum[k])
 						* ld.subTmp[1].segment(r1, r2 - r1).array();
 				}
 
-				zLikelihood.segment(K2, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + this->alphas.tail(K).array())
-					* (doc.numByTopic1_2.col(0).array().template cast<FLOAT>() + subAlphas.col(0).array())
-					/ (doc.numByTopic.tail(K).array().template cast<FLOAT>() + subAlphaSum.array().template cast<FLOAT>())
+				zLikelihood.segment(K2, K) = (doc.numByTopic.tail(K).array().template cast<Float>() + this->alphas.tail(K).array())
+					* (doc.numByTopic1_2.col(0).array().template cast<Float>() + subAlphas.col(0).array())
+					/ (doc.numByTopic.tail(K).array().template cast<Float>() + subAlphaSum.array().template cast<Float>())
 					* ld.subTmp[0].array();
 
 				zLikelihood[K2 + K] = (doc.numByTopic[0] + this->alphas[0]) * rootWordProb;
@@ -125,14 +125,14 @@ namespace tomoto
 				for (size_t k = 0; k < K; ++k)
 				{
 					zLikelihood.segment(K2 * k, K2) = (doc.numByTopic[k + 1] + this->alphas[k + 1])
-						* (doc.numByTopic1_2.row(k).tail(K2).array().transpose().template cast<FLOAT>() + subAlphas.row(k).tail(K2).array().transpose()) 
+						* (doc.numByTopic1_2.row(k).tail(K2).array().transpose().template cast<Float>() + subAlphas.row(k).tail(K2).array().transpose()) 
 						/ (doc.numByTopic[k + 1] + subAlphaSum[k])
 						* ld.subTmp[1].array();
 				}
 
-				zLikelihood.segment(K2 * K, K) = (doc.numByTopic.tail(K).array().template cast<FLOAT>() + this->alphas.tail(K).array())
-					* (doc.numByTopic1_2.col(0).array().template cast<FLOAT>() + subAlphas.col(0).array())
-					/ (doc.numByTopic.tail(K).array().template cast<FLOAT>() + subAlphaSum.array().template cast<FLOAT>())
+				zLikelihood.segment(K2 * K, K) = (doc.numByTopic.tail(K).array().template cast<Float>() + this->alphas.tail(K).array())
+					* (doc.numByTopic1_2.col(0).array().template cast<Float>() + subAlphas.col(0).array())
+					/ (doc.numByTopic.tail(K).array().template cast<Float>() + subAlphaSum.array().template cast<Float>())
 					* ld.subTmp[0].array();
 
 				zLikelihood[K2 * K + K] = (doc.numByTopic[0] + this->alphas[0]) * rootWordProb;
@@ -142,7 +142,7 @@ namespace tomoto
 		}
 
 		template<int INC>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID z1, TID z2) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
 			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
@@ -191,7 +191,7 @@ namespace tomoto
 			{
 				if (doc.words[w] >= this->realV) continue;
 				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w], doc.Z2s[w]);
-				FLOAT* dist;
+				Float* dist;
 				if (this->etaByTopicWord.size())
 				{
 					THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
@@ -326,7 +326,7 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				ll -= math::lgammaT(doc.getSumWordWeight() + alphaSum);
-				for (TID k = 0; k <= K; ++k)
+				for (Tid k = 0; k <= K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + this->alphas[k]);
 				}
@@ -341,11 +341,11 @@ namespace tomoto
 			const auto eta = this->eta;
 
 			double ll = 0;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll += math::lgammaT(subAlphaSum[k]);
 				ll -= math::lgammaT(ld.numByTopic1_2.row(k).sum() + subAlphaSum[k]);
-				for (TID k2 = 0; k2 <= K2; ++k2)
+				for (Tid k2 = 0; k2 <= K2; ++k2)
 				{
 					ll -= math::lgammaT(subAlphas(k, k2));
 					ll += math::lgammaT(ld.numByTopic1_2(k, k2) + subAlphas(k, k2));
@@ -354,22 +354,22 @@ namespace tomoto
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * (K2 + K + 1);
 
 			ll -= math::lgammaT(ld.numByTopic[0][0] + V * eta);
-			for (VID v = 0; v < V; ++v)
+			for (Vid v = 0; v < V; ++v)
 			{
 				ll += math::lgammaT(ld.numByTopicWord[0](0, v) + eta);
 			}
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[1][k] + V * eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					ll += math::lgammaT(ld.numByTopicWord[1](k, v) + eta);
 				}
 			}
-			for (TID k2 = 0; k2 < K2; ++k2)
+			for (Tid k2 = 0; k2 < K2; ++k2)
 			{
 				ll -= math::lgammaT(ld.numByTopic[2][k2] + V * eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					ll += math::lgammaT(ld.numByTopicWord[2](k2, v) + eta);
 				}
@@ -381,15 +381,15 @@ namespace tomoto
 		{
 			doc.numByTopic.init(topicDocPtr, this->K + 1);
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
-			doc.Zs = tvector<TID>(wordSize);
-			doc.Z2s = tvector<TID>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize);
+			doc.Z2s = tvector<Tid>(wordSize);
 			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(1 + this->K + this->K * K2);
+			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(1 + this->K + this->K * K2);
 			if (initDocs)
 			{
 				this->globalState.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
@@ -404,15 +404,15 @@ namespace tomoto
 
 		struct Generator
 		{
-			std::uniform_int_distribution<TID> theta, theta2;
+			std::uniform_int_distribution<Tid> theta, theta2;
 			std::discrete_distribution<> level;
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{
-				std::uniform_int_distribution<TID>{1, (TID)(this->K)},
-				std::uniform_int_distribution<TID>{1, (TID)(K2)},
+				std::uniform_int_distribution<Tid>{1, (Tid)(this->K)},
+				std::uniform_int_distribution<Tid>{1, (Tid)(K2)},
 				std::discrete_distribution<>{1.0, 1.0, 1.0},
 			};
 		}
@@ -446,16 +446,17 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, doc.Zs[i], doc.Z2s[i]);
 		}
 
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, K2, subAlphas, subAlphaSum);
-
 	public:
-		HPAModel(size_t _K1 = 1, size_t _K2 = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
+
+		HPAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
 			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
-			this->alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1 + 1, _alpha);
-			subAlphas = Eigen::Matrix<FLOAT, -1, -1>::Constant(_K1, _K2 + 1, 0.1);
-			subAlphaSum = Eigen::Matrix<FLOAT, -1, 1>::Constant(_K1, (_K2 + 1) * 0.1);
+			this->alphas = Eigen::Matrix<Float, -1, 1>::Constant(_K1 + 1, _alpha);
+			subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(_K1, _K2 + 1, 0.1);
+			subAlphaSum = Eigen::Matrix<Float, -1, 1>::Constant(_K1, (_K2 + 1) * 0.1);
 			this->optimInterval = 1;
 		}
 
@@ -468,7 +469,7 @@ namespace tomoto
 			iteration = iter;
 		}
 
-		FLOAT getSubAlpha(TID k1, TID k2) const override 
+		Float getSubAlpha(Tid k1, Tid k2) const override 
 		{ 
 			if (_Exclusive)
 			{
@@ -477,23 +478,23 @@ namespace tomoto
 			return subAlphas(k1, k2); 
 		}
 
-		std::vector<FLOAT> getSubTopicBySuperTopic(TID k) const override
+		std::vector<Float> getSubTopicBySuperTopic(Tid k) const override
 		{
 			assert(k < this->K);
-			FLOAT sum = this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k];
-			Eigen::Matrix<FLOAT, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<FLOAT>() + subAlphas.row(k).array()) / sum;
+			Float sum = this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k];
+			Eigen::Matrix<Float, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<Float>() + subAlphas.row(k).array()) / sum;
 			return { ret.data() + 1, ret.data() + K2 + 1 };
 		}
 
-		std::vector<std::pair<TID, FLOAT>> getSubTopicBySuperTopicSorted(TID k, size_t topN) const override
+		std::vector<std::pair<Tid, Float>> getSubTopicBySuperTopicSorted(Tid k, size_t topN) const override
 		{
-			return extractTopN<TID>(getSubTopicBySuperTopic(k), topN);
+			return extractTopN<Tid>(getSubTopicBySuperTopic(k), topN);
 		}
 
-		std::vector<FLOAT> _getWidsByTopic(TID k) const
+		std::vector<Float> _getWidsByTopic(Tid k) const
 		{
 			const size_t V = this->realV;
-			std::vector<FLOAT> ret(V);
+			std::vector<Float> ret(V);
 			size_t level = 0;
 			if (k >= 1)
 			{
@@ -505,7 +506,7 @@ namespace tomoto
 					k -= this->K;
 				}
 			}
-			FLOAT sum = this->globalState.numByTopic[level][k] + V * this->eta;
+			Float sum = this->globalState.numByTopic[level][k] + V * this->eta;
 			auto r = this->globalState.numByTopicWord[level].row(k);
 			for (size_t v = 0; v < V; ++v)
 			{
@@ -514,10 +515,10 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
 		{
-			std::vector<FLOAT> ret(1 + this->K + K2);
-			FLOAT sum = doc.getSumWordWeight() + this->alphas.sum();
+			std::vector<Float> ret(1 + this->K + K2);
+			Float sum = doc.getSumWordWeight() + this->alphas.sum();
 			ret[0] = (doc.numByTopic[0] + this->alphas[0]) / sum;
 			for (size_t k = 0; k < this->K; ++k)
 			{
@@ -530,16 +531,20 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> getSubTopicsByDoc(const DocumentBase* doc) const override
+		std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc) const override
 		{
 			throw std::runtime_error{ "not applicable" };
 		}
 
-		std::vector<std::pair<TID, FLOAT>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		std::vector<std::pair<Tid, Float>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
 		{
 			throw std::runtime_error{ "not applicable" };
 		}
 
+		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
+		{
+			THROW_ERROR_WITH_INFO(exception::Unimplemented, "HPAModel doesn't provide setWordPrior function.");
+		}
 	};
 
 	template<TermWeight _TW>
