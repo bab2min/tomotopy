@@ -21,9 +21,13 @@ jobs:
       run: |
         ln -s /opt/python/cp38-cp38/bin/python3 /usr/bin/python3
         python3 -m pip install --upgrade pip
-        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
-        tar -zxvf 3.3.7.tar.gz
-        mv eigen-git-mirror-3.3.7 include
+        git clone https://github.com/eigenteam/eigen-git-mirror
+        cd eigen-git-mirror
+        git checkout tags/3.3.7
+        cd ..
+        mkdir include
+        mv eigen-git-mirror/Eigen/ include/
+        rm -rf eigen-git-mirror/
     - name: build
       run: |
         python3 -m pip install pdoc3
