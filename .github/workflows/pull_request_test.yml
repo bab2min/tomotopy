@@ -36,7 +36,6 @@ jobs:
         /opt/python/${{ matrix.cp }}/bin/python -m pip install pytest nltk
         /opt/python/${{ matrix.cp }}/bin/python -m nltk.downloader stopwords
         /opt/python/${{ matrix.cp }}/bin/python -m pytest --verbose test/unit_test.py
-        ls -l
 
   build_macos:
     name: Build for macOS
