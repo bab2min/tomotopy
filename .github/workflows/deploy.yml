@@ -26,8 +26,8 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        /opt/python/cp35-cp35m/bin/python setup.py sdist upload
-        for cp in cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
+        /opt/python/cp35-cp35m/bin/python setup.py sdist
+        for cp in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel
           /opt/python/${cp}/bin/python setup.py build bdist_wheel
@@ -65,7 +65,6 @@ jobs:
         export AUDITWHEEL_PLAT=many
         python -m pip install twine wheel
         python setup.py bdist_wheel
-        cat tomotopy/documentation.rst
         twine upload dist/*
 
   build_windows:
