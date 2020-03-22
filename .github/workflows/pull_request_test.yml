@@ -18,6 +18,9 @@ jobs:
 
     steps:        
     - uses: actions/checkout@v1
+    - name: Print Info
+      run: |
+        cat /proc/cpuinfo
     - name: Install dependencies
       run: |
         git clone https://github.com/eigenteam/eigen-git-mirror
@@ -33,6 +36,7 @@ jobs:
         /opt/python/${{ matrix.cp }}/bin/python -m pip install pytest nltk
         /opt/python/${{ matrix.cp }}/bin/python -m nltk.downloader stopwords
         /opt/python/${{ matrix.cp }}/bin/python -m pytest --verbose test/unit_test.py
+        ls -l
 
   build_macos:
     name: Build for macOS
