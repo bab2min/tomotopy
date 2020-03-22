@@ -25,13 +25,14 @@ namespace tomoto
 		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
-		static constexpr const char TMID[] = "DMR";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW>, _Derived>::type;
 		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
+
+		const char* TMID = "DMR\0";
 
 		Eigen::Matrix<Float, -1, -1> lambda;
 		Eigen::Matrix<Float, -1, -1> expLambda;

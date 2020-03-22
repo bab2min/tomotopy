@@ -217,7 +217,7 @@ namespace tomoto
 			typedef const char c5[5];
 
 			serializer::writeMany(writer,
-				serializer::to_keyz(static_cast<const _Derived*>(this)->TMID),
+				serializer::to_keyz(*(c5*)&(static_cast<const _Derived*>(this)->TMID)),
 				serializer::to_keyz(*(c5*)&(static_cast<const _Derived*>(this)->TWID)));
 			serializer::writeTaggedMany(writer, 0x00010001,
 				serializer::to_keyz("dict"), dict, 
@@ -244,7 +244,7 @@ namespace tomoto
 			try
 			{
 				serializer::readMany(reader, 
-					serializer::to_keyz(static_cast<_Derived*>(this)->TMID),
+					serializer::to_keyz(*(c5*)&(static_cast<_Derived*>(this)->TMID)),
 					serializer::to_keyz(*(c5*)&(static_cast<_Derived*>(this)->TWID)));
 				serializer::readTaggedMany(reader, 0x00010001, 
 					serializer::to_keyz("dict"), dict,
@@ -256,7 +256,7 @@ namespace tomoto
 			{
 				reader.seekg(start_pos);
 				serializer::readMany(reader,
-					serializer::to_key(static_cast<_Derived*>(this)->TMID),
+					serializer::to_key(*(c5*)&(static_cast<_Derived*>(this)->TMID)),
 					serializer::to_key(*(c5*)&(static_cast<_Derived*>(this)->TWID)),
 					dict, vocabCf, realV);
 			}

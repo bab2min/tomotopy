@@ -19,13 +19,14 @@ namespace tomoto
 		typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type,
 		_DocType, _ModelState>
 	{
-		static constexpr const char TMID[] = "PLDA";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type;
 		using BaseClass = LDAModel<_TW, flags::generator_by_doc | flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
+
+		const char* TMID = "PLDA";
 
 		Dictionary topicLabelDict;
 

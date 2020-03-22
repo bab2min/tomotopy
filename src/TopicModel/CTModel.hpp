@@ -25,13 +25,14 @@ namespace tomoto
 		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
-		static constexpr const char TMID[] = "CTM\0";
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW>, _Derived>::type;
 		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
+
+		const char* TMID = "CTM\0";
 
 		size_t numBetaSample = 10;
 		size_t numTMNSample = 5;
