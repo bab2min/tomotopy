@@ -6,20 +6,26 @@ using namespace std;
 
 static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0, rmTop = 0;
+	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01;
 	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k",
+	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k",
 		"vars", "alpha", "eta",
-		"mu", "nu_sq", "glm_param", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnOffOOOn", (char**)kwlist, 
-		&tw, &minCnt, &rmTop, &K, 
+		"mu", "nu_sq", "glm_param", "seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffOOOnOO", (char**)kwlist, 
+		&tw, &minCnt, &minDf, &rmTop, &K, 
 		&vars, &alpha, &eta, 
-		&mu, &nuSq, &glmCoef, &seed)) return -1;
+		&mu, &nuSq, &glmCoef, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
+		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
+		{
+			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
+
+		}
 		vector<tomoto::ISLDAModel::GLM> varTypes;
 		if (vars)
 		{
@@ -36,7 +42,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			}
 		}
 		
-		vector<tomoto::FLOAT> vmu, vnuSq, vglmCoef; 
+		vector<tomoto::Float> vmu, vnuSq, vglmCoef; 
 		float fTemp;
 		if (mu)
 		{
@@ -46,7 +52,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 				py::UniqueObj iter;
 				if (!(iter = PyObject_GetIter(mu))) throw runtime_error{ "'mu' must be float or iterable of float." };
 
-				vmu = py::makeIterToVector<tomoto::FLOAT>(iter);
+				vmu = py::makeIterToVector<tomoto::Float>(iter);
 			}
 			else
 			{
@@ -62,7 +68,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 				py::UniqueObj iter;
 				if (!(iter = PyObject_GetIter(nuSq))) throw runtime_error{ "'nu_sq' must be float or iterable of float." };
 
-				vnuSq = py::makeIterToVector<tomoto::FLOAT>(iter);
+				vnuSq = py::makeIterToVector<tomoto::Float>(iter);
 			}
 			else
 			{
@@ -78,7 +84,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 				py::UniqueObj iter;
 				if (!(iter = PyObject_GetIter(glmCoef))) throw runtime_error{ "'glm_param' must be float or iterable of float." };
 
-				vglmCoef = py::makeIterToVector<tomoto::FLOAT>(iter);
+				vglmCoef = py::makeIterToVector<tomoto::Float>(iter);
 			}
 			else
 			{
@@ -93,7 +99,16 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+
+		if (objCorpus)
+		{
+			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
+				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
+			py::UniqueObj ret = PyObject_CallObject(feeder, param);
+			if(!ret) return -1;
+		}
 	}
 	catch (const exception& e)
 	{
@@ -102,7 +117,6 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	}
 	return 0;
 }
-
 
 static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
@@ -121,14 +135,57 @@ static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			throw runtime_error{ "'words' must be an iterable of str." };
 		}
 		auto words = py::makeIterToVector<string>(iter);
-		vector<tomoto::FLOAT> ys;
+		vector<tomoto::Float> ys;
 		if (argY)
 		{
 			py::UniqueObj iter2;
 			if (!(iter2 = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
-			ys = py::makeIterToVector<tomoto::FLOAT>(iter2);
+			ys = py::makeIterToVector<tomoto::Float>(iter2);
 		}
 		auto ret = inst->addDoc(words, ys);
+		return py::buildPyValue(ret);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* SLDA_addDoc_(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	PyObject *argWords, *argStartPos = nullptr, *argLength = nullptr, *argY = nullptr;
+	const char* argRaw = nullptr;
+	static const char* kwlist[] = { "words", "raw", "start_pos", "length", "y", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sOOO", (char**)kwlist,
+		&argWords, &argRaw, &argStartPos, &argLength, &argY)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		string raw;
+		if (argRaw) raw = argRaw;
+
+		py::UniqueObj iter = PyObject_GetIter(argWords);
+		vector<tomoto::Vid> words = py::makeIterToVector<tomoto::Vid>(iter);
+		iter = PyObject_GetIter(argStartPos);
+		vector<uint32_t> startPos = py::makeIterToVector<uint32_t>(iter);
+		iter = PyObject_GetIter(argLength);
+		vector<uint16_t> length = py::makeIterToVector<uint16_t>(iter);
+		char2Byte(raw, startPos, length);
+		vector<tomoto::Float> ys;
+		if (argY)
+		{
+			py::UniqueObj iter2;
+			if (!(iter2 = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
+			ys = py::makeIterToVector<tomoto::Float>(iter2);
+		}
+
+		auto ret = inst->addDoc(raw, words, startPos, length, ys);
 		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
@@ -158,12 +215,12 @@ static PyObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 			throw runtime_error{ "words must be an iterable of str." };
 		}
 		auto words = py::makeIterToVector<string>(iter);
-		vector<tomoto::FLOAT> ys;
+		vector<tomoto::Float> ys;
 		if (argY)
 		{
 			py::UniqueObj iter2;
 			if (!(iter2 = PyObject_GetIter(argY))) throw runtime_error{ "'y' must be an iterable of float." };
-			ys = py::makeIterToVector<tomoto::FLOAT>(iter2);
+			ys = py::makeIterToVector<tomoto::Float>(iter2);
 		}
 		auto ret = inst->makeDoc(words, ys);
 		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
@@ -284,6 +341,7 @@ static PyMethodDef SLDA_methods[] =
 {
 	{ "load", (PyCFunction)SLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
 	{ "add_doc", (PyCFunction)SLDA_addDoc, METH_VARARGS | METH_KEYWORDS, SLDA_add_doc__doc__ },
+	{ "_add_doc", (PyCFunction)SLDA_addDoc_, METH_VARARGS | METH_KEYWORDS, "" },
 	{ "make_doc", (PyCFunction)SLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, SLDA_make_doc__doc__},
 	{ "get_regression_coef", (PyCFunction)SLDA_getRegressionCoef, METH_VARARGS | METH_KEYWORDS, SLDA_get_regression_coef__doc__},
 	{ "get_var_type", (PyCFunction)SLDA_getTypeOfVar, METH_VARARGS | METH_KEYWORDS, SLDA_get_var_type__doc__},

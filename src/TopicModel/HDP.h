@@ -10,14 +10,15 @@ namespace tomoto
 		For DocumentHDP, the topic in numByTopic, Zs indicates 'table id', not 'topic id'.
 		To get real 'topic id', check the topic field of numTopicByTable.
 		*/
+		using BaseDocument = DocumentLDA<_TW>;
 		using DocumentLDA<_TW>::DocumentLDA;
 		using WeightType = typename DocumentLDA<_TW>::WeightType;
 		struct TableTopicInfo
 		{
 			WeightType num;
-			TID topic;
+			Tid topic;
 
-			TableTopicInfo(WeightType _num = 0, TID _topic = 0) : num(_num), topic(_topic)
+			TableTopicInfo(WeightType _num = 0, Tid _topic = 0) : num(_num), topic(_topic)
 			{
 			}
 
@@ -38,13 +39,14 @@ namespace tomoto
 		};
 		std::vector<TableTopicInfo> numTopicByTable;
 
-		DEFINE_SERIALIZER_AFTER_BASE(DocumentLDA<_TW>, numTopicByTable);
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, numTopicByTable);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, numTopicByTable);
 
 		size_t getNumTable() const
 		{
 			return std::count_if(numTopicByTable.begin(), numTopicByTable.end(), [](const TableTopicInfo& e) { return (bool)e; });
 		}
-		size_t addNewTable(TID tid)
+		size_t addNewTable(Tid tid)
 		{
 			return insertIntoEmpty(numTopicByTable, TableTopicInfo( 0, tid ));
 		}
@@ -56,11 +58,11 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentHDP<TermWeight::one>;
-		static IHDPModel* create(TermWeight _weight, size_t _K = 1, FLOAT alpha = 0.1, FLOAT eta = 0.01, FLOAT gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() });
+		static IHDPModel* create(TermWeight _weight, size_t _K = 1, Float alpha = 0.1, Float eta = 0.01, Float gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() });
 
-		virtual FLOAT getGamma() const = 0;
+		virtual Float getGamma() const = 0;
 		virtual size_t getTotalTables() const = 0;
 		virtual size_t getLiveK() const = 0;
-		virtual bool isLiveTopic(TID tid) const = 0;
+		virtual bool isLiveTopic(Tid tid) const = 0;
 	};
 }

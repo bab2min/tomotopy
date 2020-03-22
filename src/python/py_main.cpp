@@ -1,4 +1,5 @@
 #include "module.h"
+#include "label.h"
 
 #define TM_DMR
 #define TM_HDP
@@ -14,6 +15,45 @@
 using namespace std;
 
 PyObject* gModule;
+
+
+void char2Byte(const string& str, vector<uint32_t>& startPos, vector<uint16_t>& length)
+{
+	if (str.empty()) return;
+	vector<size_t> charPos;
+	auto it = str.begin(), end = str.end();
+	for (; it != end; )
+	{
+		charPos.emplace_back(it - str.begin());
+		uint8_t c = *it;
+		if ((c & 0xF8) == 0xF0)
+		{
+			it += 4;
+		}
+		else if ((c & 0xF0) == 0xE0)
+		{
+			it += 3;
+		}
+		else if ((c & 0xE0) == 0xC0)
+		{
+			it += 2;
+		}
+		else if ((c & 0x80))
+		{
+			throw std::runtime_error{ "utf-8 decoding error" };
+		}
+		else it += 1;
+	}
+	charPos.emplace_back(str.size());
+
+	for (size_t i = 0; i < startPos.size(); ++i)
+	{
+		size_t s = startPos[i], e = startPos[i] + length[i];
+		startPos[i] = charPos[s];
+		length[i] = charPos[e] - charPos[s];
+	}
+}
+
 
 void TopicModelObject::dealloc(TopicModelObject* self)
 {
@@ -487,7 +527,7 @@ static PySequenceMethods Corpus_seq_methods = {
 
 PyTypeObject Corpus_type = {
 	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy.Corpus",             /* tp_name */
+	"tomotopy._Corpus",             /* tp_name */
 	sizeof(CorpusObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)CorpusObject::dealloc, /* tp_dealloc */
@@ -506,7 +546,7 @@ PyTypeObject Corpus_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT,   /* tp_flags */
-	"Corpus type",           /* tp_doc */
+	"",           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -615,5 +655,8 @@ PyMODINIT_FUNC MODULE_NAME()
 #else
 	PyModule_AddStringConstant(gModule, "isa", "none");
 #endif
+
+	PyModule_AddObject(gModule, "label", makeLabelModule());
+
 	return gModule;
 }

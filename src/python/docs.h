@@ -114,21 +114,24 @@ u8R""(문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확�
 	class LDA
 */
 DOC_SIGNATURE_EN_KO(LDA___init____doc__,
-	"LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
+	"LDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on following papers:
 	
 > * Blei, D.M., Ng, A.Y., &Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.
 > * Newman, D., Asuncion, A., Smyth, P., &Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.
-	
-LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)
 
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     .. versionadded:: 0.2.0
     
@@ -142,20 +145,31 @@ eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Latent Dirichlet Allocation(LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 	
 > * Blei, D.M., Ng, A.Y., &Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.
 > * Newman, D., Asuncion, A., Smyth, P., &Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.
-	
-LDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=?)
 
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -171,22 +185,30 @@ eta : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_add_doc__doc__,
 	"add_doc(self, words)",
-	u8R""(Add a new document into the model instance and return an index of the inserted document.
+	u8R""(Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.LDAModel.train`.
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
 )"",
-u8R""(현재 모델에 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+u8R""(현재 모델에 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다. 이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable)"");
 
 DOC_SIGNATURE_EN_KO(LDA_make_doc__doc__,
@@ -195,21 +217,67 @@ DOC_SIGNATURE_EN_KO(LDA_make_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다..
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
+)"");
+
+DOC_SIGNATURE_EN_KO(LDA_set_word_prior__doc__,
+	"set_word_prior(self, word, prior)",
+	u8R""(.. versionadded:: 0.6.0
+
+Set word-topic prior. This method should be called before calling the `tomotopy.LDAModel.train`.
+
+Parameters
+----------
+word : str
+    a word to be set
+prior : Iterable[float]
+	topic distribution of `word` whose length is equal to `tomotopy.LDAModel.k`
+)"",
+u8R""(.. versionadded:: 0.6.0
+
+어휘-주제 사전 분포를 설정합니다. 이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
+
+Parameters
+----------
+word : str
+    설정할 어휘
+prior : Iterable[float]
+    어휘 `word`의 주제 분포. `prior`의 길이는 `tomotopy.LDAModel.k`와 동일해야 합니다.
+)"");
+
+DOC_SIGNATURE_EN_KO(LDA_get_word_prior__doc__,
+	"get_word_prior(self, word)",
+	u8R""(.. versionadded:: 0.6.0
+
+Return word-topic prior for `word`. If there is no set prior for `word`, an empty list is returned.
+
+Parameters
+----------
+word : str
+    a word
+)"",
+u8R""(.. versionadded:: 0.6.0
+
+`word`에 대한 사전 주제 분포를 반환합니다. 별도로 설정된 값이 없을 경우 빈 리스트가 반환됩니다.
+
+Parameters
+----------
+word : str
+    어휘
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_train__doc__,
 	"train(self, iter=10, workers=0, parallel=0)",
 	u8R""(Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
-After calling this method, you cannot `tomotopy.LDAModel.add_doc` more.
+After calling this method, you cannot `tomotopy.LDAModel.add_doc` or `tomotopy.LDAModel.set_word_prior` more.
 
 Parameters
 ----------
@@ -218,7 +286,7 @@ iter : int
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
-parallel : int or tomotopy.ParallelScheme
+parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
     
     the parallelism scheme for training. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
@@ -233,7 +301,7 @@ iter : int
 workers : int
     깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다. 
     만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.
-parallel : int or tomotopy.ParallelScheme
+parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
 
     학습에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.
@@ -289,7 +357,7 @@ The return type is (a topic distribution of `doc`, log likelihood) or (a `list` 
 
 Parameters
 ----------
-doc : tomotopy.Document or list of tomotopy.Document
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
     an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document` to be inferred by the model.
     It can be acquired from `tomotopy.LDAModel.make_doc` method.
 iter : int
@@ -300,7 +368,7 @@ tolerance : float
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
-parallel : int or tomotopy.ParallelScheme
+parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
     
     the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
@@ -312,7 +380,7 @@ u8R""(새로운 문헌인 `doc`에 대해 각각의 주제 분포를 추론하�
 
 Parameters
 ----------
-doc : tomotopy.Document or list of tomotopy.Document
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
     추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
     이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
 iter : int
@@ -323,7 +391,7 @@ tolerance : float
 workers : int
     깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다. 
     만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.
-parallel : int or tomotopy.ParallelScheme
+parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
 
     추론에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.
@@ -338,11 +406,21 @@ DOC_SIGNATURE_EN_KO(LDA_save__doc__,
 
 If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model.
 If `False`, only topic paramters of the model will be saved. This model can be only used for inference of an unseen document.
+
+.. versionadded:: 0.6.0
+
+Since version 0.6.0, the model file format has been changed. 
+Thus model files saved in version 0.6.0 or later are not compatible with versions prior to 0.5.2.
 )"",
 u8R""(현재 모델을 `filename` 경로의 파일에 저장합니다. `None`을 반환합니다.
 
 `full`이 `True`일 경우, 모델의 전체 상태가 파일에 모두 저장됩니다. 저장된 모델을 다시 읽어들여 학습(`train`)을 더 진행하고자 한다면 `full` = `True`로 하여 저장하십시오.
 반면 `False`일 경우, 토픽 추론에 관련된 파라미터만 파일에 저장됩니다. 이 경우 파일의 용량은 작아지지만, 추가 학습은 불가하고 새로운 문헌에 대해 추론(`infer`)하는 것만 가능합니다.
+
+.. versionadded:: 0.6.0
+
+0.6.0 버전부터 모델 파일 포맷이 변경되었습니다.
+따라서 0.6.0 이후 버전에서 저장된 모델 파일 포맷은 0.5.2 버전 이전과는 호환되지 않습니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_load__doc__,
@@ -427,20 +505,23 @@ u8R""(모델 생성시 `rm_top` 파라미터를 1 이상으로 설정한 경우,
 	class DMR
 */
 DOC_SIGNATURE_EN_KO(DMR___init____doc__,
-	"DMRModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=0.0000000001, seed=None)",
+	"DMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=0.0000000001, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on following papers:
 
 > * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.
 
-DMRModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=1e-10, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     .. versionadded:: 0.2.0
     
@@ -458,19 +539,30 @@ alpha_epsilon : float
     small smoothing value for preventing `exp(lambdas)` to be zero
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Dirichlet Multinomial Regression(DMR) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
 > * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.
 
-DMRModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=1e-10, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -490,6 +582,14 @@ alpha_epsilon : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(DMR_add_doc__doc__,
@@ -498,7 +598,7 @@ DOC_SIGNATURE_EN_KO(DMR_add_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
@@ -507,7 +607,7 @@ u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하�
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 metadata : str
     문헌의 메타데이터 (예로 저자나 제목, 작성연도 등)
@@ -519,7 +619,7 @@ DOC_SIGNATURE_EN_KO(DMR_make_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iteratable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
@@ -528,7 +628,7 @@ u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 metadata : str
     문헌의 메타데이터 (예를 들어 저자나 제목, 작성연도 등)
@@ -558,7 +658,7 @@ DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
 	class HDP
 */
 DOC_SIGNATURE_EN_KO(HDP___init____doc__,
-	"HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)",
+	"HDPModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on following papers:
 
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
@@ -566,15 +666,18 @@ DOC_SIGNATURE_EN_KO(HDP___init____doc__,
 
 Since version 0.3.0, hyperparameter estimation for `alpha` and `gamma` has been added. You can turn off this estimation by setting `optim_interval` to zero.
 
-HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     .. versionadded:: 0.2.0
     
@@ -593,6 +696,14 @@ gamma : float
     concentration coeficient of Dirichlet Process for table-topic
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Hierarchical Dirichlet Process(HDP) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
@@ -601,14 +712,17 @@ u8R""(이 타입은 Hierarchical Dirichlet Process(HDP) 토픽 모델의 구현�
 
 0.3.0버전부터 `alpha`와 `gamma`에 대한 하이퍼파라미터 추정 기능이 추가되었습니다. `optim_interval`을 0으로 설정함으로써 이 기능을 끌 수 있습니다.
 
-HDPModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -628,6 +742,14 @@ gamma : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(HDP_is_live_topic__doc__,
@@ -663,20 +785,23 @@ DOC_VARIABLE_EN_KO(HDP_num_tables__doc__,
 	class MGLDA
 */
 DOC_SIGNATURE_EN_KO(MGLDA___init____doc__,
-	"MGLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None)",
+	"MGLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on following papers:
 
 > * Titov, I., & McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.
 
-MGLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     .. versionadded:: 0.2.0
     
@@ -704,19 +829,30 @@ gamma : float
     hyperparameter of Dirichlet distribution for sentence-window
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Multi Grain Latent Dirichlet Allocation(MG-LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
 > * Titov, I., & McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.
 
-MGLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -746,6 +882,14 @@ gamma : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_add_doc__doc__,
@@ -754,7 +898,7 @@ DOC_SIGNATURE_EN_KO(MGLDA_add_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
 delimiter : str
     a sentence separator. `words` will be separated by this value into sentences.
@@ -763,7 +907,7 @@ u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하�
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 delimiter : str
     문장 구분자, `words`는 이 값을 기준으로 문장 단위로 반할됩니다.
@@ -775,7 +919,7 @@ DOC_SIGNATURE_EN_KO(MGLDA_make_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iteratable of `str`
 delimiter : str
     a sentence separator. `words` will be separated by this value into sentences.
@@ -784,7 +928,7 @@ u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 delimiter : str
     문장 구분자, `words`는 이 값을 기준으로 문장 단위로 반할됩니다.
@@ -875,20 +1019,23 @@ DOC_VARIABLE_EN_KO(MGLDA_eta_l__doc__,
 	class PA
 */
 DOC_SIGNATURE_EN_KO(PA___init____doc__,
-	"PAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None)",
+	"PAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Pachinko Allocation(PA) topic model and its implementation is based on following papers:
 
 > * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.
 
-PAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     .. versionadded:: 0.2.0
     
@@ -904,19 +1051,30 @@ eta : float
     hyperparameter of Dirichlet distribution for sub topic-word
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Pachinko Allocation(PA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
 > * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.
 
-PAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -934,6 +1092,14 @@ eta : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_topic_words__doc__,
@@ -1025,7 +1191,7 @@ The return type is ((a topic distribution of `doc`, a sub-topic distribution of 
 
 Parameters
 ----------
-doc : tomotopy.Document or list of tomotopy.Document
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
     an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document` to be inferred by the model.
     It can be acquired from `tomotopy.LDAModel.make_doc` method.
 iter : int
@@ -1036,7 +1202,7 @@ tolerance : float
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
-parallel : int or tomotopy.ParallelScheme
+parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
     
     the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
@@ -1050,7 +1216,7 @@ u8R""(.. versionadded:: 0.5.0
 
 Parameters
 ----------
-doc : tomotopy.Document or list of tomotopy.Document
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
     추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
     이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
 iter : int
@@ -1061,7 +1227,7 @@ tolerance : float
 workers : int
     깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다. 
     만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.
-parallel : int or tomotopy.ParallelScheme
+parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
 
     추론에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.
@@ -1082,20 +1248,23 @@ DOC_VARIABLE_EN_KO(PA_k2__doc__,
 	class HPA
 */
 DOC_SIGNATURE_EN_KO(HPA___init____doc__,
-	"HPAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None)",
+	"HPAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on following papers:
 
 > * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
 
-HPAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     .. versionadded:: 0.2.0
     
@@ -1111,19 +1280,30 @@ eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Hierarchical Pachinko Allocation(HPA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
 > * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
 
-HPAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -1141,6 +1321,14 @@ eta : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(HPA_get_topic_words__doc__,
@@ -1194,22 +1382,25 @@ topic_id : int
 */
 
 DOC_SIGNATURE_EN_KO(CT___init____doc__,
-	"CTModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
+	"CTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(.. versionadded:: 0.2.0
 This type provides Correlated Topic Model (CTM) and its implementation is based on following papers:
 	
 > * Blei, D., & Lafferty, J. (2006). Correlated topic models. Advances in neural information processing systems, 18, 147.
 > * Mimno, D., Wallach, H., & McCallum, A. (2008, December). Gibbs sampling for logistic normal topic models with graph-based priors. In NIPS Workshop on Analyzing Graphs (Vol. 61).
 
-CTModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
@@ -1221,6 +1412,14 @@ eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(.. versionadded:: 0.2.0
 이 타입은 Correlated Topic Model (CTM)의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
@@ -1228,15 +1427,17 @@ u8R""(.. versionadded:: 0.2.0
 > * Blei, D., & Lafferty, J. (2006). Correlated topic models. Advances in neural information processing systems, 18, 147.
 > * Mimno, D., Wallach, H., & McCallum, A. (2008, December). Gibbs sampling for logistic normal topic models with graph-based priors. In NIPS Workshop on Analyzing Graphs (Vol. 61).
 
-
-CTModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=?)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
@@ -1250,6 +1451,14 @@ eta : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(CT_get_correlations__doc__,
@@ -1307,7 +1516,7 @@ DOC_VARIABLE_EN_KO(CT_get_prior_cov__doc__,
 	class SLDA
 */
 DOC_SIGNATURE_EN_KO(SLDA___init____doc__,
-	"SLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None)",
+	"SLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None)",
 	u8R""(This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on following papers:
 	
 > * Mcauliffe, J. D., & Blei, D. M. (2008). Supervised topic models. In Advances in neural information processing systems (pp. 121-128).
@@ -1315,21 +1524,24 @@ DOC_SIGNATURE_EN_KO(SLDA___init____doc__,
 
 .. versionadded:: 0.2.0
 
-SLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767.
-vars : iterable of str
+vars : Iterable[str]
     indicating types of response variables.
     The length of `vars` determines the number of response variables, and each element of `vars` determines a type of the variable.
     The list of available types is like below:
@@ -1340,14 +1552,22 @@ alpha : float
     hyperparameter of Dirichlet distribution for document-topic
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
-mu : float or list of float
+mu : Union[float, Iterable[float]]
     mean of regression coefficients
-nu_sq : float or list of float
+nu_sq : Union[float, Iterable[float]]
     variance of regression coefficients
-glm_param : float or list of float
+glm_param : Union[float, Iterable[float]]
     the parameter for Generalized Linear Model
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 supervised Latent Dirichlet Allocation(sLDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 	
@@ -1356,21 +1576,24 @@ u8R""(이 타입은 supervised Latent Dirichlet Allocation(sLDA) 토픽 모델�
 
 .. versionadded:: 0.2.0
 
-SLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 k : int
     토픽의 개수, 1 ~ 32767 사이의 정수
-vars : iterable of str
+vars : Iterable[str]
     응답변수의 종류를 지정합니다.
     `vars`의 길이는 모형이 사용하는 응답 변수의 개수를 결정하며, `vars`의 요소는 각 응답 변수의 종류를 결정합니다.
     사용가능한 종류는 다음과 같습니다:
@@ -1381,15 +1604,23 @@ alpha : float
     문헌-토픽 디리클레 분포의 하이퍼 파라미터
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
-mu : float or list of float
+mu : Union[float, Iterable[float]]
     회귀 계수의 평균값
-nu_sq : float or list of float
+nu_sq : Union[float, Iterable[float]]
     회귀 계수의 분산값
-glm_param : float or list of float
+glm_param : Union[float, Iterable[float]]
     일반화 선형 모형에서 사용될 파라미터
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_add_doc__doc__,
@@ -1398,9 +1629,9 @@ DOC_SIGNATURE_EN_KO(SLDA_add_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
-y : list of float
+y : Iterable[float]
     response variables of this document. 
     The length of `y` must be equal to the number of response variables of the model (`tomotopy.SLDAModel.f`).
     
@@ -1412,9 +1643,9 @@ u8R""(현재 모델에 응답 변수 `y`를 포함하는 새로운 문헌을 추
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
-y : list of float
+y : Iterable[float]
     문헌의 응답 변수로 쓰일 `float`의 `list`. `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.SLDAModel.f`와 일치해야 합니다.
     
     .. versionadded:: 0.5.1
@@ -1428,9 +1659,9 @@ DOC_SIGNATURE_EN_KO(SLDA_make_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
-y : list of float
+y : Iterable[float]
     response variables of this document. 
     The length of `y` doesn't have to be equal to the number of response variables of the model (`tomotopy.SLDAModel.f`).
     If the length of `y` is shorter than `tomotopy.SLDAModel.f`, missing values are automatically filled with `NaN`.
@@ -1439,9 +1670,9 @@ u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
-y : list of float
+y : Iterable[float]
     문헌의 응답 변수로 쓰일 `float`의 `list`. 
     `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.SLDAModel.f`와 꼭 일치할 필요는 없습니다.
     `y`의 길이가 `tomotopy.SLDAModel.f`보다 짧을 경우, 모자란 값들은 자동으로 `NaN`으로 채워집니다.
@@ -1496,22 +1727,25 @@ DOC_VARIABLE_EN_KO(SLDA_f__doc__,
 	class LLDA
 */
 DOC_SIGNATURE_EN_KO(LLDA___init____doc__,
-	"LLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
+	"LLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
 
 .. versionadded:: 0.3.0
 
-LLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
@@ -1523,21 +1757,32 @@ eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 	
 > * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
 
 .. versionadded:: 0.3.0
-	
-LLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=?)
 
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
@@ -1551,6 +1796,14 @@ eta : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(LLDA_add_doc__doc__,
@@ -1559,18 +1812,18 @@ DOC_SIGNATURE_EN_KO(LLDA_add_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iterable of `str`
-labels : iterable of str
+labels : Iterable[str]
     labels of the document
 )"",
 u8R""(현재 모델에 `labels`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
-labels : iterable of str
+labels : Iterable[str]
     문헌의 레이블 리스트
 )"");
 
@@ -1580,18 +1833,18 @@ DOC_SIGNATURE_EN_KO(LLDA_make_doc__doc__,
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     an iteratable of `str`
-labels : iterable of str
+labels : Iterable[str]
     labels of the document
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 Parameters
 ----------
-words : iterable of str
+words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
-labels : iterable of str
+labels : Iterable[str]
     문헌의 레이블 리스트
 )"");
 
@@ -1628,22 +1881,25 @@ DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
 	class PLDA
 */
 DOC_SIGNATURE_EN_KO(PLDA___init____doc__,
-	"PLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None)",
+	"PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
 .. versionadded:: 0.4.0
 
-PLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
@@ -1657,21 +1913,32 @@ eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Partially Labeled LDA(PLDA) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
 .. versionadded:: 0.4.0
-	
-PLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=?)
 
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
@@ -1687,6 +1954,14 @@ eta : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 
@@ -1731,22 +2006,25 @@ DOC_VARIABLE_EN_KO(PLDA_topics_per_label__doc__,
 	class HLDA
 */
 DOC_SIGNATURE_EN_KO(HLDA___init____doc__,
-	"HLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)",
+	"HLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Hierarchical LDA topic model and its implementation is based on following papers:
 
 > * Griffiths, T. L., Jordan, M. I., Tenenbaum, J. B., & Blei, D. M. (2004). Hierarchical topic models and the nested Chinese restaurant process. In Advances in neural information processing systems (pp. 17-24).
 
 .. versionadded:: 0.4.0
 
-HLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
 min_cf : int
-    minimum frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
     The default value is 0, which means no words are excluded.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
 rm_top : int    
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
@@ -1760,6 +2038,14 @@ gamma : float
     concentration coeficient of Dirichlet Process
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
 )"",
 u8R""(이 타입은 Hierarchical LDA 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
@@ -1767,14 +2053,17 @@ u8R""(이 타입은 Hierarchical LDA 토픽 모델의 구현체를 제공합니�
 
 .. versionadded:: 0.4.0
 
-HLDAModel(tw=TermWeight.ONE, min_cf=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None)
-
 Parameters
 ----------
-tw : int or tomotopy.TermWeight
+tw : Union[int, tomotopy.TermWeight]
     용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
 min_cf : int
     단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    .. versionadded:: 0.6.0
+
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
     .. versionadded:: 0.2.0    
@@ -1792,6 +2081,14 @@ gamma : float
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    .. versionadded:: 0.6.0
+
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.6.0
+
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 )"");
 
 DOC_SIGNATURE_EN_KO(HLDA_is_live_topic__doc__,

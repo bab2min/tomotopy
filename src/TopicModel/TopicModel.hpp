@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <unordered_set>
 #include "../Utils/Utils.hpp"
 #include "../Utils/Dictionary.h"
 #include "../Utils/tvector.hpp"
@@ -28,13 +29,18 @@ namespace tomoto
 	class DocumentBase
 	{
 	public:
-		FLOAT weight = 1;
-		tvector<VID> words; // word id of each word
+		Float weight = 1;
+		tvector<Vid> words; // word id of each word
 		std::vector<uint32_t> wOrder; // original word order (optional)
-		DocumentBase(FLOAT _weight = 1) : weight(_weight) {}
+
+		std::string rawStr;
+		std::vector<uint32_t> origWordPos;
+		std::vector<uint16_t> origWordLen;
+		DocumentBase(Float _weight = 1) : weight(_weight) {}
 		virtual ~DocumentBase() {}
 
-		DEFINE_SERIALIZER(serializer::MagicConstant("Document"), weight, words, wOrder);
+		DEFINE_SERIALIZER_WITH_VERSION(0, serializer::to_key("Docu"), weight, words, wOrder);
+		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, weight, words, wOrder, rawStr, origWordPos, origWordLen);
 	};
 
 	enum class ParallelScheme { default_, none, copy_merge, partition, size };
@@ -51,6 +57,76 @@ namespace tomoto
 		}
 	}
 
+	class RawDocTokenizer
+	{
+	public:
+		using Token = std::tuple<std::string, uint32_t, uint32_t, bool>;
+		using Factory = std::function<RawDocTokenizer(const std::string&)>;
+	private:
+		std::function<Token()> fnNext;
+	public:
+		class Iterator
+		{
+			RawDocTokenizer* p = nullptr;
+			bool end = true;
+			std::tuple<std::string, uint32_t, uint32_t> value;
+		public:
+			Iterator()
+			{
+			}
+
+			Iterator(RawDocTokenizer* _p)
+				: p{ _p }, end{ false }
+			{
+				operator++();
+			}
+
+			std::tuple<std::string, uint32_t, uint32_t>& operator*()
+			{
+				return value;
+			}
+
+			Iterator& operator++()
+			{
+				auto v = p->fnNext();
+				if (std::get<3>(v))
+				{
+					end = true;
+				}
+				else
+				{
+					value = std::make_tuple(std::get<0>(v), std::get<1>(v), std::get<2>(v));
+				}
+				return *this;
+			}
+
+			bool operator==(const Iterator& o) const
+			{
+				return o.end && end;
+			}
+
+			bool operator!=(const Iterator& o) const
+			{
+				return !operator==(o);
+			}
+		};
+
+		template<typename _Fn>
+		RawDocTokenizer(_Fn&& fn) : fnNext{ std::forward<_Fn>(fn) }
+		{
+		}
+
+		Iterator begin()
+		{
+			return Iterator{ this };
+		}
+
+		Iterator end()
+		{
+			return Iterator{};
+		}
+	};
+
 	class ITopicModel
 	{
 	public:
@@ -58,24 +134,29 @@ namespace tomoto
 		virtual void loadModel(std::istream& reader) = 0;
 		virtual const DocumentBase* getDoc(size_t docId) const = 0;
 
+		virtual void updateVocab(const std::vector<std::string>& words) = 0;
+
 		virtual double getLLPerWord() const = 0;
 		virtual double getPerplexity() const = 0;
 		virtual size_t getV() const = 0;
 		virtual size_t getN() const = 0;
 		virtual size_t getNumDocs() const = 0;
 		virtual const Dictionary& getVocabDict() const = 0;
-		virtual const std::vector<size_t>& getVocabFrequencies() const = 0;
+		virtual const std::vector<size_t>& getVocabCf() const = 0;
+		virtual const std::vector<size_t>& getVocabDf() const = 0;
 
 		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_) = 0;
-		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) = 0;
-		virtual std::vector<FLOAT> getWidsByTopic(TID tid) const = 0;
-		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const = 0;
-
-		virtual std::vector<std::pair<std::string, FLOAT>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
+		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
 		
-		virtual std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const = 0;
-		virtual std::vector<std::pair<TID, FLOAT>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
-		virtual std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, ParallelScheme ps, bool together) const = 0;
+		virtual size_t getK() const = 0;
+		virtual std::vector<Float> getWidsByTopic(Tid tid) const = 0;
+		virtual std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(Tid tid, size_t topN) const = 0;
+
+		virtual std::vector<std::pair<std::string, Float>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
+		
+		virtual std::vector<Float> getTopicsByDoc(const DocumentBase* doc) const = 0;
+		virtual std::vector<std::pair<Tid, Float>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
+		virtual std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, Float tolerance, size_t numWorkers, ParallelScheme ps, bool together) const = 0;
 		virtual ~ITopicModel() {}
 	};
 
@@ -116,11 +197,12 @@ namespace tomoto
 		using DocType = _DocType;
 	protected:
 		RandGen rg;
-		std::vector<VID> words;
+		std::vector<Vid> words;
 		std::vector<uint32_t> wOffsetByDoc;
 
 		std::vector<DocType> docs;
-		std::vector<size_t> vocabFrequencies;
+		std::vector<size_t> vocabCf;
+		std::vector<size_t> vocabDf;
 		size_t iterated = 0;
 		_ModelState globalState, tState;
 		Dictionary dict;
@@ -132,11 +214,17 @@ namespace tomoto
 
 		void _saveModel(std::ostream& writer, bool fullModel) const
 		{
-			serializer::writeMany(writer, 
-				serializer::MagicConstant{ _Derived::TMID },
-				serializer::MagicConstant{ _Derived::TWID },
-				dict, vocabFrequencies, realV);
-			static_cast<const _Derived*>(this)->serializerWrite(writer);
+			typedef const char c5[5];
+
+			serializer::writeMany(writer,
+				serializer::to_keyz(*(c5*)&(static_cast<const _Derived*>(this)->TMID)),
+				serializer::to_keyz(*(c5*)&(static_cast<const _Derived*>(this)->TWID)));
+			serializer::writeTaggedMany(writer, 0x00010001,
+				serializer::to_keyz("dict"), dict, 
+				serializer::to_keyz("vocabCf"), vocabCf,
+				serializer::to_keyz("vocabDf"), vocabDf,
+				serializer::to_keyz("realV"), realV);
+			serializer::writeMany(writer, *static_cast<const _Derived*>(this));
 			globalState.serializerWrite(writer);
 			if (fullModel)
 			{
@@ -150,56 +238,107 @@ namespace tomoto
 
 		void _loadModel(std::istream& reader)
 		{
-			serializer::readMany(reader, 
-				serializer::MagicConstant{ _Derived::TMID },
-				serializer::MagicConstant{ _Derived::TWID },
-				dict, vocabFrequencies, realV);
-			static_cast<_Derived*>(this)->serializerRead(reader);
+			typedef const char c5[5];
+
+			auto start_pos = reader.tellg();
+			try
+			{
+				serializer::readMany(reader, 
+					serializer::to_keyz(*(c5*)&(static_cast<_Derived*>(this)->TMID)),
+					serializer::to_keyz(*(c5*)&(static_cast<_Derived*>(this)->TWID)));
+				serializer::readTaggedMany(reader, 0x00010001, 
+					serializer::to_keyz("dict"), dict,
+					serializer::to_keyz("vocabCf"), vocabCf,
+					serializer::to_keyz("vocabDf"), vocabDf,
+					serializer::to_keyz("realV"), realV);
+			}
+			catch (const std::ios_base::failure&)
+			{
+				reader.seekg(start_pos);
+				serializer::readMany(reader,
+					serializer::to_key(*(c5*)&(static_cast<_Derived*>(this)->TMID)),
+					serializer::to_key(*(c5*)&(static_cast<_Derived*>(this)->TWID)),
+					dict, vocabCf, realV);
+			}
+			serializer::readMany(reader, *static_cast<_Derived*>(this));
 			globalState.serializerRead(reader);
 			serializer::readMany(reader, docs);
 			realN = countRealN();
 		}
 
-		size_t _addDoc(const DocType& doc)
+		template<typename _DocTy>
+		typename std::enable_if<std::is_same<DocType, 
+			typename std::remove_reference<typename std::remove_cv<_DocTy>::type>::type
+		>::value, size_t>::type _addDoc(_DocTy&& doc)
 		{
 			if (doc.words.empty()) return -1;
 			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
-			if (vocabFrequencies.size() <= maxWid) vocabFrequencies.resize(maxWid + 1);
-			for (auto w : doc.words) ++vocabFrequencies[w];
-			docs.emplace_back(doc);
+			if (vocabCf.size() <= maxWid)
+			{
+				vocabCf.resize(maxWid + 1);
+				vocabDf.resize(maxWid + 1);
+			}
+			for (auto w : doc.words) ++vocabCf[w];
+			std::unordered_set<Vid> uniq{ doc.words.begin(), doc.words.end() };
+			for (auto w : uniq) ++vocabDf[w];
+			docs.emplace_back(std::forward<_DocTy>(doc));
 			return docs.size() - 1;
 		}
 
-		size_t _addDoc(DocType&& doc)
-		{
-			if (doc.words.empty()) return -1;
-			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
-			if (vocabFrequencies.size() <= maxWid) vocabFrequencies.resize(maxWid + 1);
-			for (auto w : doc.words) ++vocabFrequencies[w];
-			docs.emplace_back(std::move(doc));
-			return docs.size() - 1;
-		}
-
-		DocType _makeDoc(const std::vector<std::string>& words, FLOAT weight = 1)
+		template<bool _const = false>
+		DocType _makeDoc(const std::vector<std::string>& words, Float weight = 1)
 		{
 			DocType doc{ weight };
-			//wOffsetByDoc.emplace_back(words.size());
-			std::transform(words.begin(), words.end(), back_inserter(doc.words), [this](const std::string& w)
+			for (auto& w : words)
 			{
-				return dict.add(w);
-			});
+				Vid id;
+				if (_const)
+				{
+					id = dict.toWid(w);
+					if (id == (Vid)-1) continue;
+				}
+				else
+				{
+					id = dict.add(w);
+				}
+				doc.words.emplace_back(id);
+			}
 			return doc;
 		}
 
-		DocType _makeDocWithinVocab(const std::vector<std::string>& words, FLOAT weight = 1) const
+		DocType _makeRawDoc(const std::string& rawStr, const std::vector<Vid>& words, 
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, Float weight = 1) const
 		{
 			DocType doc{ weight };
-			//wOffsetByDoc.emplace_back(words.size());
-			for (auto& w : words)
+			doc.rawStr = rawStr;
+			for (auto& w : words) doc.words.emplace_back(w);
+			doc.origWordPos = pos;
+			doc.origWordLen = len;
+			return doc;
+		}
+
+		template<bool _const, typename _FnTokenizer>
+		DocType _makeRawDoc(const std::string& rawStr, _FnTokenizer&& tokenizer, Float weight = 1)
+		{
+			DocType doc{ weight };
+			doc.rawStr = rawStr;
+			for (auto& p : tokenizer(doc.rawStr))
 			{
-				auto id = dict.toWid(w);
-				if (id == (VID)-1) continue;
-				doc.words.emplace_back(id);
+				Vid wid;
+				if (_const)
+				{
+					wid = dict.toWid(std::get<0>(p));
+					if (wid == (Vid)-1) continue;
+				}
+				else
+				{
+					wid = dict.add(std::get<0>(p));
+				}
+				auto pos = std::get<1>(p);
+				auto len = std::get<2>(p);
+				doc.words.emplace_back(wid);
+				doc.origWordPos.emplace_back(pos);
+				doc.origWordLen.emplace_back(len);
 			}
 			return doc;
 		}
@@ -217,7 +356,7 @@ namespace tomoto
 				wOffsetByDoc.emplace_back(wOffsetByDoc.back() + doc.words.size());
 			}
 			auto tx = [](_DocType& doc) { return &doc.words; };
-			tvector<VID>::trade(words, 
+			tvector<Vid>::trade(words, 
 				makeTransformIter(docs.begin(), tx),
 				makeTransformIter(docs.end(), tx));
 		}
@@ -235,15 +374,43 @@ namespace tomoto
 			return n;
 		}
 
-		void removeStopwords(size_t minWordCnt, size_t removeTopN)
+		void removeStopwords(size_t minWordCnt, size_t minWordDf, size_t removeTopN)
 		{
-			if (minWordCnt <= 1 && removeTopN == 0) realV = dict.size();
-			std::vector<VID> order;
-			sortAndWriteOrder(vocabFrequencies, order, removeTopN, std::greater<size_t>());
-			realV = std::find_if(vocabFrequencies.begin(), vocabFrequencies.end() - std::min(removeTopN, vocabFrequencies.size()), [minWordCnt](size_t a) 
+			if (minWordCnt <= 1 && minWordDf <= 1 && removeTopN == 0) realV = dict.size();
+			std::vector<std::pair<size_t, size_t>> vocabCfDf;
+			for (size_t i = 0; i < vocabCf.size(); ++i)
+			{
+				vocabCfDf.emplace_back(vocabCf[i], vocabDf[i]);
+			}
+
+			std::vector<Vid> order;
+			sortAndWriteOrder(vocabCfDf, order, removeTopN, [&](const std::pair<size_t, size_t>& a, const std::pair<size_t, size_t>& b)
+			{
+				if (a.first < minWordCnt || a.second < minWordDf)
+				{
+					if (b.first < minWordCnt || b.second < minWordDf)
+					{
+						return a > b;
+					}
+					return false;
+				}
+				if (b.first < minWordCnt || b.second < minWordDf)
+				{
+					return true;
+				}
+				return a > b;
+			});
+			realV = std::find_if(vocabCfDf.begin(), vocabCfDf.end() - std::min(removeTopN, vocabCfDf.size()), [&](const std::pair<size_t, size_t>& a)
 			{ 
-				return a < minWordCnt; 
-			}) - vocabFrequencies.begin();
+				return a.first < minWordCnt || a.second < minWordDf;
+			}) - vocabCfDf.begin();
+
+			for (size_t i = 0; i < vocabCfDf.size(); ++i)
+			{
+				vocabCf[i] = vocabCfDf[i].first;
+				vocabDf[i] = vocabCfDf[i].second;
+			}
+
 			dict.reorder(order);
 			realN = 0;
 			for (auto& doc : docs)
@@ -281,7 +448,13 @@ namespace tomoto
 			return realV;
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) override
+		void updateVocab(const std::vector<std::string>& words) override
+		{
+			if(dict.size()) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "updateVocab after addDoc");
+			for(auto& w : words) dict.add(w);
+		}
+
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) override
 		{
 			maxThreads[(size_t)ParallelScheme::default_] = -1;
 			maxThreads[(size_t)ParallelScheme::none] = -1;
@@ -382,19 +555,24 @@ namespace tomoto
 			return exp(-getLLPerWord());
 		}
 
-		std::vector<FLOAT> getWidsByTopic(TID tid) const override
+		size_t getK() const override
+		{
+			return 0;
+		}
+
+		std::vector<Float> getWidsByTopic(Tid tid) const override
 		{
 			return static_cast<const _Derived*>(this)->_getWidsByTopic(tid);
 		}
 
-		std::vector<std::pair<VID, FLOAT>> getWidsByTopicSorted(TID tid, size_t topN) const
+		std::vector<std::pair<Vid, Float>> getWidsByTopicSorted(Tid tid, size_t topN) const
 		{
-			return extractTopN<VID>(static_cast<const _Derived*>(this)->_getWidsByTopic(tid), topN);
+			return extractTopN<Vid>(static_cast<const _Derived*>(this)->_getWidsByTopic(tid), topN);
 		}
 
-		std::vector<std::pair<std::string, FLOAT>> vid2String(const std::vector<std::pair<VID, FLOAT>>& vids) const
+		std::vector<std::pair<std::string, Float>> vid2String(const std::vector<std::pair<Vid, Float>>& vids) const
 		{
-			std::vector<std::pair<std::string, FLOAT>> ret(vids.size());
+			std::vector<std::pair<std::string, Float>> ret(vids.size());
 			for (size_t i = 0; i < vids.size(); ++i)
 			{
 				ret[i] = std::make_pair(dict.toWord(vids[i].first), vids[i].second);
@@ -402,25 +580,25 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<std::pair<std::string, FLOAT>> getWordsByTopicSorted(TID tid, size_t topN) const override
+		std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(Tid tid, size_t topN) const override
 		{
 			return vid2String(getWidsByTopicSorted(tid, topN));
 		}
 
-		std::vector<std::pair<VID, FLOAT>> getWidsByDocSorted(const DocumentBase* doc, size_t topN) const
+		std::vector<std::pair<Vid, Float>> getWidsByDocSorted(const DocumentBase* doc, size_t topN) const
 		{
-			std::vector<FLOAT> cnt(dict.size());
+			std::vector<Float> cnt(dict.size());
 			for (auto w : doc->words) cnt[w] += 1;
 			for (auto& c : cnt) c /= doc->words.size();
-			return extractTopN<VID>(cnt, topN);
+			return extractTopN<Vid>(cnt, topN);
 		}
 
-		std::vector<std::pair<std::string, FLOAT>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		std::vector<std::pair<std::string, Float>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const override
 		{
 			return vid2String(getWidsByDocSorted(doc, topN));
 		}
 
-		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, FLOAT tolerance, size_t numWorkers, ParallelScheme ps, bool together) const override
+		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, Float tolerance, size_t numWorkers, ParallelScheme ps, bool together) const override
 		{
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 			ps = getRealScheme(ps);
@@ -455,14 +633,14 @@ namespace tomoto
 			THROW_ERROR_WITH_INFO(exception::InvalidArgument, "invalid ParallelScheme");
 		}
 
-		std::vector<FLOAT> getTopicsByDoc(const DocumentBase* doc) const override
+		std::vector<Float> getTopicsByDoc(const DocumentBase* doc) const override
 		{
 			return static_cast<const _Derived*>(this)->getTopicsByDoc(*static_cast<const DocType*>(doc));
 		}
 
-		std::vector<std::pair<TID, FLOAT>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
+		std::vector<std::pair<Tid, Float>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
 		{
-			return extractTopN<TID>(getTopicsByDoc(doc), topN);
+			return extractTopN<Tid>(getTopicsByDoc(doc), topN);
 		}
 
 
@@ -476,9 +654,14 @@ namespace tomoto
 			return dict;
 		}
 
-		const std::vector<size_t>& getVocabFrequencies() const override
+		const std::vector<size_t>& getVocabCf() const override
 		{
-			return vocabFrequencies;
+			return vocabCf;
+		}
+
+		const std::vector<size_t>& getVocabDf() const override
+		{
+			return vocabDf;
 		}
 
 		void saveModel(std::ostream& writer, bool fullModel) const override

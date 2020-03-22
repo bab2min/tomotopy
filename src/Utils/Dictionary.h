@@ -10,17 +10,17 @@
 
 namespace tomoto
 {
-	typedef uint32_t VID;
-	typedef uint16_t TID;
-	typedef float FLOAT;
+	using Vid = uint32_t;
+	using Tid = uint16_t;
+	using Float = float;
 
 	class Dictionary
 	{
 	protected:
-		std::unordered_map<std::string, VID> dict;
+		std::unordered_map<std::string, Vid> dict;
 		std::vector<std::string> id2word;
 	public:
-		VID add(const std::string& word)
+		Vid add(const std::string& word)
 		{
 			auto it = dict.find(word);
 			if (it == dict.end())
@@ -34,27 +34,27 @@ namespace tomoto
 
 		size_t size() const { return dict.size(); }
 		
-		std::string toWord(VID vid) const
+		std::string toWord(Vid vid) const
 		{
 			assert(vid < id2word.size());
 			return id2word[vid];
 		}
 		
-		VID toWid(const std::string& word) const
+		Vid toWid(const std::string& word) const
 		{
 			auto it = dict.find(word);
-			if (it == dict.end()) return (VID)-1;
+			if (it == dict.end()) return (Vid)-1;
 			return it->second;
 		}
 
 		void serializerWrite(std::ostream& writer) const
 		{
-			serializer::writeMany(writer, serializer::MagicConstant("Dictionary"), id2word);
+			serializer::writeMany(writer, serializer::to_key("Dict"), id2word);
 		}
 		
 		void serializerRead(std::istream& reader)
 		{
-			serializer::readMany(reader, serializer::MagicConstant("Dictionary"), id2word);
+			serializer::readMany(reader, serializer::to_key("Dict"), id2word);
 			for (size_t i = 0; i < id2word.size(); ++i)
 			{
 				dict.emplace(id2word[i], i);
@@ -67,7 +67,7 @@ namespace tomoto
 			std::swap(id2word, rhs.id2word);
 		}
 
-		void reorder(const std::vector<VID>& order)
+		void reorder(const std::vector<Vid>& order)
 		{
 			for (auto& p : dict)
 			{

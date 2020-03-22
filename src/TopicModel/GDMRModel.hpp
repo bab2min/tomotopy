@@ -8,10 +8,10 @@ namespace tomoto
 	template<TermWeight _TW>
 	struct ModelStateGDMR : public ModelStateDMR<_TW>
 	{
-		Eigen::Matrix<FLOAT, -1, 1> alphas;
-		Eigen::Matrix<FLOAT, -1, 1> terms;
-		std::vector<std::vector<FLOAT>> slpCache;
-		std::vector<size_t> ndimCnt;
+		/*Eigen::Matrix<Float, -1, 1> alphas;
+		Eigen::Matrix<Float, -1, 1> terms;
+		std::vector<std::vector<Float>> slpCache;
+		std::vector<size_t> ndimCnt;*/
 	};
 
 	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
@@ -31,13 +31,13 @@ namespace tomoto
 		friend typename BaseClass::BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		FLOAT sigma0 = 3;
-		std::vector<FLOAT> mdCoefs, mdIntercepts;
+		Float sigma0 = 3;
+		std::vector<Float> mdCoefs, mdIntercepts;
 		std::vector<size_t> degreeByF;
 
-		FLOAT getIntegratedLambdaSq(const Eigen::Ref<const Eigen::Matrix<FLOAT, -1, 1>, 0, Eigen::InnerStride<>>& lambdas) const
+		Float getIntegratedLambdaSq(const Eigen::Ref<const Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>>& lambdas) const
 		{
-			FLOAT ret = pow(lambdas[0] - log(this->alpha), 2) / 2 / pow(this->sigma0, 2);
+			Float ret = pow(lambdas[0] - log(this->alpha), 2) / 2 / pow(this->sigma0, 2);
 			for (size_t i = 1; i < this->F; ++i)
 			{
 				ret += pow(lambdas[i], 2) / 2 / pow(this->sigma, 2);
@@ -45,8 +45,8 @@ namespace tomoto
 			return ret;
 		}
 
-		void getIntegratedLambdaSqP(const Eigen::Ref<const Eigen::Matrix<FLOAT, -1, 1>, 0, Eigen::InnerStride<>>& lambdas, 
-			Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>, 0, Eigen::InnerStride<>> ret) const
+		void getIntegratedLambdaSqP(const Eigen::Ref<const Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>>& lambdas, 
+			Eigen::Ref<Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>> ret) const
 		{
 			ret[0] = (lambdas[0] - log(this->alpha)) / pow(this->sigma0, 2);
 			for (size_t i = 1; i < this->F; ++i)
@@ -57,8 +57,8 @@ namespace tomoto
 
 		void initParameters()
 		{
-			auto dist0 = std::normal_distribution<FLOAT>(log(this->alpha), sigma0);
-			auto dist = std::normal_distribution<FLOAT>(0, this->sigma);
+			auto dist0 = std::normal_distribution<Float>(log(this->alpha), sigma0);
+			auto dist = std::normal_distribution<Float>(0, this->sigma);
 			for (size_t i = 0; i < this->K; ++i) for (size_t j = 0; j < this->F; ++j)
 			{
 				if (j == 0)
@@ -72,12 +72,12 @@ namespace tomoto
 			}
 		}
 
-		FLOAT getNegativeLambdaLL(Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g) const
+		Float getNegativeLambdaLL(Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g) const
 		{
-			auto mappedX = Eigen::Map<Eigen::Matrix<FLOAT, -1, -1>>(x.data(), this->K, this->F);
-			auto mappedG = Eigen::Map<Eigen::Matrix<FLOAT, -1, -1>>(g.data(), this->K, this->F);
+			auto mappedX = Eigen::Map<Eigen::Matrix<Float, -1, -1>>(x.data(), this->K, this->F);
+			auto mappedG = Eigen::Map<Eigen::Matrix<Float, -1, -1>>(g.data(), this->K, this->F);
 
-			FLOAT fx = 0;
+			Float fx = 0;
 			for (size_t k = 0; k < this->K; ++k)
 			{
 				fx += getIntegratedLambdaSq(mappedX.row(k));
@@ -86,7 +86,7 @@ namespace tomoto
 			return fx;
 		}
 
-		FLOAT evaluateLambdaObj(Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> x, Eigen::Matrix<FLOAT, -1, 1>& g, ThreadPool& pool, _ModelState* localData) const
+		Float evaluateLambdaObj(Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g, ThreadPool& pool, _ModelState* localData) const
 		{
 			// if one of x is greater than maxLambda, return +inf for preventing search more
 			if ((x.array() > this->maxLambda).any()) return INFINITY;
@@ -94,35 +94,33 @@ namespace tomoto
 			const auto K = this->K;
 			const auto F = this->F;
 
-			auto mappedX = Eigen::Map<Eigen::Matrix<FLOAT, -1, -1>>(x.data(), K, F);
-			FLOAT fx = -static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
+			auto mappedX = Eigen::Map<Eigen::Matrix<Float, -1, -1>>(x.data(), K, F);
+			Float fx = -static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
 
-			std::vector<std::future<Eigen::Matrix<FLOAT, -1, 1>>> res;
+			std::vector<std::future<Eigen::Matrix<Float, -1, 1>>> res;
 			const size_t chStride = pool.getNumWorkers() * 8;
 			for (size_t ch = 0; ch < chStride; ++ch)
 			{
 				res.emplace_back(pool.enqueue([&, this](size_t threadId)
 				{
 					auto& ld = localData[threadId];
-					auto& alphas = ld.alphas;
-					auto& tmpK = ld.tmpK;
-					auto& terms = ld.terms;
-					Eigen::Matrix<FLOAT, -1, 1> ret = Eigen::Matrix<FLOAT, -1, 1>::Zero(F * K + 1);
+					thread_local Eigen::Matrix<Float, -1, 1> alphas{ K }, tmpK{ K }, terms{ F };
+					Eigen::Matrix<Float, -1, 1> ret = Eigen::Matrix<Float, -1, 1>::Zero(F * K + 1);
 					for (size_t docId = ch; docId < this->docs.size(); docId += chStride)
 					{
 						const auto& doc = this->docs[docId];
 						const auto& vx = doc.metadataC;
-						getTermsFromMd(ld, &vx[0], terms);
-						for (TID k = 0; k < K; ++k)
+						getTermsFromMd(&vx[0], terms.data());
+						for (Tid k = 0; k < K; ++k)
 						{
 							alphas[k] = exp(mappedX.row(k) * terms) + this->alphaEps;
 							ret[K * F] -= math::lgammaT(alphas[k]) - math::lgammaT(doc.numByTopic[k] + alphas[k]);
 							if (!std::isfinite(alphas[k]) && alphas[k] > 0) tmpK[k] = 0;
 							else tmpK[k] = -(math::digammaT(alphas[k]) - math::digammaT(doc.numByTopic[k] + alphas[k]));
 						}
-						FLOAT alphaSum = alphas.sum();
+						Float alphaSum = alphas.sum();
 						ret[K * F] += math::lgammaT(alphaSum) - math::lgammaT(doc.getSumWordWeight() + alphaSum);
-						FLOAT t = math::digammaT(alphaSum) - math::digammaT(doc.getSumWordWeight() + alphaSum);
+						Float t = math::digammaT(alphaSum) - math::digammaT(doc.getSumWordWeight() + alphaSum);
 						if (!std::isfinite(alphaSum) && alphaSum > 0)
 						{
 							ret[K * F] = -INFINITY;
@@ -148,15 +146,26 @@ namespace tomoto
 			return -fx;
 		}
 
-		void getTermsFromMd(_ModelState& ld, const FLOAT* vx, Eigen::Ref<Eigen::Matrix<FLOAT, -1, 1>> out) const
+		void getTermsFromMd(const Float* vx, Float* out) const
 		{
-			auto& digit = ld.ndimCnt;
+			thread_local std::vector<size_t> digit(degreeByF.size());
 			std::fill(digit.begin(), digit.end(), 0);
+			
+			thread_local std::vector<std::vector<Float>> slpCache;
+			if (slpCache.empty())
+			{
+				for (auto& f : degreeByF)
+				{
+					slpCache.emplace_back(std::vector<Float>(f));
+				}
+			}
+
+			
 			for (size_t n = 0; n < degreeByF.size(); ++n)
 			{
 				for (size_t i = 0; i < degreeByF[n]; ++i)
 				{
-					ld.slpCache[n][i] = slp::slpGet(i + 1, vx[n]);
+					slpCache[n][i] = slp::slpGet(i + 1, vx[n]);
 				}
 			}
 
@@ -165,7 +174,7 @@ namespace tomoto
 				out[i] = 1;
 				for (size_t n = 0; n < degreeByF.size(); ++n)
 				{
-					if(digit[n]) out[i] *= ld.slpCache[n][digit[n] - 1];
+					if(digit[n]) out[i] *= slpCache[n][digit[n] - 1];
 				}
 
 				size_t u;
@@ -178,16 +187,17 @@ namespace tomoto
 		}
 
 		template<bool _asymEta>
-		FLOAT* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
+		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
-			getTermsFromMd(ld, &doc.metadataC[0], ld.terms);
-			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + (this->lambda * ld.terms).array().exp() + this->alphaEps)
-				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + etaHelper.getEta(vid))
-				/ (ld.numByTopic.array().template cast<FLOAT>() + etaHelper.getEtaSum());
+			thread_local Eigen::Matrix<Float, -1, 1> terms{ this->F };
+			getTermsFromMd(&doc.metadataC[0], terms.data());
+			zLikelihood = (doc.numByTopic.array().template cast<Float>() + (this->lambda * terms).array().exp() + this->alphaEps)
+				* (ld.numByTopicWord.col(vid).array().template cast<Float>() + etaHelper.getEta(vid))
+				/ (ld.numByTopic.array().template cast<Float>() + etaHelper.getEtaSum());
 
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];
@@ -199,19 +209,18 @@ namespace tomoto
 			const auto K = this->K;
 			double ll = 0;
 
-			Eigen::Matrix<FLOAT, -1, 1> alphas(K);
-			auto tempState = this->globalState;
+			Eigen::Matrix<Float, -1, 1> alphas(K);
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				auto& terms = tempState.terms;
-				getTermsFromMd(tempState, &doc.metadataC[0], terms);
-				for (TID k = 0; k < K; ++k)
+				thread_local Eigen::Matrix<Float, -1, 1> terms{ this->F };
+				getTermsFromMd(&doc.metadataC[0], terms.data());
+				for (Tid k = 0; k < K; ++k)
 				{
 					alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
 				}
-				FLOAT alphaSum = alphas.sum();
-				for (TID k = 0; k < K; ++k)
+				Float alphaSum = alphas.sum();
+				for (Tid k = 0; k < K; ++k)
 				{
 					if (!doc.numByTopic[k]) continue;
 					ll += math::lgammaT(doc.numByTopic[k] + alphas[k]) - math::lgammaT(alphas[k]);
@@ -235,10 +244,10 @@ namespace tomoto
 
 			auto lgammaEta = math::lgammaT(eta);
 			ll += math::lgammaT(V*eta) * K;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					if (!ld.numByTopicWord(k, v)) continue;
 					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
@@ -280,75 +289,69 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			BaseClass::BaseClass::initGlobalState(initDocs);
-			this->globalState.tmpK = Eigen::Matrix<FLOAT, -1, 1>::Zero(this->K);
-			this->globalState.alphas = Eigen::Matrix<FLOAT, -1, 1>::Zero(this->K);
-			this->globalState.terms = Eigen::Matrix<FLOAT, -1, 1>::Zero(this->F);
-			for (auto& f : degreeByF)
-			{
-				this->globalState.slpCache.emplace_back(std::vector<FLOAT>(f));
-			}
-			this->globalState.ndimCnt.resize(degreeByF.size());
 			normalizeMetadata();
 			
 			if (initDocs)
 			{
-				this->lambda = Eigen::Matrix<FLOAT, -1, -1>::Zero(this->K, this->F);
+				this->lambda = Eigen::Matrix<Float, -1, -1>::Zero(this->K, this->F);
 				this->lambda.col(0).fill(log(this->alpha));
 			}
-			LBFGSpp::LBFGSParam<FLOAT> param;
+			LBFGSpp::LBFGSParam<Float> param;
 			param.max_iterations = this->maxBFGSIteration;
 			this->solver = decltype(this->solver){ param };
 		}
 
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, sigma0, degreeByF, mdCoefs, mdIntercepts);
 	public:
-		GDMRModel(size_t _K = 1, const std::vector<size_t>& _degreeByF = {}, FLOAT defaultAlpha = 1.0, FLOAT _sigma = 1.0, FLOAT _eta = 0.01,
-			FLOAT _alphaEps = 1e-10, const RandGen& _rg = RandGen{ std::random_device{}() })
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma0, degreeByF, mdCoefs, mdIntercepts);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma0, degreeByF, mdCoefs, mdIntercepts);
+
+		GDMRModel(size_t _K = 1, const std::vector<size_t>& _degreeByF = {}, Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _eta = 0.01,
+			Float _alphaEps = 1e-10, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), degreeByF(_degreeByF)
 		{
 			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
 		}
 
 		GETTER(Fs, const std::vector<size_t>&, degreeByF);
-		GETTER(Sigma0, FLOAT, sigma0);
+		GETTER(Sigma0, Float, sigma0);
 
-		void setSigma0(FLOAT _sigma0) override
+		void setSigma0(Float _sigma0) override
 		{
 			this->sigma0 = _sigma0;
+		}
+
+		_DocType& _updateDoc(_DocType& doc, const std::vector<std::string>& metadata) const
+		{
+			std::transform(metadata.begin(), metadata.end(), back_inserter(doc.metadataC), [](const std::string& w)
+			{
+				return std::stof(w);
+			});
+			return doc;
 		}
 
 		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) override
 		{
 			auto doc = this->_makeDoc(words);
-			transform(metadata.begin(), metadata.end(), back_inserter(doc.metadataC), [](const std::string& s)
-			{
-				return stof(s);
-			});
-			return this->_addDoc(doc);
+			return this->_addDoc(_updateDoc(doc, metadata));
 		}
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) const override
 		{
-			auto doc = this->_makeDocWithinVocab(words);
-			std::transform(metadata.begin(), metadata.end(), back_inserter(doc.metadataC), [](const std::string& s)
-			{
-				return stof(s);
-			});
-			return make_unique<_DocType>(doc);
+			auto doc = as_mutable(this)->template _makeDoc<true>(words);
+			return make_unique<_DocType>(_updateDoc(doc, metadata));
 		}
 
-		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
 		{
-			Eigen::Matrix<FLOAT, -1, 1> alphas(this->K);
-			auto tempState = this->globalState;
-			auto& terms = tempState.terms;
-			getTermsFromMd(tempState, &doc.metadataC[0], terms);
-			for (TID k = 0; k < this->K; ++k)
+			Eigen::Matrix<Float, -1, 1> alphas(this->K);
+			thread_local Eigen::Matrix<Float, -1, 1> terms{ this->F };
+			getTermsFromMd(&doc.metadataC[0], terms.data());
+			for (Tid k = 0; k < this->K; ++k)
 			{
 				alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
 			}
-			std::vector<FLOAT> ret(this->K);
-			FLOAT sum = doc.getSumWordWeight() + alphas.sum();
+			std::vector<Float> ret(this->K);
+			Float sum = doc.getSumWordWeight() + alphas.sum();
 			for (size_t k = 0; k < this->K; ++k)
 			{
 				ret[k] = (doc.numByTopic[k] + alphas[k]) / sum;
@@ -356,14 +359,14 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> getLambdaByTopic(TID tid) const override
+		std::vector<Float> getLambdaByTopic(Tid tid) const override
 		{
-			std::vector<FLOAT> ret(this->F);
+			std::vector<Float> ret(this->F);
 			for (size_t f = 0; f < this->F; ++f) ret[f] = this->lambda.row(tid)[f];
 			return ret;
 		}
 
-		void setMdRange(const std::vector<FLOAT>& vMin, const std::vector<FLOAT>& vMax) override
+		void setMdRange(const std::vector<Float>& vMin, const std::vector<Float>& vMax) override
 		{
 			mdIntercepts = vMin;
 			mdCoefs = vMax;

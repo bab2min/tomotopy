@@ -16,7 +16,7 @@ The current version of `tomoto` supports several major topic models including
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`).
 
-The most recent version of tomotopy is 0.5.1.
+The most recent version of tomotopy is 0.6.0.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -27,7 +27,7 @@ You can install tomotopy easily using pip. (https://pypi.org/project/tomotopy/)
 
     $ pip install tomotopy
 
-For Linux, it is neccesary to have gcc 5 or more for compiling C++14 codes.
+For Linux, it is neccesary to have gcc 5 or more for compiling C++11 codes.
 After installing, you can start tomotopy by just importing.
 ::
 
@@ -254,6 +254,12 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.6.0 (2020-03-22)
+    * `tomotopy.utils.Corpus` class that manages multiple documents easily was added.
+    * `tomotopy.LDAModel.set_word_prior` method that controls word-topic priors of topic models was added.
+    * A new argument `min_df` that filters words based on document frequency was added into every topic model's __init__.
+    * `tomotopy.label`, the submodule about topic labeling was added. Currently, only `tomotopy.label.FoRelevance` is provided.
+
 * 0.5.2 (2020-03-01)
     * A segmentation fault problem was fixed in `tomotopy.LLDAModel.add_doc`.
     * A bug was fixed that `infer` of `tomotopy.HDPModel` sometimes crashes the program.

@@ -30,7 +30,7 @@ namespace tomoto
 
 		DEFINE_SERIALIZER_AFTER_BASE(DocumentBase, Zs);
 
-		template<typename _TopicModel> void update(FLOAT* ptr, const _TopicModel& mdl);
+		template<typename _TopicModel> void update(Float* ptr, const _TopicModel& mdl);
 
 		int32_t getSumWordWeight() const
 		{
@@ -51,7 +51,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDACVB0;
-		static ILDACVB0Model* create(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
+		static ILDACVB0Model* create(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;
@@ -61,11 +61,11 @@ namespace tomoto
 		virtual void setBurnInIteration(size_t) {}
 		virtual std::vector<size_t> getCountByTopic() const = 0;
 		virtual size_t getK() const = 0;
-		virtual FLOAT getAlpha() const = 0;
-		virtual FLOAT getEta() const = 0;
+		virtual Float getAlpha() const = 0;
+		virtual Float getEta() const = 0;
 
-		virtual std::vector<FLOAT> getWordPrior(const std::string& word) const { return {}; }
-		virtual void setWordPrior(const std::string& word, const std::vector<FLOAT>& priors) {}
+		virtual std::vector<Float> getWordPrior(const std::string& word) const { return {}; }
+		virtual void setWordPrior(const std::string& word, const std::vector<Float>& priors) {}
 	};
 
 	template<typename _Interface = ILDACVB0Model,
@@ -81,19 +81,19 @@ namespace tomoto
 		using BaseClass = TopicModel<0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 
-		static constexpr const char* TWID = "one";
-		static constexpr const char* TMID = "LDA";
+		static constexpr const char TWID[] = "one\0";
+		static constexpr const char TMID[] = "LDA\0";
 
-		FLOAT alpha;
-		Eigen::Matrix<FLOAT, -1, 1> alphas;
-		FLOAT eta;
-		TID K;
+		Float alpha;
+		Eigen::Matrix<Float, -1, 1> alphas;
+		Float eta;
+		Tid K;
 		size_t optimInterval = 50;
 
 		template<typename _List>
-		static FLOAT calcDigammaSum(_List list, size_t len, FLOAT alpha)
+		static Float calcDigammaSum(_List list, size_t len, Float alpha)
 		{
-			auto listExpr = Eigen::Matrix<FLOAT, -1, 1>::NullaryExpr(len, list);
+			auto listExpr = Eigen::Matrix<Float, -1, 1>::NullaryExpr(len, list);
 			auto dAlpha = math::digammaT(alpha);
 			return (math::digammaApprox(listExpr.array() + alpha) - dAlpha).sum();
 		}
@@ -103,10 +103,10 @@ namespace tomoto
 			const auto K = this->K;
 			for (size_t i = 0; i < 5; ++i)
 			{
-				FLOAT denom = calcDigammaSum([&](size_t i) { return this->docs[i].getSumWordWeight(); }, this->docs.size(), alphas.sum());
+				Float denom = calcDigammaSum([&](size_t i) { return this->docs[i].getSumWordWeight(); }, this->docs.size(), alphas.sum());
 				for (size_t k = 0; k < K; ++k)
 				{
-					FLOAT nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas(k));
+					Float nom = calcDigammaSum([&](size_t i) { return this->docs[i].numByTopic[k]; }, this->docs.size(), alphas(k));
 					alphas(k) = std::max(nom / denom * alphas(k), 1e-5f);
 				}
 			}
@@ -117,15 +117,15 @@ namespace tomoto
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
-			zLikelihood = (doc.numByTopic.array().template cast<FLOAT>() + alphas.array())
-				* (ld.numByTopicWord.col(vid).array().template cast<FLOAT>() + eta)
-				/ (ld.numByTopic.array().template cast<FLOAT>() + V * eta);
+			zLikelihood = (doc.numByTopic.array().template cast<Float>() + alphas.array())
+				* (ld.numByTopicWord.col(vid).array().template cast<Float>() + eta)
+				/ (ld.numByTopic.array().template cast<Float>() + V * eta);
 			zLikelihood /= zLikelihood.sum() + 1e-10;
 			return zLikelihood;
 		}
 
 		template<int _Inc, typename _Vec>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, _Vec tDist) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, _Vec tDist) const
 		{
 			assert(vid < this->realV);
 			constexpr bool DEC = _Inc < 0;
@@ -220,7 +220,7 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				ll -= math::lgammaT(doc.getSumWordWeight() + K * alpha);
-				for (TID k = 0; k < K; ++k)
+				for (Tid k = 0; k < K; ++k)
 				{
 					ll += math::lgammaT(doc.numByTopic[k] + alpha);
 				}
@@ -235,10 +235,10 @@ namespace tomoto
 			// topic-word distribution
 			// it has the very-small-value problem
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
-				for (VID v = 0; v < V; ++v)
+				for (Vid v = 0; v < V; ++v)
 				{
 					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta);
 				}
@@ -256,7 +256,7 @@ namespace tomoto
 		{
 		}
 		
-		void prepareDoc(_DocType& doc, FLOAT* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, Float* topicDocPtr, size_t wordSize) const
 		{
 			doc.numByTopic = Eigen::VectorXf::Zero(K);
 			doc.Zs = Eigen::MatrixXf::Zero(K, wordSize);
@@ -265,22 +265,22 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(K);
+			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(K);
 			if (initDocs)
 			{
-				this->globalState.numByTopic = Eigen::Matrix<FLOAT, -1, 1>::Zero(K);
-				this->globalState.numByTopicWord = Eigen::Matrix<FLOAT, -1, -1>::Zero(K, V);
+				this->globalState.numByTopic = Eigen::Matrix<Float, -1, 1>::Zero(K);
+				this->globalState.numByTopicWord = Eigen::Matrix<Float, -1, -1>::Zero(K, V);
 			}
 		}
 
 		struct Generator
 		{
-			std::uniform_int_distribution<TID> theta;
+			std::uniform_int_distribution<Tid> theta;
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
-			return Generator{ std::uniform_int_distribution<TID>{0, (TID)(K - 1)} };
+			return Generator{ std::uniform_int_distribution<Tid>{0, (Tid)(K - 1)} };
 		}
 
 		template<bool _Infer>
@@ -292,7 +292,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer, typename _Generator>
-		void initializeDocState(_DocType& doc, FLOAT* topicDocPtr, _Generator& g, _ModelState& ld, RandGen& rgs) const
+		void initializeDocState(_DocType& doc, Float* topicDocPtr, _Generator& g, _ModelState& ld, RandGen& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
@@ -332,14 +332,14 @@ namespace tomoto
 		DEFINE_SERIALIZER(alpha, eta, K);
 
 	public:
-		LDACVB0Model(size_t _K = 1, FLOAT _alpha = 0.1, FLOAT _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		LDACVB0Model(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
-			alphas = Eigen::Matrix<FLOAT, -1, 1>::Constant(K, alpha);
+			alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);
 		}
 		GETTER(K, size_t, K);
-		GETTER(Alpha, FLOAT, alpha);
-		GETTER(Eta, FLOAT, eta);
+		GETTER(Alpha, Float, alpha);
+		GETTER(Eta, Float, eta);
 		GETTER(OptimInterval, size_t, optimInterval);
 
 	
@@ -355,7 +355,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const override
 		{
-			return make_unique<_DocType>(this->_makeDocWithinVocab(words));
+			return make_unique<_DocType>(as_mutable(this)->template _makeDoc<true>(words));
 		}
 
 		void updateDocs()
@@ -366,9 +366,9 @@ namespace tomoto
 			}
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t removeTopN = 0) override
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) override
 		{
-			if (initDocs) this->removeStopwords(minWordCnt, removeTopN);
+			if (initDocs) this->removeStopwords(minWordCnt, minWordDf, removeTopN);
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
 
@@ -392,10 +392,10 @@ namespace tomoto
 			return static_cast<const DerivedClass*>(this)->_getTopicsCount();
 		}
 
-		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
 		{
-			std::vector<FLOAT> ret(K);
-			FLOAT sum = doc.getSumWordWeight() + K * alpha;
+			std::vector<Float> ret(K);
+			Float sum = doc.getSumWordWeight() + K * alpha;
 			transform(doc.numByTopic.data(), doc.numByTopic.data() + K, ret.begin(), [sum, this](size_t n)
 			{
 				return (n + alpha) / sum;
@@ -403,12 +403,12 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<FLOAT> _getWidsByTopic(TID tid) const
+		std::vector<Float> _getWidsByTopic(Tid tid) const
 		{
 			assert(tid < K);
 			const size_t V = this->realV;
-			std::vector<FLOAT> ret(V);
-			FLOAT sum = this->globalState.numByTopic[tid] + V * eta;
+			std::vector<Float> ret(V);
+			Float sum = this->globalState.numByTopic[tid] + V * eta;
 			auto r = this->globalState.numByTopicWord.row(tid);
 			for (size_t v = 0; v < V; ++v)
 			{
@@ -418,14 +418,14 @@ namespace tomoto
 		}
 
 		template<bool _Together, ParallelScheme _ps, typename _Iter>
-		std::vector<double> _infer(_Iter docFirst, _Iter docLast, size_t maxIter, FLOAT tolerance, size_t numWorkers) const
+		std::vector<double> _infer(_Iter docFirst, _Iter docLast, size_t maxIter, Float tolerance, size_t numWorkers) const
 		{
 			return {};
 		}
 	};
 
 	template<typename _TopicModel>
-	void DocumentLDACVB0::update(FLOAT * ptr, const _TopicModel & mdl)
+	void DocumentLDACVB0::update(Float * ptr, const _TopicModel & mdl)
 	{
 		numByTopic = Eigen::VectorXf::Zero(mdl.getK());
 		for (size_t i = 0; i < Zs.cols(); ++i)
@@ -434,7 +434,7 @@ namespace tomoto
 		}
 	}
 
-	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, FLOAT _alpha, FLOAT _eta, const RandGen& _rg)
+	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, Float _alpha, Float _eta, const RandGen& _rg)
 	{
 		return new LDACVB0Model<>(_K, _alpha, _eta, _rg);
 	}

@@ -30,7 +30,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.5.1 입니다.
+tomotopy의 가장 최신버전은 0.6.0 입니다.
 
 시작하기
 ---------------
@@ -39,7 +39,7 @@ tomotopy의 가장 최신버전은 0.5.1 입니다.
 
     $ pip install tomotopy
 
-Linux에서는 c++14 코드를 컴파일하기 위해 gcc 5 이상이 필수적으로 설치되어 있어야 합니다. 
+Linux에서는 c++11 코드를 컴파일하기 위해 gcc 5 이상이 필수적으로 설치되어 있어야 합니다. 
 설치가 끝난 뒤에는 다음과 같이 Python3에서 바로 import하여 tomotopy를 사용할 수 있습니다.
 ::
 
@@ -210,6 +210,12 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.6.0 (2020-03-22)
+    * 대량의 문헌을 관리하기 위한 `tomotopy.utils.Corpus`가 추가되었습니다.
+    * 어휘-주제 분포의 사전 확률을 조절할 수 있는 `tomotopy.LDAModel.set_word_prior` 메소드가 추가되었습니다.
+    * 문헌 빈도를 기반으로 어휘를 필터링할 수 있도록 토픽 모델의 생성자에 `min_df`가 추가되었습니다.
+    * 토픽 라벨링 관련 서브모듈인 `tomotopy.label`이 추가되었습니다. 현재는 `tomotopy.label.FoRelevance`만 제공됩니다.
+
 * 0.5.2 (2020-03-01)
     * `tomotopy.LLDAModel.add_doc` 실행시 segmentation fault가 발생하는 문제를 해결했습니다.
     * `tomotopy.HDPModel`에서 `infer` 실행시 종종 프로그램이 종료되는 문제를 해결했습니다.

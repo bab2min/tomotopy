@@ -13,6 +13,7 @@
 #include "../TopicModel/TopicModel.hpp"
 #include "docs.h"
 
+void char2Byte(const std::string& str, std::vector<uint32_t>& startPos, std::vector<uint16_t>& length);
 
 #define DEFINE_GETTER_PROTOTYPE(PREFIX, GETTER)\
 PyObject* PREFIX##_##GETTER(TopicModelObject *self, void *closure);
@@ -211,7 +212,7 @@ struct TopicModelObject
 	PyObject_HEAD;
 	tomoto::ITopicModel* inst;
 	bool isPrepared;
-	size_t minWordCnt;
+	size_t minWordCnt, minWordDf;
 	size_t removeTopWord;
 
 	static void dealloc(TopicModelObject* self);
@@ -314,3 +315,5 @@ PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& 
 		});
 	}
 }
+
+static const char* corpus_feeder_name = "_feed_docs_to";

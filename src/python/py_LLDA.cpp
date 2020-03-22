@@ -6,21 +6,36 @@ using namespace std;
 
 static int LLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t tw = 0, minCnt = 0, rmTop = 0;
+	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 1e-10;
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "rm_top", "k", "alpha", "eta", "seed", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnffffn", (char**)kwlist, &tw, &minCnt, &rmTop,
-		&K, &alpha, &eta, &seed)) return -1;
+	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
+		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
+		{
+			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
+		}
+
 		tomoto::ITopicModel* inst = tomoto::ILLDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, tomoto::RandGen{ seed });
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
+		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+
+		if (objCorpus)
+		{
+			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
+				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
+			py::UniqueObj ret = PyObject_CallObject(feeder, param);
+			if(!ret) return -1;
+		}
 	}
 	catch (const exception& e)
 	{
@@ -58,6 +73,53 @@ static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			labels = py::makeIterToVector<string>(iter2);
 		}
 		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), labels);
+		return py::buildPyValue(ret);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* LLDA_addDoc_(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	PyObject *argWords, *argStartPos = nullptr, *argLength = nullptr, *argLabels = nullptr;
+	const char* argRaw = nullptr;
+	static const char* kwlist[] = { "words", "raw", "start_pos", "length", "labels", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sOOO", (char**)kwlist,
+		&argWords, &argRaw, &argStartPos, &argLength, &argLabels)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ILLDAModel*>(self->inst);
+		string raw;
+		if (argRaw) raw = argRaw;
+
+		py::UniqueObj iter = PyObject_GetIter(argWords);
+		vector<tomoto::Vid> words = py::makeIterToVector<tomoto::Vid>(iter);
+		iter = PyObject_GetIter(argStartPos);
+		vector<uint32_t> startPos = py::makeIterToVector<uint32_t>(iter);
+		iter = PyObject_GetIter(argLength);
+		vector<uint16_t> length = py::makeIterToVector<uint16_t>(iter);
+		char2Byte(raw, startPos, length);
+		vector<string> labels;
+		if (argLabels)
+		{
+			py::UniqueObj iter2;
+			if (PyUnicode_Check(argLabels)) PRINT_WARN("[warn] 'labels' should be an iterable of str.");
+			if (!(iter2 = PyObject_GetIter(argLabels)))
+			{
+				throw runtime_error{ "'labels' must be an iterable of str." };
+			}
+			labels = py::makeIterToVector<string>(iter2);
+		}
+
+		auto ret = inst->addDoc(raw, words, startPos, length, labels);
 		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
@@ -189,6 +251,7 @@ PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kw
 static PyMethodDef LLDA_methods[] =
 {
 	{ "add_doc", (PyCFunction)LLDA_addDoc, METH_VARARGS | METH_KEYWORDS, LLDA_add_doc__doc__ },
+	{ "_add_doc", (PyCFunction)LLDA_addDoc_, METH_VARARGS | METH_KEYWORDS, "" },
 	{ "make_doc", (PyCFunction)LLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, LLDA_make_doc__doc__ },
 	{ "load", (PyCFunction)LLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
 	{ "get_topic_words", (PyCFunction)LDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, LLDA_get_topic_words__doc__},

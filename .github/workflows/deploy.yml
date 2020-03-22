@@ -33,6 +33,7 @@ jobs:
           /opt/python/${cp}/bin/python setup.py build bdist_wheel
           auditwheel repair dist/*-${cp}-linux_x86_64.whl
         done
+        /opt/python/cp38-cp38/bin/python -m twine upload dist/*.tar.gz
         /opt/python/cp38-cp38/bin/python -m twine upload wheelhouse/*.whl
 
   build_macos:

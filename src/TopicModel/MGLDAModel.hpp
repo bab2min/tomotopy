@@ -27,15 +27,15 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 		
-		FLOAT alphaL;
-		FLOAT alphaM, alphaML;
-		FLOAT etaL;
-		FLOAT gamma;
-		TID KL;
+		Float alphaL;
+		Float alphaM, alphaML;
+		Float etaL;
+		Float gamma;
+		Tid KL;
 		uint32_t T; // window size
 
 		// window and gl./loc. and topic assignment likelihoods for new word. ret T*(K+KL) FLOATs
-		FLOAT* getVZLikelihoods(_ModelState& ld, const _DocType& doc, VID vid, uint16_t s) const
+		Float* getVZLikelihoods(_ModelState& ld, const _DocType& doc, Vid vid, uint16_t s) const
 		{
 			const auto V = this->realV;
 			const auto K = this->K;
@@ -45,17 +45,17 @@ namespace tomoto
 			auto& zLikelihood = ld.zLikelihood;
 			for (size_t v = 0; v < T; ++v)
 			{
-				FLOAT pLoc = (doc.numByWinL[s + v] + alphaML) / (doc.numByWin[s + v] + alphaM + alphaML);
-				FLOAT pW = doc.numBySentWin(s, v) + gamma;
+				Float pLoc = (doc.numByWinL[s + v] + alphaML) / (doc.numByWin[s + v] + alphaM + alphaML);
+				Float pW = doc.numBySentWin(s, v) + gamma;
 				if (K)
 				{
 					zLikelihood.segment(v * (K + KL), K) = (1 - pLoc) * pW
-						* (doc.numByTopic.segment(0, K).array().template cast<FLOAT>() + alpha) / (doc.numGl + K * alpha)
-						* (ld.numByTopicWord.block(0, vid, K, 1).array().template cast<FLOAT>() + eta) / (ld.numByTopic.segment(0, K).array().template cast<FLOAT>() + V * eta);
+						* (doc.numByTopic.segment(0, K).array().template cast<Float>() + alpha) / (doc.numGl + K * alpha)
+						* (ld.numByTopicWord.block(0, vid, K, 1).array().template cast<Float>() + eta) / (ld.numByTopic.segment(0, K).array().template cast<Float>() + V * eta);
 				}
 				zLikelihood.segment(v * (K + KL) + K, KL) = pLoc * pW
-					* (doc.numByWinTopicL.col(s + v).array().template cast<FLOAT>()) / (doc.numByWinL[s + v] + KL * alphaL)
-					* (ld.numByTopicWord.block(K, vid, KL, 1).array().template cast<FLOAT>() + etaL) / (ld.numByTopic.segment(K, KL).array().template cast<FLOAT>() + V * etaL);
+					* (doc.numByWinTopicL.col(s + v).array().template cast<Float>()) / (doc.numByWinL[s + v] + KL * alphaL)
+					* (ld.numByTopicWord.block(K, vid, KL, 1).array().template cast<Float>() + etaL) / (ld.numByTopic.segment(K, KL).array().template cast<Float>() + V * etaL);
 			}
 
 			sample::prefixSum(zLikelihood.data(), T * (K + KL));
@@ -63,7 +63,7 @@ namespace tomoto
 		}
 
 		template<int INC> 
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, VID vid, TID tid, uint16_t s, uint8_t w, uint8_t r) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid, uint16_t s, uint8_t w, uint8_t r) const
 		{
 			const auto K = this->K;
 
@@ -138,7 +138,7 @@ namespace tomoto
 				if (K)
 				{
 					ll -= math::lgammaT(doc.numGl + K * alpha);
-					for (TID k = 0; k < K; ++k)
+					for (Tid k = 0; k < K; ++k)
 					{
 						ll += math::lgammaT(doc.numByTopic[k] + alpha);
 					}
@@ -147,13 +147,13 @@ namespace tomoto
 				for (size_t v = 0; v < S + T - 1; ++v)
 				{
 					ll -= math::lgammaT(doc.numByWinL[v] + KL * alphaL);
-					for (TID k = 0; k < KL; ++k)
+					for (Tid k = 0; k < KL; ++k)
 					{
 						ll += math::lgammaT(doc.numByWinTopicL(k, v) + alphaL);
 					}
 					if (K)
 					{
-						ll += math::lgammaT(std::max((FLOAT)doc.numByWin[v] - doc.numByWinL[v], (FLOAT)0) + alphaM);
+						ll += math::lgammaT(std::max((Float)doc.numByWin[v] - doc.numByWinL[v], (Float)0) + alphaM);
 						ll += math::lgammaT(doc.numByWinL[v] + alphaML);
 						ll -= math::lgammaT(doc.numByWin[v] + alphaM + alphaML);
 					}
@@ -185,19 +185,19 @@ namespace tomoto
 			
 			double ll = 0;
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
-				for (VID w = 0; w < V; ++w)
+				for (Vid w = 0; w < V; ++w)
 				{
 					ll += math::lgammaT(ld.numByTopicWord(k, w) + eta);
 				}
 			}
 			ll += (math::lgammaT(V*etaL) - math::lgammaT(etaL)*V) * KL;
-			for (TID k = 0; k < KL; ++k)
+			for (Tid k = 0; k < KL; ++k)
 			{
 				ll -= math::lgammaT(ld.numByTopic[k + K] + V * etaL);
-				for (VID w = 0; w < V; ++w)
+				for (Vid w = 0; w < V; ++w)
 				{
 					ll += math::lgammaT(ld.numByTopicWord(k + K, w) + etaL);
 				}
@@ -221,7 +221,7 @@ namespace tomoto
 				if (K)
 				{
 					ll -= math::lgammaT(doc.numGl + K * alpha);
-					for (TID k = 0; k < K; ++k)
+					for (Tid k = 0; k < K; ++k)
 					{
 						ll += math::lgammaT(doc.numByTopic[k] + alpha);
 					}
@@ -230,13 +230,13 @@ namespace tomoto
 				for (size_t v = 0; v < S + T - 1; ++v)
 				{
 					ll -= math::lgammaT(doc.numByWinL[v] + KL * alphaL);
-					for (TID k = 0; k < KL; ++k)
+					for (Tid k = 0; k < KL; ++k)
 					{
 						ll += math::lgammaT(doc.numByWinTopicL(k, v) + alphaL);
 					}
 					if (K)
 					{
-						ll += math::lgammaT(std::max((FLOAT)doc.numByWin[v] - doc.numByWinL[v], (FLOAT)0) + alphaM);
+						ll += math::lgammaT(std::max((Float)doc.numByWin[v] - doc.numByWinL[v], (Float)0) + alphaM);
 						ll += math::lgammaT(doc.numByWinL[v] + alphaML);
 						ll -= math::lgammaT(doc.numByWin[v] + alphaM + alphaML);
 					}
@@ -259,19 +259,19 @@ namespace tomoto
 
 			//
 			ll += (math::lgammaT(V*eta) - math::lgammaT(eta)*V) * K;
-			for (TID k = 0; k < K; ++k)
+			for (Tid k = 0; k < K; ++k)
 			{
 				ll -= math::lgammaT(this->globalState.numByTopic[k] + V * eta);
-				for (VID w = 0; w < V; ++w)
+				for (Vid w = 0; w < V; ++w)
 				{
 					ll += math::lgammaT(this->globalState.numByTopicWord(k, w) + eta);
 				}
 			}
 			ll += (math::lgammaT(V*etaL) - math::lgammaT(etaL)*V) * KL;
-			for (TID k = 0; k < KL; ++k)
+			for (Tid k = 0; k < KL; ++k)
 			{
 				ll -= math::lgammaT(this->globalState.numByTopic[k + K] + V * etaL);
-				for (VID w = 0; w < V; ++w)
+				for (Vid w = 0; w < V; ++w)
 				{
 					ll += math::lgammaT(this->globalState.numByTopicWord(k + K, w) + etaL);
 				}
@@ -291,7 +291,7 @@ namespace tomoto
 
 			const size_t S = doc.numBySent.size();
 			std::fill(doc.numBySent.begin(), doc.numBySent.end(), 0);
-			doc.Zs = tvector<TID>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize);
 			doc.Vs.resize(wordSize);
 			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
 			doc.numByTopic.init(topicDocPtr, this->K + KL);
@@ -304,7 +304,7 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<FLOAT, -1, 1>::Zero(T * (this->K + KL));
+			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(T * (this->K + KL));
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K + KL);
@@ -315,16 +315,16 @@ namespace tomoto
 		struct Generator
 		{
 			std::discrete_distribution<uint16_t> pi;
-			std::uniform_int_distribution<TID> theta;
-			std::uniform_int_distribution<TID> thetaL;
+			std::uniform_int_distribution<Tid> theta;
+			std::uniform_int_distribution<Tid> thetaL;
 			std::uniform_int_distribution<uint16_t> psi;
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ std::discrete_distribution<uint16_t>{ alphaM, alphaML },
-				std::uniform_int_distribution<TID>{ 0, (TID)(this->K - 1) },
-				std::uniform_int_distribution<TID>{ 0, (TID)(KL - 1) },
+				std::uniform_int_distribution<Tid>{ 0, (Tid)(this->K - 1) },
+				std::uniform_int_distribution<Tid>{ 0, (Tid)(KL - 1) },
 				std::uniform_int_distribution<uint16_t>{ 0, (uint16_t)(T - 1) } };
 		}
 
@@ -332,20 +332,36 @@ namespace tomoto
 		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			doc.numBySent[doc.sents[i]] += _TW == TermWeight::one ? 1 : doc.wordWeights[i];
+			auto w = doc.words[i];
+			size_t r, z;
+			if (this->etaByTopicWord.size())
+			{
+				Eigen::Array<Float, -1, 1> col = this->etaByTopicWord.col(w);
+				col.head(this->K) *= alphaM / this->K;
+				col.tail(this->KL) *= alphaML / this->KL;
+				doc.Zs[i] = z = sample::sampleFromDiscrete(col.data(), col.data() + col.size(), rgs);
+				r = z < this->K;
+				if (z >= this->K) z -= this->K;
+			}
+			else
+			{
+				r = g.pi(rgs);
+				z = (r ? g.thetaL : g.theta)(rgs);
+				doc.Zs[i] = z + (r ? this->K : 0);
+			}
+			
 			auto& win = doc.Vs[i];
-			auto r = g.pi(rgs);
-			auto z = (r ? g.thetaL : g.theta)(rgs);
-			doc.Zs[i] = z + (r ? this->K : 0);
 			win = g.psi(rgs);
-			addWordTo<1>(ld, doc, i, doc.words[i], z, doc.sents[i], win, r);
+			addWordTo<1>(ld, doc, i, w, z, doc.sents[i], win, r);
 		}
 
-
-		DEFINE_SERIALIZER_AFTER_BASE(BaseClass, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 	public:
+		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
+
 		MGLDAModel(size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
-			FLOAT _alphaG = 0.1, FLOAT _alphaL = 0.1, FLOAT _alphaMG = 0.1, FLOAT _alphaML = 0.1,
-			FLOAT _etaG = 0.01, FLOAT _etaL = 0.01, FLOAT _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
+			Float _alphaG = 0.1, Float _alphaL = 0.1, Float _alphaMG = 0.1, Float _alphaML = 0.1,
+			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_KG, _alphaG, _etaG, _rg), KL(_KL), T(_T),
 			alphaL(_alphaL), alphaM(_KG ? _alphaMG : 0), alphaML(_alphaML),
 			etaL(_etaL), gamma(_gamma)
@@ -356,63 +372,161 @@ namespace tomoto
 			if (_etaL <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong etaL value (etaL = %f)", _etaL));
 		}
 
-		size_t addDoc(const std::vector<std::string>& words, const std::string& delimiter) override
+
+		template<bool _const = false>
+		_DocType _makeDoc(const std::vector<std::string>& words, const std::string& delimiter)
 		{
-			_DocType doc;
+			_DocType doc{ 1.f };
 			size_t numSent = 0;
 			for (auto& w : words)
 			{
 				if (w == delimiter)
 				{
 					++numSent;
+					continue;
+				}
+
+				Vid id;
+				if (_const)
+				{
+					id = this->dict.toWid(w);
+					if (id == (Vid)-1) continue;
 				}
 				else
 				{
-					doc.words.emplace_back(this->dict.add(w));
-					doc.sents.emplace_back(numSent);
+					id = this->dict.add(w);
 				}
+				doc.words.emplace_back(id);
+				doc.sents.emplace_back(numSent);
 			}
 			doc.numBySent.resize(doc.sents.empty() ? 0 : (doc.sents.back() + 1));
-			return this->_addDoc(doc);
+			return doc;
+		}
+
+		size_t addDoc(const std::vector<std::string>& words, const std::string& delimiter) override
+		{
+			return this->_addDoc(_makeDoc(words, delimiter));
 		}
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::string& delimiter) const override
 		{
-			auto* doc = new _DocType;
+			return make_unique<_DocType>(as_mutable(this)->template _makeDoc<true>(words, delimiter));
+		}
+
+		template<bool _const, typename _FnTokenizer>
+		_DocType _makeRawDoc(const std::string& rawStr, _FnTokenizer&& tokenizer, const std::string& delimiter)
+		{
+			_DocType doc{ 1.f };
 			size_t numSent = 0;
-			for (auto& w : words)
+			doc.rawStr = rawStr;
+			for (auto& p : tokenizer(doc.rawStr))
 			{
-				if (w == delimiter)
+				if (std::get<0>(p) == delimiter)
 				{
 					++numSent;
+					continue;
+				}
+
+				Vid wid;
+				if (_const)
+				{
+					wid = this->dict.toWid(std::get<0>(p));
+					if (wid == (Vid)-1) continue;
 				}
 				else
 				{
-					auto wid = this->dict.toWid(w);
-					if (wid == (VID)-1) continue;
-					doc->words.emplace_back(wid);
-					doc->sents.emplace_back(numSent);
+					wid = this->dict.add(std::get<0>(p));
 				}
+				auto pos = std::get<1>(p);
+				auto len = std::get<2>(p);
+				doc.words.emplace_back(wid);
+				doc.sents.emplace_back(numSent);
+				doc.origWordPos.emplace_back(pos);
+				doc.origWordLen.emplace_back(len);
 			}
-			doc->numBySent.resize(doc->sents.empty() ? 0 : (doc->sents.back() + 1));
-			return std::unique_ptr<DocumentBase>{ doc };
+			doc.numBySent.resize(doc.sents.empty() ? 0 : (doc.sents.back() + 1));
+			return doc;
 		}
 
-		std::vector<FLOAT> getTopicsByDoc(const _DocType& doc) const
+		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
+			const std::string& delimiter)
 		{
-			std::vector<FLOAT> ret(this->K + KL);
-			Eigen::Map<Eigen::Matrix<FLOAT, -1, 1>> { ret.data(), this->K + KL }.array() =
-				doc.numByTopic.array().template cast<FLOAT>() / doc.getSumWordWeight();
+			return this->_addDoc(_makeRawDoc<false>(rawStr, tokenizer, delimiter));
+		}
+
+		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
+			const std::string& delimiter) const
+		{
+			return make_unique<_DocType>(as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer, delimiter));
+		}
+
+		_DocType _makeRawDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, const std::string& delimiter) const
+		{
+			_DocType doc{ 1.f };
+			doc.rawStr = rawStr;
+			size_t numSent = 0;
+			Vid delimiterId = this->dict.toWid(delimiter);
+			for (size_t i = 0; i < words.size(); ++i)
+			{
+				auto& w = words[i];
+				if (w == delimiterId)
+				{
+					++numSent;
+					continue;
+				}
+				doc.words.emplace_back(w);
+				doc.sents.emplace_back(numSent);
+				if (words.size() == pos.size())
+				{
+					doc.origWordPos.emplace_back(pos[i]);
+					doc.origWordLen.emplace_back(len[i]);
+				}
+			}
+			doc.numBySent.resize(doc.sents.empty() ? 0 : (doc.sents.back() + 1));
+			return doc;
+		}
+
+		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
+			const std::string& delimiter)
+		{
+			return this->_addDoc(_makeRawDoc(rawStr, words, pos, len, delimiter));
+		}
+
+		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
+			const std::string& delimiter) const
+		{
+			return make_unique<_DocType>(_makeRawDoc(rawStr, words, pos, len, delimiter));
+		}
+
+		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
+		{
+			if (priors.size() != this->K + KL) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors.size() must be equal to K.");
+			for (auto p : priors)
+			{
+				if (p < 0) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors must not be less than 0.");
+			}
+			this->dict.add(word);
+			this->etaByWord.emplace(word, priors);
+		}
+
+		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		{
+			std::vector<Float> ret(this->K + KL);
+			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), this->K + KL }.array() =
+				doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
 			return ret;
 		}
 
 		GETTER(KL, size_t, KL);
 		GETTER(T, size_t, T);
-		GETTER(Gamma, FLOAT, gamma);
-		GETTER(AlphaL, FLOAT, alphaL);
-		GETTER(EtaL, FLOAT, etaL);
-		GETTER(AlphaM, FLOAT, alphaM);
-		GETTER(AlphaML, FLOAT, alphaML);
+		GETTER(Gamma, Float, gamma);
+		GETTER(AlphaL, Float, alphaL);
+		GETTER(EtaL, Float, etaL);
+		GETTER(AlphaM, Float, alphaM);
+		GETTER(AlphaML, Float, alphaML);
 	};
 
 	template<TermWeight _TW>
