@@ -214,9 +214,11 @@ namespace tomoto
 
 		void _saveModel(std::ostream& writer, bool fullModel) const
 		{
+			typedef const char c5[5];
+
 			serializer::writeMany(writer,
 				serializer::to_keyz(_Derived::TMID),
-				serializer::to_keyz(_Derived::TWID));
+				serializer::to_keyz(*(c5*)&_Derived::TWID));
 			serializer::writeTaggedMany(writer, 0x00010001,
 				serializer::to_keyz("dict"), dict, 
 				serializer::to_keyz("vocabCf"), vocabCf,
@@ -236,12 +238,14 @@ namespace tomoto
 
 		void _loadModel(std::istream& reader)
 		{
+			typedef const char c5[5];
+
 			auto start_pos = reader.tellg();
 			try
 			{
 				serializer::readMany(reader, 
 					serializer::to_keyz(_Derived::TMID),
-					serializer::to_keyz(_Derived::TWID));
+					serializer::to_keyz(*(c5*)&_Derived::TWID));
 				serializer::readTaggedMany(reader, 0x00010001, 
 					serializer::to_keyz("dict"), dict,
 					serializer::to_keyz("vocabCf"), vocabCf,
@@ -253,7 +257,7 @@ namespace tomoto
 				reader.seekg(start_pos);
 				serializer::readMany(reader,
 					serializer::to_key(_Derived::TMID),
-					serializer::to_key(_Derived::TWID),
+					serializer::to_key(*(c5*)&_Derived::TWID),
 					dict, vocabCf, realV);
 			}
 			serializer::readMany(reader, *static_cast<_Derived*>(this));
