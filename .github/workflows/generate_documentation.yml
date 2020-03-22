@@ -36,7 +36,7 @@ jobs:
         export TOMOTOPY_LANG=${{ matrix.language }}
         python -m pdoc --html tomotopy
         sed -i -E 's/(<p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"><\/p>)/<script async defer src="https:\/\/buttons.github.io\/buttons.js"><\/script> <p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy" data-size="large" data-show-count="true" aria-label="Star bab2min\/tomotopy on GitHub">Star<\/a> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy\/issues" data-size="large" data-show-count="true" aria-label="Issue bab2min\/tomotopy on GitHub">Issue<\/a> <\/p>/' html/tomotopy/*.html
-        sed -i -E 's/(<h1>Index<\/h1>)/<header> <a class="homelink" rel="home" title="tomotopy Home" href="\/tomotopy" style="display:block; font-size:2em; font-weight:bold; color:#555; padding-bottom:.5em; border-bottom:1px solid silver;"> <img src="\/tomotopy\/tomoto.png" alt="" style="height:1.5em;"> tomotopy <\/a> <a href="..\/en\/index.html">English<\/a> <a href="..\/kr\/index.html">한국어<\/a> <\/header>\n\1/' html/tomotopy/*.html
+        sed -i -e '/<nav id="sidebar">/r document/document_header.html' html/tomotopy/*.html
         sed -i -E 's/(<\/body>)/<script async src="https:\/\/www.googletagmanager.com\/gtag\/js?id=UA-35651242-12"><\/script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag("js", new Date()); gtag("config", "UA-35651242-12"); <\/script>\n\1/' html/tomotopy/*.html
         mkdir -p ../g
         pushd ../g
