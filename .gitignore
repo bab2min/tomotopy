@@ -14,5 +14,6 @@ enwiki-stemmed-1000.txt
 enwiki-1000.txt
 /venv/
 /venv.lin/
+/html/
 .vscode/
 *.pyd
