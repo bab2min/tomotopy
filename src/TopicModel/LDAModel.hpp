@@ -110,7 +110,7 @@ namespace tomoto
 		friend EtaHelper<DerivedClass, false>;
 
 		static constexpr const char* TWID = _TW == TermWeight::one ? "one\0" : (_TW == TermWeight::idf ? "idf\0" : "pmi\0");
-		static constexpr const char TMID[] = "LDA\0";
+		static constexpr const char TMID[5] = "LDA\0";
 		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
 
 		enum { m_flags = _Flags };
