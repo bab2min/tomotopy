@@ -8,6 +8,8 @@ jobs:
   build_manylinux:
     name: Build for manylinux
     runs-on: ubuntu-latest
+    container:
+      image: docker://quay.io/pypa/manylinux1_x86_64
     strategy:
       max-parallel: 1
       matrix:
