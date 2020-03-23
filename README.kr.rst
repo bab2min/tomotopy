@@ -30,7 +30,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.6.0 입니다.
+tomotopy의 가장 최신버전은 0.6.1 입니다.
 
 시작하기
 ---------------
@@ -210,6 +210,9 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.6.1 (2020-03-22)
+    * 모듈 로딩과 관련된 버그가 수정되었습니다.
+
 * 0.6.0 (2020-03-22)
     * 대량의 문헌을 관리하기 위한 `tomotopy.utils.Corpus`가 추가되었습니다.
     * 어휘-주제 분포의 사전 확률을 조절할 수 있는 `tomotopy.LDAModel.set_word_prior` 메소드가 추가되었습니다.

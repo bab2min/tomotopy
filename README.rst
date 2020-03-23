@@ -31,7 +31,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.6.0.
+The most recent version of tomotopy is 0.6.1.
 
 Getting Started
 ---------------
@@ -215,6 +215,9 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.6.1 (2020-03-22)
+    * A bug related to module loading was fixed.
+
 * 0.6.0 (2020-03-22)
     * `tomotopy.utils.Corpus` class that manages multiple documents easily was added.
     * `tomotopy.LDAModel.set_word_prior` method that controls word-topic priors of topic models was added.
