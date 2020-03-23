@@ -655,8 +655,10 @@ PyMODINIT_FUNC MODULE_NAME()
 #else
 	PyModule_AddStringConstant(gModule, "isa", "none");
 #endif
-
-	PyModule_AddObject(gModule, "label", makeLabelModule());
+	PyObject* sModule = makeLabelModule();
+	if (!sModule) return nullptr;
+	Py_INCREF(sModule);
+	PyModule_AddObject(gModule, "label", sModule);
 
 	return gModule;
 }
