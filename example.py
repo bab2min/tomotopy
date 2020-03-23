@@ -110,13 +110,13 @@ def raw_corpus_and_labeling_example(input_file):
 # at https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view?usp=sharing
 
 print('Running LDA')
-#lda_example('enwiki-stemmed-1000.txt', 'test.lda.bin')
+lda_example('enwiki-stemmed-1000.txt', 'test.lda.bin')
 
 print('Running HDP')
-#hdp_example('enwiki-stemmed-1000.txt', 'test.hdp.bin')
+hdp_example('enwiki-stemmed-1000.txt', 'test.hdp.bin')
 
 print('Running LDA and Labeling')
-#corpus_and_labeling_example('enwiki-stemmed-1000.txt')
+corpus_and_labeling_example('enwiki-stemmed-1000.txt')
 
 print('Running LDA from raw corpus and Labeling')
 raw_corpus_and_labeling_example('enwiki-1000.txt')
