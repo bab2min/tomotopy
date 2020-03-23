@@ -18,6 +18,9 @@ jobs:
 
     steps:        
     - uses: actions/checkout@v1
+    - name: Print Info
+      run: |
+        cat /proc/cpuinfo
     - name: Install dependencies
       run: |
         git clone https://github.com/eigenteam/eigen-git-mirror
