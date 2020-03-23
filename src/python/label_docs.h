@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <Python.h>
 
 #define DOC_SIGNATURE_EN(name, signature, en) PyDoc_STRVAR(name, signature "\n--\n\n" en)
@@ -21,15 +21,15 @@ u8R""()"");
 
 DOC_VARIABLE_EN_KO(Candidate_words__doc__,
 	u8R""(words of the candidate for topic label (read-only))"",
-	u8R""(ÅäÇÈ ·¹ÀÌºíÀÇ ÈÄº¸ (ÀÐ±âÀü¿ë))"");
+	u8R""(í† í”½ ë ˆì´ë¸”ì˜ í›„ë³´ (ì½ê¸°ì „ìš©))"");
 
 DOC_VARIABLE_EN_KO(Candidate_score__doc__,
 	u8R""(score of the candidate (read-only))"",
-	u8R""(ÈÄº¸ÀÇ Á¡¼ö(ÀÐ±âÀü¿ë))"");
+	u8R""(í›„ë³´ì˜ ì ìˆ˜(ì½ê¸°ì „ìš©))"");
 
 DOC_VARIABLE_EN_KO(Candidate_name__doc__,
 	u8R""(an actual name of the candidate for topic label)"",
-	u8R""(ÅäÇÈ ·¹ÀÌºíÀÇ ½ÇÁ¦ ÀÌ¸§)"");
+	u8R""(í† í”½ ë ˆì´ë¸”ì˜ ì‹¤ì œ ì´ë¦„)"");
 
 /*
 	class PMIExtractor
@@ -43,12 +43,12 @@ Parameters
 topic_model
     an instance of topic model with documents to extract candidates
 )"",
-	u8R""(`topic_model`·ÎºÎÅÍ ÃßÃâµÈ ÅäÇÈ ·¹ÀÌºí ÈÄº¸ÀÎ `tomotopy.label.Candidate`ÀÇ ¸®½ºÆ®¸¦ ¹ÝÈ¯ÇÕ´Ï´Ù.
+	u8R""(`topic_model`ë¡œë¶€í„° ì¶”ì¶œëœ í† í”½ ë ˆì´ë¸” í›„ë³´ì¸ `tomotopy.label.Candidate`ì˜ ë¦¬ìŠ¤íŠ¸ë¥¼ ë°˜í™˜í•©ë‹ˆë‹¤.
 
 Parameters
 ----------
 topic_model
-    ÈÄº¸¸¦ ÃßÃâÇÒ ¹®ÇåµéÀ» °¡Áö°í ÀÖ´Â ÅäÇÈ ¸ðµ¨ÀÇ ÀÎ½ºÅÏ½º
+    í›„ë³´ë¥¼ ì¶”ì¶œí•  ë¬¸í—Œë“¤ì„ ê°€ì§€ê³  ìžˆëŠ” í† í”½ ëª¨ë¸ì˜ ì¸ìŠ¤í„´ìŠ¤
 )"");
 
 DOC_SIGNATURE_EN_KO(PMIExtractor___init____doc__,
@@ -73,20 +73,20 @@ max_cand : int
 )"",
 	u8R""(.. versionadded:: 0.6.0
 
-`PMIExtractor`´Â ´Ùº¯¼ö Á¡º° »óÈ£Á¤º¸·®À» È°¿ëÇØ ¿¬¾î¸¦ ÃßÃâÇÕ´Ï´Ù. ÀÌ´Â Åë°èÀûÀ¸·Î ÀÚÁÖ ÇÔ²² µîÀåÇÏ´Â ´Ü¾î¿­À» Ã£¾ÆÁÝ´Ï´Ù.
+`PMIExtractor`ëŠ” ë‹¤ë³€ìˆ˜ ì ë³„ ìƒí˜¸ì •ë³´ëŸ‰ì„ í™œìš©í•´ ì—°ì–´ë¥¼ ì¶”ì¶œí•©ë‹ˆë‹¤. ì´ëŠ” í†µê³„ì ìœ¼ë¡œ ìžì£¼ í•¨ê»˜ ë“±ìž¥í•˜ëŠ” ë‹¨ì–´ì—´ì„ ì°¾ì•„ì¤ë‹ˆë‹¤.
 
 Parameter
 ---------
 min_cf : int
-    ÃßÃâÇÏ·Á´Â ÈÄº¸ÀÇ ÃÖ¼Ò Àå¼­ ºóµµ. ¹®Çå ³» µîÀåÇÏ´Â ºóµµ¼ö°¡ `min_cf`º¸´Ù ÀÛÀº ¿¬¾î´Â ÈÄº¸¿¡¼­ Á¦¿ÜµË´Ï´Ù.
-    ºÐ¼®ÇÏ·Á´Â ÄÚÆÛ½º°¡ Å¬ °æ¿ì ÀÌ °ªÀ» Å°¿ì½Ê½Ã¿À.
+    ì¶”ì¶œí•˜ë ¤ëŠ” í›„ë³´ì˜ ìµœì†Œ ìž¥ì„œ ë¹ˆë„. ë¬¸í—Œ ë‚´ ë“±ìž¥í•˜ëŠ” ë¹ˆë„ìˆ˜ê°€ `min_cf`ë³´ë‹¤ ìž‘ì€ ì—°ì–´ëŠ” í›„ë³´ì—ì„œ ì œì™¸ë©ë‹ˆë‹¤.
+    ë¶„ì„í•˜ë ¤ëŠ” ì½”í¼ìŠ¤ê°€ í´ ê²½ìš° ì´ ê°’ì„ í‚¤ìš°ì‹­ì‹œì˜¤.
 min_df : int
-    ÃßÃâÇÏ·Á´Â ÈÄº¸ÀÇ ÃÖ¼Ò ¹®Çå ºóµµ. ¿¬¾î°¡ µîÀåÇÏ´Â ¹®Çå ¼ö°¡ `min_df`º¸´Ù ÀÛÀº °æ¿ì ÈÄº¸¿¡¼­ Á¦¿ÜµË´Ï´Ù.
-    ºÐ¼®ÇÏ·Á´Â ÄÚÆÛ½º°¡ Å¬ °æ¿ì ÀÌ °ªÀ» Å°¿ì½Ê½Ã¿À.
+    ì¶”ì¶œí•˜ë ¤ëŠ” í›„ë³´ì˜ ìµœì†Œ ë¬¸í—Œ ë¹ˆë„. ì—°ì–´ê°€ ë“±ìž¥í•˜ëŠ” ë¬¸í—Œ ìˆ˜ê°€ `min_df`ë³´ë‹¤ ìž‘ì€ ê²½ìš° í›„ë³´ì—ì„œ ì œì™¸ë©ë‹ˆë‹¤.
+    ë¶„ì„í•˜ë ¤ëŠ” ì½”í¼ìŠ¤ê°€ í´ ê²½ìš° ì´ ê°’ì„ í‚¤ìš°ì‹­ì‹œì˜¤.
 max_len : int
-    ºÐ¼®ÇÏ·Á´Â ¿¬¾îÀÇ ÃÖ´ë ±æÀÌ
+    ë¶„ì„í•˜ë ¤ëŠ” ì—°ì–´ì˜ ìµœëŒ€ ê¸¸ì´
 max_cand : int
-    ÃßÃâÇÏ·Á´Â ÈÄº¸ÀÇ ÃÖ´ë °³¼ö
+    ì¶”ì¶œí•˜ë ¤ëŠ” í›„ë³´ì˜ ìµœëŒ€ ê°œìˆ˜
 )"");
 
 /*
@@ -103,14 +103,14 @@ k : int
 top_n : int
     the number of labels
 )"",
-	u8R""(ÅäÇÈ `k`¿¡ ÇØ´çÇÏ´Â ·¹ÀÌºí ÈÄº¸ »óÀ§ n°³¸¦ ¹ÝÈ¯ÇÕ´Ï´Ù.
+	u8R""(í† í”½ `k`ì— í•´ë‹¹í•˜ëŠ” ë ˆì´ë¸” í›„ë³´ ìƒìœ„ nê°œë¥¼ ë°˜í™˜í•©ë‹ˆë‹¤.
 
 Parameter
 ---------
 k : int
-    ÅäÇÈÀ» ÁöÁ¤ÇÏ´Â Á¤¼ö
+    í† í”½ì„ ì§€ì •í•˜ëŠ” ì •ìˆ˜
 top_n : int
-    ÅäÇÈ ·¹ÀÌºíÀÇ °³¼ö)"");
+    í† í”½ ë ˆì´ë¸”ì˜ ê°œìˆ˜)"");
 
 DOC_SIGNATURE_EN_KO(FoRelevance___init____doc__,
 	"FoRelevance(topic_model, cands, min_df=5, smoothing=0.01, mu=0.25, workers=0)",
@@ -139,24 +139,24 @@ workers : int
 )"",
 	u8R""(.. versionadded:: 0.6.0
 
-First-order Relevance¸¦ ÀÌ¿ëÇÑ ÅäÇÈ ¶óº§¸µ ±â¹ýÀ» Á¦°øÇÕ´Ï´Ù. ÀÌ ±¸ÇöÃ¼´Â ´ÙÀ½ ³í¹®¿¡ ±âÃÊÇÏ°í ÀÖ½À´Ï´Ù:
+First-order Relevanceë¥¼ ì´ìš©í•œ í† í”½ ë¼ë²¨ë§ ê¸°ë²•ì„ ì œê³µí•©ë‹ˆë‹¤. ì´ êµ¬í˜„ì²´ëŠ” ë‹¤ìŒ ë…¼ë¬¸ì— ê¸°ì´ˆí•˜ê³  ìžˆìŠµë‹ˆë‹¤:
 
 > * Mei, Q., Shen, X., & Zhai, C. (2007, August). Automatic labeling of multinomial topic models. In Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 490-499).
 
 Parameters
 ----------
 topic_model
-    ÅäÇÈ¸íÀ» ºÙÀÏ ÅäÇÈ ¸ðµ¨ÀÇ ÀÎ½ºÅÏ½º
+    í† í”½ëª…ì„ ë¶™ì¼ í† í”½ ëª¨ë¸ì˜ ì¸ìŠ¤í„´ìŠ¤
 cands : Iterable[tomotopy.label.Candidate]
-    ÅäÇÈ¸íÀ¸·Î »ç¿ëµÉ ÈÄº¸µéÀÇ ¸®½ºÆ®
+    í† í”½ëª…ìœ¼ë¡œ ì‚¬ìš©ë  í›„ë³´ë“¤ì˜ ë¦¬ìŠ¤íŠ¸
 min_df : int
-    »ç¿ëÇÏ·Á´Â ÈÄº¸ÀÇ ÃÖ¼Ò ¹®Çå ºóµµ. ¿¬¾î°¡ µîÀåÇÏ´Â ¹®Çå ¼ö°¡ `min_cf`º¸´Ù ÀÛÀº °æ¿ì ¼±ÅÃ¿¡¼­ Á¦¿ÜµË´Ï´Ù.
-    ºÐ¼®ÇÏ·Á´Â ÄÚÆÛ½º°¡ Å¬ °æ¿ì ÀÌ °ªÀ» Å°¿ì½Ê½Ã¿À.
+    ì‚¬ìš©í•˜ë ¤ëŠ” í›„ë³´ì˜ ìµœì†Œ ë¬¸í—Œ ë¹ˆë„. ì—°ì–´ê°€ ë“±ìž¥í•˜ëŠ” ë¬¸í—Œ ìˆ˜ê°€ `min_cf`ë³´ë‹¤ ìž‘ì€ ê²½ìš° ì„ íƒì—ì„œ ì œì™¸ë©ë‹ˆë‹¤.
+    ë¶„ì„í•˜ë ¤ëŠ” ì½”í¼ìŠ¤ê°€ í´ ê²½ìš° ì´ ê°’ì„ í‚¤ìš°ì‹­ì‹œì˜¤.
 smoothing : float
-    ¶óÇÃ¶ó½º ÆòÈ°È­¿¡ »ç¿ëµÉ 0º¸´Ù Å« ÀÛÀº ½Ç¼ö
+    ë¼í”Œë¼ìŠ¤ í‰í™œí™”ì— ì‚¬ìš©ë  0ë³´ë‹¤ í° ìž‘ì€ ì‹¤ìˆ˜
 mu : float
-    º¯º°¼º °è¼ö. Æ¯Á¤ ÅäÇÈ¿¡ ´ëÇØ¼­¸¸ ³ôÀº Á¡¼ö¸¦ °¡Áö°í, ³ª¸ÓÁö ÅäÇÈ¿¡ ´ëÇØ¼­´Â ³·Àº Á¡¼ö¸¦ °¡Áø ÈÄº¸´Â ÀÌ °è¼ö°¡ Å¬ ¶§ ´õ ³ôÀº ÃÖÁ¾ Á¡¼ö¸¦ ¹Þ½À´Ï´Ù.
+    ë³€ë³„ì„± ê³„ìˆ˜. íŠ¹ì • í† í”½ì— ëŒ€í•´ì„œë§Œ ë†’ì€ ì ìˆ˜ë¥¼ ê°€ì§€ê³ , ë‚˜ë¨¸ì§€ í† í”½ì— ëŒ€í•´ì„œëŠ” ë‚®ì€ ì ìˆ˜ë¥¼ ê°€ì§„ í›„ë³´ëŠ” ì´ ê³„ìˆ˜ê°€ í´ ë•Œ ë” ë†’ì€ ìµœì¢… ì ìˆ˜ë¥¼ ë°›ìŠµë‹ˆë‹¤.
 workers : int
-    ±é½º »ùÇÃ¸µÀ» ¼öÇàÇÏ´Â µ¥¿¡ »ç¿ëÇÒ ½º·¹µåÀÇ °³¼öÀÔ´Ï´Ù. 
-    ¸¸¾à ÀÌ °ªÀ» 0À¸·Î ¼³Á¤ÇÒ °æ¿ì ½Ã½ºÅÛ ³»ÀÇ °¡¿ëÇÑ ¸ðµç ÄÚ¾î°¡ »ç¿ëµË´Ï´Ù.
+    ê¹ìŠ¤ ìƒ˜í”Œë§ì„ ìˆ˜í–‰í•˜ëŠ” ë°ì— ì‚¬ìš©í•  ìŠ¤ë ˆë“œì˜ ê°œìˆ˜ìž…ë‹ˆë‹¤. 
+    ë§Œì•½ ì´ ê°’ì„ 0ìœ¼ë¡œ ì„¤ì •í•  ê²½ìš° ì‹œìŠ¤í…œ ë‚´ì˜ ê°€ìš©í•œ ëª¨ë“  ì½”ì–´ê°€ ì‚¬ìš©ë©ë‹ˆë‹¤.
 )"");
