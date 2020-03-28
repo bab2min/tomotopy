@@ -5,8 +5,8 @@
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct ModelStateGDMR : public ModelStateDMR<_TW>
+	template<TermWeight _tw>
+	struct ModelStateGDMR : public ModelStateDMR<_tw>
 	{
 		/*Eigen::Matrix<Float, -1, 1> alphas;
 		Eigen::Matrix<Float, -1, 1> terms;
@@ -14,18 +14,18 @@ namespace tomoto
 		std::vector<size_t> ndimCnt;*/
 	};
 
-	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IGDMRModel,
 		typename _Derived = void,
-		typename _DocType = DocumentGDMR<_TW, _Flags>,
-		typename _ModelState = ModelStateGDMR<_TW>>
-	class GDMRModel : public DMRModel<_TW, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_TW>, _Derived>::type,
+		typename _DocType = DocumentGDMR<_tw, _Flags>,
+		typename _ModelState = ModelStateGDMR<_tw>>
+	class GDMRModel : public DMRModel<_tw, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_TW>, _Derived>::type;
-		using BaseClass = DMRModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw>, _Derived>::type;
+		using BaseClass = DMRModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		friend typename BaseClass::BaseClass::BaseClass;

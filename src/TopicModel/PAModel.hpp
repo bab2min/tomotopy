@@ -10,29 +10,29 @@ Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct ModelStatePA : public ModelStateLDA<_TW>
+	template<TermWeight _tw>
+	struct ModelStatePA : public ModelStateLDA<_tw>
 	{
-		using WeightType = typename ModelStateLDA<_TW>::WeightType;
+		using WeightType = typename ModelStateLDA<_tw>::WeightType;
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 		Eigen::Matrix<WeightType, -1, 1> numByTopic2;
 		Eigen::Matrix<Float, -1, 1> subTmp;
 
-		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numByTopic1_2, numByTopic2);
+		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numByTopic1_2, numByTopic2);
 	};
 
-	template<TermWeight _TW,
+	template<TermWeight _tw,
 		typename _Interface = IPAModel,
 		typename _Derived = void,
-		typename _DocType = DocumentPA<_TW>,
-		typename _ModelState = ModelStatePA<_TW>>
-	class PAModel : public LDAModel<_TW, 0, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, PAModel<_TW>, _Derived>::type,
+		typename _DocType = DocumentPA<_tw>,
+		typename _ModelState = ModelStatePA<_tw>>
+	class PAModel : public LDAModel<_tw, 0, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, PAModel<_tw>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PAModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -93,9 +93,9 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
-			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
-				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
+			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
+				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
 			updateCnt<DEC>(doc.numByTopic[z1], INC * weight);
 			updateCnt<DEC>(doc.numByTopic1_2(z1, z2), INC * weight);
@@ -172,7 +172,7 @@ namespace tomoto
 				}
 
 				// make all count being positive
-				if (_TW != TermWeight::one)
+				if (_tw != TermWeight::one)
 				{
 					globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
 					globalState.numByTopic1_2 = globalState.numByTopic1_2.cwiseMax(0);
@@ -207,7 +207,7 @@ namespace tomoto
 				}
 
 				// make all count being positive
-				if (_TW != TermWeight::one)
+				if (_tw != TermWeight::one)
 				{
 					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 				}
@@ -419,16 +419,16 @@ namespace tomoto
 		}
 	};
 	
-	template<TermWeight _TW>
+	template<TermWeight _tw>
 	template<typename _TopicModel>
-	void DocumentPA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	void DocumentPA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
-		DocumentLDA<_TW>::update(ptr, mdl);
+		DocumentLDA<_tw>::update(ptr, mdl);
 		numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(mdl.getK(), mdl.getK2());
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;
-			numByTopic1_2(this->Zs[i], Z2s[i]) += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			numByTopic1_2(this->Zs[i], Z2s[i]) += _tw != TermWeight::one ? this->wordWeights[i] : 1;
 		}
 	}
 }

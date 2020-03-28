@@ -177,10 +177,10 @@ namespace tomoto
 				return &nodes[nodes.size() - blockSize];
 			}
 
-			template<TermWeight _TW>
+			template<TermWeight _tw>
 			void calcWordLikelihood(Float eta, size_t realV, size_t levelDepth, ThreadPool* pool,
-				const DocumentHLDA<_TW>& doc, const std::vector<Float>& newTopicWeights,
-				const ModelStateLDA<_TW>& ld)
+				const DocumentHLDA<_tw>& doc, const std::vector<Float>& newTopicWeights,
+				const ModelStateLDA<_tw>& ld)
 			{
 				nodeWLikelihoods.resize(nodes.size());
 				nodeWLikelihoods.setZero();
@@ -247,12 +247,12 @@ namespace tomoto
 					}
 				}
 				
-				updateWordLikelihood<_TW>(eta, realV, levelDepth, doc, newTopicWeights, &nodes[0]);
+				updateWordLikelihood<_tw>(eta, realV, levelDepth, doc, newTopicWeights, &nodes[0]);
 			}
 
-			template<TermWeight _TW>
+			template<TermWeight _tw>
 			void updateWordLikelihood(Float eta, size_t realV, size_t levelDepth,
-				const DocumentHLDA<_TW>& doc, const std::vector<Float>& newTopicWeights,
+				const DocumentHLDA<_tw>& doc, const std::vector<Float>& newTopicWeights,
 				detail::NCRPNode* node, Float weight = 0)
 			{
 				size_t idx = node - nodes.data();
@@ -264,13 +264,13 @@ namespace tomoto
 				}
 				for (auto* child = node->getChild(); child; child = child->getSibling())
 				{
-					updateWordLikelihood<_TW>(eta, realV, levelDepth, doc, newTopicWeights, child, weight);
+					updateWordLikelihood<_tw>(eta, realV, levelDepth, doc, newTopicWeights, child, weight);
 				}
 			}
 
-			template<TermWeight _TW>
+			template<TermWeight _tw>
 			size_t generateLeafNode(size_t idx, size_t levelDepth, 
-				ModelStateLDA<_TW>& ld)
+				ModelStateLDA<_tw>& ld)
 			{
 				for (size_t l = nodes[idx].level + 1; l < levelDepth; ++l)
 				{
@@ -293,42 +293,42 @@ namespace tomoto
 		};
 	}
 
-	template<TermWeight _TW>
-	struct ModelStateHLDA : public ModelStateLDA<_TW>
+	template<TermWeight _tw>
+	struct ModelStateHLDA : public ModelStateLDA<_tw>
 	{
 		std::shared_ptr<detail::NodeTrees> nt;
 
 		void serializerRead(std::istream& istr)
 		{
-			ModelStateLDA<_TW>::serializerRead(istr);
+			ModelStateLDA<_tw>::serializerRead(istr);
 			nt = std::make_shared<detail::NodeTrees>();
 			nt->serializerRead(istr);
 		}
 
 		void serializerWrite(std::ostream& ostr) const
 		{
-			ModelStateLDA<_TW>::serializerWrite(ostr);
+			ModelStateLDA<_tw>::serializerWrite(ostr);
 			nt->serializerWrite(ostr);
 		}
 	};
 
-	template<TermWeight _TW,
+	template<TermWeight _tw,
 		typename _Interface = IHLDAModel,
 		typename _Derived = void,
-		typename _DocType = DocumentHLDA<_TW>,
-		typename _ModelState = ModelStateHLDA<_TW>>
-	class HLDAModel : public LDAModel<_TW, flags::shared_state, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_TW>, _Derived>::type,
+		typename _DocType = DocumentHLDA<_tw>,
+		typename _ModelState = ModelStateHLDA<_tw>>
+	class HLDAModel : public LDAModel<_tw, flags::shared_state, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, flags::shared_state, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, flags::shared_state, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		const char* TMID = "hLDA";
+		static constexpr char TMID[] = "hLDA";
 
 		Float gamma;
 
@@ -379,14 +379,14 @@ namespace tomoto
 				}
 			}
 
-			ld.nt->template calcWordLikelihood<_TW>(this->eta, this->realV, this->K, pool, doc, newTopicWeights, ld);
+			ld.nt->template calcWordLikelihood<_tw>(this->eta, this->realV, this->K, pool, doc, newTopicWeights, ld);
 
 			ld.nt->nodeLikelihoods = (ld.nt->nodeLikelihoods.array() - ld.nt->nodeLikelihoods.maxCoeff()).exp();
 			sample::prefixSum(ld.nt->nodeLikelihoods.data(), ld.nt->nodeLikelihoods.size());
 			size_t newPath = sample::sampleFromDiscreteAcc(ld.nt->nodeLikelihoods.data(),
 				ld.nt->nodeLikelihoods.data() + ld.nt->nodeLikelihoods.size(), rgs);
 
-			if(_MakeNewPath) newPath = ld.nt->template generateLeafNode<_TW>(newPath, this->K, ld);
+			if(_MakeNewPath) newPath = ld.nt->template generateLeafNode<_tw>(newPath, this->K, ld);
 			doc.path.back() = newPath;
 			for (size_t l = this->K - 2; l > 0; --l)
 			{
@@ -405,7 +405,7 @@ namespace tomoto
 		inline void addWordToOnlyLocal(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
+			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
 			auto weight = doc.getWordWeight(pid);
 
 			updateCnt<DEC>(ld.numByTopic[doc.path[level]], INC * weight);
@@ -416,7 +416,7 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
+			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
 			auto weight = doc.getWordWeight(pid);
 
 			updateCnt<DEC>(doc.numByTopic[level], INC * weight);
@@ -552,7 +552,7 @@ namespace tomoto
 			doc.path.resize(this->K);
 			for (size_t l = 0; l < this->K; ++l) doc.path[l] = l;
 			
-			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
+			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
 		template<bool _Infer>
@@ -667,15 +667,15 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _TW>
+	template<TermWeight _tw>
 	template<typename _TopicModel>
-	inline void DocumentHLDA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	inline void DocumentHLDA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
 		this->numByTopic.init(ptr, mdl.getLevelDepth());
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;
-			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			this->numByTopic[this->Zs[i]] += _tw != TermWeight::one ? this->wordWeights[i] : 1;
 		}
 	}
 }

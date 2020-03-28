@@ -3,12 +3,12 @@
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct DocumentLLDA : public DocumentLDA<_TW>
+	template<TermWeight _tw>
+	struct DocumentLLDA : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_TW>;
-		using DocumentLDA<_TW>::DocumentLDA;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
+		using WeightType = typename DocumentLDA<_tw>::WeightType;
 		Eigen::Matrix<int8_t, -1, 1> labelMask;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, labelMask);

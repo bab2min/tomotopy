@@ -16,7 +16,7 @@ tomotopy 란?
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
 
-tomotopy의 가장 최신버전은 0.6.1 입니다.
+tomotopy의 가장 최신버전은 0.6.2 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -251,10 +251,13 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
-* 0.6.1 (2020-03-22)
+* 0.6.2 (2020-03-28)
+    * `save`와 `load`에 관련된 치명적인 버그가 수정되었습니다. 해당 버그로 0.6.0 및 0.6.1 버전은 릴리즈에서 삭제되었습니다.
+
+* 0.6.1 (2020-03-22) (삭제됨)
     * 모듈 로딩과 관련된 버그가 수정되었습니다.
 
-* 0.6.0 (2020-03-22)
+* 0.6.0 (2020-03-22) (삭제됨)
     * 대량의 문헌을 관리하기 위한 `tomotopy.utils.Corpus`가 추가되었습니다.
     * 어휘-주제 분포의 사전 확률을 조절할 수 있는 `tomotopy.LDAModel.set_word_prior` 메소드가 추가되었습니다.
     * 문헌 빈도를 기반으로 어휘를 필터링할 수 있도록 토픽 모델의 생성자에 `min_df`가 추가되었습니다.

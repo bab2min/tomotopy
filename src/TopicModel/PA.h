@@ -3,12 +3,12 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW>
-	struct DocumentPA : public DocumentLDA<_TW>
+    template<TermWeight _tw>
+	struct DocumentPA : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_TW>;
-		using DocumentLDA<_TW>::DocumentLDA;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
+		using WeightType = typename DocumentLDA<_tw>::WeightType;
 
 		tvector<Tid> Z2s;
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;

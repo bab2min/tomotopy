@@ -175,23 +175,23 @@ namespace tomoto
 		};
 	}
 
-	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ISLDAModel,
 		typename _Derived = void,
-		typename _DocType = DocumentSLDA<_TW>,
-		typename _ModelState = ModelStateLDA<_TW>>
-	class SLDAModel : public LDAModel<_TW, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_TW, _Flags>, _Derived>::type,
+		typename _DocType = DocumentSLDA<_tw>,
+		typename _ModelState = ModelStateLDA<_tw>>
+	class SLDAModel : public LDAModel<_tw, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_tw, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		const char* TMID = "SLDA";
+		static constexpr char TMID[] = "SLDA";
 
 		size_t F; // number of response variables
 		std::vector<ISLDAModel::GLM> varTypes;

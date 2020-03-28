@@ -34,10 +34,10 @@ Term Weighting Scheme is based on following paper:
 
 namespace tomoto
 {
-	template<TermWeight _TW>
+	template<TermWeight _tw>
 	struct ModelStateLDA
 	{
-		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
+		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
 		Eigen::Matrix<Float, -1, 1> zLikelihood;
 		Eigen::Matrix<WeightType, -1, 1> numByTopic; // Dim: (Topic, 1)
@@ -93,14 +93,36 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw>
+	struct TwId;
+
+	template<>
+	struct TwId<TermWeight::one>
+	{
+		static constexpr char TWID[] = "one\0";
+	};
+
+	template<>
+	struct TwId<TermWeight::idf>
+	{
+		static constexpr char TWID[] = "idf\0";
+	};
+
+	template<>
+	struct TwId<TermWeight::pmi>
+	{
+		static constexpr char TWID[] = "pmi\0";
+	};
+
+	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
-		typename _DocType = DocumentLDA<_TW, _Flags>,
-		typename _ModelState = ModelStateLDA<_TW>>
+		typename _DocType = DocumentLDA<_tw, _Flags>,
+		typename _ModelState = ModelStateLDA<_tw>>
 	class LDAModel : public TopicModel<_Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_TW, _Flags>, _Derived>::type, 
-		_DocType, _ModelState>
+		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_tw, _Flags>, _Derived>::type, 
+		_DocType, _ModelState>,
+		protected TwId<_tw>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LDAModel, _Derived>::type;
@@ -109,9 +131,8 @@ namespace tomoto
 		friend EtaHelper<DerivedClass, true>;
 		friend EtaHelper<DerivedClass, false>;
 
-		const char* TWID = _TW == TermWeight::one ? "one\0" : (_TW == TermWeight::idf ? "idf\0" : "pmi\0");
-		const char* TMID = "LDA\0";
-		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
+		static constexpr char TMID[] = "LDA\0";
+		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
 		enum { m_flags = _Flags };
 
@@ -205,9 +226,9 @@ namespace tomoto
 		{
 			assert(tid < K);
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
-			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
-				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
+			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
+				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
 			updateCnt<DEC>(doc.numByTopic[tid], INC * weight);
 			updateCnt<DEC>(ld.numByTopic[tid], INC * weight);
@@ -422,7 +443,7 @@ namespace tomoto
 				}
 
 				// make all count being positive
-				if (_TW != TermWeight::one)
+				if (_tw != TermWeight::one)
 				{
 					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 				}
@@ -448,7 +469,7 @@ namespace tomoto
 				res.clear();
 
 				// make all count being positive
-				if (_TW != TermWeight::one)
+				if (_tw != TermWeight::one)
 				{
 					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 				}
@@ -526,7 +547,7 @@ namespace tomoto
 			tvector<Tid>::trade(sharedZs, 
 				makeTransformIter(this->docs.begin(), txZs),
 				makeTransformIter(this->docs.end(), txZs));
-			if (_TW != TermWeight::one)
+			if (_tw != TermWeight::one)
 			{
 				auto txWeights = [](_DocType& doc) { return &doc.wordWeights; };
 				tvector<Float>::trade(sharedWordWeights,
@@ -540,7 +561,7 @@ namespace tomoto
 			sortAndWriteOrder(doc.words, doc.wOrder);
 			doc.numByTopic.init((m_flags & flags::continuous_doc_data) ? topicDocPtr : nullptr, K);
 			doc.Zs = tvector<Tid>(wordSize);
-			if(_TW != TermWeight::one) doc.wordWeights.resize(wordSize, 1);
+			if(_tw != TermWeight::one) doc.wordWeights.resize(wordSize, 1);
 		}
 
 		void prepareWordPriors()
@@ -609,7 +630,7 @@ namespace tomoto
 				g2 = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(&doc);
 				selectedG = &g2;
 			}
-			if (_TW == TermWeight::pmi)
+			if (_tw == TermWeight::pmi)
 			{
 				std::fill(tf.begin(), tf.end(), 0);
 				for (auto& w : doc.words) if(w < this->realV) ++tf[w];
@@ -618,11 +639,11 @@ namespace tomoto
 			for (size_t i = 0; i < doc.words.size(); ++i)
 			{
 				if (doc.words[i] >= this->realV) continue;
-				if (_TW == TermWeight::idf)
+				if (_tw == TermWeight::idf)
 				{
 					doc.wordWeights[i] = vocabWeights[doc.words[i]];
 				}
-				else if (_TW == TermWeight::pmi)
+				else if (_tw == TermWeight::pmi)
 				{
 					doc.wordWeights[i] = std::max((Float)log(tf[doc.words[i]] / vocabWeights[doc.words[i]] / doc.words.size()), (Float)0);
 				}
@@ -780,7 +801,7 @@ namespace tomoto
 
 		TermWeight getTermWeight() const override
 		{
-			return _TW;
+			return _tw;
 		}
 
 		void setOptimInterval(size_t _optimInterval) override
@@ -877,7 +898,7 @@ namespace tomoto
 				uint32_t totCf;
 
 				// calculate weighting
-				if (_TW != TermWeight::one)
+				if (_tw != TermWeight::one)
 				{
 					df.resize(V);
 					tf.resize(V);
@@ -891,7 +912,7 @@ namespace tomoto
 					}
 					totCf = accumulate(this->vocabCf.begin(), this->vocabCf.end(), 0);
 				}
-				if (_TW == TermWeight::idf)
+				if (_tw == TermWeight::idf)
 				{
 					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
@@ -899,7 +920,7 @@ namespace tomoto
 						vocabWeights[i] = log(this->docs.size() / (Float)df[i]);
 					}
 				}
-				else if (_TW == TermWeight::pmi)
+				else if (_tw == TermWeight::pmi)
 				{
 					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
@@ -939,15 +960,15 @@ namespace tomoto
 
 	};
 
-	template<TermWeight _TW, size_t _Flags>
+	template<TermWeight _tw, size_t _Flags>
 	template<typename _TopicModel>
-	void DocumentLDA<_TW, _Flags>::update(WeightType* ptr, const _TopicModel& mdl)
+	void DocumentLDA<_tw, _Flags>::update(WeightType* ptr, const _TopicModel& mdl)
 	{
 		numByTopic.init(ptr, mdl.getK());
 		for (size_t i = 0; i < Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;
-			numByTopic[Zs[i]] += _TW != TermWeight::one ? wordWeights[i] : 1;
+			numByTopic[Zs[i]] += _tw != TermWeight::one ? wordWeights[i] : 1;
 		}
 	}
 }

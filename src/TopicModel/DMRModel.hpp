@@ -10,29 +10,29 @@ Implementation of DMR using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct ModelStateDMR : public ModelStateLDA<_TW>
+	template<TermWeight _tw>
+	struct ModelStateDMR : public ModelStateLDA<_tw>
 	{
 		Eigen::Matrix<Float, -1, 1> tmpK;
 	};
 
-	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IDMRModel,
 		typename _Derived = void,
-		typename _DocType = DocumentDMR<_TW>,
-		typename _ModelState = ModelStateDMR<_TW>>
-	class DMRModel : public LDAModel<_TW, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW, _Flags>, _Derived>::type,
+		typename _DocType = DocumentDMR<_tw>,
+		typename _ModelState = ModelStateDMR<_tw>>
+	class DMRModel : public LDAModel<_tw, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_tw, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		const char* TMID = "DMR\0";
+		static constexpr char TMID[] = "DMR\0";
 
 		Eigen::Matrix<Float, -1, -1> lambda;
 		Eigen::Matrix<Float, -1, -1> expLambda;
@@ -362,11 +362,11 @@ namespace tomoto
 	};
 
 	/* This is for preventing 'undefined symbol' problem in compiling by clang. */
-	template<TermWeight _TW, size_t _Flags,
+	template<TermWeight _tw, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr Float DMRModel<_TW, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
+		constexpr Float DMRModel<_tw, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
 
-	template<TermWeight _TW, size_t _Flags,
+	template<TermWeight _tw, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr size_t DMRModel<_TW, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
+		constexpr size_t DMRModel<_tw, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
 }

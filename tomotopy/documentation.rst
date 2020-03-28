@@ -16,7 +16,7 @@ The current version of `tomoto` supports several major topic models including
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`).
 
-The most recent version of tomotopy is 0.6.1.
+The most recent version of tomotopy is 0.6.2.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -254,10 +254,13 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
-* 0.6.1 (2020-03-22)
+* 0.6.2 (2020-03-28)
+    * A critical bug related to `save` and `load` was fixed. Version 0.6.0 and 0.6.1 have been removed from releases.
+
+* 0.6.1 (2020-03-22) (removed)
     * A bug related to module loading was fixed.
 
-* 0.6.0 (2020-03-22)
+* 0.6.0 (2020-03-22) (removed)
     * `tomotopy.utils.Corpus` class that manages multiple documents easily was added.
     * `tomotopy.LDAModel.set_word_prior` method that controls word-topic priors of topic models was added.
     * A new argument `min_df` that filters words based on document frequency was added into every topic model's __init__.
