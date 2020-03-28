@@ -3,12 +3,12 @@
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct DocumentHLDA : public DocumentLDA<_TW>
+	template<TermWeight _tw>
+	struct DocumentHLDA : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_TW>;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
-		using DocumentLDA<_TW>::DocumentLDA;
+		using BaseDocument = DocumentLDA<_tw>;
+		using WeightType = typename DocumentLDA<_tw>::WeightType;
+		using DocumentLDA<_tw>::DocumentLDA;
 
 		// numByTopic indicates numByLevel in HLDAModel.
 		// Zs indicates level in HLDAModel.

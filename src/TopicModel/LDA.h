@@ -43,7 +43,7 @@ namespace tomoto
 		}
 	};
 
-	template<typename _Base, TermWeight _TW>
+	template<typename _Base, TermWeight _tw>
 	struct SumWordWeight
 	{
 		Float sumWordWeight = 0;
@@ -76,12 +76,12 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _TW, size_t _Flags = 0>
-	struct DocumentLDA : public DocumentBase, SumWordWeight<DocumentLDA<_TW, _Flags>, _TW>
+	template<TermWeight _tw, size_t _Flags = 0>
+	struct DocumentLDA : public DocumentBase, SumWordWeight<DocumentLDA<_tw, _Flags>, _tw>
 	{
 	public:
 		using DocumentBase::DocumentBase;
-		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
+		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
 		tvector<Tid> Zs;
 		tvector<Float> wordWeights;
@@ -94,7 +94,7 @@ namespace tomoto
 		
 		WeightType getWordWeight(size_t idx) const
 		{
-			return _TW == TermWeight::one ? 1 : wordWeights[idx];
+			return _tw == TermWeight::one ? 1 : wordWeights[idx];
 		}
 	};
 

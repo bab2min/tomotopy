@@ -11,28 +11,28 @@ Implementation of CTM using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct ModelStateCTM : public ModelStateLDA<_TW>
+	template<TermWeight _tw>
+	struct ModelStateCTM : public ModelStateLDA<_tw>
 	{
 	};
 
-	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ICTModel,
 		typename _Derived = void,
-		typename _DocType = DocumentCTM<_TW>,
-		typename _ModelState = ModelStateCTM<_TW>>
-	class CTModel : public LDAModel<_TW, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW, _Flags>, _Derived>::type,
+		typename _DocType = DocumentCTM<_tw>,
+		typename _ModelState = ModelStateCTM<_tw>>
+	class CTModel : public LDAModel<_tw, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_tw, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		const char* TMID = "CTM\0";
+		static constexpr char TMID[] = "CTM\0";
 
 		size_t numBetaSample = 10;
 		size_t numTMNSample = 5;

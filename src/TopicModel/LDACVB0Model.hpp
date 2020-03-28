@@ -82,7 +82,7 @@ namespace tomoto
 		friend BaseClass;
 
 		static constexpr const char TWID[] = "one\0";
-		static constexpr const char TMID[] = "LDA\0";
+		static constexpr static constexpr char TMID[] = "LDA\0";
 
 		Float alpha;
 		Eigen::Matrix<Float, -1, 1> alphas;

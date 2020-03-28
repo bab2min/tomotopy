@@ -3,11 +3,11 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW, size_t _Flags = 0>
-	struct DocumentCTM : public DocumentLDA<_TW, _Flags>
+    template<TermWeight _tw, size_t _Flags = 0>
+	struct DocumentCTM : public DocumentLDA<_tw, _Flags>
 	{
-		using BaseDocument = DocumentLDA<_TW, _Flags>;
-		using DocumentLDA<_TW, _Flags>::DocumentLDA;
+		using BaseDocument = DocumentLDA<_tw, _Flags>;
+		using DocumentLDA<_tw, _Flags>::DocumentLDA;
 		Eigen::Matrix<Float, -1, -1> beta; // Dim: (K, betaSample)
 		Eigen::Matrix<Float, -1, 1> smBeta; // Dim: K
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, smBeta);

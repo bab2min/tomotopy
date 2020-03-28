@@ -12,10 +12,10 @@ Implementation of Dynamic Topic Model using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW>
+	template<TermWeight _tw>
 	struct ModelStateDTM
 	{
-		using WeightType = typename std::conditional<_TW == TermWeight::one, int32_t, float>::type;
+		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
 		Eigen::Matrix<Float, -1, 1> zLikelihood;
 		Eigen::Matrix<WeightType, -1, -1> numByTopic; // Dim: (Topic, T)
@@ -23,18 +23,18 @@ namespace tomoto
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
 	};
 
-	template<TermWeight _TW, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IDTModel,
 		typename _Derived = void,
-		typename _DocType = DocumentDTM<_TW>,
-		typename _ModelState = ModelStateDTM<_TW>>
-		class DTModel : public LDAModel<_TW, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_TW, _Flags>, _Derived>::type,
+		typename _DocType = DocumentDTM<_tw>,
+		typename _ModelState = ModelStateDTM<_tw>>
+		class DTModel : public LDAModel<_tw, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_tw, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;

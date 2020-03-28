@@ -11,18 +11,18 @@ Improved version of java implementation(https://github.com/yinfeiy/MG-LDA)
 
 namespace tomoto
 {
-	template<TermWeight _TW, 
+	template<TermWeight _tw, 
 		typename _Interface = IMGLDAModel,
 		typename _Derived = void, 
-		typename _DocType = DocumentMGLDA<_TW>,
-		typename _ModelState = ModelStateLDA<_TW>>
-	class MGLDAModel : public LDAModel<_TW, flags::partitioned_multisampling, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_TW>, _Derived>::type,
+		typename _DocType = DocumentMGLDA<_tw>,
+		typename _ModelState = ModelStateLDA<_tw>>
+	class MGLDAModel : public LDAModel<_tw, flags::partitioned_multisampling, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_tw>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -74,9 +74,9 @@ namespace tomoto
 			assert(vid < this->realV);
 			assert(s < doc.numBySent.size());
 
-			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
-			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
-				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
+			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
+				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
 			updateCnt<DEC>(doc.numByWin[s + w], INC * weight);
 			updateCnt<DEC>(doc.numBySentWin(s, w), INC * weight);
@@ -293,7 +293,7 @@ namespace tomoto
 			std::fill(doc.numBySent.begin(), doc.numBySent.end(), 0);
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.Vs.resize(wordSize);
-			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
+			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 			doc.numByTopic.init(topicDocPtr, this->K + KL);
 			doc.numBySentWin = Eigen::Matrix<WeightType, -1, -1>::Zero(S, T);
 			doc.numByWin = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);
@@ -331,7 +331,7 @@ namespace tomoto
 		template<bool _Infer>
 		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
-			doc.numBySent[doc.sents[i]] += _TW == TermWeight::one ? 1 : doc.wordWeights[i];
+			doc.numBySent[doc.sents[i]] += _tw == TermWeight::one ? 1 : doc.wordWeights[i];
 			auto w = doc.words[i];
 			size_t r, z;
 			if (this->etaByTopicWord.size())
@@ -529,17 +529,17 @@ namespace tomoto
 		GETTER(AlphaML, Float, alphaML);
 	};
 
-	template<TermWeight _TW>
+	template<TermWeight _tw>
 	template<typename _TopicModel>
-	void DocumentMGLDA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	void DocumentMGLDA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
 		this->numByTopic.init(ptr, mdl.getK() + mdl.getKL());
 		numBySent.resize(*std::max_element(sents.begin(), sents.end()) + 1);
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;
-			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
-			numBySent[sents[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			this->numByTopic[this->Zs[i]] += _tw != TermWeight::one ? this->wordWeights[i] : 1;
+			numBySent[sents[i]] += _tw != TermWeight::one ? this->wordWeights[i] : 1;
 		}
 	}
 }

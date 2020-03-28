@@ -31,7 +31,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.6.1.
+The most recent version of tomotopy is 0.6.2.
 
 Getting Started
 ---------------
@@ -40,7 +40,13 @@ You can install tomotopy easily using pip. (https://pypi.org/project/tomotopy/)
 
     $ pip install tomotopy
 
-For Linux, it is neccesary to have gcc 5 or more for compiling C++11 codes.
+The supported OS and Python versions are:
+
+* Linux (x86-64) with Python >= 3.5 
+* macOS >= 10.13 with Python >= 3.5
+* Windows 7 or later (x86, x86-64) with Python >= 3.5
+* Other OS with Python >= 3.5: Compilation from source code required (with c++11 compatible compiler)
+
 After installing, you can start tomotopy by just importing.
 ::
 
@@ -215,10 +221,13 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
-* 0.6.1 (2020-03-22)
+* 0.6.2 (2020-03-28)
+    * A critical bug related to `save` and `load` was fixed. Version 0.6.0 and 0.6.1 have been removed from releases.
+
+* 0.6.1 (2020-03-22) (removed)
     * A bug related to module loading was fixed.
 
-* 0.6.0 (2020-03-22)
+* 0.6.0 (2020-03-22) (removed)
     * `tomotopy.utils.Corpus` class that manages multiple documents easily was added.
     * `tomotopy.LDAModel.set_word_prior` method that controls word-topic priors of topic models was added.
     * A new argument `min_df` that filters words based on document frequency was added into every topic model's __init__.

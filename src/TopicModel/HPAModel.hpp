@@ -9,10 +9,10 @@ Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics 
 
 namespace tomoto
 {
-	template<TermWeight _TW>
-	struct ModelStateHPA : public ModelStateLDA<_TW>
+	template<TermWeight _tw>
+	struct ModelStateHPA : public ModelStateLDA<_tw>
 	{
-		using WeightType = typename ModelStateLDA<_TW>::WeightType;
+		using WeightType = typename ModelStateLDA<_tw>::WeightType;
 
 		std::array<Eigen::Matrix<WeightType, -1, -1>, 3> numByTopicWord;
 		std::array<Eigen::Matrix<WeightType, -1, 1>, 3> numByTopic;
@@ -20,22 +20,22 @@ namespace tomoto
 
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 
-		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_TW>, numByTopicWord, numByTopic, numByTopic1_2);
+		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numByTopicWord, numByTopic, numByTopic1_2);
 	};
 
-	template<TermWeight _TW, 
+	template<TermWeight _tw, 
 		bool _Exclusive = false,
 		typename _Interface = IHPAModel,
 		typename _Derived = void,
-		typename _DocType = DocumentHPA<_TW>,
-		typename _ModelState = ModelStateHPA<_TW>>
-	class HPAModel : public LDAModel<_TW, 0, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_TW, _Exclusive>, _Derived>::type,
+		typename _DocType = DocumentHPA<_tw>,
+		typename _ModelState = ModelStateHPA<_tw>>
+	class HPAModel : public LDAModel<_tw, 0, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _Exclusive>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_TW, _Exclusive>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, 0, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _Exclusive>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -145,9 +145,9 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _TW != TermWeight::one;
-			typename std::conditional<_TW != TermWeight::one, float, int32_t>::type weight
-				= _TW != TermWeight::one ? doc.wordWeights[pid] : 1;
+			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
+				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
 			updateCnt<DEC>(doc.numByTopic[z1], INC * weight);
 			if (z1)
@@ -266,7 +266,7 @@ namespace tomoto
 			}
 
 			// make all count being positive
-			if (_TW != TermWeight::one)
+			if (_tw != TermWeight::one)
 			{
 				globalState.numByTopic[0] = globalState.numByTopic[0].cwiseMax(0);
 				globalState.numByTopic[1] = globalState.numByTopic[1].cwiseMax(0);
@@ -383,7 +383,7 @@ namespace tomoto
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.Z2s = tvector<Tid>(wordSize);
-			if (_TW != TermWeight::one) doc.wordWeights.resize(wordSize);
+			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
 		void initGlobalState(bool initDocs)
@@ -547,19 +547,19 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _TW>
+	template<TermWeight _tw>
 	template<typename _TopicModel>
-	void DocumentHPA<_TW>::update(WeightType * ptr, const _TopicModel & mdl)
+	void DocumentHPA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
 		this->numByTopic.init(ptr, mdl.getK() + 1);
 		this->numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(mdl.getK(), mdl.getK2() + 1);
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;
-			this->numByTopic[this->Zs[i]] += _TW != TermWeight::one ? this->wordWeights[i] : 1;
-			if (this->Zs[i]) this->numByTopic1_2(this->Zs[i] - 1, this->Z2s[i]) += _TW != TermWeight::one ? this->wordWeights[i] : 1;
+			this->numByTopic[this->Zs[i]] += _tw != TermWeight::one ? this->wordWeights[i] : 1;
+			if (this->Zs[i]) this->numByTopic1_2(this->Zs[i] - 1, this->Z2s[i]) += _tw != TermWeight::one ? this->wordWeights[i] : 1;
 		}
 	}
 
-	template<TermWeight _TW> using HPAModelExclusive = HPAModel<_TW, true>;
+	template<TermWeight _tw> using HPAModelExclusive = HPAModel<_tw, true>;
 }

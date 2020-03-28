@@ -3,12 +3,12 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW>
-	struct DocumentHPA : public DocumentPA<_TW>
+    template<TermWeight _tw>
+	struct DocumentHPA : public DocumentPA<_tw>
 	{
-		using BaseDocument = DocumentPA<_TW>;
-		using DocumentPA<_TW>::DocumentPA;
-		using WeightType = typename DocumentPA<_TW>::WeightType;
+		using BaseDocument = DocumentPA<_tw>;
+		using DocumentPA<_tw>::DocumentPA;
+		using WeightType = typename DocumentPA<_tw>::WeightType;
 
 		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 

@@ -3,11 +3,11 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW, size_t _Flags = 0>
-	struct DocumentGDMR : public DocumentDMR<_TW, _Flags>
+    template<TermWeight _tw, size_t _Flags = 0>
+	struct DocumentGDMR : public DocumentDMR<_tw, _Flags>
 	{
-		using BaseDocument = DocumentDMR<_TW, _Flags>;
-		using DocumentDMR<_TW, _Flags>::DocumentDMR;
+		using BaseDocument = DocumentDMR<_tw, _Flags>;
+		using DocumentDMR<_tw, _Flags>::DocumentDMR;
 		std::vector<Float> metadataC;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, metadataC);

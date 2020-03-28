@@ -10,23 +10,23 @@ Implementation of Labeled LDA using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _TW,
+	template<TermWeight _tw,
 		typename _Interface = IPLDAModel,
 		typename _Derived = void,
-		typename _DocType = DocumentLLDA<_TW>,
-		typename _ModelState = ModelStateLDA<_TW>>
-	class PLDAModel : public LDAModel<_TW, flags::generator_by_doc | flags::partitioned_multisampling, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type,
+		typename _DocType = DocumentLLDA<_tw>,
+		typename _ModelState = ModelStateLDA<_tw>>
+	class PLDAModel : public LDAModel<_tw, flags::generator_by_doc | flags::partitioned_multisampling, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_tw>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_TW>, _Derived>::type;
-		using BaseClass = LDAModel<_TW, flags::generator_by_doc | flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, PLDAModel<_tw>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, flags::generator_by_doc | flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		const char* TMID = "PLDA";
+		static constexpr char TMID[] = "PLDA";
 
 		Dictionary topicLabelDict;
 

@@ -3,16 +3,16 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW>
-	struct DocumentHDP : public DocumentLDA<_TW>
+    template<TermWeight _tw>
+	struct DocumentHDP : public DocumentLDA<_tw>
 	{
 		/* 
 		For DocumentHDP, the topic in numByTopic, Zs indicates 'table id', not 'topic id'.
 		To get real 'topic id', check the topic field of numTopicByTable.
 		*/
-		using BaseDocument = DocumentLDA<_TW>;
-		using DocumentLDA<_TW>::DocumentLDA;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
+		using WeightType = typename DocumentLDA<_tw>::WeightType;
 		struct TableTopicInfo
 		{
 			WeightType num;

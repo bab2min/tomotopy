@@ -3,12 +3,12 @@
 
 namespace tomoto
 {
-    template<TermWeight _TW>
-	struct DocumentMGLDA : public DocumentLDA<_TW>
+    template<TermWeight _tw>
+	struct DocumentMGLDA : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_TW>;
-		using DocumentLDA<_TW>::DocumentLDA;
-		using WeightType = typename DocumentLDA<_TW>::WeightType;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
+		using WeightType = typename DocumentLDA<_tw>::WeightType;
 
 		std::vector<uint16_t> sents; // sentence id of each word (const)
 		std::vector<WeightType> numBySent; // number of words in the sentence (const)
