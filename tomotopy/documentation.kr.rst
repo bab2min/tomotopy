@@ -27,7 +27,13 @@ tomotopy의 가장 최신버전은 0.6.2 입니다.
 
     $ pip install tomotopy
 
-Linux에서는 c++11 코드를 컴파일하기 위해 gcc 5 이상이 필수적으로 설치되어 있어야 합니다. 
+지원하는 운영체제 및 Python 버전은 다음과 같습니다:
+
+* Python 3.5 이상이 설치된 Linux (x86-64)
+* Python 3.5 이상이 설치된 macOS 10.13나 그 이후 버전
+* Python 3.5 이상이 설치된 Windows 7이나 그 이후 버전 (x86, x86-64)
+* Python 3.5 이상이 설치된 다른 운영체제: 이 경우는 c++11 호환 컴파일러를 통한 소스코드 컴파일이 필요합니다.
+
 설치가 끝난 뒤에는 다음과 같이 Python3에서 바로 import하여 tomotopy를 사용할 수 있습니다.
 ::
 

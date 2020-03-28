@@ -40,7 +40,13 @@ You can install tomotopy easily using pip. (https://pypi.org/project/tomotopy/)
 
     $ pip install tomotopy
 
-For Linux, it is neccesary to have gcc 5 or more for compiling C++11 codes.
+The supported OS and Python versions are:
+
+* Linux (x86-64) with Python >= 3.5 
+* macOS >= 10.13 with Python >= 3.5
+* Windows 7 or later (x86, x86-64) with Python >= 3.5
+* Other OS with Python >= 3.5: Compilation from source code required (with c++11 compatible compiler)
+
 After installing, you can start tomotopy by just importing.
 ::
 
