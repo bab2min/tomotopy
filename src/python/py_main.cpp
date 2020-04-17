@@ -11,6 +11,7 @@
 #define TM_HLDA
 #define TM_LLDA
 #define TM_PLDA
+#define TM_DT
 
 using namespace std;
 
@@ -292,6 +293,7 @@ static PyMethodDef Document_methods[] =
 	{ "get_sub_topic_dist", (PyCFunction)Document_getSubTopicDist, METH_NOARGS, Document_get_sub_topic_dist__doc__ },
 #endif
 	{ "get_words", (PyCFunction)Document_getWords, METH_VARARGS | METH_KEYWORDS, Document_get_words__doc__ },
+	{ "get_count_vector", (PyCFunction)Document_getCountVector, METH_NOARGS, Document_get_count_vector__doc__ },
 	{ nullptr }
 };
 
@@ -411,6 +413,10 @@ static PyGetSetDef Document_getseters[] = {
 #endif
 #ifdef TM_LLDA
 	{ (char*)"labels", (getter)Document_labels, nullptr, Document_labels__doc__, nullptr },
+#endif
+#ifdef TM_DT
+	{ (char*)"eta", (getter)Document_eta, nullptr, Document_eta__doc__, nullptr },
+	{ (char*)"timepoint", (getter)Document_timepoint, nullptr, Document_timepoint__doc__, nullptr },
 #endif
 	{ nullptr },
 };
@@ -644,6 +650,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	if (PyType_Ready(&PLDA_type) < 0) return nullptr;
 	Py_INCREF(&PLDA_type);
 	PyModule_AddObject(gModule, "PLDAModel", (PyObject*)&PLDA_type);
+#endif
+#ifdef TM_DT
+	if (PyType_Ready(&DT_type) < 0) return nullptr;
+	Py_INCREF(&DT_type);
+	PyModule_AddObject(gModule, "DTModel", (PyObject*)&DT_type);
 #endif
 
 #ifdef __AVX2__

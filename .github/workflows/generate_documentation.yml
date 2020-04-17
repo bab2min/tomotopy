@@ -9,7 +9,7 @@ jobs:
     name: Build for manylinux
     runs-on: ubuntu-latest
     container:
-      image: docker://quay.io/pypa/manylinux1_x86_64
+      image: docker://quay.io/pypa/manylinux2010_x86_64
     strategy:
       max-parallel: 1
       matrix:
@@ -43,6 +43,7 @@ jobs:
         sed -i -E 's/(<p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"><\/p>)/<script async defer src="https:\/\/buttons.github.io\/buttons.js"><\/script> <p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy" data-size="large" data-show-count="true" aria-label="Star bab2min\/tomotopy on GitHub">Star<\/a> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy\/issues" data-size="large" data-show-count="true" aria-label="Issue bab2min\/tomotopy on GitHub">Issue<\/a> <\/p>/' html/tomotopy/*.html
         sed -i -e '/<nav id="sidebar">/r document/document_header.html' html/tomotopy/*.html
         sed -i -E 's/(<\/body>)/<script async src="https:\/\/www.googletagmanager.com\/gtag\/js?id=UA-35651242-12"><\/script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag("js", new Date()); gtag("config", "UA-35651242-12"); <\/script>\n\1/' html/tomotopy/*.html
+        bash document/pdoc_localization.sh
         mkdir -p ../g
         pushd ../g
         git clone https://${{ secrets.ACCESS_TOKEN }}@github.com/bab2min/bab2min.github.io

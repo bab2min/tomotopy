@@ -96,6 +96,17 @@ namespace tomoto
 		{
 			return _tw == TermWeight::one ? 1 : wordWeights[idx];
 		}
+
+		std::vector<Float> getCountVector(size_t V) const
+		{
+			std::vector<Float> vs(V);
+			for (size_t i = 0; i < words.size(); ++i)
+			{
+				if (words[i] >= V) continue;
+				vs[words[i]] += wordWeights.empty() ? 1.f : wordWeights[i];
+			}
+			return vs;
+		}
 	};
 
     class ILDAModel : public ITopicModel
@@ -122,7 +133,7 @@ namespace tomoto
 		virtual void setBurnInIteration(size_t) = 0;
 		virtual std::vector<size_t> getCountByTopic() const = 0;
 		virtual Float getAlpha() const = 0;
-		virtual Float getAlpha(Tid k) const = 0;
+		virtual Float getAlpha(size_t k) const = 0;
 		virtual Float getEta() const = 0;
 
 		virtual std::vector<Float> getWordPrior(const std::string& word) const = 0;

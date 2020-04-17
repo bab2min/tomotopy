@@ -10,7 +10,7 @@ jobs:
     name: Build for manylinux
     runs-on: ubuntu-latest
     container:
-      image: docker://quay.io/pypa/manylinux1_x86_64
+      image: docker://quay.io/pypa/manylinux2010_x86_64
     strategy:
       max-parallel: 4
       matrix:

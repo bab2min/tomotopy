@@ -14,9 +14,10 @@ The current version of `tomoto` supports several major topic models including
 * Multi Grain LDA (`tomotopy.MGLDAModel`) 
 * Pachinko Allocation (`tomotopy.PAModel`)
 * Hierarchical PA (`tomotopy.HPAModel`)
-* Correlated Topic Model (`tomotopy.CTModel`).
+* Correlated Topic Model (`tomotopy.CTModel`)
+* Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.6.2.
+The most recent version of tomotopy is 0.7.0.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -260,6 +261,12 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.7.0 (2020-04-18)
+    * `tomotopy.DTModel` was added into the package.
+    * A bug in `tomotopy.utils.Corpus.save` was fixed.
+    * A new method `tomotopy.Document.get_count_vector` was added into Document class.
+    * Now linux distributions use manylinux2010 and an additional optimization is applied.
+
 * 0.6.2 (2020-03-28)
     * A critical bug related to `save` and `load` was fixed. Version 0.6.0 and 0.6.1 have been removed from releases.
 

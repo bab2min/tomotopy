@@ -221,22 +221,29 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		template<int INC>
+		template<int _inc>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid) const
 		{
 			assert(tid < K);
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
 				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
-			updateCnt<DEC>(doc.numByTopic[tid], INC * weight);
-			updateCnt<DEC>(ld.numByTopic[tid], INC * weight);
-			updateCnt<DEC>(ld.numByTopicWord(tid, vid), INC * weight);
+			updateCnt<_dec>(doc.numByTopic[tid], _inc * weight);
+			updateCnt<_dec>(ld.numByTopic[tid], _inc * weight);
+			updateCnt<_dec>(ld.numByTopicWord(tid, vid), _inc * weight);
 		}
 
 		/*
-		main sampling procedure
+		called once before sampleDocument
+		*/
+		void presampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		{
+		}
+
+		/*
+		main sampling procedure (can be called one or more by ParallelScheme)
 		*/
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
 		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
@@ -280,6 +287,7 @@ namespace tomoto
 				size_t docId = 0;
 				for (auto doc = docFirst; doc != docLast; ++doc)
 				{
+					static_cast<const DerivedClass*>(this)->presampleDocument(*doc, docId, *localData, *rgs, this->iterated);
 					static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
 						*doc, edd, docId++,
 						*localData, *rgs, this->iterated, 0);
@@ -296,9 +304,17 @@ namespace tomoto
 						size_t didx = (i + partitionId) % chStride;
 						forRandom(((size_t)std::distance(docFirst, docLast) + (chStride - 1) - didx) / chStride, rgs[partitionId](), [&](size_t id)
 						{
+							if (i == 0)
+							{
+								static_cast<const DerivedClass*>(this)->presampleDocument(
+									docFirst[id * chStride + didx], id * chStride + didx,
+									localData[partitionId], rgs[partitionId], this->iterated
+								);
+							}
 							static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
 								docFirst[id * chStride + didx], edd, id * chStride + didx,
-								localData[partitionId], rgs[partitionId], this->iterated, partitionId);
+								localData[partitionId], rgs[partitionId], this->iterated, partitionId
+							);
 						});
 					});
 					for (auto& r : res) r.get();
@@ -315,9 +331,14 @@ namespace tomoto
 					{
 						forRandom(((size_t)std::distance(docFirst, docLast) + (chStride - 1) - ch) / chStride, rgs[threadId](), [&](size_t id)
 						{
+							static_cast<const DerivedClass*>(this)->presampleDocument(
+								docFirst[id * chStride + ch], id * chStride + ch, 
+								localData[threadId], rgs[threadId], this->iterated
+							);
 							static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
 								docFirst[id * chStride + ch], edd, id * chStride + ch,
-								localData[threadId], rgs[threadId], this->iterated, 0);
+								localData[threadId], rgs[threadId], this->iterated, 0
+							);
 						});
 					}));
 				}
@@ -529,7 +550,7 @@ namespace tomoto
 				{
 					if (!ld.numByTopicWord(k, v)) continue;
 					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
-					assert(isfinite(ll));
+					assert(std::isfinite(ll));
 				}
 			}
 			return ll;
@@ -556,10 +577,16 @@ namespace tomoto
 			}
 		}
 		
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		WeightType* getTopicDocPtr(size_t docId) const
+		{
+			if (!(m_flags & flags::continuous_doc_data) || docId == (size_t)-1) return nullptr;
+			return (WeightType*)numByTopicDoc.col(docId).data();
+		}
+
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
-			doc.numByTopic.init((m_flags & flags::continuous_doc_data) ? topicDocPtr : nullptr, K);
+			doc.numByTopic.init(getTopicDocPtr(docId), K);
 			doc.Zs = tvector<Tid>(wordSize);
 			if(_tw != TermWeight::one) doc.wordWeights.resize(wordSize, 1);
 		}
@@ -619,10 +646,10 @@ namespace tomoto
 		}
 
 		template<bool _Infer, typename _Generator>
-		void initializeDocState(_DocType& doc, WeightType* topicDocPtr, _Generator& g, _ModelState& ld, RandGen& rgs) const
+		void initializeDocState(_DocType& doc, size_t docId, _Generator& g, _ModelState& ld, RandGen& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
-			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
+			static_cast<const DerivedClass*>(this)->prepareDoc(doc, docId, doc.words.size());
 			_Generator g2;
 			_Generator* selectedG = &g;
 			if (m_flags & flags::generator_by_doc)
@@ -665,7 +692,7 @@ namespace tomoto
 			return cnt;
 		}
 
-		std::vector<Float> _getWidsByTopic(Tid tid) const
+		std::vector<Float> _getWidsByTopic(size_t tid) const
 		{
 			assert(tid < this->globalState.numByTopic.rows());
 			const size_t V = this->realV;
@@ -697,7 +724,7 @@ namespace tomoto
 				auto tmpState = this->globalState, tState = this->globalState;
 				for (auto d = docFirst; d != docLast; ++d)
 				{
-					initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
+					initializeDocState<true>(*d, -1, generator, tmpState, rgc);
 				}
 
 				std::vector<decltype(tmpState)> localData((m_flags & flags::shared_state) ? 0 : pool.getNumWorkers(), tmpState);
@@ -734,9 +761,10 @@ namespace tomoto
 				{
 					RandGen rgc{};
 					auto tmpState = this->globalState;
-					initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
+					initializeDocState<true>(*d, -1, generator, tmpState, rgc);
 					for (size_t i = 0; i < maxIter; ++i)
 					{
+						static_cast<const DerivedClass*>(this)->presampleDocument(*d, -1, tmpState, rgc, i);
 						static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(*d, edd, -1, tmpState, rgc, i);
 						static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
 							&pool, &tmpState, &rgc, &*d, &*d + 1);
@@ -759,9 +787,10 @@ namespace tomoto
 					{
 						RandGen rgc{};
 						auto tmpState = this->globalState;
-						initializeDocState<true>(*d, nullptr, generator, tmpState, rgc);
+						initializeDocState<true>(*d, -1, generator, tmpState, rgc);
 						for (size_t i = 0; i < maxIter; ++i)
 						{
+							static_cast<const DerivedClass*>(this)->presampleDocument(*d, -1, tmpState, rgc, i);
 							static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(*d, edd, -1, tmpState, rgc, i);
 							static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
 								nullptr, &tmpState, &rgc, &*d, &*d + 1);
@@ -797,7 +826,7 @@ namespace tomoto
 		GETTER(OptimInterval, size_t, optimInterval);
 		GETTER(BurnInIteration, size_t, burnIn);
 
-		Float getAlpha(Tid k1) const override { return alphas[k1]; }
+		Float getAlpha(size_t k1) const override { return alphas[k1]; }
 
 		TermWeight getTermWeight() const override
 		{
@@ -879,7 +908,7 @@ namespace tomoto
 			size_t docId = 0;
 			for (auto& doc : this->docs)
 			{
-				doc.template update<>((m_flags & flags::continuous_doc_data) ? numByTopicDoc.col(docId++).data() : nullptr, *static_cast<DerivedClass*>(this));
+				doc.template update<>(getTopicDocPtr(docId++), *static_cast<DerivedClass*>(this));
 			}
 		}
 
@@ -933,7 +962,7 @@ namespace tomoto
 				if(!(m_flags & flags::generator_by_doc)) generator = static_cast<DerivedClass*>(this)->makeGeneratorForInit(nullptr);
 				for (auto& doc : this->docs)
 				{
-					initializeDocState<false>(doc, (m_flags & flags::continuous_doc_data) ? numByTopicDoc.col(&doc - &this->docs[0]).data() : nullptr, generator, this->globalState, this->rg);
+					initializeDocState<false>(doc, &doc - &this->docs[0], generator, this->globalState, this->rg);
 				}
 			}
 			else

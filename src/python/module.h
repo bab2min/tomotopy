@@ -41,6 +41,30 @@ PyObject* PREFIX##_##GETTER(TopicModelObject *self, void *closure)\
 #define DEFINE_SETTER_PROTOTYPE(PREFIX, SETTER)\
 PyObject* PREFIX##_##SETTER(TopicModelObject *self, PyObject* val, void *closure);
 
+#define DEFINE_SETTER_CHECKED_FLOAT(BASE, PREFIX, SETTER, PRED)\
+int PREFIX##_##SETTER(TopicModelObject* self, PyObject* val, void* closure)\
+{\
+	try\
+	{\
+		if (!self->inst) throw runtime_error{ "inst is null" };\
+		auto* inst = static_cast<BASE*>(self->inst);\
+		auto value = PyFloat_AsDouble(val);\
+		if (value == -1 && PyErr_Occurred()) throw bad_exception{};\
+		if (!(PRED)) throw runtime_error{ #SETTER " must satify " #PRED };\
+		inst->SETTER(value);\
+	}\
+	catch (const bad_exception&)\
+	{\
+		return -1;\
+	}\
+	catch (const exception& e)\
+	{\
+		PyErr_SetString(PyExc_Exception, e.what());\
+		return -1;\
+	}\
+	return 0;\
+}
+
 #define DEFINE_SETTER_NON_NEGATIVE_INT(BASE, PREFIX, SETTER)\
 int PREFIX##_##SETTER(TopicModelObject* self, PyObject* val, void* closure)\
 {\
@@ -206,6 +230,7 @@ extern PyTypeObject SLDA_type;
 extern PyTypeObject HLDA_type;
 extern PyTypeObject LLDA_type;
 extern PyTypeObject PLDA_type;
+extern PyTypeObject DT_type;
 
 struct TopicModelObject
 {
@@ -279,8 +304,14 @@ DEFINE_DOCUMENT_GETTER_PROTOTYPE(y);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(labels);
 
+DEFINE_DOCUMENT_GETTER_PROTOTYPE(eta);
+
+DEFINE_DOCUMENT_GETTER_PROTOTYPE(timepoint);
+
 PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *kwargs);
 PyObject* Document_getSubTopicDist(DocumentObject* self);
+
+PyObject* Document_getCountVector(DocumentObject* self);
 
 template<typename _Target, typename _Order>
 PyObject* buildPyValueReorder(const _Target& target, const _Order& order)

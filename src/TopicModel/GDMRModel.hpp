@@ -280,9 +280,9 @@ namespace tomoto
 			}
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			BaseClass::prepareDoc(doc, topicDocPtr, wordSize);
+			BaseClass::prepareDoc(doc, docId, wordSize);
 			for (size_t i = 0; i < degreeByF.size(); ++i) doc.metadataC[i] = mdCoefs[i] ? (doc.metadataC[i] - mdIntercepts[i]) / mdCoefs[i] : 0;
 		}
 

@@ -10,6 +10,7 @@ namespace tomoto
 		using DocumentLDA<_tw, _Flags>::DocumentLDA;
 		Eigen::Matrix<Float, -1, -1> beta; // Dim: (K, betaSample)
 		Eigen::Matrix<Float, -1, 1> smBeta; // Dim: K
+		
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, smBeta);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, smBeta);
 	};

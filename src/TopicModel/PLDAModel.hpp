@@ -47,9 +47,9 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			BaseClass::prepareDoc(doc, topicDocPtr, wordSize);
+			BaseClass::prepareDoc(doc, docId, wordSize);
 			if (doc.labelMask.size() == 0)
 			{
 				doc.labelMask.resize(this->K);

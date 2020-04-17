@@ -667,10 +667,12 @@ virtual void serializerWrite(std::ostream& ostr) const\
 #define _TO_KEY_VALUE_6(a, b, c, d, e, f) _TO_KEY_VALUE_3(a, b, c), _TO_KEY_VALUE_3(d, e, f)
 #define _TO_KEY_VALUE_7(a, b, c, d, e, f, g) _TO_KEY_VALUE_4(a, b, c, d), _TO_KEY_VALUE_3(e, f, g)
 #define _TO_KEY_VALUE_8(a, b, c, d, e, f, g, h) _TO_KEY_VALUE_4(a, b, c, d), _TO_KEY_VALUE_4(e, f, g, h)
+#define _TO_KEY_VALUE_9(a, b, c, d, e, f, g, h, i) _TO_KEY_VALUE_5(a, b, c, d, e), _TO_KEY_VALUE_4(f, g, h, i)
+#define _TO_KEY_VALUE_10(a, b, c, d, e, f, g, h, i, j) _TO_KEY_VALUE_5(a, b, c, d, e), _TO_KEY_VALUE_5(f, g, h, i, j)
 
 #define _EXPAND(x) x
-#define _TO_KEY_VALUE_K(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) _TO_KEY_VALUE_ ## N
-#define _TO_KEY_VALUE(...) _EXPAND( _TO_KEY_VALUE_K(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1, 0)( __VA_ARGS__ ) )
+#define _TO_KEY_VALUE_K(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, N, ...) _TO_KEY_VALUE_ ## N
+#define _TO_KEY_VALUE(...) _EXPAND( _TO_KEY_VALUE_K(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)( __VA_ARGS__ ) )
 
 #define DEFINE_TAGGED_SERIALIZER_WITH_VERSION(v, t,...) void serializerRead(tomoto::serializer::version_holder<v>, std::istream& istr)\
 {\

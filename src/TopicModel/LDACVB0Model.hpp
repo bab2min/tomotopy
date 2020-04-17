@@ -128,13 +128,13 @@ namespace tomoto
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, _Vec tDist) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = _Inc < 0;
+			constexpr bool _dec = _Inc < 0;
 			doc.numByTopic += _Inc * tDist;
-			if (DEC) doc.numByTopic = doc.numByTopic.cwiseMax(0);
+			if (_dec) doc.numByTopic = doc.numByTopic.cwiseMax(0);
 			ld.numByTopic += _Inc * tDist;
-			if (DEC) ld.numByTopic = ld.numByTopic.cwiseMax(0);
+			if (_dec) ld.numByTopic = ld.numByTopic.cwiseMax(0);
 			ld.numByTopicWord.col(vid) += _Inc * tDist;
-			if (DEC) ld.numByTopicWord.col(vid) = ld.numByTopicWord.col(vid).cwiseMax(0);
+			if (_dec) ld.numByTopicWord.col(vid) = ld.numByTopicWord.col(vid).cwiseMax(0);
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>

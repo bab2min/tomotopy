@@ -59,6 +59,8 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
             return {k:v for k, v in args.items() if k in ('delimiter')}
         if model_type is tp.SLDAModel:
             return {k:v for k, v in args.items() if k in ('y')}
+        if model_type is tp.DTModel:
+            return {k:v for k, v in args.items() if k in ('timepoint')}
         return {}    
     
     def _feed_docs_to(self, model, transform=None):
@@ -167,8 +169,13 @@ filename : str
     a path for the file where the instance is saved
         '''
         import pickle
+        tok, st = self._tokenizer, self._stopwords
+        self._tokenizer = self._tokenizer and True
+        self._stopwords = None
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
+        self._tokenizer = tok
+        self._stopwords = st
 
     @staticmethod
     def load(filename:str):
@@ -181,7 +188,9 @@ filename : str
         '''
         import pickle
         with open(filename, 'rb') as f:
-            return pickle.load(f)
+            obj = pickle.load(f)
+        obj._stopwords = lambda x : False
+        return obj
 
     def __len__(self):
         return len(self._docs)

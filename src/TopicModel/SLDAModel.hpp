@@ -282,9 +282,9 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			BaseClass::prepareDoc(doc, topicDocPtr, wordSize);
+			BaseClass::prepareDoc(doc, docId, wordSize);
 		}
 
 		void initGlobalState(bool initDocs)

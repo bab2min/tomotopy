@@ -561,6 +561,40 @@ PyObject* Document_LDA_Z(DocumentObject* self, void* closure)
     return nullptr;
 }
 
+PyObject* Document_getCountVector(DocumentObject* self)
+{
+	try
+	{
+		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
+		size_t v = self->parentModel->inst->getV();
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentLDA<tomoto::TermWeight::one>*>(self->doc);
+			if (doc) return py::buildPyValue(doc->getCountVector(v));
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentLDA<tomoto::TermWeight::idf>*>(self->doc);
+			if (doc) return py::buildPyValue(doc->getCountVector(v));
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentLDA<tomoto::TermWeight::pmi>*>(self->doc);
+			if (doc) return py::buildPyValue(doc->getCountVector(v));
+		} while (0);
+		
+		throw runtime_error{ "cannot get count vector" };
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
 
 static PyMethodDef LDA_methods[] =
 {

@@ -86,6 +86,7 @@ namespace tomoto
 								"max_uk: %f, min_unk: %f, c: %f", lowerBound[k], upperBound[k], max_uk, min_unk, c));
 					}
 				}
+
 				try
 				{
 					math::sampleFromTruncatedMultiNormal(doc.beta.col((i + 1) % numBetaSample),
@@ -209,9 +210,9 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			BaseClass::prepareDoc(doc, topicDocPtr, wordSize);
+			BaseClass::prepareDoc(doc, docId, wordSize);
 			doc.beta = Eigen::Matrix<Float, -1, -1>::Zero(this->K, numBetaSample);
 			doc.smBeta = Eigen::Matrix<Float, -1, 1>::Constant(this->K, (Float)1 / this->K);
 		}

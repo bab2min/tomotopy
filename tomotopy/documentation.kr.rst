@@ -15,6 +15,7 @@ tomotopy 란?
 * Pachinko Allocation (`tomotopy.PAModel`)
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
+* Dynamic Topic Model (`tomotopy.DTModel`)
 
 tomotopy의 가장 최신버전은 0.6.2 입니다.
 
@@ -257,6 +258,12 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.7.0 (2020-04-18)
+    * `tomotopy.DTModel`이 추가되었습니다.
+    * `tomotopy.utils.Corpus.save`가 제대로 작동하지 않는 버그가 수정되었습니다.
+    * `tomotopy.LDAModel.get_count_vector`가 추가되었습니다.
+    * 리눅스용 바이너리가 manylinux2010 버전으로 변경되었고 이에 따른 최적화가 진행되었습니다.
+
 * 0.6.2 (2020-03-28)
     * `save`와 `load`에 관련된 치명적인 버그가 수정되었습니다. 해당 버그로 0.6.0 및 0.6.1 버전은 릴리즈에서 삭제되었습니다.
 

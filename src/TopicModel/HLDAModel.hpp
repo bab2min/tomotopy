@@ -401,26 +401,26 @@ namespace tomoto
 			if (_MakeNewPath) ld.nt->nodes[doc.path.back()].addPathOne();
 		}
 
-		template<int INC>
+		template<int _inc>
 		inline void addWordToOnlyLocal(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			auto weight = doc.getWordWeight(pid);
 
-			updateCnt<DEC>(ld.numByTopic[doc.path[level]], INC * weight);
-			updateCnt<DEC>(ld.numByTopicWord(doc.path[level], vid), INC * weight);
+			updateCnt<_dec>(ld.numByTopic[doc.path[level]], _inc * weight);
+			updateCnt<_dec>(ld.numByTopicWord(doc.path[level], vid), _inc * weight);
 		}
 
-		template<int INC>
+		template<int _inc>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			auto weight = doc.getWordWeight(pid);
 
-			updateCnt<DEC>(doc.numByTopic[level], INC * weight);
-			addWordToOnlyLocal<INC>(ld, doc, pid, vid, level);
+			updateCnt<_dec>(doc.numByTopic[level], _inc * weight);
+			addWordToOnlyLocal<_inc>(ld, doc, pid, vid, level);
 		}
 
 		template<bool _asymEta>
@@ -544,10 +544,10 @@ namespace tomoto
 			}
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
-			doc.numByTopic.init(topicDocPtr, this->K);
+			doc.numByTopic.init(nullptr, this->K);
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.path.resize(this->K);
 			for (size_t l = 0; l < this->K; ++l) doc.path[l] = l;

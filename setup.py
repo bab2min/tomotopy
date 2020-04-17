@@ -18,7 +18,7 @@ for f in os.listdir(os.path.join(here, 'src/Labeling')):
     if f.endswith('.cpp'): sources.append('src/Labeling/' + f)
 
 largs = []
-arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2'}
+arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2 -mfma'}
 if platform.system() == 'Windows': 
     cargs = ['/O2', '/MT', '/Gy']
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
@@ -46,13 +46,13 @@ for arch, aopt in arch_levels.items():
                     include_dirs=['include'],
                     sources=sources,
                     define_macros=[('MODULE_NAME', 'PyInit_' + module_name)] + lang_macro,
-                    extra_compile_args=cargs + ([aopt] if aopt else []), extra_link_args=largs))
+                    extra_compile_args=cargs + (aopt.split(' ') if aopt else []), extra_link_args=largs))
 
 
 setup(
     name='tomotopy',
 
-    version='0.6.2',
+    version='0.7.0',
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,

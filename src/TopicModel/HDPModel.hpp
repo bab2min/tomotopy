@@ -146,42 +146,42 @@ namespace tomoto
 			return &ld.topicLikelihood[0];
 		}
 
-		template<int INC>
+		template<int _inc>
 		inline void addOnlyWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid) const
 		{
 			assert(tid < ld.numTableByTopic.size());
 			assert(vid < this->realV);
 
-			if (INC > 0 && tid >= doc.numByTopic.size())
+			if (_inc > 0 && tid >= doc.numByTopic.size())
 			{
 				size_t oldSize = doc.numByTopic.size();
 				doc.numByTopic.conservativeResize(tid + 1);
 				doc.numByTopic.tail(tid + 1 - oldSize).setZero();
 			}
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
 				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
-			updateCnt<DEC>(doc.numByTopic[tid], INC * weight);
-			updateCnt<DEC>(ld.numByTopic[tid], INC * weight);
-			updateCnt<DEC>(ld.numByTopicWord(tid, vid), INC * weight);
+			updateCnt<_dec>(doc.numByTopic[tid], _inc * weight);
+			updateCnt<_dec>(ld.numByTopic[tid], _inc * weight);
+			updateCnt<_dec>(ld.numByTopicWord(tid, vid), _inc * weight);
 		}
 
-		template<int INC> 
+		template<int _inc> 
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, size_t tableId, Tid tid) const
 		{
-			addOnlyWordTo<INC>(ld, doc, pid, vid, tid);
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			addOnlyWordTo<_inc>(ld, doc, pid, vid, tid);
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
 				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
-			if (INC < 0) assert(doc.numTopicByTable[tableId].num > 0);
-			updateCnt<DEC>(doc.numTopicByTable[tableId].num, INC * weight);
-			if (INC < 0 && !doc.numTopicByTable[tableId])  // deleting table
+			if (_inc < 0) assert(doc.numTopicByTable[tableId].num > 0);
+			updateCnt<_dec>(doc.numTopicByTable[tableId].num, _inc * weight);
+			if (_inc < 0 && !doc.numTopicByTable[tableId])  // deleting table
 			{
 				size_t topic = doc.numTopicByTable[tableId].topic;
-				updateCnt<DEC>(ld.numTableByTopic[topic], INC);
-				ld.totalTable += INC;
+				updateCnt<_dec>(ld.numTableByTopic[topic], _inc);
+				ld.totalTable += _inc;
 
 				if (!ld.numTableByTopic[topic]) // delete topic
 				{
@@ -395,9 +395,9 @@ namespace tomoto
 			}
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			doc.numByTopic.init(topicDocPtr, this->K);
+			doc.numByTopic.init(nullptr, this->K);
 			doc.Zs = tvector<Tid>(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
