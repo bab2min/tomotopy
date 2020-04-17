@@ -23,15 +23,15 @@ namespace tomoto
 			return __popcnt(i);
 		}
 
-		inline uint32_t log2_ceil(uint32_t i)
-		{
-			return 32 - __lzcnt(i) - ((i & (i - 1)) == 0 ? 1 : 0);
-		}
-
 #ifdef _WIN64
 		inline uint64_t log2_ceil(uint64_t i)
 		{
 			return 64 - __lzcnt64(i) - ((i & (i - 1)) == 0 ? 1 : 0);
+		}
+#else
+		inline uint32_t log2_ceil(uint32_t i)
+		{
+			return 32 - __lzcnt(i) - ((i & (i - 1)) == 0 ? 1 : 0);
 		}
 #endif
 
@@ -41,15 +41,15 @@ namespace tomoto
 			return __builtin_popcount(i);
 		}
 
-		inline uint32_t log2_ceil(uint32_t i)
-		{
-			return 32 - __builtin_clz(i) - ((i & (i - 1)) == 0 ? 1 : 0);
-		}
-
 #ifdef __x86_64
 		inline uint64_t log2_ceil(uint64_t i)
 		{
 			return 64 - __builtin_clzll(i) - ((i & (i - 1)) == 0 ? 1 : 0);
+		}
+#else
+		inline uint32_t log2_ceil(uint32_t i)
+		{
+			return 32 - __builtin_clz(i) - ((i & (i - 1)) == 0 ? 1 : 0);
 		}
 #endif
 
