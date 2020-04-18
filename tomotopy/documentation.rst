@@ -248,6 +248,26 @@ The following chart shows the speed difference between the two algorithms based 
 
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
 
+Pining Topics using Word Priors
+-------------------------------
+Since version 0.6.0, a new method `tomotopy.LDAModel.set_word_prior` has been added. It allows you to control word prior for each topic.
+For example, we can set the weight of the word 'church' to 1.0 in topic 0, and the weight to 0.1 in the rest of the topics by following codes.
+This means that the probability that the word 'church' is assigned to topic 0 is 10 times higher than the probability of being assigned to another topic.
+Therefore, most of 'church' is assigned to topic 0, so topic 0 contains many words related to 'church'. 
+This allows to manipulate some topics to be placed at a specific topic number.
+
+::
+
+    import tomotopy as tp
+    mdl = tp.LDAModel(k=20)
+    
+    # add documents into `mdl`
+
+    # setting word prior
+    mdl.set_word_prior('church', [1.0 if k == 0 else 0.1 for k in range(20)])
+
+See `word_prior_example` in `example.py` for more details.
+
 Examples
 --------
 You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/master/example.py .

@@ -48,6 +48,33 @@ def hdp_example(input_file, save_path):
         for word, prob in mdl.get_topic_words(k):
             print('\t', word, prob, sep='\t')
 
+def word_prior_example(input_file):
+    corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(), stopwords=['.'])
+    # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
+    corpus.process(open(input_file, encoding='utf-8'))
+
+    # make LDA model and train
+    mdl = tp.LDAModel(k=20, min_cf=10, min_df=5, corpus=corpus)
+    # The word 'church' is assigned to Topic 0 with a weight of 1.0 and to the remaining topics with a weight of 0.1.
+    # Therefore, a topic related to 'church' can be fixed at Topic 0 .
+    mdl.set_word_prior('church', [1.0 if k == 0 else 0.1 for k in range(20)])
+    # Topic 1 for a topic related to 'softwar'
+    mdl.set_word_prior('softwar', [1.0 if k == 1 else 0.1 for k in range(20)])
+    # Topic 2 for a topic related to 'citi'
+    mdl.set_word_prior('citi', [1.0 if k == 2 else 0.1 for k in range(20)])
+    mdl.train(0)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Removed top words:', mdl.removed_top_words)
+    for i in range(0, 1000, 10):
+        mdl.train(10)
+        print('Iteration: {}\tLog-likelihood: {}'.format(i, mdl.ll_per_word))
+    
+    for k in range(mdl.k):
+        print("== Topic #{} ==".format(k))
+        for word, prob in mdl.get_topic_words(k, top_n=10):
+            print(word, prob, sep='\t')
+        print()
+
 def corpus_and_labeling_example(input_file):
     corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(), stopwords=['.'])
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
@@ -114,6 +141,9 @@ lda_example('enwiki-stemmed-1000.txt', 'test.lda.bin')
 
 print('Running HDP')
 hdp_example('enwiki-stemmed-1000.txt', 'test.hdp.bin')
+
+print('Set Word Prior')
+word_prior_example('enwiki-stemmed-1000.txt')
 
 print('Running LDA and Labeling')
 corpus_and_labeling_example('enwiki-stemmed-1000.txt')

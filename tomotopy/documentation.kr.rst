@@ -17,7 +17,7 @@ tomotopy 란?
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
 
-tomotopy의 가장 최신버전은 0.6.2 입니다.
+tomotopy의 가장 최신버전은 0.7.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -246,8 +246,28 @@ infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `t
 
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
 
+어휘 사전분포를 이용하여 주제 고정하기
+--------------------------------------
+0.6.0 버전부터 `tomotopy.LDAModel.set_word_prior`라는 메소드가 추가되었습니다. 이 메소드로 특정 단어의 사전분포를 조절할 수 있습니다.
+예를 들어 다음 코드처럼 단어 'church'의 가중치를 Topic 0에 대해서는 1.0, 나머지 Topic에 대해서는 0.1로 설정할 수 있습니다.
+이는 단어 'church'가 Topic 0에 할당될 확률이 다른 Topic에 할당될 확률보다 10배 높다는 것을 의미하며, 따라서 대부분의 'church'는 Topic 0에 할당되게 됩니다.
+그리고 학습을 거치며 'church'와 관련된 단어들 역시 Topic 0에 모이게 되므로, 최종적으로 Topic 0은 'church'와 관련된 주제가 될 것입니다.
+이를 통해 특정 내용의 주제를 원하는 Topic 번호에 고정시킬 수 있습니다.
+
+::
+
+    import tomotopy as tp
+    mdl = tp.LDAModel(k=20)
+    
+    # add documents into `mdl`
+
+    # setting word prior
+    mdl.set_word_prior('church', [1.0 if k == 0 else 0.1 for k in range(20)])
+
+자세한 내용은 `example.py`의 `word_prior_example` 함수를 참조하십시오.
+
 예제 코드
---------
+---------
 tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/master/example.py 를 확인하시길 바랍니다.
 
 예제 코드에서 사용했던 데이터 파일은 https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view 에서 다운받을 수 있습니다.
