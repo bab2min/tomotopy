@@ -149,8 +149,8 @@ namespace tomoto
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
 		
 		virtual size_t getK() const = 0;
-		virtual std::vector<Float> getWidsByTopic(Tid tid) const = 0;
-		virtual std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(Tid tid, size_t topN) const = 0;
+		virtual std::vector<Float> getWidsByTopic(size_t tid) const = 0;
+		virtual std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(size_t tid, size_t topN) const = 0;
 
 		virtual std::vector<std::pair<std::string, Float>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 		
@@ -556,12 +556,12 @@ namespace tomoto
 			return 0;
 		}
 
-		std::vector<Float> getWidsByTopic(Tid tid) const override
+		std::vector<Float> getWidsByTopic(size_t tid) const override
 		{
 			return static_cast<const _Derived*>(this)->_getWidsByTopic(tid);
 		}
 
-		std::vector<std::pair<Vid, Float>> getWidsByTopicSorted(Tid tid, size_t topN) const
+		std::vector<std::pair<Vid, Float>> getWidsByTopicSorted(size_t tid, size_t topN) const
 		{
 			return extractTopN<Vid>(static_cast<const _Derived*>(this)->_getWidsByTopic(tid), topN);
 		}
@@ -576,7 +576,7 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(Tid tid, size_t topN) const override
+		std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(size_t tid, size_t topN) const override
 		{
 			return vid2String(getWidsByTopicSorted(tid, topN));
 		}

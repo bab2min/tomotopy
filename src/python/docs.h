@@ -58,6 +58,15 @@ Return the `top_n` words with its probability of the document.)"",
 
 현재 문헌의 상위 `top_n`개의 단어와 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
 
+DOC_SIGNATURE_EN_KO(Document_get_count_vector__doc__,
+	"get_count_vector(self)",
+	u8R""(.. versionadded:: 0.7.0
+
+Return a count vector for the current document.)"",
+u8R""(.. versionadded:: 0.7.0
+
+현재 문헌의 카운트 벡터를 반환합니다.)"");
+
 DOC_VARIABLE_EN_KO(Document_words__doc__,
 	u8R""(a `list` of IDs for each word (read-only))"",
 	u8R""(문헌 내 단어들의 ID가 담긴 `list` (읽기전용))"");
@@ -75,7 +84,7 @@ u8R""(문헌의 단어들이 각각 할당된 토픽을 보여주는 `list` (읽
 `tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서는 이 값이 상위토픽의 ID를 가리킵니다.)"");
 
 DOC_VARIABLE_EN_KO(Document_metadata__doc__,
-	u8R""("metadata of document (for only `tomotopy.DMRModel` model, read-only))"",
+	u8R""("metadata of the document (for only `tomotopy.DMRModel` model, read-only))"",
 	u8R""(문헌의 메타데이터 (`tomotopy.DMRModel` 모형에서만 사용됨, 읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_subtopics__doc__,
@@ -109,6 +118,23 @@ DOC_VARIABLE_EN_KO(Document_labels__doc__,
 u8R""(문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확률들)의 `list` (`tomotopy.LLDAModel`, `tomotopy.PLDAModel` 모형에서만 사용됨 , 읽기전용)
 
 .. versionadded:: 0.3.0)"");
+
+DOC_VARIABLE_EN_KO(Document_eta__doc__,
+	u8R""(a `list` of eta parameters(topic distribution) for the current document (for only `tomotopy.DTModel` model, read-only)
+
+.. versionadded:: 0.7.0)"",
+u8R""(문헌의 eta 파라미터(토픽 분포)를 나타내는 `list` (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.7.0)"");
+
+DOC_VARIABLE_EN_KO(Document_timepoint__doc__,
+	u8R""(a timepoint of the document (for only `tomotopy.DTModel` model, read-only)
+
+.. versionadded:: 0.7.0)"",
+u8R""(문헌의 시점 (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.7.0)"");
+
 
 /*
 	class LDA
@@ -2187,3 +2213,236 @@ DOC_VARIABLE_EN_KO(HLDA_live_k__doc__,
 DOC_VARIABLE_EN_KO(HLDA_depth__doc__,
 	u8R""(the number of depth (read-only))"",
 	u8R""(현재 모델의 총 깊이 (읽기전용))"");
+
+/*
+	class DT
+*/
+DOC_SIGNATURE_EN_KO(DT___init____doc__,
+	"DTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None)",
+	u8R""(This type provides Dynamic Topic model and its implementation is based on following papers:
+
+> * Blei, D. M., & Lafferty, J. D. (2006, June). Dynamic topic models. In Proceedings of the 23rd international conference on Machine learning (pp. 113-120).
+> * Bhadury, A., Chen, J., Zhu, J., & Liu, S. (2016, April). Scaling up dynamic topic models. In Proceedings of the 25th International Conference on World Wide Web (pp. 381-390).
+> https://github.com/Arnie0426/FastDTM
+
+.. versionadded:: 0.7.0
+
+Parameters
+----------
+tw : Union[int, tomotopy.TermWeight]
+    term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
+min_cf : int
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    The default value is 0, which means no words are excluded.
+min_df : int
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
+rm_top : int
+    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    The default value is 0, which means no top words are removed.
+k : int
+    the number of topics between 1 ~ 32767
+t : int
+    the number of timpoints
+alpha_var : float
+    transition variance of alpha (per-document topic distribution)
+eta_var : float
+    variance of eta (topic distribution of each document) from its alpha 
+phi_var : float
+    transition variance of phi (word distribution of each topic)
+lr_a : float
+    shape parameter `a` greater than zero, for SGLD step size calculated as `e_i = a * (b + i) ^ (-c)`
+lr_b : float
+    shape parameter `b` greater than or equal to zero, for SGLD step size calculated as `e_i = a * (b + i) ^ (-c)`
+lr_c : float
+    shape parameter `c` with range (0.5, 1], for SGLD step size calculated as `e_i = a * (b + i) ^ (-c)`
+seed : int
+    random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
+)"",
+u8R""(이 타입은 Dynamic Topic Model의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
+
+> * Blei, D. M., & Lafferty, J. D. (2006, June). Dynamic topic models. In Proceedings of the 23rd international conference on Machine learning (pp. 113-120).
+> * Bhadury, A., Chen, J., Zhu, J., & Liu, S. (2016, April). Scaling up dynamic topic models. In Proceedings of the 25th International Conference on World Wide Web (pp. 381-390).
+> https://github.com/Arnie0426/FastDTM
+
+.. versionadded:: 0.7.0
+
+Parameters
+----------
+tw : Union[int, tomotopy.TermWeight]
+    용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
+min_cf : int
+    단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+rm_top : int
+    제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+    기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
+k : int
+    토픽의 개수, 1 ~ 32767 범위의 정수.
+t : int
+    시점의 개수
+alpha_var : float
+    alpha 파라미터(시점별 토픽 분포)의 전이 분산
+eta_var : float
+    eta 파라미터(문헌별 토픽 분포)의 alpha로부터의 분산
+phi_var : float
+    phi 파라미터(토픽별 단어 분포)의 전이 분산
+lr_a : float
+    SGLD의 스텝 크기 `e_i = a * (b + i) ^ (-c)` 계산하는데 사용되는 0보다 큰 `a`값
+lr_b : float
+    SGLD의 스텝 크기 `e_i = a * (b + i) ^ (-c)` 계산하는데 사용되는 0 이상의 `b`값
+lr_c : float
+    SGLD의 스텝 크기 `e_i = a * (b + i) ^ (-c)` 계산하는데 사용되는 (0.5, 1] 범위의 `c`값 
+seed : int
+    난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
+    이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
+)"");
+
+DOC_SIGNATURE_EN_KO(DT_add_doc__doc__,
+	"add_doc(self, words, timepoint=0)",
+	u8R""(Add a new document into the model instance with `timepoint` and return an index of the inserted document.
+
+Parameters
+----------
+words : Iterable[str]
+    an iterable of `str`
+timepoint : int
+    an integer with range [0, `t`)
+)"",
+u8R""(현재 모델에 `timepoint` 시점의 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+
+Parameters
+----------
+words : Iterable[str]
+    문헌의 각 단어를 나열하는 `str` 타입의 iterable
+timepoint : int
+    시점을 나타내는 [0, `t`) 범위의 정수
+)"");
+
+DOC_SIGNATURE_EN_KO(DT_make_doc__doc__,
+	"make_doc(self, words, timepoint=0)",
+	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `timepoint` that can be used for `tomotopy.LDAModel.infer` method.
+
+Parameters
+----------
+words : Iterable[str]
+    an iteratable of `str`
+timepoint : int
+    an integer with range [0, `t`)
+)"",
+u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+
+Parameters
+----------
+words : Iterable[str]
+    문헌의 각 단어를 나열하는 `str` 타입의 iterable
+timepoint : int
+    시점을 나타내는 [0, `t`) 범위의 정수
+)"");
+
+DOC_SIGNATURE_EN_KO(DT_get_alpha__doc__,
+	"get_alpha(self, timepoint)",
+	u8R""(Return a `list` of alpha parameters for `timepoint`.
+
+Parameters
+----------
+timepoint : int
+    an integer with range [0, `t`)
+)"",
+u8R""(`timepoint` 시점에 대한 alpha 파라미터의 리스트를 반환합니다.
+
+Parameters
+----------
+timepoint : int
+    시점을 나타내는 [0, `t`) 범위의 정수
+)"");
+
+DOC_SIGNATURE_EN_KO(DT_get_phi__doc__,
+	"get_phi(self, timepoint, topic_id)",
+	u8R""(Return a `list` of phi parameters for `timepoint` and `topic_id`.
+
+Parameters
+----------
+timepoint : int
+    an integer with range [0, `t`)
+topic_id : int
+    an integer with range [0, `k`)
+)"",
+u8R""(`timepoint` 시점의 `topic_id`에 대한 phi 파라미터의 리스트를 반환합니다.
+
+Parameters
+----------
+timepoint : int
+    시점을 나타내는 [0, `t`) 범위의 정수
+topic_id : int
+    토픽을 나타내는 [0, `k`) 범위의 정수
+)"");
+
+DOC_SIGNATURE_EN_KO(DT_get_topic_words__doc__,
+	"get_topic_words(self, topic_id, timepoint, top_n=10)",
+	u8R""(Return the `top_n` words and its probability in the topic `topic_id` with `timepoint`. 
+The return type is a `list` of (word:`str`, probability:`float`).
+
+Parameters
+----------
+topic_id : int
+    an integer in range [0, `k`), indicating the topic
+timepoint : int
+	an integer in range [0, `t`), indicating the timepoint
+)"",
+u8R""(시점 `timepoint`의 토픽 `topic_id`에 속하는 상위 `top_n`개의 단어와 각각의 확률을 반환합니다. 
+반환 타입은 (단어:`str`, 확률:`float`) 튜플의 `list`형입니다.
+
+Parameters
+----------
+topic_id : int
+    토픽을 가리키는 [0, `k`) 범위의 정수
+timepoint : int
+	시점을 가리키는 [0, `t`) 범위의 정수
+)"");
+
+DOC_SIGNATURE_EN_KO(DT_get_topic_word_dist__doc__,
+	"get_topic_word_dist(self, topic_id, timepoint)",
+	u8R""(Return the word distribution of the topic `topic_id` with `timepoint`.
+The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
+
+Parameters
+----------
+topic_id : int
+    an integer in range [0, `k`) indicating the topic
+timepoint : int
+	an integer in range [0, `t`), indicating the timepoint
+)"",
+u8R""(시점 `timepoint`의 토픽 `topic_id`의 단어 분포를 반환합니다.
+반환하는 값은 현재 토픽 내 각각의 단어들의 발생확률을 나타내는 `len(vocabs)`개의 소수로 구성된 `list`입니다.
+
+Parameters
+----------
+topic_id : int
+    토픽을 가리키는 [0, `k`) 범위의 정수
+timepoint : int
+	시점을 가리키는 [0, `t`) 범위의 정수
+)"");
+
+DOC_VARIABLE_EN_KO(DT_lr_a__doc__,
+	u8R""(parameter `a` greater than zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
+	u8R""(SGLD의 스텝 크기를 결정하는 0보다 큰 파라미터 `a` (e_i = a * (b + i) ^ -c))"");
+
+DOC_VARIABLE_EN_KO(DT_lr_b__doc__,
+	u8R""(parameter `b` greater than zero or equal to zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
+	u8R""(SGLD의 스텝 크기를 결정하는 0 이상의 파라미터 `b` (e_i = a * (b + i) ^ -c))"");
+
+DOC_VARIABLE_EN_KO(DT_lr_c__doc__,
+	u8R""(parameter `c` with range (0.5, 1] for SGLD step size (e_i = a * (b + i) ^ -c))"",
+	u8R""(SGLD의 스텝 크기를 결정하는 (0.5, 1] 범위의 파라미터 `c` (e_i = a * (b + i) ^ -c))"");

@@ -2476,6 +2476,30 @@ namespace rtnorm
 		};
 	}
 
+	struct FastDoubleGenerator
+	{
+		template<class Random>
+		double operator()(Random& rg)
+		{
+			union
+			{
+				double f;
+				uint64_t u;
+			};
+
+			if (sizeof(decltype(rg())) == 8)
+			{
+				u = rg();
+			}
+			else
+			{
+				u = (((uint64_t)rg()) << 32) | (uint64_t)rg();
+			}
+			u = (1023ll << 52) | (u & 0xFFFFFFFFFFFFFll);
+			return f - 1;
+		}
+	};
+
 	constexpr int N = 4001;
 	//------------------------------------------------------------
 	// Compute y_l from y_k
@@ -2506,12 +2530,12 @@ namespace rtnorm
 		double twoasq = 2 * std::pow(a, 2);
 		double expab = std::exp(-a * (b - a)) - 1;
 		double z, e;
-
+		FastDoubleGenerator fdg;
 		if (expab == 0) return (a + b) / 2;
 		for(size_t i = 0; i < 1000; ++i)
 		{
-			z = log(1 + std::generate_canonical<double, 64>(rng) *expab);
-			e = -log(std::generate_canonical<double, 64>(rng));
+			z = log(1 + fdg(rng) *expab);
+			e = -log(fdg(rng));
 			if (twoasq*e > std::pow(z, 2)) return a - z / a;
 		}
 		return (a + b) / 2;
@@ -2546,6 +2570,7 @@ namespace rtnorm
 		double r, z, e, ylk, simy, lbound, u, d, sim, Z, p;
 		int i, ka, kb, k;
 
+		FastDoubleGenerator fdg;
 		//-----------------------------
 
 		// Check if a < b
@@ -2597,14 +2622,14 @@ namespace rtnorm
 			while (!stop)
 			{
 				// Sample integer between ka and kb
-				k = floor(std::generate_canonical<double, 64>(rng) * (kb - ka + 1)) + ka;
+				k = floor(fdg(rng) * (kb - ka + 1)) + ka;
 
 				if (k == N)
 				{
 					// Right tail
 					lbound = table::x[xsize - 1];
-					z = -log(std::generate_canonical<double, 64>(rng));
-					e = -log(std::generate_canonical<double, 64>(rng));
+					z = -log(fdg(rng));
+					e = -log(fdg(rng));
 					z = z / lbound;
 
 					if ((std::pow(z, 2) <= 2 * e) && (z < b - lbound))
@@ -2619,12 +2644,12 @@ namespace rtnorm
 				{
 
 					// Two leftmost and rightmost regions
-					sim = table::x[k] + (table::x[k + 1] - table::x[k]) * std::generate_canonical<double, 64>(rng);
+					sim = table::x[k] + (table::x[k + 1] - table::x[k]) * fdg(rng);
 
 					if ((sim >= a) && (sim <= b))
 					{
 						// Accept this proposition, otherwise reject
-						simy = table::yu[k] * std::generate_canonical<double, 64>(rng);
+						simy = table::yu[k] * fdg(rng);
 						if ((simy < yl(k)) || (sim * sim + 2 * log(simy) + ALPHA) < 0)
 						{
 							r = sim;
@@ -2635,7 +2660,7 @@ namespace rtnorm
 
 				else // All the other boxes
 				{
-					u = std::generate_canonical<double, 64>(rng);
+					u = fdg(rng);
 					simy = table::yu[k] * u;
 					d = table::x[k + 1] - table::x[k];
 					ylk = yl(k);
@@ -2646,7 +2671,7 @@ namespace rtnorm
 					}
 					else
 					{
-						sim = table::x[k] + d * std::generate_canonical<double, 64>(rng);
+						sim = table::x[k] + d * fdg(rng);
 
 						// Otherwise, check you're below the pdf curve
 						if ((sim * sim + 2 * log(simy) + ALPHA) < 0)
@@ -2662,6 +2687,4 @@ namespace rtnorm
 		return r;
 	}
 
-
-	
 }

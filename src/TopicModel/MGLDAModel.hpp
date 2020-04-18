@@ -62,7 +62,7 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		template<int INC> 
+		template<int _inc> 
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid, uint16_t s, uint8_t w, uint8_t r) const
 		{
 			const auto K = this->K;
@@ -74,26 +74,26 @@ namespace tomoto
 			assert(vid < this->realV);
 			assert(s < doc.numBySent.size());
 
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
 				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
-			updateCnt<DEC>(doc.numByWin[s + w], INC * weight);
-			updateCnt<DEC>(doc.numBySentWin(s, w), INC * weight);
+			updateCnt<_dec>(doc.numByWin[s + w], _inc * weight);
+			updateCnt<_dec>(doc.numBySentWin(s, w), _inc * weight);
 			if (r == 0)
 			{
-				updateCnt<DEC>(doc.numByTopic[tid], INC * weight);
-				updateCnt<DEC>(doc.numGl, INC * weight);
-				updateCnt<DEC>(ld.numByTopic[tid], INC * weight);
-				updateCnt<DEC>(ld.numByTopicWord(tid, vid), INC * weight);
+				updateCnt<_dec>(doc.numByTopic[tid], _inc * weight);
+				updateCnt<_dec>(doc.numGl, _inc * weight);
+				updateCnt<_dec>(ld.numByTopic[tid], _inc * weight);
+				updateCnt<_dec>(ld.numByTopicWord(tid, vid), _inc * weight);
 			}
 			else
 			{
-				updateCnt<DEC>(doc.numByTopic[tid + K], INC * weight);
-				updateCnt<DEC>(doc.numByWinL[s + w], INC * weight);
-				updateCnt<DEC>(doc.numByWinTopicL(tid, s + w), INC * weight);
-				updateCnt<DEC>(ld.numByTopic[tid + K], INC * weight);
-				updateCnt<DEC>(ld.numByTopicWord(tid + K, vid), INC * weight);
+				updateCnt<_dec>(doc.numByTopic[tid + K], _inc * weight);
+				updateCnt<_dec>(doc.numByWinL[s + w], _inc * weight);
+				updateCnt<_dec>(doc.numByWinTopicL(tid, s + w), _inc * weight);
+				updateCnt<_dec>(ld.numByTopic[tid + K], _inc * weight);
+				updateCnt<_dec>(ld.numByTopicWord(tid + K, vid), _inc * weight);
 			}
 		}
 
@@ -280,7 +280,7 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
 			auto tmp = doc.sents;
@@ -294,7 +294,7 @@ namespace tomoto
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.Vs.resize(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
-			doc.numByTopic.init(topicDocPtr, this->K + KL);
+			doc.numByTopic.init(nullptr, this->K + KL);
 			doc.numBySentWin = Eigen::Matrix<WeightType, -1, -1>::Zero(S, T);
 			doc.numByWin = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);
 			doc.numByWinL = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);

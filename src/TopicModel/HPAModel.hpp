@@ -141,36 +141,36 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		template<int INC>
+		template<int _inc>
 		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
-			constexpr bool DEC = INC < 0 && _tw != TermWeight::one;
+			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
 			typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
 				= _tw != TermWeight::one ? doc.wordWeights[pid] : 1;
 
-			updateCnt<DEC>(doc.numByTopic[z1], INC * weight);
+			updateCnt<_dec>(doc.numByTopic[z1], _inc * weight);
 			if (z1)
 			{
-				updateCnt<DEC>(doc.numByTopic1_2(z1 - 1, z2), INC * weight);
-				updateCnt<DEC>(ld.numByTopic1_2(z1 - 1, z2), INC * weight);
+				updateCnt<_dec>(doc.numByTopic1_2(z1 - 1, z2), _inc * weight);
+				updateCnt<_dec>(ld.numByTopic1_2(z1 - 1, z2), _inc * weight);
 			}
 
 			if (!z1)
 			{
-				updateCnt<DEC>(ld.numByTopic[0][0], INC * weight);
-				updateCnt<DEC>(ld.numByTopicWord[0](0, vid), INC * weight);
+				updateCnt<_dec>(ld.numByTopic[0][0], _inc * weight);
+				updateCnt<_dec>(ld.numByTopicWord[0](0, vid), _inc * weight);
 				
 			}
 			else if (!z2)
 			{
-				updateCnt<DEC>(ld.numByTopic[1][z1 - 1], INC * weight);
-				updateCnt<DEC>(ld.numByTopicWord[1](z1 - 1, vid), INC * weight);
+				updateCnt<_dec>(ld.numByTopic[1][z1 - 1], _inc * weight);
+				updateCnt<_dec>(ld.numByTopicWord[1](z1 - 1, vid), _inc * weight);
 			}
 			else
 			{
-				updateCnt<DEC>(ld.numByTopic[2][z2 - 1], INC * weight);
-				updateCnt<DEC>(ld.numByTopicWord[2](z2 - 1, vid), INC * weight);
+				updateCnt<_dec>(ld.numByTopic[2][z2 - 1], _inc * weight);
+				updateCnt<_dec>(ld.numByTopicWord[2](z2 - 1, vid), _inc * weight);
 			}
 		}
 
@@ -377,9 +377,9 @@ namespace tomoto
 			return ll;
 		}
 
-		void prepareDoc(_DocType& doc, WeightType* topicDocPtr, size_t wordSize) const
+		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			doc.numByTopic.init(topicDocPtr, this->K + 1);
+			doc.numByTopic.init(nullptr, this->K + 1);
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.Z2s = tvector<Tid>(wordSize);

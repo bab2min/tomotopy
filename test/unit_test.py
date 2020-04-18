@@ -13,6 +13,7 @@ model_cases = [
     (tp.HPAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
     (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:'_'.join(x), {'k':10}, None),
     (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}, None),
+    (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:int(x[0]), {'k':10, 't':13}, None),
 ]
 
 model_cases_raw = [
