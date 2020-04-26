@@ -33,6 +33,12 @@ namespace Eigen
 	}
 }
 
+#ifdef __GNUC__
+#if __GNUC__ < 8
+#define _mm256_set_m128i(v0, v1)  _mm256_insertf128_si256(_mm256_castsi128_si256(v1), (v0), 1)
+#endif
+#endif
+
 #ifdef EIGEN_VECTORIZE_AVX
 #include <immintrin.h>
 #include "avx_gamma.h"
