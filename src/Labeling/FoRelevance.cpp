@@ -65,9 +65,9 @@ std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel * tm) con
 		for (size_t i = 0; i < tm->getNumDocs(); ++i)
 		{
 			auto doc = tm->getDoc(i);
-			if (trieNodes.capacity() < trieNodes.size() + doc->words.size() * 2)
+			if (trieNodes.capacity() < trieNodes.size() + doc->words.size() * maxLabelLen)
 			{
-				trieNodes.reserve(std::max(trieNodes.size() + doc->words.size() * 2, trieNodes.capacity() * 2));
+				trieNodes.reserve(std::max(trieNodes.size() + doc->words.size() * maxLabelLen, trieNodes.capacity() * 2));
 			}
 
 			Vid prevWord = doc->words[doc->wOrder.empty() ? 0 : doc->wOrder[0]];

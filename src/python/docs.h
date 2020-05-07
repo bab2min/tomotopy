@@ -95,6 +95,14 @@ DOC_VARIABLE_EN_KO(Document_windows__doc__,
 	u8R""(a `list` of window IDs for each word (for only `tomotopy.MGLDAModel` model, read-only))"",
 	u8R""(문헌의 단어들이 할당된 윈도우의 ID를 보여주는 `list` (`tomotopy.MGLDAModel` 모형에서만 사용됨, 읽기전용))"");
 
+DOC_VARIABLE_EN_KO(Document_path__doc__,
+	u8R""(a `list` of topic ids by depth for a given document (for only `tomotopy.HLDAModel` model, read-only)
+
+.. versionadded:: 0.7.1)"",
+u8R""(주어진 문헌에 대한 깊이별 토픽 번호의 `list` (`tomotopy.HLDAModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.7.1)"");
+
 DOC_VARIABLE_EN_KO(Document_beta__doc__, 
 	u8R""(a `list` of beta parameters for each topic (for only `tomotopy.CTModel` model, read-only)
 

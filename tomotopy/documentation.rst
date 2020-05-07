@@ -17,7 +17,7 @@ The current version of `tomoto` supports several major topic models including
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.7.0.
+The most recent version of tomotopy is 0.7.1.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -281,6 +281,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.7.1 (2020-05-08)
+    * `tomotopy.Document.path` was added for `tomotopy.HLDAModel`.
+    * A memory corruption bug in `tomotopy.label.PMIExtractor` was fixed.
+
 * 0.7.0 (2020-04-18)
     * `tomotopy.DTModel` was added into the package.
     * A bug in `tomotopy.utils.Corpus.save` was fixed.

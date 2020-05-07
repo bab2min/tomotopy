@@ -37,6 +37,26 @@ struct CandidateObject
 		Py_XDECREF(self->tm);
 		self->cand.~Candidate();
 	}
+
+	static PyObject* repr(CandidateObject* self)
+	{
+		string ret = "tomotopy.label.Candidate(words=[";
+		auto& v = self->tm->inst->getVocabDict();
+		for (auto& w : self->cand.w)
+		{
+			ret.push_back('"');
+			ret += v.toWord(w);
+			ret.push_back('"');
+			ret.push_back(',');
+		}
+		ret.back() = ']';
+		ret += ", name=\"";
+		ret += self->cand.name;
+		ret += "\", score=";
+		ret += to_string(self->cand.score);
+		ret.push_back(')');
+		return py::buildPyValue(ret);
+	}
 };
 
 static PyObject* Candidate_getWords(CandidateObject* self, void* closure)
@@ -130,7 +150,7 @@ PyTypeObject Candidate_type = {
 	0,                         /* tp_getattr */
 	0,                         /* tp_setattr */
 	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
+	(reprfunc)CandidateObject::repr, /* tp_repr */
 	0,                         /* tp_as_number */
 	0,                         /* tp_as_sequence */
 	0,                         /* tp_as_mapping */

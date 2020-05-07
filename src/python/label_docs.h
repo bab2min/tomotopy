@@ -150,7 +150,7 @@ topic_model
 cands : Iterable[tomotopy.label.Candidate]
     토픽명으로 사용될 후보들의 리스트
 min_df : int
-    사용하려는 후보의 최소 문헌 빈도. 연어가 등장하는 문헌 수가 `min_cf`보다 작은 경우 선택에서 제외됩니다.
+    사용하려는 후보의 최소 문헌 빈도. 연어가 등장하는 문헌 수가 `min_df`보다 작은 경우 선택에서 제외됩니다.
     분석하려는 코퍼스가 클 경우 이 값을 키우십시오.
 smoothing : float
     라플라스 평활화에 사용될 0보다 큰 작은 실수
