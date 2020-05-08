@@ -242,6 +242,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 * 0.7.1 (2020-05-08)
     * `tomotopy.HLDAModel`용으로 `tomotopy.Document.path`가 새로 추가되었습니다.
     * `tomotopy.label.PMIExtractor` 사용시에 발생하던 메모리 문제가 해결되었습니다.
+    * gcc 7에서 발생하던 컴파일 오류가 해결되었습니다.
 
 * 0.7.0 (2020-04-18)
     * `tomotopy.DTModel`이 추가되었습니다.

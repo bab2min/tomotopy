@@ -248,6 +248,7 @@ History
 * 0.7.1 (2020-05-08)
     * `tomotopy.Document.path` was added for `tomotopy.HLDAModel`.
     * A memory corruption bug in `tomotopy.label.PMIExtractor` was fixed.
+    * A compile error in gcc 7 was fixed.
 
 * 0.7.0 (2020-04-18)
     * `tomotopy.DTModel` was added into the package.
