@@ -405,6 +405,9 @@ static PyGetSetDef Document_getseters[] = {
 #ifdef TM_MGLDA
 	{ (char*)"windows", (getter)Document_windows, nullptr, Document_windows__doc__, nullptr },
 #endif
+#ifdef TM_HLDA
+	{ (char*)"path", (getter)Document_path, nullptr, Document_path__doc__, nullptr },
+#endif
 #ifdef TM_CT
 	{ (char*)"beta", (getter)Document_beta, nullptr, Document_beta__doc__, nullptr },
 #endif

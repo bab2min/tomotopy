@@ -163,3 +163,36 @@ PyTypeObject HLDA_type = {
 	PyType_GenericAlloc,
 	PyType_GenericNew,
 };
+
+PyObject* Document_path(DocumentObject* self, void* closure)
+{
+	try
+	{
+		if (!self->doc) throw runtime_error{ "doc is null!" };
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::one>*>(self->doc);
+			if (doc) return py::buildPyValue(doc->path);
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::idf>*>(self->doc);
+			if (doc) return py::buildPyValue(doc->path);
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::pmi>*>(self->doc);
+			if (doc) return py::buildPyValue(doc->path);
+		} while (0);
+		throw runtime_error{ "doc doesn't has 'path' field!" };
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}

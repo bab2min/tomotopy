@@ -5,12 +5,12 @@ You can label topics automatically with simple code like below. The results are 
 .. include:: ./auto_labeling_code.rst
 """
 
-import tomotopy
 def _load():
+    import tomotopy
     for k in dir(tomotopy.label):
         if not k.startswith('_'): globals()[k] = getattr(tomotopy.label, k)
 _load()
-del tomotopy, _load
+del _load
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':
