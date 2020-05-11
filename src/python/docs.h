@@ -1915,7 +1915,7 @@ DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
 	class PLDA
 */
 DOC_SIGNATURE_EN_KO(PLDA___init____doc__,
-	"PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+	"PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, latent_topics=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
