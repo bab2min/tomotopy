@@ -193,6 +193,7 @@ namespace tomoto
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
 		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
+			// sample a table for each word
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
@@ -200,11 +201,11 @@ namespace tomoto
 				calcWordTopicProb(ld, doc.words[w]);
 				auto topicDist = getTopicLikelihoods(ld);
 				auto dist = getTableLikelihoods(ld, doc, doc.words[w]);
-				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + (_infer ? 0 : 1), rgs);
+				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + 1, rgs);
 				if (doc.Zs[w] == doc.numTopicByTable.size()) // create new table
 				{
 					size_t K = ld.numByTopic.size();
-					Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + 1, rgs);
+					Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + (_infer ? 0 : 1), rgs);
 					if (newTopic == K) // create new topic
 					{
 						newTopic = addTopic(ld);
@@ -217,6 +218,7 @@ namespace tomoto
 				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.numTopicByTable[doc.Zs[w]].topic);
 			}
 
+			// sample a topic for each table
 			for (size_t t = 0; t < doc.getNumTable(); ++t)
 			{
 				auto& curTable = doc.numTopicByTable[t];
@@ -234,9 +236,16 @@ namespace tomoto
 						/ (ld.numByTopic.array().template cast<Float>() + this->realV * this->eta)).log();
 					ld.zLikelihood[K] += log(1. / this->realV);
 				}
+
+				// turn off dead topics
+				for (size_t k = 0; k < K; ++k)
+				{
+					if (!isLiveTopic(k)) ld.zLikelihood[k] = -INFINITY;
+				}
+
 				ld.zLikelihood = (ld.zLikelihood.array() - ld.zLikelihood.maxCoeff()).exp();
 				auto topicDist = getTopicLikelihoods(ld);
-				Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + 1, rgs);
+				Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + (_infer ? 0 : 1), rgs);
 				if (newTopic == K) // create new topic
 				{
 					newTopic = addTopic(ld);
@@ -398,6 +407,7 @@ namespace tomoto
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			doc.numByTopic.init(nullptr, this->K);
+			doc.numTopicByTable.clear();
 			doc.Zs = tvector<Tid>(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
@@ -405,15 +415,39 @@ namespace tomoto
 		template<bool _Infer>
 		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
-			if (doc.getNumTable() == 0)
+			// generate tables for each topic when inferring
+			if (_Infer)
 			{
-				Tid k = g.theta(rgs);
-				doc.addNewTable(k);
-				++ld.numTableByTopic[k];
-				++ld.totalTable;
+				if (i < this->K)
+				{
+					Tid t = i;
+					if (isLiveTopic(i))
+					{
+						t = doc.addNewTable(i);
+					}
+					else
+					{
+						t = std::uniform_int_distribution<size_t>{ 0, doc.getNumTable() - 1 }(rgs);
+					}
+					++ld.numTableByTopic[t];
+					++ld.totalTable;
+					doc.Zs[i] = t;
+				}
+				else doc.Zs[i] = std::uniform_int_distribution<size_t>{ 0, doc.getNumTable() - 1 }(rgs);
 			}
-			doc.Zs[i] = 0;
-			addWordTo<1>(ld, doc, i, doc.words[i], 0, doc.numTopicByTable[0].topic);
+			// generate only one table when training
+			else
+			{
+				if (doc.getNumTable() == 0)
+				{
+					Tid k = g.theta(rgs);
+					doc.addNewTable(k);
+					++ld.numTableByTopic[k];
+					++ld.totalTable;
+				}
+				doc.Zs[i] = 0;
+			}
+			addWordTo<1>(ld, doc, i, doc.words[i], doc.Zs[i], doc.numTopicByTable[doc.Zs[i]].topic);
 		}
 
 		std::vector<size_t> _getTopicsCount() const

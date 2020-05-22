@@ -46,6 +46,8 @@ namespace tomoto
 		{
 			return std::count_if(numTopicByTable.begin(), numTopicByTable.end(), [](const TableTopicInfo& e) { return (bool)e; });
 		}
+
+		// add a new table into doc and return the new table's idx
 		size_t addNewTable(Tid tid)
 		{
 			return insertIntoEmpty(numTopicByTable, TableTopicInfo( 0, tid ));
