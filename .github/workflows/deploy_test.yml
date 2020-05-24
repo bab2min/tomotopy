@@ -3,7 +3,7 @@ name: Publish new package into test pypi
 on:
   push:
     tags:
-      - v*.*.*d
+      - 'v*.*.*d'
 
 jobs:
   build_manylinux:
