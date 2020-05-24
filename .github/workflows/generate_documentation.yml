@@ -1,8 +1,10 @@
 name: Generate the documentation
 
 on:
-  release:
-    types: published
+  push:
+    tags: 
+      - 'v*.*.*'
+      - '!v*.*.*d'
 
 jobs:
   build_manylinux:
