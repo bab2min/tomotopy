@@ -139,11 +139,11 @@ namespace tomoto
 		friend EtaHelper<DerivedClass, true>;
 		friend EtaHelper<DerivedClass, false>;
 
-		template<TermWeight _tw,
-			typename _Interface,
-			typename _Derived,
-			typename _DocType,
-			typename _ModelState>
+		template<TermWeight,
+			typename,
+			typename,
+			typename,
+			typename>
 		friend class HDPModel;
 
 		static constexpr char TMID[] = "LDA\0";

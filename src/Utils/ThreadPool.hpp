@@ -48,7 +48,7 @@ namespace tomoto
 
 	// the constructor just launches some amount of workers
 	inline ThreadPool::ThreadPool(size_t threads, size_t _maxQueued)
-		: maxQueued(_maxQueued), stop(false), tasks(threads)
+		: tasks(threads), maxQueued(_maxQueued), stop(false)
 	{
 		for (size_t i = 0; i < threads; ++i)
 		{

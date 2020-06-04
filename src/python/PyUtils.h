@@ -1,13 +1,4 @@
 #pragma once
-#include <Python.h>
-#include <frameobject.h>
-#ifdef MAIN_MODULE
-#else
-#define NO_IMPORT_ARRAY
-#endif
-#define PY_ARRAY_UNIQUE_SYMBOL TOMOTOPY_ARRAY_API
-#include <numpy/arrayobject.h>
-
 #include <type_traits>
 #include <vector>
 #include <tuple>
@@ -17,6 +8,16 @@
 #include <string>
 #include <iostream>
 #include <cstring>
+
+#include <Python.h>
+#include <frameobject.h>
+#ifdef MAIN_MODULE
+#else
+#define NO_IMPORT_ARRAY
+#endif
+#define PY_ARRAY_UNIQUE_SYMBOL TOMOTOPY_ARRAY_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>
 
 namespace py
 {
