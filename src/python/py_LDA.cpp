@@ -446,6 +446,61 @@ static PyObject* LDA_getVocabs(TopicModelObject* self, void* closure)
 	}
 }
 
+static PyObject* LDA_getUsedVocabs(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		py::UniqueObj args = Py_BuildValue("(On)", self, &self->inst->getVocabDict(), self->inst->getV());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* LDA_getUsedVocabCf(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		return py::buildPyValue(self->inst->getVocabCf().begin(), self->inst->getVocabCf().begin() + self->inst->getV());
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* LDA_getUsedVocabDf(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		return py::buildPyValue(self->inst->getVocabDf().begin(), self->inst->getVocabDf().begin() + self->inst->getV());
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 {
 	try
@@ -532,6 +587,7 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getTermWeight);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getN);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getV);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabCf);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabDf);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getOptimInterval);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getBurnInIteration);
 
@@ -629,6 +685,10 @@ static PyGetSetDef LDA_getseters[] = {
 	{ (char*)"optim_interval", (getter)LDA_getOptimInterval, (setter)LDA_setOptimInterval, LDA_optim_interval__doc__, nullptr },
 	{ (char*)"burn_in", (getter)LDA_getBurnInIteration, (setter)LDA_setBurnInIteration, LDA_burn_in__doc__, nullptr },
 	{ (char*)"removed_top_words", (getter)LDA_getRemovedTopWords, nullptr, LDA_removed_top_words__doc__, nullptr },
+	{ (char*)"used_vocabs", (getter)LDA_getUsedVocabs, nullptr, LDA_used_vocabs__doc__, nullptr },
+	{ (char*)"used_vocab_freq", (getter)LDA_getUsedVocabCf, nullptr, LDA_used_vocab_freq__doc__, nullptr },
+	{ (char*)"vocab_df", (getter)LDA_getVocabDf, nullptr, LDA_vocab_df__doc__, nullptr },
+	{ (char*)"used_vocab_df", (getter)LDA_getUsedVocabDf, nullptr, LDA_used_vocab_df__doc__, nullptr },
 	{ nullptr },
 };
 

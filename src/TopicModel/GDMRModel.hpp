@@ -32,7 +32,7 @@ namespace tomoto
 		using WeightType = typename BaseClass::WeightType;
 
 		Float sigma0 = 3;
-		std::vector<Float> mdCoefs, mdIntercepts;
+		std::vector<Float> mdCoefs, mdIntercepts, mdMax;
 		std::vector<size_t> degreeByF;
 
 		Float getIntegratedLambdaSq(const Eigen::Ref<const Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>>& lambdas) const
@@ -109,7 +109,7 @@ namespace tomoto
 					for (size_t docId = ch; docId < this->docs.size(); docId += chStride)
 					{
 						const auto& doc = this->docs[docId];
-						const auto& vx = doc.metadataC;
+						const auto& vx = doc.metadataNormalized;
 						getTermsFromMd(&vx[0], terms.data());
 						for (Tid k = 0; k < K; ++k)
 						{
@@ -146,7 +146,7 @@ namespace tomoto
 			return -fx;
 		}
 
-		void getTermsFromMd(const Float* vx, Float* out) const
+		void getTermsFromMd(const Float* vx, Float* out, bool normalize = false) const
 		{
 			thread_local std::vector<size_t> digit(degreeByF.size());
 			std::fill(digit.begin(), digit.end(), 0);
@@ -165,7 +165,7 @@ namespace tomoto
 			{
 				for (size_t i = 0; i < degreeByF[n]; ++i)
 				{
-					slpCache[n][i] = slp::slpGet(i + 1, vx[n]);
+					slpCache[n][i] = slp::slpGet(i + 1, normalize ? ((vx[n] - mdIntercepts[n]) / mdCoefs[n]) : vx[n]);
 				}
 			}
 
@@ -194,7 +194,7 @@ namespace tomoto
 			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
 			thread_local Eigen::Matrix<Float, -1, 1> terms{ this->F };
-			getTermsFromMd(&doc.metadataC[0], terms.data());
+			getTermsFromMd(&doc.metadataNormalized[0], terms.data());
 			zLikelihood = (doc.numByTopic.array().template cast<Float>() + (this->lambda * terms).array().exp() + this->alphaEps)
 				* (ld.numByTopicWord.col(vid).array().template cast<Float>() + etaHelper.getEta(vid))
 				/ (ld.numByTopic.array().template cast<Float>() + etaHelper.getEtaSum());
@@ -214,7 +214,7 @@ namespace tomoto
 			{
 				auto& doc = *_first;
 				thread_local Eigen::Matrix<Float, -1, 1> terms{ this->F };
-				getTermsFromMd(&doc.metadataC[0], terms.data());
+				getTermsFromMd(&doc.metadataNormalized[0], terms.data());
 				for (Tid k = 0; k < K; ++k)
 				{
 					alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
@@ -256,40 +256,68 @@ namespace tomoto
 			return ll;
 		}
 
-		void normalizeMetadata()
+		void collectMinMaxMetadata()
 		{
 			size_t s = degreeByF.size();
-			if (mdIntercepts.size() < s || mdCoefs.size() < s)
+			if (mdIntercepts.size() < s)
 			{
 				mdIntercepts.resize(s, FLT_MAX);
-				mdCoefs.resize(s, FLT_MIN);
+				mdMax.resize(s, FLT_MIN);
 			}
+			mdCoefs.resize(s, 0);
 
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < s; ++i)
 				{
-					mdIntercepts[i] = std::min(mdIntercepts[i], doc.metadataC[i]);
-					mdCoefs[i] = std::max(mdCoefs[i], doc.metadataC[i]);
+					mdIntercepts[i] = std::min(mdIntercepts[i], doc.metadataOrg[i]);
+					mdMax[i] = std::max(mdMax[i], doc.metadataOrg[i]);
 				}
 			}
 			for (size_t i = 0; i < s; ++i)
 			{
-				mdCoefs[i] -= mdIntercepts[i];
+				mdCoefs[i] = mdMax[i] - mdIntercepts[i];
 				if (mdCoefs[i] == 0) mdCoefs[i] = 1;
 			}
+		}
+
+		std::vector<Float> normalizeMetadata(const std::vector<Float>& metadata) const
+		{
+			std::vector<Float> ret(degreeByF.size());
+			for (size_t i = 0; i < degreeByF.size(); ++i)
+			{
+				ret[i] = mdCoefs[i] ? (metadata[i] - mdIntercepts[i]) / mdCoefs[i] : 0;
+			}
+			return ret;
 		}
 
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			BaseClass::prepareDoc(doc, docId, wordSize);
-			for (size_t i = 0; i < degreeByF.size(); ++i) doc.metadataC[i] = mdCoefs[i] ? (doc.metadataC[i] - mdIntercepts[i]) / mdCoefs[i] : 0;
+			doc.metadataNormalized = normalizeMetadata(doc.metadataOrg);
 		}
 
 		void initGlobalState(bool initDocs)
 		{
 			BaseClass::BaseClass::initGlobalState(initDocs);
-			normalizeMetadata();
+			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
+			if (initDocs) collectMinMaxMetadata();
+			else
+			{
+				// Old binary file has metadataNormalized values into `metadataOrg`
+				if (this->docs[0].metadataNormalized.empty() 
+					&& !this->docs[0].metadataOrg.empty())
+				{
+					for (auto& doc : this->docs)
+					{
+						doc.metadataNormalized = doc.metadataOrg;
+						for (size_t i = 0; i < degreeByF.size(); ++i)
+						{
+							doc.metadataOrg[i] = mdIntercepts[i] + doc.metadataOrg[i] * mdCoefs[i];
+						}
+					}
+				}
+			}
 			
 			if (initDocs)
 			{
@@ -303,11 +331,12 @@ namespace tomoto
 
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma0, degreeByF, mdCoefs, mdIntercepts);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma0, degreeByF, mdCoefs, mdIntercepts);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma0, degreeByF, mdCoefs, mdIntercepts, mdMax);
 
-		GDMRModel(size_t _K = 1, const std::vector<size_t>& _degreeByF = {}, Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _eta = 0.01,
+		GDMRModel(size_t _K = 1, const std::vector<size_t>& _degreeByF = {}, 
+			Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _sigma0 = 1.0, Float _eta = 0.01,
 			Float _alphaEps = 1e-10, const RandGen& _rg = RandGen{ std::random_device{}() })
-			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), degreeByF(_degreeByF)
+			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), sigma0(_sigma0), degreeByF(_degreeByF)
 		{
 			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
 		}
@@ -322,7 +351,7 @@ namespace tomoto
 
 		_DocType& _updateDoc(_DocType& doc, const std::vector<std::string>& metadata) const
 		{
-			std::transform(metadata.begin(), metadata.end(), back_inserter(doc.metadataC), [](const std::string& w)
+			std::transform(metadata.begin(), metadata.end(), back_inserter(doc.metadataOrg), [](const std::string& w)
 			{
 				return std::stof(w);
 			});
@@ -345,7 +374,7 @@ namespace tomoto
 		{
 			Eigen::Matrix<Float, -1, 1> alphas(this->K);
 			thread_local Eigen::Matrix<Float, -1, 1> terms{ this->F };
-			getTermsFromMd(&doc.metadataC[0], terms.data());
+			getTermsFromMd(&doc.metadataNormalized[0], terms.data());
 			for (Tid k = 0; k < this->K; ++k)
 			{
 				alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
@@ -366,10 +395,54 @@ namespace tomoto
 			return ret;
 		}
 
+		std::vector<Float> getTDF(const Float* metadata, bool normalize) const override
+		{
+			Eigen::Matrix<Float, -1, 1> terms{ this->F };
+			getTermsFromMd(metadata, terms.data(), true);
+			std::vector<Float> ret(this->K);
+			Eigen::Map<Eigen::Array<Float, -1, 1>> retMap{ ret.data(), (Eigen::Index)ret.size() };
+			retMap = (this->lambda * terms).array();
+			if (normalize)
+			{
+				retMap = (retMap - retMap.maxCoeff()).exp();
+				retMap /= retMap.sum();
+			}
+			return ret;
+		}
+
+		std::vector<Float> getTDFBatch(const Float* metadata, size_t stride, size_t cnt, bool normalize) const override
+		{
+			Eigen::Matrix<Float, -1, -1> terms{ this->F, (Eigen::Index)cnt };
+			for (size_t i = 0; i < cnt; ++i)
+			{
+				getTermsFromMd(metadata + stride * i, terms.col(i).data(), true);
+			}
+			std::vector<Float> ret(this->K * cnt);
+			Eigen::Map<Eigen::Array<Float, -1, -1>> retMap{ ret.data(), (Eigen::Index)this->K, (Eigen::Index)cnt };
+			retMap = (this->lambda * terms).array();
+			if (normalize)
+			{
+				retMap.rowwise() -= retMap.colwise().maxCoeff();
+				retMap = retMap.exp();
+				retMap.rowwise() /= retMap.colwise().sum();
+			}
+			return ret;
+		}
 		void setMdRange(const std::vector<Float>& vMin, const std::vector<Float>& vMax) override
 		{
 			mdIntercepts = vMin;
-			mdCoefs = vMax;
+			mdMax = vMax;
+		}
+
+		void getMdRange(std::vector<Float>& vMin, std::vector<Float>& vMax) const override
+		{
+			vMin = mdIntercepts;
+			if (mdMax.empty())
+			{
+				vMax = mdIntercepts;
+				for (size_t i = 0; i < vMax.size(); ++i) vMax[i] += mdCoefs[i];
+			}
+			else vMax = mdMax;
 		}
 	};
 }

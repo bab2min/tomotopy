@@ -73,6 +73,38 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 	}
 }
 
+static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+{
+	float topicThreshold = 0;
+	static const char* kwlist[] = { "topic_threshold", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|f", (char**)kwlist, &topicThreshold)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto inst = static_cast<tomoto::IHDPModel*>(self->inst);
+		std::vector<size_t> newK;
+		auto lda = inst->convertToLDA(topicThreshold, newK);
+		py::UniqueObj r = PyObject_CallObject((PyObject*)&LDA_type, nullptr);
+		auto ret = (TopicModelObject*)r.get();
+		delete ret->inst;
+		ret->inst = lda.release();
+		ret->isPrepared = true;
+		ret->minWordCnt = self->minWordCnt;
+		ret->minWordDf = self->minWordDf;
+		ret->removeTopWord = self->removeTopWord;
+		return Py_BuildValue("(NN)", r.release(), py::buildPyValue(newK));
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 PyObject* Document_HDP_Z(DocumentObject* self, void* closure)
 {
     do
@@ -105,6 +137,7 @@ static PyMethodDef HDP_methods[] =
 {
 	{ "load", (PyCFunction)HDP_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
 	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, HDP_is_live_topic__doc__ },
+	{ "convert_to_lda", (PyCFunction)HDP_convertToLDA, METH_VARARGS | METH_KEYWORDS, HDP_convert_to_lda__doc__ },
 	{ nullptr }
 };
 

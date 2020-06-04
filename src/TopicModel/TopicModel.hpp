@@ -209,6 +209,7 @@ namespace tomoto
 		size_t realV = 0; // vocab size after removing stopwords
 		size_t realN = 0; // total word size after removing stopwords
 		size_t maxThreads[(size_t)ParallelScheme::size] = { 0, };
+		size_t minWordCf = 0, minWordDf = 0, removeTopN = 0;
 
 		std::unique_ptr<ThreadPool> cachedPool;
 
@@ -373,6 +374,9 @@ namespace tomoto
 		void removeStopwords(size_t minWordCnt, size_t minWordDf, size_t removeTopN)
 		{
 			if (minWordCnt <= 1 && minWordDf <= 1 && removeTopN == 0) realV = dict.size();
+			this->minWordCf = minWordCnt;
+			this->minWordDf = minWordDf;
+			this->removeTopN = removeTopN;
 			std::vector<std::pair<size_t, size_t>> vocabCfDf;
 			for (size_t i = 0; i < vocabCf.size(); ++i)
 			{

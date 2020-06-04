@@ -492,20 +492,59 @@ DOC_VARIABLE_EN_KO(LDA_docs__doc__,
 	u8R""(현재 모델에 포함된 `tomotopy.Document`에 접근할 수 있는 `list`형 인터페이스 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_vocabs__doc__,
-	u8R""(a dictionary of vocabuluary as type `tomotopy.Dictionary` (read-only))"",
-	u8R""(현재 모델에 포함된 어휘들을 보여주는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용))"");
+	u8R""(a dictionary, which contains both vocabularies filtered by frequency and vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only))"",
+	u8R""(빈도수로 필터링된 어휘와 모델에 포함된 어휘 전체를 포함하는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_num_vocabs__doc__,
 	u8R""(the number of vocabuluaries after words with a smaller frequency were removed (read-only)
 
-This value is 0 before `train` called.)"",
+This value is 0 before `train` called.
+
+.. deprecated:: 0.8.0
+
+Due to the confusion of its name, this property will be removed. Please use `len(used_vocabs)` instead.)"",
 	u8R""(작은 빈도의 단어들을 제거한 뒤 남은 어휘의 개수 (읽기전용)
 
-`train`이 호출되기 전에는 이 값은 0입니다.)"");
+`train`이 호출되기 전에는 이 값은 0입니다.
+
+.. deprecated:: 0.8.0
+
+이 프로퍼티의 이름은 혼동을 일으킬 여지가 있어 제거될 예정입니다. 대신 `len(used_vocabs)`을 사용하십시오.)"");
+
+DOC_VARIABLE_EN_KO(LDA_used_vocabs__doc__,
+	u8R""(a dictionary, which contains only the vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only)
+
+.. versionadded:: 0.8.0)"",
+	u8R""(모델에 실제로 사용된 어휘만을 포함하는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용)
+
+.. versionadded:: 0.8.0)"");
 
 DOC_VARIABLE_EN_KO(LDA_vocab_freq__doc__,
-	u8R""(a `list` of vocabulary frequencies included in the model (read-only))"",
-	u8R""(현재 모델에 포함된 어휘들의 빈도를 보여주는 `list` (읽기전용))"");
+	u8R""(a `list` of vocabulary frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only))"",
+	u8R""(빈도수로 필터링된 어휘와 현재 모델에 포함된 어휘 전체의 빈도를 보여주는 `list` (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(LDA_used_vocab_freq__doc__,
+	u8R""(a `list` of vocabulary frequencies which contains only vocabularies actually used in modeling (read-only)
+
+.. versionadded:: 0.8.0)"",
+	u8R""(모델에 실제로 사용된 어휘들의 빈도를 보여주는 `list` (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(LDA_vocab_df__doc__,
+	u8R""(a `list` of vocabulary document-frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only)
+
+.. versionadded:: 0.8.0)"",
+	u8R""(빈도수로 필터링된 어휘와 현재 모델에 포함된 어휘 전체의 문헌빈도를 보여주는 `list` (읽기전용)
+
+.. versionadded:: 0.8.0)"");
+
+DOC_VARIABLE_EN_KO(LDA_used_vocab_df__doc__,
+	u8R""(a `list` of vocabulary document-frequencies which contains only vocabularies actually used in modeling (read-only)
+
+.. versionadded:: 0.8.0)"",
+	u8R""(모델에 실제로 사용된 어휘들의 문헌빈도를 보여주는 `list` (읽기전용)
+
+.. versionadded:: 0.8.0)"");
+
 
 DOC_VARIABLE_EN_KO(LDA_num_words__doc__,
 	u8R""(the number of total words (read-only)
@@ -564,13 +603,13 @@ rm_top : int
 k : int
     the number of topics between 1 ~ 32767
 alpha : float
-    exponential of mean of normal distribution for `lambdas`
+    an initial value of exponential of mean of normal distribution for `lambdas`
 eta : float
     hyperparameter of Dirichlet distribution for topic - word
 sigma : float
     standard deviation of normal distribution for `lambdas`
 alpha_epsilon : float
-    small smoothing value for preventing `exp(lambdas)` to be zero
+    small smoothing value for preventing `exp(lambdas)` to be near zero
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
 corpus : tomotopy.utils.Corpus
@@ -606,7 +645,7 @@ rm_top : int
 k : int
     토픽의 개수, 1 ~ 32767 범위의 정수.
 alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+    `lambdas` 파라미터의 평균의 exp의 초기값
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 sigma : float
@@ -687,6 +726,219 @@ DOC_VARIABLE_EN_KO(DMR_metadata_dict__doc__,
 DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
 	u8R""(a `list` of paramter lambdas (read-only))"",
 	u8R""(현재 모형의 lambda 파라미터를 보여주는 `list` (읽기전용))"");
+
+/*
+	class GDMR
+*/
+DOC_SIGNATURE_EN_KO(GDMR___init____doc__,
+	"GDMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None)",
+	u8R""(This type provides Generalized DMR(g-DMR) topic model and its implementation is based on following papers:
+
+> * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
+
+.. versionadded:: 0.8.0
+
+Parameters
+----------
+tw : Union[int, tomotopy.TermWeight]
+    term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
+min_cf : int
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    The default value is 0, which means no words are excluded.
+min_df : int
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
+rm_top : int
+    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    The default value is 0, which means no top words are removed.
+k : int
+    the number of topics between 1 ~ 32767
+degrees : Iterable[int]
+    a list of the degrees of Legendre polynomials for TDF(Topic Distribution Function). Its length should be equal to the number of metadata variables.
+
+	Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as the LDA model. 
+alpha : float
+    exponential of mean of normal distribution for `lambdas`
+eta : float
+    hyperparameter of Dirichlet distribution for topic - word
+sigma : float
+    standard deviation of normal distribution for non-constant terms of `lambdas`
+sigma0 : float
+    standard deviation of normal distribution for constant terms of `lambdas`
+alpha_epsilon : float
+    small smoothing value for preventing `exp(lambdas)` to be near zero
+metadata_range : Iterable[Iterable[float]]
+    a list of minimum and maximum value of each metadata variable. Its length should be equal to the length of `degrees`.
+    
+    For example, `metadata_range = [(2000, 2017), (0, 1)]` means that the first variable has a range from 2000 and 2017 and the second one has a range from 0 to 1.
+	Its default value is `None` in which case the ranges of each variable are obtained from input documents.
+seed : int
+    random seed. default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
+)"",
+u8R""(이 타입은 Generalized DMR(g-DMR) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
+
+> * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
+
+Parameters
+----------
+tw : Union[int, tomotopy.TermWeight]
+    용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
+min_cf : int
+    단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+rm_top : int
+    제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+    기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
+k : int
+    토픽의 개수, 1 ~ 32767 범위의 정수.
+degrees : Iterable[int]
+    TDF(토픽 분포 함수)로 쓰일 르장드르 다항식의 차수를 나타내는 list. 길이는 메타데이터 변수의 개수와 동일해야 합니다.
+
+	기본값은 `[]`으로 이 경우 모델은 어떤 메타데이터 변수도 포함하지 않으므로 LDA 모델과 동일해집니다.
+alpha : float
+    `lambdas` 파라미터의 평균의 exp의 초기값
+eta : float
+    토픽-단어 디리클레 분포의 하이퍼 파라미터
+sigma : float
+    `lambdas` 파라미터의 표준 편차
+alpha_epsilon : float
+    `exp(lambdas)`가 0이 되는 것을 방지하는 평탄화 계수
+metadata_range : Iterable[Iterable[float]]
+    각 메타데이터 변수의 최솟값과 최댓값을 지정하는 list. 길이는 `degrees`의 길이와 동일해야 합니다.
+    
+    예를 들어 `metadata_range = [(2000, 2017), (0, 1)]` 는 첫번째 변수의 범위를 2000에서 2017까지로, 두번째 변수의 범위를 0에서 1까지로 설정하겠다는 뜻입니다.
+    기본값은 `None`이며, 이 경우 입력 문헌의 메타데이터로부터 최솟값과 최댓값을 찾습니다.
+seed : int
+    난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
+    이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
+)"");
+
+DOC_SIGNATURE_EN_KO(GDMR_add_doc__doc__,
+	"add_doc(self, words, metadata=[])",
+	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+
+Parameters
+----------
+words : Iterable[str]
+    an iterable of `str`
+metadata : Iterable[float]
+    continuous metadata variable of the document. Its length should be equal to the length of `degrees`.
+)"",
+u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+
+Parameters
+----------
+words : Iterable[str]
+    문헌의 각 단어를 나열하는 `str` 타입의 iterable
+metadata : Iterable[float]
+    문헌의 연속 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+)"");
+
+DOC_SIGNATURE_EN_KO(GDMR_make_doc__doc__,
+	"make_doc(self, words, metadata=[])",
+	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+
+Parameters
+----------
+words : Iterable[str]
+    an iteratable of `str`
+metadata : Iterable[float]
+    continuous metadata variable of the document. Its length should be equal to the length of `degrees`.
+)"",
+u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+
+Parameters
+----------
+words : Iterable[str]
+    문헌의 각 단어를 나열하는 `str` 타입의 iterable
+metadata : Iterable[float]
+    문헌의 연속 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+)"");
+
+DOC_SIGNATURE_EN_KO(GDMR_tdf__doc__,
+	"tdf(self, metadata, normalize=True)",
+	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+
+Parameters
+----------
+metadata : Iterable[float]
+    continuous metadata variable. Its length should be equal to the length of `degrees`.
+normalize : bool
+    If true, the method returns probabilities for each topic in range [0, 1]. Otherwise, it returns raw values in logit.
+)"",
+u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
+
+Parameters
+----------
+metadata : Iterable[float]
+    문헌의 연속 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+normalize : bool
+    참인 경우, 각 값이 [0, 1] 범위에 있는 확률 분포를 반환합니다. 거짓인 경우 logit값을 그대로 반환합니다.
+)"");
+
+
+DOC_SIGNATURE_EN_KO(GDMR_tdf_linspace__doc__,
+	"tdf_linspace(self, metadata_start, metadata_stop, num, endpoint=True, normalize=True)",
+	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+
+Parameters
+----------
+metadata_start : Iterable[float]
+    the starting value of each continuous metadata variable. Its length should be equal to the length of `degrees`.
+metadata_stop : Iterable[float]
+    the end value of each continuous metadata variable. Its length should be equal to the length of `degrees`.
+num : Iterable[int]
+    the number of samples to generate for each metadata variable. Must be non-negative. Its length should be equal to the length of `degrees`.
+endpoint : bool
+    If True, `metadata_stop` is the last sample. Otherwise, it is not included. Default is True.
+normalize : bool
+    If true, the method returns probabilities for each topic in range [0, 1]. Otherwise, it returns raw values in logit.
+
+Returns
+-------
+samples : ndarray
+    with shape `[*num, k]`. 
+)"",
+u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
+
+Parameters
+----------
+metadata_start : Iterable[float]
+    문헌의 연속 메타데이터 변수의 시작값. 길이는 `degrees`의 길이와 동일해야 합니다.
+metadata_stop : Iterable[float]
+    문헌의 연속 메타데이터 변수의 끝값. 길이는 `degrees`의 길이와 동일해야 합니다.
+num : Iterable[int]
+    각 메타데이터 변수별로 생성할 샘플의 개수(0보다 큰 정수). 길이는 `degrees`의 길이와 동일해야 합니다.
+endpoint : bool
+    참인 경우 `metadata_stop`이 마지막 샘플이 됩니다. 거짓인 경우 끝값이 샘플에 포함되지 않습니다. 기본값은 참입니다.
+normalize : bool
+    참인 경우, 각 값이 [0, 1] 범위에 있는 확률 분포를 반환합니다. 거짓인 경우 logit값을 그대로 반환합니다.
+)"");
+
+
+DOC_VARIABLE_EN_KO(GDMR_degrees__doc__,
+	u8R""(the degrees of Legendre polynomials (read-only))"",
+	u8R""(르장드르 다항식의 차수 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(GDMR_sigma0__doc__,
+	u8R""(the hyperparamter sigma0 (read-only))"",
+	u8R""(하이퍼 파라미터 sigma0 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(GDMR_metadata_range__doc__,
+	u8R""(the ranges of each metadata variable (read-only))"",
+	u8R""(각 메타데이터 변수의 범위를 나타내는 `list` (읽기전용))"");
+
 
 /*
 	class HDP
@@ -788,6 +1040,23 @@ transform : Callable[dict, dict]
 
 DOC_SIGNATURE_EN_KO(HDP_is_live_topic__doc__,
 	"is_live_topic(self, topic_id)",
+	u8R""(Return `True` if the topic `topic_id` is alive, otherwise return `False`.
+
+Parameters
+----------
+topic_id : int
+    an integer in range [0, `k`) indicating the topic
+)"",
+u8R""(`topic_id`가 유효한 토픽을 가리키는 경우 `True`, 아닌 경우 `False`를 반환합니다.
+
+Parameters
+----------
+topic_id : int
+    토픽을 가리키는 [0, `k`) 범위의 정수
+)"");
+
+DOC_SIGNATURE_EN_KO(HDP_convert_to_lda__doc__,
+	"convert_to_lda(self, topic_threshold=0.0)",
 	u8R""(Return `True` if the topic `topic_id` is alive, otherwise return `False`.
 
 Parameters

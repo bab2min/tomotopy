@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <iterator>
 
 namespace tomoto
 {
@@ -205,40 +206,126 @@ namespace tomoto
 	}
 
 	template <typename _UnaryFunc, typename _Iterator>
-	class TransformIter : public _Iterator
+	class TransformIter
 	{
 	private:
 		_UnaryFunc f;
+		_Iterator i;
 	public:
-		using reference = typename std::result_of<const _UnaryFunc(typename std::iterator_traits<_Iterator>::reference)>::type;
+		using reference = typename std::result_of<
+			const _UnaryFunc(typename std::iterator_traits<_Iterator>::reference)
+		>::type;
+		using value_type = reference;
+
+		using pointer = void;
+		using iterator_category = typename std::iterator_traits<_Iterator>::iterator_category;
+		using difference_type = typename std::iterator_traits<_Iterator>::difference_type;
+
 		TransformIter(const _Iterator& _iter = {}, _UnaryFunc _f = {})
-			: _Iterator(_iter), f(_f)
+			: i(_iter), f(_f)
 		{}
 		
 		reference operator*()
 		{
-			return f(_Iterator::operator*());
+			return f(*i);
 		}
 
 		const reference operator*() const
 		{
-			return f(_Iterator::operator*());
+			return f(*i);
 		}
 
 		reference operator[](std::size_t idx)
 		{
-			return f(_Iterator::operator[](idx));
+			return f(i[idx]);
 		}
 
 		const reference operator[](std::size_t idx) const
 		{
-			return f(_Iterator::operator[](idx));
+			return f(i[idx]);
 		}
 
 		TransformIter& operator++()
 		{
-			_Iterator::operator++();
+			++i;
 			return *this;
+		}
+
+		TransformIter& operator++(int)
+		{
+			auto c = *this;
+			++i;
+			return c;
+		}
+
+		TransformIter& operator--()
+		{
+			--i;
+			return *this;
+		}
+
+		TransformIter& operator--(int)
+		{
+			auto c = *this;
+			--i;
+			return c;
+		}
+
+		TransformIter operator+(int n) const
+		{
+			return { f, i + n };
+		}
+
+		TransformIter operator-(int n) const
+		{
+			return { f, i - n };
+		}
+
+		TransformIter& operator+=(int n)
+		{
+			i += n;
+			return *this;
+		}
+
+		TransformIter& operator-=(int n)
+		{
+			i -= n;
+			return *this;
+		}
+
+		typename std::iterator_traits<_Iterator>::difference_type operator-(const TransformIter& o) const
+		{
+			return i - o.i;
+		}
+
+		bool operator==(const TransformIter& o) const
+		{
+			return i == o.i;
+		}
+
+		bool operator!=(const TransformIter& o) const
+		{
+			return i != o.i;
+		}
+
+		bool operator<(const TransformIter& o) const
+		{
+			return i < o.i;
+		}
+
+		bool operator>(const TransformIter& o) const
+		{
+			return i > o.i;
+		}
+
+		bool operator<=(const TransformIter& o) const
+		{
+			return i <= o.i;
+		}
+
+		bool operator>=(const TransformIter& o) const
+		{
+			return i >= o.i;
 		}
 	};
 

@@ -169,10 +169,12 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
-		PyObject* ret = PyList_New(inst->getK());
+		npy_intp shapes[2] = { inst->getK(), inst->getF() };
+		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
 		for (size_t i = 0; i < inst->getK(); ++i)
 		{
-			PyList_SetItem(ret, i, py::buildPyValue(inst->getLambdaByTopic(i)));
+			auto l = inst->getLambdaByTopic(i);
+			memcpy(PyArray_GETPTR2(ret, i, 0), l.data(), sizeof(float) * l.size());
 		}
 		return ret;
 	}
@@ -190,7 +192,7 @@ DEFINE_GETTER(tomoto::IDMRModel, DMR, getAlphaEps);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getSigma);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getF);
 
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentDMR, metadata, metadata);
+DEFINE_DOCUMENT_GETTER(tomoto::DocumentDMR, DMR_metadata, metadata);
 
 DEFINE_LOADER(DMR, DMR_type);
 

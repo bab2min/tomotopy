@@ -114,6 +114,14 @@ namespace tomoto
 		static constexpr char TWID[] = "pmi\0";
 	};
 
+	// to make HDP friend of LDA for HDPModel::converToLDA
+	template<TermWeight _tw,
+		typename _Interface,
+		typename _Derived,
+		typename _DocType,
+		typename _ModelState>
+	class HDPModel;
+
 	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
@@ -130,6 +138,13 @@ namespace tomoto
 		friend BaseClass;
 		friend EtaHelper<DerivedClass, true>;
 		friend EtaHelper<DerivedClass, false>;
+
+		template<TermWeight _tw,
+			typename _Interface,
+			typename _Derived,
+			typename _DocType,
+			typename _ModelState>
+		friend class HDPModel;
 
 		static constexpr char TMID[] = "LDA\0";
 		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
@@ -233,6 +248,21 @@ namespace tomoto
 			updateCnt<_dec>(doc.numByTopic[tid], _inc * weight);
 			updateCnt<_dec>(ld.numByTopic[tid], _inc * weight);
 			updateCnt<_dec>(ld.numByTopicWord(tid, vid), _inc * weight);
+		}
+
+		void resetStatistics()
+		{
+			this->globalState.numByTopic.setZero();
+			this->globalState.numByTopicWord.setZero();
+			for (auto& doc : this->docs)
+			{
+				doc.numByTopic.setZero();
+				for (size_t w = 0; w < doc.words.size(); ++w)
+				{
+					if (doc.words[w] >= this->realV) continue;
+					addWordTo<1>(this->globalState, doc, w, doc.words[w], doc.Zs[w]);
+				}
+			}
 		}
 
 		/*
@@ -791,9 +821,12 @@ namespace tomoto
 						for (size_t i = 0; i < maxIter; ++i)
 						{
 							static_cast<const DerivedClass*>(this)->presampleDocument(*d, -1, tmpState, rgc, i);
-							static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(*d, edd, -1, tmpState, rgc, i);
+							static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(
+								*d, edd, -1, tmpState, rgc, i
+							);
 							static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
-								nullptr, &tmpState, &rgc, &*d, &*d + 1);
+								nullptr, &tmpState, &rgc, &*d, &*d + 1
+							);
 						}
 						double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
 						ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&*d, &*d + 1);
