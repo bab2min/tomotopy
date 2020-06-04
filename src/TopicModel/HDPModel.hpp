@@ -464,9 +464,9 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, doc.words[i], doc.Zs[i], doc.numTopicByTable[doc.Zs[i]].topic);
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(this->K);
+			std::vector<uint64_t> cnt(this->K);
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)
@@ -522,7 +522,7 @@ namespace tomoto
 		std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<size_t>& newK) const override
 		{
 			auto cnt = _getTopicsCount();
-			std::vector<std::pair<size_t, size_t>> cntIdx;
+			std::vector<std::pair<uint64_t, size_t>> cntIdx;
 			float sum = (float)std::accumulate(cnt.begin(), cnt.end(), 0);
 			for (size_t i = 0; i < cnt.size(); ++i)
 			{

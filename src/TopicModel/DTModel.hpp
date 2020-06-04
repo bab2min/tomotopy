@@ -475,9 +475,9 @@ namespace tomoto
 			return doc;
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(this->K * T);
+			std::vector<uint64_t> cnt(this->K * T);
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)

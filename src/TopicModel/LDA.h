@@ -131,7 +131,7 @@ namespace tomoto
 		virtual void setOptimInterval(size_t) = 0;
 		virtual size_t getBurnInIteration() const = 0;
 		virtual void setBurnInIteration(size_t) = 0;
-		virtual std::vector<size_t> getCountByTopic() const = 0;
+		virtual std::vector<uint64_t> getCountByTopic() const = 0;
 		virtual Float getAlpha() const = 0;
 		virtual Float getAlpha(size_t k) const = 0;
 		virtual Float getEta() const = 0;

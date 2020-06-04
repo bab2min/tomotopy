@@ -709,9 +709,9 @@ namespace tomoto
 			doc.updateSumWordWeight(this->realV);
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(K);
+			std::vector<uint64_t> cnt(K);
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)
@@ -1007,7 +1007,7 @@ namespace tomoto
 			BaseClass::prepare(initDocs, minWordCnt, minWordDf, removeTopN);
 		}
 
-		std::vector<size_t> getCountByTopic() const override
+		std::vector<uint64_t> getCountByTopic() const override
 		{
 			return static_cast<const DerivedClass*>(this)->_getTopicsCount();
 		}

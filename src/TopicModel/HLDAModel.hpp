@@ -582,9 +582,9 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z);
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(this->globalState.nt->nodes.size());
+			std::vector<uint64_t> cnt(this->globalState.nt->nodes.size());
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)
