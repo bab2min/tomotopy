@@ -1,10 +1,10 @@
 name: Publish new package
 
 on:
-  release:
-    types: published
-    branches:
-      - master
+  push:
+    tags:
+      - 'v*.*.*'
+      - '!v*.*.*d'
 
 jobs:
   build_manylinux:

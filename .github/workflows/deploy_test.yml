@@ -1,10 +1,9 @@
 name: Publish new package into test pypi
 
 on:
-  release:
-    types: published
-    branches:
-      - develop
+  push:
+    tags:
+      - 'v*.*.*d'
 
 jobs:
   build_manylinux:
@@ -32,7 +31,7 @@ jobs:
       run: |
         /opt/python/cp35-cp35m/bin/python setup.py sdist
         /opt/python/cp35-cp35m/bin/python -m pip install twine wheel
-        /opt/python/cp35-cp35m/bin/python -m twine upload dist/*.tar.gz
+        /opt/python/cp35-cp35m/bin/python -m twine upload --repository testpypi dist/*.tar.gz
         for cp in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel
