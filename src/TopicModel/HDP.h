@@ -67,6 +67,6 @@ namespace tomoto
 		virtual size_t getLiveK() const = 0;
 		virtual bool isLiveTopic(Tid tid) const = 0;
 
-		virtual std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<size_t>& newK) const = 0;
+		virtual std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<Tid>& newK) const = 0;
 	};
 }

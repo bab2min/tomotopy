@@ -519,7 +519,7 @@ namespace tomoto
 			return ret;
 		}
 
-		std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<size_t>& newK) const override
+		std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<Tid>& newK) const override
 		{
 			auto cnt = _getTopicsCount();
 			std::vector<std::pair<uint64_t, size_t>> cntIdx;

@@ -82,7 +82,7 @@ static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObje
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto inst = static_cast<tomoto::IHDPModel*>(self->inst);
-		std::vector<size_t> newK;
+		std::vector<tomoto::Tid> newK;
 		auto lda = inst->convertToLDA(topicThreshold, newK);
 		py::UniqueObj r = PyObject_CallObject((PyObject*)&LDA_type, nullptr);
 		auto ret = (TopicModelObject*)r.get();
