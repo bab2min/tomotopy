@@ -277,7 +277,7 @@ namespace py
 	{
 		npy_intp size = v.size();
 		PyObject* obj = PyArray_EMPTY(1, &size, detail::NpyType<_Ty>::type, 0);
-		std::memcpy(PyArray_DATA(obj), v.data(), sizeof(_Ty) * size);
+		std::memcpy(PyArray_DATA((PyArrayObject*)obj), v.data(), sizeof(_Ty) * size);
 		return obj;
 	}
 
@@ -352,7 +352,7 @@ namespace py
 		size_t id = 0;
 		for (; first != last; ++first, ++id)
 		{
-			*(value_type*)PyArray_GETPTR1(ret, id) = *first;
+			*(value_type*)PyArray_GETPTR1((PyArrayObject*)ret, id) = *first;
 		}
 		return ret;
 	}
@@ -371,7 +371,7 @@ namespace py
 		size_t id = 0;
 		for (; first != last; ++first, ++id)
 		{
-			*(value_type*)PyArray_GETPTR1(ret, id) = tx(*first);
+			*(value_type*)PyArray_GETPTR1((PyArrayObject*)ret, id) = tx(*first);
 		}
 		return ret;
 	}

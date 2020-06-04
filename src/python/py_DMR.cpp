@@ -174,7 +174,7 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 		for (size_t i = 0; i < inst->getK(); ++i)
 		{
 			auto l = inst->getLambdaByTopic(i);
-			memcpy(PyArray_GETPTR2(ret, i, 0), l.data(), sizeof(float) * l.size());
+			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
 		}
 		return ret;
 	}
