@@ -30,6 +30,7 @@ jobs:
         mv eigen-git-mirror include
     - name: Build
       run: |
+        /opt/python/${{ matrix.cp }}/bin/python -m pip install numpy
         /opt/python/${{ matrix.cp }}/bin/python setup.py build install
     - name: Test
       run: |
@@ -59,6 +60,7 @@ jobs:
         mv eigen-git-mirror-3.3.7 include
     - name: Build
       run: |
+        python -m pip install numpy
         python setup.py build install
     - name: Test
       run: |
@@ -91,6 +93,7 @@ jobs:
         mv eigen-git-mirror-3.3.7 include
     - name: Build
       run: |
+        python -m pip install numpy
         python setup.py build install
     - name: Test
       run: |
