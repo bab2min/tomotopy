@@ -290,8 +290,6 @@ DEFINE_GETTER_PROTOTYPE(LDA, getEta);
 
 PyObject* Document_LDA_Z(DocumentObject* self, void* closure);
 
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(metadata);
-
 PyObject* Document_HDP_Z(DocumentObject* self, void* closure);
 
 PyObject* Document_HLDA_Z(DocumentObject* self, void* closure);

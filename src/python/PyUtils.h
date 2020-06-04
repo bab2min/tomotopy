@@ -16,6 +16,7 @@
 #include <exception>
 #include <string>
 #include <iostream>
+#include <cstring>
 
 namespace py
 {
