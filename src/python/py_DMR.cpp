@@ -169,7 +169,7 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
-		npy_intp shapes[2] = { inst->getK(), inst->getF() };
+		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getF() };
 		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
 		for (size_t i = 0; i < inst->getK(); ++i)
 		{
