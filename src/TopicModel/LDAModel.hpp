@@ -160,7 +160,7 @@ namespace tomoto
 		std::unordered_map<std::string, std::vector<Float>> etaByWord;
 		Eigen::Matrix<Float, -1, -1> etaByTopicWord; // (K, V)
 		Eigen::Matrix<Float, -1, 1> etaSumByTopic; // (K, )
-		size_t optimInterval = 10, burnIn = 0;
+		uint32_t optimInterval = 10, burnIn = 0;
 		Eigen::Matrix<WeightType, -1, -1> numByTopicDoc;
 		
 		struct ExtraDocData

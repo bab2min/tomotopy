@@ -138,12 +138,12 @@ namespace tomoto
 
 		virtual double getLLPerWord() const = 0;
 		virtual double getPerplexity() const = 0;
-		virtual size_t getV() const = 0;
-		virtual size_t getN() const = 0;
+		virtual uint64_t getV() const = 0;
+		virtual uint64_t getN() const = 0;
 		virtual size_t getNumDocs() const = 0;
 		virtual const Dictionary& getVocabDict() const = 0;
-		virtual const std::vector<size_t>& getVocabCf() const = 0;
-		virtual const std::vector<size_t>& getVocabDf() const = 0;
+		virtual const std::vector<uint64_t>& getVocabCf() const = 0;
+		virtual const std::vector<uint64_t>& getVocabDf() const = 0;
 
 		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_) = 0;
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
@@ -201,13 +201,13 @@ namespace tomoto
 		std::vector<uint32_t> wOffsetByDoc;
 
 		std::vector<DocType> docs;
-		std::vector<size_t> vocabCf;
-		std::vector<size_t> vocabDf;
+		std::vector<uint64_t> vocabCf;
+		std::vector<uint64_t> vocabDf;
 		size_t iterated = 0;
 		_ModelState globalState, tState;
 		Dictionary dict;
-		size_t realV = 0; // vocab size after removing stopwords
-		size_t realN = 0; // total word size after removing stopwords
+		uint64_t realV = 0; // vocab size after removing stopwords
+		uint64_t realN = 0; // total word size after removing stopwords
 		size_t maxThreads[(size_t)ParallelScheme::size] = { 0, };
 		size_t minWordCf = 0, minWordDf = 0, removeTopN = 0;
 
@@ -438,12 +438,12 @@ namespace tomoto
 			return docs.size(); 
 		}
 
-		size_t getN() const override
+		uint64_t getN() const override
 		{ 
 			return realN; 
 		}
 
-		size_t getV() const override
+		uint64_t getV() const override
 		{
 			return realV;
 		}
@@ -654,12 +654,12 @@ namespace tomoto
 			return dict;
 		}
 
-		const std::vector<size_t>& getVocabCf() const override
+		const std::vector<uint64_t>& getVocabCf() const override
 		{
 			return vocabCf;
 		}
 
-		const std::vector<size_t>& getVocabDf() const override
+		const std::vector<uint64_t>& getVocabDf() const override
 		{
 			return vocabDf;
 		}

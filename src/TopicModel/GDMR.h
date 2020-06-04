@@ -18,7 +18,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentDMR<TermWeight::one>;
-		static IGDMRModel* create(TermWeight _weight, size_t _K = 1, const std::vector<size_t>& _degreeByF = {},
+		static IGDMRModel* create(TermWeight _weight, size_t _K = 1, const std::vector<uint64_t>& _degreeByF = {},
 			Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _sigma0 = 1.0, Float _eta = 0.01, Float _alphaEps = 1e-10,
 			const RandGen& _rg = RandGen{ std::random_device{}() });
 

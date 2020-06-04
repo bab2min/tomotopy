@@ -41,7 +41,7 @@ namespace tomoto
 
 		static constexpr char TMID[] = "DTM\0";
 
-		size_t T;
+		uint64_t T;
 		Float shapeA = 0.03f, shapeB = 0.1f, shapeC = 0.55f;
 		const Float alphaVar = 1.f, etaVar = 1.f, phiVar = 1.f, etaRegL2 = 0.0f;
 

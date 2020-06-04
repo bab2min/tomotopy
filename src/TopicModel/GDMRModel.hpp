@@ -333,7 +333,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma0, degreeByF, mdCoefs, mdIntercepts);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma0, degreeByF, mdCoefs, mdIntercepts, mdMax);
 
-		GDMRModel(size_t _K = 1, const std::vector<size_t>& _degreeByF = {}, 
+		GDMRModel(size_t _K = 1, const std::vector<uint64_t>& _degreeByF = {}, 
 			Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _sigma0 = 1.0, Float _eta = 0.01,
 			Float _alphaEps = 1e-10, const RandGen& _rg = RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), sigma0(_sigma0), degreeByF(_degreeByF)

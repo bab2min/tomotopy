@@ -34,9 +34,9 @@ namespace tomoto
 
 		static constexpr char TMID[] = "CTM\0";
 
-		size_t numBetaSample = 10;
-		size_t numTMNSample = 5;
-		size_t numDocBetaSample = -1;
+		uint64_t numBetaSample = 10;
+		uint64_t numTMNSample = 5;
+		uint64_t numDocBetaSample = -1;
 		math::MultiNormalDistribution<Float> topicPrior;
 		
 		template<bool _asymEta>

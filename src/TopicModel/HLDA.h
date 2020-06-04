@@ -33,6 +33,6 @@ namespace tomoto
 		virtual size_t getNumDocsOfTopic(Tid tid) const = 0;
 		virtual size_t getLevelOfTopic(Tid tid) const = 0;
 		virtual size_t getParentTopicId(Tid tid) const = 0;
-		virtual std::vector<size_t> getChildTopicId(Tid tid) const = 0;
+		virtual std::vector<uint32_t> getChildTopicId(Tid tid) const = 0;
 	};
 }

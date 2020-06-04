@@ -40,7 +40,7 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		size_t K2;
+		uint64_t K2;
 		Float epsilon = 0.00001;
 		size_t iteration = 5;
 

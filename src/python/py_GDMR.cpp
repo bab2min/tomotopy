@@ -26,7 +26,7 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		vector<size_t> degrees;
+		vector<uint64_t> degrees;
 		if (objDegrees)
 		{
 			py::UniqueObj degreeIter = PyObject_GetIter(objDegrees);
@@ -35,7 +35,7 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 				throw runtime_error{ "`degrees` must be an iterable of int." };
 			}
 
-			degrees = py::makeIterToVector<size_t>(degreeIter);
+			degrees = py::makeIterToVector<uint64_t>(degreeIter);
 		}
 
 		tomoto::IGDMRModel* inst = tomoto::IGDMRModel::create((tomoto::TermWeight)tw, K,
