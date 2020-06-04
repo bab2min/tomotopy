@@ -24,7 +24,7 @@ namespace tomoto
 
 		virtual Float getSigma0() const = 0;
 		virtual void setSigma0(Float) = 0;
-		virtual const std::vector<size_t>& getFs() const = 0;
+		virtual const std::vector<uint64_t>& getFs() const = 0;
 		virtual std::vector<Float> getLambdaByTopic(Tid tid) const = 0;
 
 		virtual std::vector<Float> getTDF(const Float* metadata, bool normalize) const = 0;

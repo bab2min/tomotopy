@@ -84,8 +84,8 @@ u8R""(문헌의 단어들이 각각 할당된 토픽을 보여주는 `list` (읽
 `tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서는 이 값이 상위토픽의 ID를 가리킵니다.)"");
 
 DOC_VARIABLE_EN_KO(Document_metadata__doc__,
-	u8R""("metadata of the document (for only `tomotopy.DMRModel` model, read-only))"",
-	u8R""(문헌의 메타데이터 (`tomotopy.DMRModel` 모형에서만 사용됨, 읽기전용))"");
+	u8R""("metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
+	u8R""(문헌의 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_subtopics__doc__,
 	u8R""(a `list` of sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model, read-only))"",

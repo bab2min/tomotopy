@@ -33,7 +33,7 @@ namespace tomoto
 
 		Float sigma0 = 3;
 		std::vector<Float> mdCoefs, mdIntercepts, mdMax;
-		std::vector<size_t> degreeByF;
+		std::vector<uint64_t> degreeByF;
 
 		Float getIntegratedLambdaSq(const Eigen::Ref<const Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>>& lambdas) const
 		{
@@ -341,7 +341,7 @@ namespace tomoto
 			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
 		}
 
-		GETTER(Fs, const std::vector<size_t>&, degreeByF);
+		GETTER(Fs, const std::vector<uint64_t>&, degreeByF);
 		GETTER(Sigma0, Float, sigma0);
 
 		void setSigma0(Float _sigma0) override

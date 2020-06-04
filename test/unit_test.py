@@ -14,6 +14,7 @@ model_cases = [
     (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:'_'.join(x), {'k':10}, None),
     (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}, None),
     (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:int(x[0]), {'k':10, 't':13}, None),
+    (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3]}, None),
 ]
 
 model_cases_raw = [
@@ -39,6 +40,8 @@ model_cases_corpus = [
     (tp.HPAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
     (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:{'metadata':'_'.join(x)}, {'k':10}, None),
     (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'y':list(map(float, x))}, {'k':10, 'vars':'b'}, None),
+    (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:{'timepoint':int(x[0])}, {'k':10, 't':13}, None),
+    (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:{'metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
 ]
 
 def train1(cls, inputFile, mdFields, f, kargs, ps):
@@ -222,6 +225,29 @@ def test_auto_labeling():
         for word, prob in mdl.get_topic_words(k, top_n=10):
             print(word, prob, sep='\t')
 
+def test_hdp_to_lda():
+    mdl = tp.HDPModel(tw=tp.TermWeight.ONE, min_df=5, rm_top=5, alpha=0.5, gamma=0.5, initial_k=5)
+    for n, line in enumerate(open('test/sample.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        mdl.add_doc(ch)
+    mdl.burn_in = 100
+    mdl.train(0)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Removed top words:', mdl.removed_top_words)
+    for i in range(0, 1000, 10):
+        mdl.train(10)
+        print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
+
+    lda, topic_mapping = mdl.convert_to_lda(topic_threshold=1e-3)
+    print(topic_mapping)
+    for i in range(0, 100, 10):
+        lda.train(10)
+        print('Iteration: {}\tLog-likelihood: {}'.format(i, lda.ll_per_word))
+
+    for k in range(lda.k):
+        print('Topic #{} ({})'.format(k, lda.get_count_by_topics()[k]))
+        for word, prob in lda.get_topic_words(k):
+            print('\t', word, prob, sep='\t')
 
 for model_case in model_cases:
     pss = model_case[5]
