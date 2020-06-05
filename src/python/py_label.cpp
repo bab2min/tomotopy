@@ -350,7 +350,16 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 			py::UniqueObj item;
 			while ((item = PyIter_Next(iter)))
 			{
-				if(!PyObject_TypeCheck(item, &Candidate_type)) throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+				/*
+				In macOS following PyObject_TypeCheck function fails in dynamic loading by ISA.
+				( https://github.com/bab2min/tomotopy/issues/40 )
+				Currently, it is prevented by comparing tp_name of PyTypeObject.
+				*/
+				//if (!PyObject_TypeCheck(item, &Candidate_type))
+				if (((PyTypeObject*)PyObject_Type(item))->tp_name == string("tomotopy.label.Candidate"))
+				{
+					throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+				}
 				pcands.emplace_back(&((CandidateObject*)item.get())->cand);
 			}
 		}
