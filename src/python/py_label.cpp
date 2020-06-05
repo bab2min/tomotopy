@@ -356,7 +356,7 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 				Currently, it is prevented by comparing tp_name of PyTypeObject.
 				*/
 				//if (!PyObject_TypeCheck(item, &Candidate_type))
-				if (((PyTypeObject*)PyObject_Type(item))->tp_name == string("tomotopy.label.Candidate"))
+				if (((PyTypeObject*)PyObject_Type(item))->tp_name != string("tomotopy.label.Candidate"))
 				{
 					throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 				}
