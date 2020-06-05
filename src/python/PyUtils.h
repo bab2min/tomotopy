@@ -213,63 +213,99 @@ namespace py
 		template<>
 		struct NpyType<int8_t>
 		{
-			enum { type = NPY_INT8 };
+			enum { 
+				type = NPY_INT8,
+				signed_type = type
+			};
 		};
 
 		template<>
 		struct NpyType<uint8_t>
 		{
-			enum { type = NPY_UINT8 };
+			enum { 
+				type = NPY_UINT8,
+				signed_type = NPY_INT8
+			};
 		};
 
 		template<>
 		struct NpyType<int16_t>
 		{
-			enum { type = NPY_INT16 };
+			enum { 
+				type = NPY_INT16,
+				signed_type = type
+			};
 		};
 
 		template<>
 		struct NpyType<uint16_t>
 		{
-			enum { type = NPY_UINT16 };
+			enum { 
+				type = NPY_UINT16,
+				signed_type = NPY_INT16
+			};
 		};
 
 		template<>
 		struct NpyType<int32_t>
 		{
-			enum { type = NPY_INT32 };
+			enum { 
+				type = NPY_INT32,
+				signed_type = type
+			};
 		};
 
 		template<>
 		struct NpyType<uint32_t>
 		{
-			enum { type = NPY_UINT32 };
+			enum { 
+				type = NPY_UINT32,
+				signed_type = NPY_INT32
+			};
 		};
 
 		template<>
 		struct NpyType<int64_t>
 		{
-			enum { type = NPY_INT64 };
+			enum { 
+				type = NPY_INT64,
+				signed_type = type
+			};
 		};
 
 		template<>
 		struct NpyType<uint64_t>
 		{
-			enum { type = NPY_UINT64 };
+			enum { 
+				type = NPY_UINT64, 
+				signed_type = NPY_INT64
+			};
 		};
 
 		template<>
 		struct NpyType<float>
 		{
-			enum { type = NPY_FLOAT };
+			enum { 
+				type = NPY_FLOAT, 
+				signed_type = type 
+			};
 		};
 
 		template<>
 		struct NpyType<double>
 		{
-			enum { type = NPY_DOUBLE };
+			enum { 
+				type = NPY_DOUBLE, 
+				signed_type = type 
+			};
 		};
 	}
+
+	struct cast_to_signed_t
+	{
+	};
+
+	static constexpr cast_to_signed_t cast_to_signed{};
 
 	template<typename _Ty>
 	inline typename std::enable_if<std::is_arithmetic<_Ty>::value, PyObject*>::type
@@ -277,6 +313,16 @@ namespace py
 	{
 		npy_intp size = v.size();
 		PyObject* obj = PyArray_EMPTY(1, &size, detail::NpyType<_Ty>::type, 0);
+		std::memcpy(PyArray_DATA((PyArrayObject*)obj), v.data(), sizeof(_Ty) * size);
+		return obj;
+	}
+
+	template<typename _Ty>
+	inline typename std::enable_if<std::is_arithmetic<_Ty>::value, PyObject*>::type
+		buildPyValue(const std::vector<_Ty>& v, cast_to_signed_t)
+	{
+		npy_intp size = v.size();
+		PyObject* obj = PyArray_EMPTY(1, &size, detail::NpyType<_Ty>::signed_type, 0);
 		std::memcpy(PyArray_DATA((PyArrayObject*)obj), v.data(), sizeof(_Ty) * size);
 		return obj;
 	}

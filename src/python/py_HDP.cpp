@@ -92,7 +92,7 @@ static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObje
 		ret->minWordCnt = self->minWordCnt;
 		ret->minWordDf = self->minWordDf;
 		ret->removeTopWord = self->removeTopWord;
-		return Py_BuildValue("(NN)", r.release(), py::buildPyValue(newK));
+		return Py_BuildValue("(NN)", r.release(), py::buildPyValue(newK, py::cast_to_signed));
 	}
 	catch (const bad_exception&)
 	{

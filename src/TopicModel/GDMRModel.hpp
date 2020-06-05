@@ -349,8 +349,12 @@ namespace tomoto
 			this->sigma0 = _sigma0;
 		}
 
+		template<bool _const = false>
 		_DocType& _updateDoc(_DocType& doc, const std::vector<std::string>& metadata) const
 		{
+			if (metadata.size() != degreeByF.size()) 
+				throw std::invalid_argument{ "a length of `metadata` should be equal to a length of `degrees`" };
+
 			std::transform(metadata.begin(), metadata.end(), back_inserter(doc.metadataOrg), [](const std::string& w)
 			{
 				return std::stof(w);
@@ -368,6 +372,36 @@ namespace tomoto
 		{
 			auto doc = as_mutable(this)->template _makeDoc<true>(words);
 			return make_unique<_DocType>(_updateDoc(doc, metadata));
+		}
+
+		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
+			const std::vector<std::string>& metadata) override
+		{
+			auto doc = this->template _makeRawDoc<false>(rawStr, tokenizer);
+			return this->_addDoc(_updateDoc(doc, metadata));
+		}
+
+		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
+			const std::vector<std::string>& metadata) const override
+		{
+			auto doc = as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
+		}
+
+		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
+			const std::vector<std::string>& metadata) override
+		{
+			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
+			return this->_addDoc(_updateDoc(doc, metadata));
+		}
+
+		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
+			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
+			const std::vector<std::string>& metadata) const override
+		{
+			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
 		}
 
 		std::vector<Float> getTopicsByDoc(const _DocType& doc) const

@@ -51,7 +51,7 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
 
     def _select_args_for_model(self, model_type:type, args:dict):
         import tomotopy as tp
-        if model_type is tp.DMRModel:
+        if model_type in (tp.DMRModel, tp.GDMRModel):
             return {k:v for k, v in args.items() if k in ('metadata')}
         if model_type in (tp.LLDAModel, tp.PLDAModel):
             return {k:v for k, v in args.items() if k in ('labels')}

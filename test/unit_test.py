@@ -17,7 +17,7 @@ model_cases = [
     (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3]}, None),
 ]
 
-model_cases_raw = [
+model_raw_cases = [
     (tp.LDAModel, 'test/sample_raw.txt', 0, None, {'k':10}, None),
     (tp.HLDAModel, 'test/sample_raw.txt', 0, None, {'depth':3}, [tp.ParallelScheme.NONE]),
     (tp.CTModel, 'test/sample_raw.txt', 0, None, {'k':10}, None),
@@ -27,7 +27,7 @@ model_cases_raw = [
     (tp.HPAModel, 'test/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
 ]
 
-model_cases_corpus = [
+model_corpus_cases = [
     (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}, None),
     (tp.LLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'labels':x}, {'k':5}, None),
     (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
@@ -117,6 +117,7 @@ def infer(cls, inputFile, mdFields, f, kargs, ps):
                 mdl.add_doc(ch)
     mdl.train(20, parallel=ps)
     for n, line in enumerate(unseen_docs):
+        ch = line.strip().split()
         if mdFields:
             unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
         else:
@@ -142,6 +143,7 @@ def infer_together(cls, inputFile, mdFields, f, kargs, ps):
                 mdl.add_doc(ch)
     mdl.train(20, parallel=ps)
     for n, line in enumerate(unseen_docs):
+        ch = line.strip().split()
         if mdFields:
             unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
         else:
@@ -256,14 +258,14 @@ for model_case in model_cases:
         for func in [train1, train4, train0, save_and_load, infer, infer_together]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-for model_case in model_cases_corpus:
+for model_case in model_corpus_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
         for func in [train_corpus]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-for model_case in model_cases_raw:
+for model_case in model_raw_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:

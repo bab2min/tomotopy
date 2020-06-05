@@ -120,7 +120,6 @@ static PyObject* GDMR_addDoc_(TopicModelObject* self, PyObject* args, PyObject *
 {
 	PyObject *argWords, *argStartPos = nullptr, *argLength = nullptr, *argMetadata = nullptr;
 	const char* argRaw = nullptr;
-	const char* metadata = "";
 	static const char* kwlist[] = { "words", "raw", "start_pos", "length", "metadata", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sOOO", (char**)kwlist,
 		&argWords, &argRaw, &argStartPos, &argLength, &argMetadata)) return nullptr;
@@ -179,7 +178,7 @@ static PyObject* GDMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 			throw runtime_error{ "`metadata` must be an iterable of float." };
 		}
 
-		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), py::makeIterToStringVector<float>(iter));
+		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), py::makeIterToStringVector<float>(iterMetadata));
 		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
 		return PyObject_CallObject((PyObject*)&Document_type, args);
 	}

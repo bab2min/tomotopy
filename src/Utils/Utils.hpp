@@ -209,8 +209,8 @@ namespace tomoto
 	class TransformIter
 	{
 	private:
-		_UnaryFunc f;
 		_Iterator i;
+		_UnaryFunc f;
 	public:
 		using reference = typename std::result_of<
 			const _UnaryFunc(typename std::iterator_traits<_Iterator>::reference)

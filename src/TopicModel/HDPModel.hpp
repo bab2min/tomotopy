@@ -565,7 +565,7 @@ namespace tomoto
 				for (size_t j = 0; j < this->docs[i].Zs.size(); ++j)
 				{
 					size_t newTopic = newK[this->docs[i].numTopicByTable[this->docs[i].Zs[j]].topic];
-					while (newTopic == (size_t)-1) newTopic = newK[randomTopic(rng)];
+					while (newTopic == (Tid)-1) newTopic = newK[randomTopic(rng)];
 					lda->docs[i].Zs[j] = newTopic;
 				}
 			}
