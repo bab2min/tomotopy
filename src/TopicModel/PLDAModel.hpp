@@ -30,7 +30,7 @@ namespace tomoto
 
 		Dictionary topicLabelDict;
 
-		size_t numLatentTopics, numTopicsPerLabel;
+		uint64_t numLatentTopics, numTopicsPerLabel;
 
 		template<bool _asymEta>
 		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const

@@ -14,9 +14,10 @@ model_cases = [
     (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:'_'.join(x), {'k':10}, None),
     (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}, None),
     (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:int(x[0]), {'k':10, 't':13}, None),
+    (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3]}, None),
 ]
 
-model_cases_raw = [
+model_raw_cases = [
     (tp.LDAModel, 'test/sample_raw.txt', 0, None, {'k':10}, None),
     (tp.HLDAModel, 'test/sample_raw.txt', 0, None, {'depth':3}, [tp.ParallelScheme.NONE]),
     (tp.CTModel, 'test/sample_raw.txt', 0, None, {'k':10}, None),
@@ -26,7 +27,7 @@ model_cases_raw = [
     (tp.HPAModel, 'test/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
 ]
 
-model_cases_corpus = [
+model_corpus_cases = [
     (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}, None),
     (tp.LLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'labels':x}, {'k':5}, None),
     (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
@@ -39,6 +40,8 @@ model_cases_corpus = [
     (tp.HPAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
     (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:{'metadata':'_'.join(x)}, {'k':10}, None),
     (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'y':list(map(float, x))}, {'k':10, 'vars':'b'}, None),
+    (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:{'timepoint':int(x[0])}, {'k':10, 't':13}, None),
+    (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:{'metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
 ]
 
 def train1(cls, inputFile, mdFields, f, kargs, ps):
@@ -114,6 +117,7 @@ def infer(cls, inputFile, mdFields, f, kargs, ps):
                 mdl.add_doc(ch)
     mdl.train(20, parallel=ps)
     for n, line in enumerate(unseen_docs):
+        ch = line.strip().split()
         if mdFields:
             unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
         else:
@@ -139,6 +143,7 @@ def infer_together(cls, inputFile, mdFields, f, kargs, ps):
                 mdl.add_doc(ch)
     mdl.train(20, parallel=ps)
     for n, line in enumerate(unseen_docs):
+        ch = line.strip().split()
         if mdFields:
             unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
         else:
@@ -222,6 +227,29 @@ def test_auto_labeling():
         for word, prob in mdl.get_topic_words(k, top_n=10):
             print(word, prob, sep='\t')
 
+def test_hdp_to_lda():
+    mdl = tp.HDPModel(tw=tp.TermWeight.ONE, min_df=5, rm_top=5, alpha=0.5, gamma=0.5, initial_k=5)
+    for n, line in enumerate(open('test/sample.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        mdl.add_doc(ch)
+    mdl.burn_in = 100
+    mdl.train(0)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Removed top words:', mdl.removed_top_words)
+    for i in range(0, 1000, 10):
+        mdl.train(10)
+        print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
+
+    lda, topic_mapping = mdl.convert_to_lda(topic_threshold=1e-3)
+    print(topic_mapping)
+    for i in range(0, 100, 10):
+        lda.train(10)
+        print('Iteration: {}\tLog-likelihood: {}'.format(i, lda.ll_per_word))
+
+    for k in range(lda.k):
+        print('Topic #{} ({})'.format(k, lda.get_count_by_topics()[k]))
+        for word, prob in lda.get_topic_words(k):
+            print('\t', word, prob, sep='\t')
 
 for model_case in model_cases:
     pss = model_case[5]
@@ -230,14 +258,14 @@ for model_case in model_cases:
         for func in [train1, train4, train0, save_and_load, infer, infer_together]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-for model_case in model_cases_corpus:
+for model_case in model_corpus_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
         for func in [train_corpus]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-for model_case in model_cases_raw:
+for model_case in model_raw_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:

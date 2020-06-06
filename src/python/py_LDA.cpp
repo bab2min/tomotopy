@@ -92,14 +92,25 @@ static PyObject* LDA_addDoc_(TopicModelObject* self, PyObject* args, PyObject *k
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		string raw;
 		if (argRaw) raw = argRaw;
+		if (argRaw && (!argStartPos || !argLength))
+		{
+			throw runtime_error{ "`start_pos` and `length` must be given when `raw` is given." };
+		}
+
+		vector<tomoto::Vid> words;
+		vector<uint32_t> startPos;
+		vector<uint16_t> length;
 
 		py::UniqueObj iter = PyObject_GetIter(argWords);
-		vector<tomoto::Vid> words = py::makeIterToVector<tomoto::Vid>(iter);
-		iter = PyObject_GetIter(argStartPos);
-		vector<uint32_t> startPos = py::makeIterToVector<uint32_t>(iter);
-		iter = PyObject_GetIter(argLength);
-		vector<uint16_t> length = py::makeIterToVector<uint16_t>(iter);
-		char2Byte(raw, startPos, length);
+		words = py::makeIterToVector<tomoto::Vid>(iter);
+		if (argStartPos)
+		{
+			iter = PyObject_GetIter(argStartPos);
+			startPos = py::makeIterToVector<uint32_t>(iter);
+			iter = PyObject_GetIter(argLength);
+			length = py::makeIterToVector<uint16_t>(iter);
+			char2Byte(raw, startPos, length);
+		}
 		auto ret = inst->addDoc(raw, words, startPos, length);
 		return py::buildPyValue(ret);
 	}
@@ -446,6 +457,61 @@ static PyObject* LDA_getVocabs(TopicModelObject* self, void* closure)
 	}
 }
 
+static PyObject* LDA_getUsedVocabs(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		py::UniqueObj args = Py_BuildValue("(On)", self, &self->inst->getVocabDict(), self->inst->getV());
+		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* LDA_getUsedVocabCf(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		return py::buildPyValue(self->inst->getVocabCf().begin(), self->inst->getVocabCf().begin() + self->inst->getV());
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* LDA_getUsedVocabDf(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		return py::buildPyValue(self->inst->getVocabDf().begin(), self->inst->getVocabDf().begin() + self->inst->getV());
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 static PyObject* LDA_getCountByTopics(TopicModelObject* self)
 {
 	try
@@ -532,6 +598,7 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getTermWeight);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getN);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getV);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabCf);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabDf);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getOptimInterval);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getBurnInIteration);
 
@@ -629,6 +696,10 @@ static PyGetSetDef LDA_getseters[] = {
 	{ (char*)"optim_interval", (getter)LDA_getOptimInterval, (setter)LDA_setOptimInterval, LDA_optim_interval__doc__, nullptr },
 	{ (char*)"burn_in", (getter)LDA_getBurnInIteration, (setter)LDA_setBurnInIteration, LDA_burn_in__doc__, nullptr },
 	{ (char*)"removed_top_words", (getter)LDA_getRemovedTopWords, nullptr, LDA_removed_top_words__doc__, nullptr },
+	{ (char*)"used_vocabs", (getter)LDA_getUsedVocabs, nullptr, LDA_used_vocabs__doc__, nullptr },
+	{ (char*)"used_vocab_freq", (getter)LDA_getUsedVocabCf, nullptr, LDA_used_vocab_freq__doc__, nullptr },
+	{ (char*)"vocab_df", (getter)LDA_getVocabDf, nullptr, LDA_vocab_df__doc__, nullptr },
+	{ (char*)"used_vocab_df", (getter)LDA_getUsedVocabDf, nullptr, LDA_used_vocab_df__doc__, nullptr },
 	{ nullptr },
 };
 

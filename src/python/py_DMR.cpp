@@ -90,14 +90,25 @@ static PyObject* DMR_addDoc_(TopicModelObject* self, PyObject* args, PyObject *k
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		string raw;
 		if (argRaw) raw = argRaw;
+		if (argRaw && (!argStartPos || !argLength))
+		{
+			throw runtime_error{ "`start_pos` and `length` must be given when `raw` is given." };
+		}
+
+		vector<tomoto::Vid> words;
+		vector<uint32_t> startPos;
+		vector<uint16_t> length;
 
 		py::UniqueObj iter = PyObject_GetIter(argWords);
-		vector<tomoto::Vid> words = py::makeIterToVector<tomoto::Vid>(iter);
-		iter = PyObject_GetIter(argStartPos);
-		vector<uint32_t> startPos = py::makeIterToVector<uint32_t>(iter);
-		iter = PyObject_GetIter(argLength);
-		vector<uint16_t> length = py::makeIterToVector<uint16_t>(iter);
-		char2Byte(raw, startPos, length);
+		words = py::makeIterToVector<tomoto::Vid>(iter);
+		if (argStartPos)
+		{
+			iter = PyObject_GetIter(argStartPos);
+			startPos = py::makeIterToVector<uint32_t>(iter);
+			iter = PyObject_GetIter(argLength);
+			length = py::makeIterToVector<uint16_t>(iter);
+			char2Byte(raw, startPos, length);
+		}
 		auto ret = inst->addDoc(raw, words, startPos, length, { string{metadata} });
 		return py::buildPyValue(ret);
 	}
@@ -169,10 +180,12 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
-		PyObject* ret = PyList_New(inst->getK());
+		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getF() };
+		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
 		for (size_t i = 0; i < inst->getK(); ++i)
 		{
-			PyList_SetItem(ret, i, py::buildPyValue(inst->getLambdaByTopic(i)));
+			auto l = inst->getLambdaByTopic(i);
+			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
 		}
 		return ret;
 	}
@@ -190,7 +203,7 @@ DEFINE_GETTER(tomoto::IDMRModel, DMR, getAlphaEps);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getSigma);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getF);
 
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentDMR, metadata, metadata);
+DEFINE_DOCUMENT_GETTER(tomoto::DocumentDMR, DMR_metadata, metadata);
 
 DEFINE_LOADER(DMR, DMR_type);
 

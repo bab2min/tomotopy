@@ -114,6 +114,14 @@ namespace tomoto
 		static constexpr char TWID[] = "pmi\0";
 	};
 
+	// to make HDP friend of LDA for HDPModel::converToLDA
+	template<TermWeight _tw,
+		typename _Interface,
+		typename _Derived,
+		typename _DocType,
+		typename _ModelState>
+	class HDPModel;
+
 	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
@@ -131,6 +139,13 @@ namespace tomoto
 		friend EtaHelper<DerivedClass, true>;
 		friend EtaHelper<DerivedClass, false>;
 
+		template<TermWeight,
+			typename,
+			typename,
+			typename,
+			typename>
+		friend class HDPModel;
+
 		static constexpr char TMID[] = "LDA\0";
 		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
@@ -145,7 +160,7 @@ namespace tomoto
 		std::unordered_map<std::string, std::vector<Float>> etaByWord;
 		Eigen::Matrix<Float, -1, -1> etaByTopicWord; // (K, V)
 		Eigen::Matrix<Float, -1, 1> etaSumByTopic; // (K, )
-		size_t optimInterval = 10, burnIn = 0;
+		uint32_t optimInterval = 10, burnIn = 0;
 		Eigen::Matrix<WeightType, -1, -1> numByTopicDoc;
 		
 		struct ExtraDocData
@@ -233,6 +248,21 @@ namespace tomoto
 			updateCnt<_dec>(doc.numByTopic[tid], _inc * weight);
 			updateCnt<_dec>(ld.numByTopic[tid], _inc * weight);
 			updateCnt<_dec>(ld.numByTopicWord(tid, vid), _inc * weight);
+		}
+
+		void resetStatistics()
+		{
+			this->globalState.numByTopic.setZero();
+			this->globalState.numByTopicWord.setZero();
+			for (auto& doc : this->docs)
+			{
+				doc.numByTopic.setZero();
+				for (size_t w = 0; w < doc.words.size(); ++w)
+				{
+					if (doc.words[w] >= this->realV) continue;
+					addWordTo<1>(this->globalState, doc, w, doc.words[w], doc.Zs[w]);
+				}
+			}
 		}
 
 		/*
@@ -679,9 +709,9 @@ namespace tomoto
 			doc.updateSumWordWeight(this->realV);
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(K);
+			std::vector<uint64_t> cnt(K);
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)
@@ -791,9 +821,12 @@ namespace tomoto
 						for (size_t i = 0; i < maxIter; ++i)
 						{
 							static_cast<const DerivedClass*>(this)->presampleDocument(*d, -1, tmpState, rgc, i);
-							static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(*d, edd, -1, tmpState, rgc, i);
+							static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(
+								*d, edd, -1, tmpState, rgc, i
+							);
 							static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
-								nullptr, &tmpState, &rgc, &*d, &*d + 1);
+								nullptr, &tmpState, &rgc, &*d, &*d + 1
+							);
 						}
 						double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
 						ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(&*d, &*d + 1);
@@ -974,7 +1007,7 @@ namespace tomoto
 			BaseClass::prepare(initDocs, minWordCnt, minWordDf, removeTopN);
 		}
 
-		std::vector<size_t> getCountByTopic() const override
+		std::vector<uint64_t> getCountByTopic() const override
 		{
 			return static_cast<const DerivedClass*>(this)->_getTopicsCount();
 		}

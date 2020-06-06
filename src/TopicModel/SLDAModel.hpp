@@ -193,7 +193,7 @@ namespace tomoto
 
 		static constexpr char TMID[] = "SLDA";
 
-		size_t F; // number of response variables
+		uint64_t F; // number of response variables
 		std::vector<ISLDAModel::GLM> varTypes;
 		std::vector<Float> glmParam;
 

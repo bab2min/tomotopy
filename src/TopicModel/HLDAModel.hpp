@@ -582,9 +582,9 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z);
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(this->globalState.nt->nodes.size());
+			std::vector<uint64_t> cnt(this->globalState.nt->nodes.size());
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)
@@ -650,9 +650,9 @@ namespace tomoto
 			return this->globalState.nt->nodes[tid].level;
 		}
 
-		std::vector<size_t> getChildTopicId(Tid tid) const override
+		std::vector<uint32_t> getChildTopicId(Tid tid) const override
 		{
-			std::vector<size_t> ret;
+			std::vector<uint32_t> ret;
 			if (!isLiveTopic(tid)) return ret;
 			for (auto* node = this->globalState.nt->nodes[tid].getChild(); node; node = node->getSibling())
 			{

@@ -231,6 +231,7 @@ extern PyTypeObject HLDA_type;
 extern PyTypeObject LLDA_type;
 extern PyTypeObject PLDA_type;
 extern PyTypeObject DT_type;
+extern PyTypeObject GDMR_type;
 
 struct TopicModelObject
 {
@@ -270,6 +271,7 @@ struct DictionaryObject
 	PyObject_HEAD;
 	TopicModelObject* parentModel;
 	const tomoto::Dictionary* dict;
+	size_t vocabSize;
 
 	static void dealloc(DictionaryObject* self);
 
@@ -288,11 +290,13 @@ DEFINE_GETTER_PROTOTYPE(LDA, getEta);
 
 PyObject* Document_LDA_Z(DocumentObject* self, void* closure);
 
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(metadata);
-
 PyObject* Document_HDP_Z(DocumentObject* self, void* closure);
 
 PyObject* Document_HLDA_Z(DocumentObject* self, void* closure);
+
+PyObject* Document_DMR_metadata(DocumentObject* self, void* closure);
+
+PyObject* Document_GDMR_metadata(DocumentObject* self, void* closure);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(windows);
 

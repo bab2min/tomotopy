@@ -9,6 +9,7 @@ tomotopy 란?
 * Partially Labeled LDA (`tomotopy.PLDAModel`)
 * Supervised LDA (`tomotopy.SLDAModel`)
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`)
+* Generalized Dirichlet Multinomial Regression (`tomotopy.GDMRModel`)
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`)
 * Hierarchical LDA (`tomotopy.HLDAModel`)
 * Multi Grain LDA (`tomotopy.MGLDAModel`) 
@@ -17,7 +18,7 @@ tomotopy 란?
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
 
-tomotopy의 가장 최신버전은 0.7.1 입니다.
+tomotopy의 가장 최신버전은 0.8.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -278,6 +279,16 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.8.0 (2020-06-06)
+    * NumPy가 tomotopy에 도입됨에 따라 많은 메소드와 프로퍼티들이 `list`가 아니라 `numpy.ndarray`를 반환하도록 변경되었습니다.
+    * Tomotopy에 새 의존관계 `NumPy >= 1.10.0`가 추가되었습니다..
+    * `tomotopy.HDPModel.infer`가 잘못된 추론을 하던 문제가 수정되었습니다.
+    * HDP 모델을 LDA 모델로 변환하는 메소드가 추가되었습니다.
+    * `tomotopy.LDAModel.used_vocabs`, `tomotopy.LDAModel.used_vocab_freq`, `tomotopy.LDAModel.used_vocab_df` 등의 새로운 프로퍼티가 모델에 추가되었습니다.
+    * 새로운 토픽 모델인 g-DMR(`tomotopy.GDMRModel`)가 추가되었습니다.
+    * macOS에서 `tomotopy.label.FoRelevance`를 생성할 때 발생하던 문제가 해결되었습니다.
+    * `tomotopy.utils.Corpus.add_doc`로 `raw`가 없는 문헌을 생성한 뒤 토픽 모델에 입력할 시 발생하는 오류를 수정했습니다.
+
 * 0.7.1 (2020-05-08)
     * `tomotopy.HLDAModel`용으로 `tomotopy.Document.path`가 새로 추가되었습니다.
     * `tomotopy.label.PMIExtractor` 사용시에 발생하던 메모리 문제가 해결되었습니다.

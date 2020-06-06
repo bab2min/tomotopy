@@ -8,7 +8,7 @@ def lda_example(input_file, save_path):
         mdl.add_doc(ch)
     mdl.burn_in = 100
     mdl.train(0)
-    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', len(mdl.used_vocabs), ', Num words:', mdl.num_words)
     print('Removed top words:', mdl.removed_top_words)
     print('Training...', file=sys.stderr, flush=True)
     for i in range(0, 1000, 10):
@@ -31,7 +31,7 @@ def hdp_example(input_file, save_path):
         mdl.add_doc(ch)
     mdl.burn_in = 100
     mdl.train(0)
-    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', len(mdl.used_vocabs), ', Num words:', mdl.num_words)
     print('Removed top words:', mdl.removed_top_words)
     print('Training...', file=sys.stderr, flush=True)
     for i in range(0, 1000, 10):
@@ -63,7 +63,7 @@ def word_prior_example(input_file):
     # Topic 2 for a topic related to 'citi'
     mdl.set_word_prior('citi', [1.0 if k == 2 else 0.1 for k in range(20)])
     mdl.train(0)
-    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', len(mdl.used_vocabs), ', Num words:', mdl.num_words)
     print('Removed top words:', mdl.removed_top_words)
     for i in range(0, 1000, 10):
         mdl.train(10)
@@ -83,7 +83,7 @@ def corpus_and_labeling_example(input_file):
     # make LDA model and train
     mdl = tp.LDAModel(k=20, min_cf=10, min_df=5, corpus=corpus)
     mdl.train(0)
-    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', len(mdl.used_vocabs), ', Num words:', mdl.num_words)
     print('Removed top words:', mdl.removed_top_words)
     for i in range(0, 1000, 10):
         mdl.train(10)
@@ -114,7 +114,7 @@ def raw_corpus_and_labeling_example(input_file):
     # make LDA model and train
     mdl = tp.LDAModel(k=20, min_cf=10, min_df=5, corpus=corpus)
     mdl.train(0)
-    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', len(mdl.used_vocabs), ', Num words:', mdl.num_words)
     print('Removed top words:', mdl.removed_top_words)
     for i in range(0, 1000, 10):
         mdl.train(10)

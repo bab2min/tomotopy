@@ -2,6 +2,9 @@ from setuptools import setup, Extension
 from codecs import open
 import os, os.path, struct, re, platform
 from setuptools.command.install import install
+import numpy
+
+exec(open('tomotopy/version.py').read())
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -43,7 +46,7 @@ for arch, aopt in arch_levels.items():
     module_name = '_tomotopy' + ('_' + arch if arch else '')
     modules.append(Extension(module_name,
                     libraries=[],
-                    include_dirs=['include'],
+                    include_dirs=['include', numpy.get_include()],
                     sources=sources,
                     define_macros=[('MODULE_NAME', 'PyInit_' + module_name)] + lang_macro,
                     extra_compile_args=cargs + (aopt.split(' ') if aopt else []), extra_link_args=largs))
@@ -52,7 +55,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version='0.7.1',
+    version=__version__,
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
@@ -85,7 +88,7 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: MacOS"
     ],
-    install_requires=['py-cpuinfo'],
+    install_requires=['py-cpuinfo', 'numpy>=1.10.0'],
     keywords='NLP,Topic Model',
 
     packages = ['tomotopy'],

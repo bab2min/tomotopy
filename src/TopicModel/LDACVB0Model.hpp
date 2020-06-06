@@ -304,7 +304,7 @@ namespace tomoto
 			}
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
 			Eigen::VectorXf cnt = Eigen::VectorXf::Zero(K);
 			for (auto& doc : this->docs)

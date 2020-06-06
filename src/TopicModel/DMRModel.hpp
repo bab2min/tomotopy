@@ -37,8 +37,8 @@ namespace tomoto
 		Eigen::Matrix<Float, -1, -1> lambda;
 		Eigen::Matrix<Float, -1, -1> expLambda;
 		Float sigma;
-		size_t F = 0;
-		size_t optimRepeat = 5;
+		uint32_t F = 0;
+		uint32_t optimRepeat = 5;
 		Float alphaEps = 1e-10;
 		Float temperatureScale = 0;
 		static constexpr Float maxLambda = 10;

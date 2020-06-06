@@ -1,1 +1,2 @@
 py-cpuinfo
+numpy>=1.10.0

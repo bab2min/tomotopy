@@ -1,7 +1,9 @@
+#define MAIN_MODULE
 #include "module.h"
 #include "label.h"
 
 #define TM_DMR
+#define TM_GDMR
 #define TM_HDP
 #define TM_MGLDA
 #define TM_PA
@@ -109,7 +111,7 @@ Py_ssize_t DictionaryObject::len(DictionaryObject* self)
 	try
 	{
 		if (!self->dict) throw runtime_error{ "dict is null" };
-		return self->dict->size();
+		return self->vocabSize;
 	}
 	catch (const bad_exception&)
 	{
@@ -127,7 +129,7 @@ PyObject* DictionaryObject::getitem(DictionaryObject* self, Py_ssize_t key)
 	try
 	{
 		if (!self->dict) throw runtime_error{ "inst is null" };
-		if (key >= self->dict->size())
+		if (key >= self->vocabSize)
 		{
 			PyErr_SetString(PyExc_IndexError, "");
 			throw bad_exception{};
@@ -157,13 +159,17 @@ int DictionaryObject::init(DictionaryObject *self, PyObject *args, PyObject *kwa
 {
 	PyObject* argParent;
 	const tomoto::Dictionary* dict;
-	static const char* kwlist[] = { "f", "g", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "On", (char**)kwlist, &argParent, &dict)) return -1;
+	size_t vocabSize = 0;
+	static const char* kwlist[] = { "f", "g", "v", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "On|n", (char**)kwlist, 
+		&argParent, &dict, &vocabSize)) return -1;
 	try
 	{
 		self->parentModel = (TopicModelObject*)argParent;
 		Py_INCREF(argParent);
 		self->dict = dict;
+		if (!vocabSize) vocabSize = dict->size();
+		self->vocabSize = vocabSize;
 	}
 	catch (const exception& e)
 	{
@@ -362,7 +368,6 @@ static PyObject* Document_weight(DocumentObject* self, void* closure)
 	}
 }
 
-
 static PyObject* Document_Z(DocumentObject* self, void* closure)
 {
 	PyObject* ret;
@@ -379,7 +384,34 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 #endif
 		ret = Document_LDA_Z(self, closure);
 		if(ret) return ret;
-		throw runtime_error{ "doc doesn't has 'Zs' field!" };
+		throw runtime_error{ "doc doesn't has 'topics' field!" };
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* Document_metadata(DocumentObject* self, void* closure)
+{
+	PyObject* ret;
+	try
+	{
+		if (!self->doc) throw runtime_error{ "doc is null!" };
+#ifdef TM_GDMR
+		ret = Document_GDMR_metadata(self, closure);
+		if (ret) return ret;
+#endif
+#ifdef TM_DMR
+		ret = Document_DMR_metadata(self, closure);
+		if (ret) return ret;
+#endif
+		throw runtime_error{ "doc doesn't has 'metadata' field!" };
 	}
 	catch (const bad_exception&)
 	{
@@ -578,6 +610,8 @@ PyTypeObject Corpus_type = {
 
 PyMODINIT_FUNC MODULE_NAME()
 {
+	import_array();
+
 	static PyModuleDef mod =
 	{
 		PyModuleDef_HEAD_INIT,
@@ -589,7 +623,6 @@ PyMODINIT_FUNC MODULE_NAME()
 
 	gModule = PyModule_Create(&mod);
 	if (!gModule) return nullptr;
-
 
 	if (PyType_Ready(&Document_type) < 0) return nullptr;
 	Py_INCREF(&Document_type);
@@ -658,6 +691,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	if (PyType_Ready(&DT_type) < 0) return nullptr;
 	Py_INCREF(&DT_type);
 	PyModule_AddObject(gModule, "DTModel", (PyObject*)&DT_type);
+#endif
+#ifdef TM_GDMR
+	if (PyType_Ready(&GDMR_type) < 0) return nullptr;
+	Py_INCREF(&GDMR_type);
+	PyModule_AddObject(gModule, "GDMRModel", (PyObject*)&GDMR_type);
 #endif
 
 #ifdef __AVX2__

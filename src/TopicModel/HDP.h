@@ -46,6 +46,8 @@ namespace tomoto
 		{
 			return std::count_if(numTopicByTable.begin(), numTopicByTable.end(), [](const TableTopicInfo& e) { return (bool)e; });
 		}
+
+		// add a new table into doc and return the new table's idx
 		size_t addNewTable(Tid tid)
 		{
 			return insertIntoEmpty(numTopicByTable, TableTopicInfo( 0, tid ));
@@ -64,5 +66,7 @@ namespace tomoto
 		virtual size_t getTotalTables() const = 0;
 		virtual size_t getLiveK() const = 0;
 		virtual bool isLiveTopic(Tid tid) const = 0;
+
+		virtual std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<Tid>& newK) const = 0;
 	};
 }

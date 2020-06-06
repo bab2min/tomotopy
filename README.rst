@@ -25,6 +25,7 @@ The current version of `tomoto` supports several major topic models including
 * Partially Labeled LDA (`tomotopy.PLDAModel`)
 * Supervised LDA (`tomotopy.SLDAModel`)
 * Dirichlet Multinomial Regression (`tomotopy.DMRModel`)
+* Generalized Dirichlet Multinomial Regression (`tomotopy.GDMRModel`)
 * Hierarchical Dirichlet Process (`tomotopy.HDPModel`)
 * Hierarchical LDA (`tomotopy.HLDAModel`)
 * Multi Grain LDA (`tomotopy.MGLDAModel`) 
@@ -35,7 +36,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.7.1.
+The most recent version of tomotopy is 0.8.0.
 
 Getting Started
 ---------------
@@ -179,7 +180,7 @@ Since `make_doc` returns the instance directly, you can use its return value for
     mdl = tp.LDAModel(k=20)
     # add_doc ...
     mdl.train(100)
-    doc_inst = mdl.make_doc(unseen_words) # doc_inst is an instance of the unseen document
+    doc_inst = mdl.make_doc(unseen_doc) # doc_inst is an instance of the unseen document
 
 Inference for Unseen Documents
 ------------------------------
@@ -191,7 +192,7 @@ Inference for unseen document should be performed using `tomotopy.LDAModel.infer
     mdl = tp.LDAModel(k=20)
     # add_doc ...
     mdl.train(100)
-    doc_inst = mdl.make_doc(unseen_words)
+    doc_inst = mdl.make_doc(unseen_doc)
     topic_dist, ll = mdl.infer(doc_inst)
     print("Topic Distribution for Unseen Docs: ", topic_dist)
     print("Log-likelihood of inference: ", ll)
@@ -245,6 +246,16 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.8.0 (2020-06-06)
+    * Since NumPy was introduced in tomotopy, many methods and properties of tomotopy return not just `list`, but `numpy.ndarray` now.
+    * Tomotopy has a new dependency `NumPy >= 1.10.0`.
+    * A wrong estimation of `tomotopy.HDPModel.infer` was fixed.
+    * A new method about converting HDPModel to LDAModel was added.
+    * New properties including `tomotopy.LDAModel.used_vocabs`, `tomotopy.LDAModel.used_vocab_freq` and `tomotopy.LDAModel.used_vocab_df` were added into topic models.
+    * A new g-DMR topic model(`tomotopy.GDMRModel`) was added.
+    * An error at initializing `tomotopy.label.FoRelevance` in macOS was fixed.
+    * An error that occured when using `tomotopy.utils.Corpus` created without `raw` parameters was fixed.
+
 * 0.7.1 (2020-05-08)
     * `tomotopy.Document.path` was added for `tomotopy.HLDAModel`.
     * A memory corruption bug in `tomotopy.label.PMIExtractor` was fixed.

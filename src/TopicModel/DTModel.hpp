@@ -41,7 +41,7 @@ namespace tomoto
 
 		static constexpr char TMID[] = "DTM\0";
 
-		size_t T;
+		uint64_t T;
 		Float shapeA = 0.03f, shapeB = 0.1f, shapeC = 0.55f;
 		const Float alphaVar = 1.f, etaVar = 1.f, phiVar = 1.f, etaRegL2 = 0.0f;
 
@@ -475,9 +475,9 @@ namespace tomoto
 			return doc;
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(this->K * T);
+			std::vector<uint64_t> cnt(this->K * T);
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)

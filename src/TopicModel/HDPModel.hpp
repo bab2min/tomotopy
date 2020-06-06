@@ -193,6 +193,7 @@ namespace tomoto
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
 		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
+			// sample a table for each word
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
@@ -200,11 +201,11 @@ namespace tomoto
 				calcWordTopicProb(ld, doc.words[w]);
 				auto topicDist = getTopicLikelihoods(ld);
 				auto dist = getTableLikelihoods(ld, doc, doc.words[w]);
-				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + (_infer ? 0 : 1), rgs);
+				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + doc.numTopicByTable.size() + 1, rgs);
 				if (doc.Zs[w] == doc.numTopicByTable.size()) // create new table
 				{
 					size_t K = ld.numByTopic.size();
-					Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + 1, rgs);
+					Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + (_infer ? 0 : 1), rgs);
 					if (newTopic == K) // create new topic
 					{
 						newTopic = addTopic(ld);
@@ -217,6 +218,7 @@ namespace tomoto
 				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w], doc.numTopicByTable[doc.Zs[w]].topic);
 			}
 
+			// sample a topic for each table
 			for (size_t t = 0; t < doc.getNumTable(); ++t)
 			{
 				auto& curTable = doc.numTopicByTable[t];
@@ -234,9 +236,16 @@ namespace tomoto
 						/ (ld.numByTopic.array().template cast<Float>() + this->realV * this->eta)).log();
 					ld.zLikelihood[K] += log(1. / this->realV);
 				}
+
+				// turn off dead topics
+				for (size_t k = 0; k < K; ++k)
+				{
+					if (!isLiveTopic(k)) ld.zLikelihood[k] = -INFINITY;
+				}
+
 				ld.zLikelihood = (ld.zLikelihood.array() - ld.zLikelihood.maxCoeff()).exp();
 				auto topicDist = getTopicLikelihoods(ld);
-				Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + 1, rgs);
+				Tid newTopic = sample::sampleFromDiscreteAcc(topicDist, topicDist + K + (_infer ? 0 : 1), rgs);
 				if (newTopic == K) // create new topic
 				{
 					newTopic = addTopic(ld);
@@ -366,9 +375,12 @@ namespace tomoto
 				ll += math::lgammaT(ld.numTableByTopic[k]);
 				++liveK;
 			}
+			
 			ll += liveK * log(gamma) - math::lgammaT(ld.totalTable + gamma) + math::lgammaT(gamma);
+
 			// topic word ll
 			ll += liveK * math::lgammaT(V * eta);
+
 			for (Tid k = 0; k < K; ++k)
 			{
 				if (!isLiveTopic(k)) continue;
@@ -398,6 +410,7 @@ namespace tomoto
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			doc.numByTopic.init(nullptr, this->K);
+			doc.numTopicByTable.clear();
 			doc.Zs = tvector<Tid>(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
@@ -405,20 +418,55 @@ namespace tomoto
 		template<bool _Infer>
 		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
 		{
-			if (doc.getNumTable() == 0)
+			// generate tables for each topic when inferring
+			if (_Infer)
 			{
-				Tid k = g.theta(rgs);
-				doc.addNewTable(k);
-				++ld.numTableByTopic[k];
-				++ld.totalTable;
+				if (i < this->K)
+				{
+					Tid t = i;
+					if (isLiveTopic(i))
+					{
+						t = doc.addNewTable(i);
+					}
+					else
+					{
+						t = std::uniform_int_distribution<size_t>{ 0, doc.getNumTable() - 1 }(rgs);
+					}
+					++ld.numTableByTopic[doc.numTopicByTable[t].topic];
+					++ld.totalTable;
+					doc.Zs[i] = t;
+				}
+				else doc.Zs[i] = std::uniform_int_distribution<size_t>{ 0, doc.getNumTable() - 1 }(rgs);
 			}
-			doc.Zs[i] = 0;
-			addWordTo<1>(ld, doc, i, doc.words[i], 0, doc.numTopicByTable[0].topic);
+			// generate tables following CRP
+			else
+			{
+				Tid t;
+				std::vector<double> dist;
+				dist.emplace_back(this->alpha);
+				for (auto& d : doc.numTopicByTable) dist.emplace_back(d.num);
+				std::discrete_distribution<Tid> ddist{ dist.begin(), dist.end() };
+				t = ddist(rgs);
+				if (t == 0)
+				{
+					// new table
+					Tid k = g.theta(rgs);
+					t = doc.addNewTable(k);
+					++ld.numTableByTopic[k];
+					++ld.totalTable;
+				}
+				else
+				{
+					t -= 1;
+				}
+				doc.Zs[i] = t;
+			}
+			addWordTo<1>(ld, doc, i, doc.words[i], doc.Zs[i], doc.numTopicByTable[doc.Zs[i]].topic);
 		}
 
-		std::vector<size_t> _getTopicsCount() const
+		std::vector<uint64_t> _getTopicsCount() const
 		{
-			std::vector<size_t> cnt(this->K);
+			std::vector<uint64_t> cnt(this->K);
 			for (auto& doc : this->docs)
 			{
 				for (size_t i = 0; i < doc.Zs.size(); ++i)
@@ -469,6 +517,63 @@ namespace tomoto
 			std::vector<Float> ret(this->K);
 			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), this->K }.array() = doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
 			return ret;
+		}
+
+		std::unique_ptr<ILDAModel> convertToLDA(float topicThreshold, std::vector<Tid>& newK) const override
+		{
+			auto cnt = _getTopicsCount();
+			std::vector<std::pair<uint64_t, size_t>> cntIdx;
+			float sum = (float)std::accumulate(cnt.begin(), cnt.end(), 0);
+			for (size_t i = 0; i < cnt.size(); ++i)
+			{
+				cntIdx.emplace_back(cnt[i], i);
+			}
+			std::sort(cntIdx.rbegin(), cntIdx.rend());
+
+			size_t liveK = 0;
+			newK.clear();
+			newK.resize(cntIdx.size(), -1);
+			for (size_t i = 0; i < cntIdx.size(); ++i)
+			{
+				if (i && cntIdx[i].first / sum <= topicThreshold) break;
+				newK[cntIdx[i].second] = i;
+				liveK++;
+			}
+
+			auto lda = make_unique<LDAModel<_tw>>(liveK, 0.1f, this->eta);
+			lda->dict = this->dict;
+			
+			for (auto& doc : this->docs)
+			{
+				auto d = lda->_makeDoc(std::vector<std::string>{});
+				for(auto w : doc.words) d.words.emplace_back(w);
+				lda->_addDoc(d);
+			}
+			
+			lda->prepare(true, this->minWordCf, this->minWordDf, this->removeTopN);
+
+			auto selectFirst = [&](const std::pair<size_t, size_t>& p) { return std::max(p.first / sum - topicThreshold, 0.f); };
+			std::discrete_distribution<size_t> randomTopic{
+				makeTransformIter(cntIdx.begin(), selectFirst),
+				makeTransformIter(cntIdx.end(), selectFirst) 
+			};
+			
+			std::mt19937_64 rng;
+
+			for (size_t i = 0; i < this->docs.size(); ++i)
+			{
+				for (size_t j = 0; j < this->docs[i].Zs.size(); ++j)
+				{
+					size_t newTopic = newK[this->docs[i].numTopicByTable[this->docs[i].Zs[j]].topic];
+					while (newTopic == (Tid)-1) newTopic = newK[randomTopic(rng)];
+					lda->docs[i].Zs[j] = newTopic;
+				}
+			}
+
+			lda->resetStatistics();
+			lda->optimizeParameters(*(ThreadPool*)nullptr, nullptr, nullptr);
+
+			return lda;
 		}
 	};
 
