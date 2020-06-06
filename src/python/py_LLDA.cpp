@@ -99,14 +99,26 @@ static PyObject* LLDA_addDoc_(TopicModelObject* self, PyObject* args, PyObject *
 		auto* inst = static_cast<tomoto::ILLDAModel*>(self->inst);
 		string raw;
 		if (argRaw) raw = argRaw;
+		if (argRaw && (!argStartPos || !argLength))
+		{
+			throw runtime_error{ "`start_pos` and `length` must be given when `raw` is given." };
+		}
+
+		vector<tomoto::Vid> words;
+		vector<uint32_t> startPos;
+		vector<uint16_t> length;
 
 		py::UniqueObj iter = PyObject_GetIter(argWords);
-		vector<tomoto::Vid> words = py::makeIterToVector<tomoto::Vid>(iter);
-		iter = PyObject_GetIter(argStartPos);
-		vector<uint32_t> startPos = py::makeIterToVector<uint32_t>(iter);
-		iter = PyObject_GetIter(argLength);
-		vector<uint16_t> length = py::makeIterToVector<uint16_t>(iter);
-		char2Byte(raw, startPos, length);
+		words = py::makeIterToVector<tomoto::Vid>(iter);
+		if (argStartPos)
+		{
+			iter = PyObject_GetIter(argStartPos);
+			startPos = py::makeIterToVector<uint32_t>(iter);
+			iter = PyObject_GetIter(argLength);
+			length = py::makeIterToVector<uint16_t>(iter);
+			char2Byte(raw, startPos, length);
+		}
+
 		vector<string> labels;
 		if (argLabels)
 		{

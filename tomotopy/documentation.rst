@@ -290,6 +290,7 @@ History
     * New properties including `tomotopy.LDAModel.used_vocabs`, `tomotopy.LDAModel.used_vocab_freq` and `tomotopy.LDAModel.used_vocab_df` were added into topic models.
     * A new g-DMR topic model(`tomotopy.GDMRModel`) was added.
     * An error at initializing `tomotopy.label.FoRelevance` in macOS was fixed.
+    * An error that occured when using `tomotopy.utils.Corpus` created without `raw` parameters was fixed.
 
 * 0.7.1 (2020-05-08)
     * `tomotopy.Document.path` was added for `tomotopy.HLDAModel`.

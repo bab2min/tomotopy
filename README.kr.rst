@@ -248,6 +248,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
     * `tomotopy.LDAModel.used_vocabs`, `tomotopy.LDAModel.used_vocab_freq`, `tomotopy.LDAModel.used_vocab_df` 등의 새로운 프로퍼티가 모델에 추가되었습니다.
     * 새로운 토픽 모델인 g-DMR(`tomotopy.GDMRModel`)가 추가되었습니다.
     * macOS에서 `tomotopy.label.FoRelevance`를 생성할 때 발생하던 문제가 해결되었습니다.
+    * `tomotopy.utils.Corpus.add_doc`로 `raw`가 없는 문헌을 생성한 뒤 토픽 모델에 입력할 시 발생하는 오류를 수정했습니다.
 
 * 0.7.1 (2020-05-08)
     * `tomotopy.HLDAModel`용으로 `tomotopy.Document.path`가 새로 추가되었습니다.
