@@ -3,7 +3,8 @@ from codecs import open
 import os, os.path, struct, re, platform
 from setuptools.command.install import install
 import numpy
-import tomotopy.version
+
+exec(open('tomotopy/version.py').read())
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -54,7 +55,7 @@ for arch, aopt in arch_levels.items():
 setup(
     name='tomotopy',
 
-    version=tomotopy.version.__version__,
+    version=__version__,
 
     description='Tomoto, The Topic Modeling Tool for Python',
     long_description=long_description,
