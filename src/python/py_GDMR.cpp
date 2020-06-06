@@ -47,10 +47,11 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 
-		if (objRange)
+		if (objRange && objRange != Py_None)
 		{
 			vector<float> vMin, vMax;
 			py::UniqueObj rangeIter = PyObject_GetIter(objRange), item;
+			if(!rangeIter) throw runtime_error{ "`metadata_range` must be a list of pairs." };
 			while (item = PyIter_Next(rangeIter))
 			{
 				item = PyObject_GetIter(item);
