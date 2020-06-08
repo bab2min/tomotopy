@@ -18,7 +18,7 @@ The current version of `tomoto` supports several major topic models including
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.8.0.
+The most recent version of tomotopy is 0.8.1.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -282,6 +282,11 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.8.1 (2020-06-08)
+    * A bug where `tomotopy.LDAModel.used_vocabs` returned an incorrect value was fixed.
+    * Now `tomotopy.CTModel.prior_cov` returns a covariance matrix with shape `[k, k]`.
+    * Now `tomotopy.CTModel.get_correlations` with empty arguments returns a correlation matrix with shape `[k, k]`.
+
 * 0.8.0 (2020-06-06)
     * Since NumPy was introduced in tomotopy, many methods and properties of tomotopy return not just `list`, but `numpy.ndarray` now.
     * Tomotopy has a new dependency `NumPy >= 1.10.0`.

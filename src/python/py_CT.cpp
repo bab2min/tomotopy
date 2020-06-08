@@ -47,9 +47,9 @@ static int CT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 static PyObject* CT_getCorrelations(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId;
+	PyObject* argTopicId = nullptr;
 	static const char* kwlist[] = { "topic_id", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist, &argTopicId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -59,6 +59,22 @@ static PyObject* CT_getCorrelations(TopicModelObject* self, PyObject* args, PyOb
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
+
+		if (!argTopicId || argTopicId == Py_None)
+		{
+			npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getK() };
+			PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
+			for (size_t i = 0; i < inst->getK(); ++i)
+			{
+				auto l = inst->getCorrelationTopic(i);
+				memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
+			}
+			return ret;
+		}
+
+		size_t topicId = PyLong_AsLong(argTopicId);
+		if (topicId == (size_t)-1 && PyErr_Occurred()) throw bad_exception{};
+		if (topicId >= inst->getK()) throw runtime_error{ "`topic_id` must be in range [0, `k`)" };
 		return py::buildPyValue(inst->getCorrelationTopic(topicId));
 	}
 	catch (const bad_exception&)
@@ -75,7 +91,30 @@ static PyObject* CT_getCorrelations(TopicModelObject* self, PyObject* args, PyOb
 DEFINE_GETTER(tomoto::ICTModel, CT, getNumBetaSample);
 DEFINE_GETTER(tomoto::ICTModel, CT, getNumTMNSample);
 DEFINE_GETTER(tomoto::ICTModel, CT, getPriorMean);
-DEFINE_GETTER(tomoto::ICTModel, CT, getPriorCov);
+
+PyObject* CT_getPriorCov(TopicModelObject *self, void *closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::ICTModel*>(self->inst);
+		py::UniqueObj obj = py::buildPyValue(inst->getPriorCov());
+		PyArray_Dims dims;
+		npy_intp d[2] = { (npy_intp)self->inst->getK(), (npy_intp)self->inst->getK() };
+		dims.ptr = d;
+		dims.len = 2;
+		return PyArray_Newshape((PyArrayObject*)obj.get(), &dims, NPY_CORDER);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
 
 DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ICTModel, CT, setNumBetaSample);
 DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ICTModel, CT, setNumTMNSample);

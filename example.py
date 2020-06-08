@@ -105,9 +105,9 @@ def raw_corpus_and_labeling_example(input_file):
     from nltk.stem.porter import PorterStemmer
     from nltk.corpus import stopwords
     stemmer = PorterStemmer()
-    stopwords = set(stopwords.words('english'))
+    stops = set(stopwords.words('english'))
     corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
-        stopwords=lambda x: len(x) <= 2 or x in stopwords)
+        stopwords=lambda x: len(x) <= 2 or x in stops)
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
     corpus.process(open(input_file, encoding='utf-8'))
 
