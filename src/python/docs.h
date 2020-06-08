@@ -756,7 +756,7 @@ k : int
 degrees : Iterable[int]
     a list of the degrees of Legendre polynomials for TDF(Topic Distribution Function). Its length should be equal to the number of metadata variables.
 
-	Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as the LDA model. 
+    Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as the LDA model. 
 alpha : float
     exponential of mean of normal distribution for `lambdas`
 eta : float
@@ -801,7 +801,7 @@ k : int
 degrees : Iterable[int]
     TDF(토픽 분포 함수)로 쓰일 르장드르 다항식의 차수를 나타내는 list. 길이는 메타데이터 변수의 개수와 동일해야 합니다.
 
-	기본값은 `[]`으로 이 경우 모델은 어떤 메타데이터 변수도 포함하지 않으므로 LDA 모델과 동일해집니다.
+    기본값은 `[]`으로 이 경우 모델은 어떤 메타데이터 변수도 포함하지 않으므로 LDA 모델과 동일해집니다.
 alpha : float
     `lambdas` 파라미터의 평균의 exp의 초기값
 eta : float
@@ -1765,22 +1765,26 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(CT_get_correlations__doc__,
-	"get_correlations(self, topic_id)",
+	"get_correlations(self, topic_id=None)",
 	u8R""(Return correlations between the topic `topic_id` and other topics.
 The returned value is a `list` of `float`s of size `tomotopy.LDAModel.k`.
 
 Parameters
 ----------
-topic_id : int
+topic_id : Union[int, None]
     an integer in range [0, `k`), indicating the topic
+    
+    If omitted, the whole correlation matrix is returned.
 )"",
 	u8R""(토픽 `topic_id`와 나머지 토픽들 간의 상관관계를 반환합니다.
 반환값은 `tomotopy.LDAModel.k` 길이의 `float`의 `list`입니다.
 
 Parameters
 ----------
-topic_id : int
+topic_id : Union[int, None]
     토픽을 지정하는 [0, `k`), 범위의 정수
+
+    생략 시 상관계수 행렬 전체가 반환됩니다.
 )"");
 
 DOC_VARIABLE_EN_KO(CT_num_beta_sample__doc__, 

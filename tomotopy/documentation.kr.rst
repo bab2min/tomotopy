@@ -18,7 +18,7 @@ tomotopy 란?
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
 
-tomotopy의 가장 최신버전은 0.8.0 입니다.
+tomotopy의 가장 최신버전은 0.8.1 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -279,6 +279,11 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.8.1 (2020-06-08)
+    * `tomotopy.LDAModel.used_vocabs`가 잘못된 값을 반환하는 버그가 수정되었습니다.
+    * 이제 `tomotopy.CTModel.prior_cov`가 `[k, k]` 모양의 공분산 행렬을 반환합니다.
+    * 이제 인자 없이 `tomotopy.CTModel.get_correlations`를 호출하면 `[k, k]` 모양의 상관관계 행렬을 반환합니다.
+
 * 0.8.0 (2020-06-06)
     * NumPy가 tomotopy에 도입됨에 따라 많은 메소드와 프로퍼티들이 `list`가 아니라 `numpy.ndarray`를 반환하도록 변경되었습니다.
     * Tomotopy에 새 의존관계 `NumPy >= 1.10.0`가 추가되었습니다..

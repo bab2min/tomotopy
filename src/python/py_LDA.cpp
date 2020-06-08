@@ -462,7 +462,7 @@ static PyObject* LDA_getUsedVocabs(TopicModelObject* self, void* closure)
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
-		py::UniqueObj args = Py_BuildValue("(On)", self, &self->inst->getVocabDict(), self->inst->getV());
+		py::UniqueObj args = Py_BuildValue("(Onn)", self, &self->inst->getVocabDict(), self->inst->getV());
 		return PyObject_CallObject((PyObject*)&Dictionary_type, args);
 	}
 	catch (const bad_exception&)
