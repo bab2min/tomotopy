@@ -1,8 +1,4 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-/build
+﻿/build
 /dist
 /include/Eigen
 *.pyc
@@ -17,3 +13,5 @@ enwiki-1000.txt
 /html/
 .vscode/
 *.pyd
+examples/*
+!examples/*.py
