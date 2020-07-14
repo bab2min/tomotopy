@@ -16,18 +16,19 @@ namespace tomoto
 	{
 	};
 
-	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, typename _RandGen,
+		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ICTModel,
 		typename _Derived = void,
 		typename _DocType = DocumentCTM<_tw>,
 		typename _ModelState = ModelStateCTM<_tw>>
-	class CTModel : public LDAModel<_tw, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_tw, _Flags>, _Derived>::type,
+	class CTModel : public LDAModel<_tw, _RandGen, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_tw, _RandGen, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, CTModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -53,12 +54,11 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		void updateBeta(_DocType& doc, RandGen& rg) const
+		void updateBeta(_DocType& doc, _RandGen& rg) const
 		{
 			Eigen::Matrix<Float, -1, 1> pbeta, lowerBound, upperBound;
 			constexpr Float epsilon = 1e-8;
 			constexpr size_t burnIn = 3;
-			sample::FastRealGenerator frg;
 
 			pbeta = lowerBound = upperBound = Eigen::Matrix<Float, -1, 1>::Zero(this->K);
 			for (size_t i = 0; i < numBetaSample + burnIn; ++i)
@@ -71,7 +71,7 @@ namespace tomoto
 				{
 					Float N_k = doc.numByTopic[k] + this->alpha;
 					Float N_nk = doc.getSumWordWeight() + this->alpha * (this->K + 1) - N_k;
-					Float u1 = frg(rg), u2 = frg(rg);
+					Float u1 = rg.uniform_real(), u2 = rg.uniform_real();
 					Float max_uk = epsilon + pow(u1, (Float)1 / N_k)  * (pbeta[k] - epsilon);
 					Float min_unk = (1 - pow(u2, (Float)1 / N_nk))
 						* (1 - pbeta[k]) + pbeta[k];
@@ -111,7 +111,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			BaseClass::template sampleDocument<_ps, _infer>(doc, edd, docId, ld, rgs, iterationCnt, partitionId);
 			/*if (iterationCnt >= this->burnIn && this->optimInterval && (iterationCnt + 1) % this->optimInterval == 0)
@@ -121,7 +121,7 @@ namespace tomoto
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last) const
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
 			if (this->iterated < this->burnIn || !this->optimInterval || (this->iterated + 1) % this->optimInterval != 0) return;
 
@@ -154,7 +154,7 @@ namespace tomoto
 			}
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::cerr << "Failed to sample! Reset prior and retry!" << std::endl;
 			const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
@@ -175,7 +175,7 @@ namespace tomoto
 			return 0;
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
 			topicPrior = math::MultiNormalDistribution<Float>::estimate([this](size_t i)
@@ -239,7 +239,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, numBetaSample, numTMNSample, topicPrior);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, numBetaSample, numTMNSample, topicPrior);
 
-		CTModel(size_t _K = 1, Float smoothingAlpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		CTModel(size_t _K = 1, Float smoothingAlpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_K, smoothingAlpha, _eta, _rg)
 		{
 			this->optimInterval = 2;

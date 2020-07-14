@@ -94,15 +94,15 @@ namespace tomoto
 					.424592039e-7f, -.113691296e-7f,
 					.304502217e-8f, -.815684550e-9f, };
 
-				float Tn_1 = 1.0L;
-				float Tn = x - 2.0L;
+				float Tn_1 = (float)1.0;
+				float Tn = (float)(x - 2.0);
 				float resul = Kncoe[0] + Kncoe[1] * Tn;
 
 				x -= 2.0L;
 
 				for (size_t n = 2; n < sizeof(Kncoe) / sizeof(float); n++)
 				{
-					const float Tn1 = 2.0L * x * Tn - Tn_1;
+					const float Tn1 = (float)(2.0L * x * Tn - Tn_1);
 					resul += Kncoe[n] * Tn1;
 					Tn_1 = Tn;
 					Tn = Tn1;
@@ -119,7 +119,7 @@ namespace tomoto
 			struct F_lgamma
 			{
 				float operator()(float x) { return lgamma(x); }
-				static constexpr float smallThreshold = 0.001;
+				static constexpr float smallThreshold = (float)(0.001);
 				float forSmall(float x) 
 				{ 
 					if (x == 0) return INFINITY; 
@@ -137,7 +137,7 @@ namespace tomoto
 				{
 					return digamma(x);
 				}
-				static constexpr float smallThreshold = 0.001;
+				static constexpr float smallThreshold = (float)(0.001);
 				float forSmall(float x) 
 				{
 					if (x == 0) return -INFINITY;

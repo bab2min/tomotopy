@@ -4,12 +4,11 @@
 
 namespace tomoto
 {
-	template<TermWeight _tw, size_t _Flags = 0>
-	struct DocumentDTM : public DocumentLDA<_tw, _Flags>
+	template<TermWeight _tw>
+	struct DocumentDTM : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_tw, _Flags>;
-		using DocumentLDA<_tw, _Flags>::DocumentLDA;
-		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
 
 		size_t timepoint = 0;
 		ShareableVector<Float> eta;
@@ -27,7 +26,8 @@ namespace tomoto
 			Float _alphaVar = 1.0, Float _etaVar = 1.0, Float _phiVar = 1.0, 
 			Float _shapeA = 0.03, Float _shapeB = 0.1, Float _shapeC = 0.55,
 			Float _etaRegL2 = 0,
-			const RandGen& _rg = RandGen{ std::random_device{}() });
+			size_t seed = std::random_device{}(),
+			bool scalarRng = false);
 		
 		virtual size_t addDoc(const std::vector<std::string>& words, size_t timepoint) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, size_t timepoint) const = 0;
@@ -45,6 +45,8 @@ namespace tomoto
 			size_t timepoint) const = 0;
 
 		virtual size_t getT() const = 0;
+		virtual std::vector<size_t> getNumDocsByT() const = 0;
+
 		virtual Float getAlphaVar() const = 0;
 		virtual Float getEtaVar() const = 0;
 		virtual Float getPhiVar() const = 0;

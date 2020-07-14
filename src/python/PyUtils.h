@@ -9,7 +9,14 @@
 #include <iostream>
 #include <cstring>
 
+#ifdef _DEBUG
+#undef _DEBUG
 #include <Python.h>
+#define _DEBUG
+#else
+#include <Python.h>
+#endif
+
 #include <frameobject.h>
 #ifdef MAIN_MODULE
 #else
@@ -33,7 +40,7 @@ namespace py
 		UniqueObj(const UniqueObj&) = delete;
 		UniqueObj& operator=(const UniqueObj&) = delete;
 
-		UniqueObj(UniqueObj&& o)
+		UniqueObj(UniqueObj&& o) noexcept
 		{
 			std::swap(obj, o.obj);
 		}
@@ -84,7 +91,7 @@ namespace py
 	template<>
 	inline float makeObjectToCType<float>(PyObject *obj)
 	{
-		float d = PyFloat_AsDouble(obj);
+		float d = (float)PyFloat_AsDouble(obj);
 		if (d == -1 && PyErr_Occurred()) throw std::bad_exception{};
 		return d;
 	}

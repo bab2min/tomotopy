@@ -175,18 +175,19 @@ namespace tomoto
 		};
 	}
 
-	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, typename _RandGen,
+		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ISLDAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentSLDA<_tw>,
 		typename _ModelState = ModelStateLDA<_tw>>
-	class SLDAModel : public LDAModel<_tw, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_tw, _Flags>, _Derived>::type,
+	class SLDAModel : public LDAModel<_tw, _RandGen, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_tw, _RandGen, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, SLDAModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -239,7 +240,7 @@ namespace tomoto
 			}
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			BaseClass::optimizeParameters(pool, localData, rgs);
 		}
@@ -325,7 +326,7 @@ namespace tomoto
 			Float _alpha = 0.1, Float _eta = 0.01, 
 			const std::vector<Float>& _mu = {}, const std::vector<Float>& _nuSq = {},
 			const std::vector<Float>& _glmParam = {},
-			const RandGen& _rg = RandGen{ std::random_device{}() })
+			const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_K, _alpha, _eta, _rg), F(vars.size()), varTypes(vars), 
 			glmParam(_glmParam)
 		{

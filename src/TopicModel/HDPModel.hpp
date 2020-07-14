@@ -21,18 +21,18 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numTableByTopic, totalTable);
 	};
 
-	template<TermWeight _tw,
+	template<TermWeight _tw, typename _RandGen,
 		typename _Interface = IHDPModel,
 		typename _Derived = void,
 		typename _DocType = DocumentHDP<_tw>,
 		typename _ModelState = ModelStateHDP<_tw>>
-	class HDPModel : public LDAModel<_tw, 0, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, HDPModel<_tw>, _Derived>::type,
+	class HDPModel : public LDAModel<_tw, _RandGen, 0, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, HDPModel<_tw, _RandGen>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HDPModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, 0, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HDPModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -40,7 +40,7 @@ namespace tomoto
 		Float gamma;
 
 		template<typename _NumFunc>
-		static Float estimateConcentrationParameter(_NumFunc ns, Float tableCnt, size_t size, Float alpha, RandGen& rgs)
+		static Float estimateConcentrationParameter(_NumFunc ns, Float tableCnt, size_t size, Float alpha, _RandGen& rgs)
 		{
 			Float a = 1, b = 1;
 			for (size_t i = 0; i < 10; ++i)
@@ -61,7 +61,7 @@ namespace tomoto
 			return alpha;
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			size_t tableCnt = 0;
 			for (auto& doc : this->docs)
@@ -191,7 +191,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			// sample a table for each word
 			for (size_t w = 0; w < doc.words.size(); ++w)
@@ -291,7 +291,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, typename _ExtraDocData>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 			const size_t V = this->realV;
@@ -416,7 +416,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			// generate tables for each topic when inferring
 			if (_Infer)
@@ -481,7 +481,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
 
-		HDPModel(size_t initialK = 2, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
+		HDPModel(size_t initialK = 2, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(initialK, _alpha, _eta, _rg), gamma(_gamma)
 		{
 			if (_gamma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong gamma value (gamma = %f)", _gamma));
@@ -540,7 +540,7 @@ namespace tomoto
 				liveK++;
 			}
 
-			auto lda = make_unique<LDAModel<_tw>>(liveK, 0.1f, this->eta);
+			auto lda = make_unique<LDAModel<_tw, _RandGen>>(liveK, 0.1f, this->eta);
 			lda->dict = this->dict;
 			
 			for (auto& doc : this->docs)

@@ -138,7 +138,7 @@ std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel * tm) con
 		trieNodes[0].traverse_with_keys([&](const TrieEx<Vid, size_t>* node, const std::vector<Vid>& rkeys)
 		{
 			if (rkeys.size() <= 2 || node->val < candMinCnt) return;
-			float n = tm->getN();
+			float n = (float)tm->getN();
 			auto pmi = node->val / n;
 			for (auto k : rkeys)
 			{

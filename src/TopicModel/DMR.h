@@ -3,11 +3,11 @@
 
 namespace tomoto
 {
-	template<TermWeight _tw, size_t _Flags = 0>
-	struct DocumentDMR : public DocumentLDA<_tw, _Flags>
+	template<TermWeight _tw>
+	struct DocumentDMR : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_tw, _Flags>;
-		using DocumentLDA<_tw, _Flags>::DocumentLDA;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
 		size_t metadata = 0;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, metadata);
@@ -20,7 +20,8 @@ namespace tomoto
 		using DefaultDocType = DocumentDMR<TermWeight::one>;
 		static IDMRModel* create(TermWeight _weight, size_t _K = 1,
 			Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _eta = 0.01, Float _alphaEps = 1e-10,
-			const RandGen& _rg = RandGen{ std::random_device{}() });
+			size_t seed = std::random_device{}(),
+			bool scalarRng = false);
 
 		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) const = 0;

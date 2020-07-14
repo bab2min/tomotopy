@@ -2,12 +2,12 @@
 
 namespace tomoto
 {
-	template class LDAModel<TermWeight::one>;
+	/*template class LDAModel<TermWeight::one>;
 	template class LDAModel<TermWeight::idf>;
-	template class LDAModel<TermWeight::pmi>;
+	template class LDAModel<TermWeight::pmi>;*/
 
-    ILDAModel* ILDAModel::create(TermWeight _weight, size_t _K, Float _alpha, Float _eta, const RandGen& _rg)
+    ILDAModel* ILDAModel::create(TermWeight _weight, size_t _K, Float _alpha, Float _eta, size_t seed, bool scalarRng)
     {
-        SWITCH_TW(_weight, LDAModel, _K, _alpha, _eta, _rg);
+        TMT_SWITCH_TW(_weight, scalarRng, LDAModel, _K, _alpha, _eta, seed);
     }
 }

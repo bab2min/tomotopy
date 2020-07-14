@@ -23,19 +23,19 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numByTopicWord, numByTopic, numByTopic1_2);
 	};
 
-	template<TermWeight _tw, 
+	template<TermWeight _tw, typename _RandGen,
 		bool _Exclusive = false,
 		typename _Interface = IHPAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentHPA<_tw>,
 		typename _ModelState = ModelStateHPA<_tw>>
-	class HPAModel : public LDAModel<_tw, 0, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _Exclusive>, _Derived>::type,
+	class HPAModel : public LDAModel<_tw, _RandGen, 0, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _RandGen, _Exclusive>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _Exclusive>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, 0, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _RandGen, _Exclusive>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, 0, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -49,7 +49,7 @@ namespace tomoto
 		Eigen::Matrix<Float, -1, 1> subAlphaSum; // len = K
 		Eigen::Matrix<Float, -1, -1> subAlphas; // len = K * (K2 + 1)
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			const auto K = this->K;
 			for (size_t i = 0; i < iteration; ++i)
@@ -175,7 +175,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
@@ -248,7 +248,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, typename _ExtraDocData>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 
@@ -418,7 +418,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			auto w = doc.words[i];
 			switch (g.level(rgs))
@@ -450,7 +450,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
 
-		HPAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		HPAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
 			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
@@ -561,5 +561,4 @@ namespace tomoto
 		}
 	}
 
-	template<TermWeight _tw> using HPAModelExclusive = HPAModel<_tw, true>;
 }

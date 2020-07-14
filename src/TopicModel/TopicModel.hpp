@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <numeric>
 #include <unordered_set>
 #include "../Utils/Utils.hpp"
 #include "../Utils/Dictionary.h"
@@ -6,25 +7,12 @@
 #include "../Utils/ThreadPool.hpp"
 #include "../Utils/serializer.hpp"
 #include "../Utils/exception.h"
-
+#include <EigenRand/EigenRand>
 
 namespace tomoto
 {
-#if _WIN32 || _WIN64
-#if _WIN64
-	typedef std::mt19937_64 RandGen;
-#else
-	typedef std::mt19937 RandGen;
-#endif
-#endif
-
-#if __GNUC__
-#if __x86_64__ || __ppc64__
-	typedef std::mt19937_64 RandGen;
-#else
-	typedef std::mt19937 RandGen;
-#endif
-#endif
+	using RandGen = Eigen::Rand::P8_mt19937_64<uint32_t>;
+	using ScalarRandGen = Eigen::Rand::UniversalRandomEngine<uint32_t, std::mt19937_64>;
 
 	class DocumentBase
 	{
@@ -189,14 +177,16 @@ namespace tomoto
 		};
 	}
 
-	template<size_t _Flags, typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
+	template<typename _RandGen, size_t _Flags, typename _Interface, typename _Derived,
+		typename _DocType, typename _ModelState
+	>
 	class TopicModel : public _Interface
 	{
 		friend class Document;
 	public:
 		using DocType = _DocType;
 	protected:
-		RandGen rg;
+		_RandGen rg;
 		std::vector<Vid> words;
 		std::vector<uint32_t> wOffsetByDoc;
 
@@ -423,13 +413,13 @@ namespace tomoto
 			}
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			throw e;
 		}
 
 	public:
-		TopicModel(const RandGen& _rg) : rg(_rg)
+		TopicModel(const _RandGen& _rg) : rg(_rg)
 		{
 		}
 
@@ -494,10 +484,10 @@ namespace tomoto
 			}
 
 			std::vector<_ModelState> localData;
-			std::vector<RandGen> localRG;
+			std::vector<_RandGen> localRG;
 			for (size_t i = 0; i < numWorkers; ++i)
 			{
-				localRG.emplace_back(RandGen{rg()});
+				localRG.emplace_back(_RandGen{rg()});
 				if(ps == ParallelScheme::copy_merge) localData.emplace_back(static_cast<_Derived*>(this)->globalState);
 			}
 

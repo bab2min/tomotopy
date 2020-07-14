@@ -51,7 +51,7 @@ You can get the sample data file from https://github.com/bab2min/g-dmr/tree/mast
 '''
 
 corpus = tp.utils.Corpus()
-for line in open('examples/dataset2.txt', encoding='utf-8'):
+for line in open('dataset2.txt', encoding='utf-8'):
     fd = line.strip().split()
     corpus.add_doc(fd[2:], metadata=list(map(float, fd[:2])))
 

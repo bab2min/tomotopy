@@ -51,7 +51,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDACVB0;
-		static ILDACVB0Model* create(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
+		static ILDACVB0Model* create(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() });
 
 		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;
@@ -138,7 +138,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -155,7 +155,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps>
-		void trainOne(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void trainOne(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
 			const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
@@ -284,7 +284,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			doc.Zs.col(i).setZero();
 			doc.Zs(g.theta(rgs), i) = 1;
@@ -292,7 +292,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer, typename _Generator>
-		void initializeDocState(_DocType& doc, Float* topicDocPtr, _Generator& g, _ModelState& ld, RandGen& rgs) const
+		void initializeDocState(_DocType& doc, Float* topicDocPtr, _Generator& g, _ModelState& ld, _RandGen& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, topicDocPtr, doc.words.size());
@@ -332,7 +332,7 @@ namespace tomoto
 		DEFINE_SERIALIZER(alpha, eta, K);
 
 	public:
-		LDACVB0Model(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		LDACVB0Model(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
 			alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);
@@ -434,7 +434,7 @@ namespace tomoto
 		}
 	}
 
-	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, Float _alpha, Float _eta, const RandGen& _rg)
+	inline ILDACVB0Model* ILDACVB0Model::create(size_t _K, Float _alpha, Float _eta, const _RandGen& _rg)
 	{
 		return new LDACVB0Model<>(_K, _alpha, _eta, _rg);
 	}

@@ -35,7 +35,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.8.1 입니다.
+tomotopy의 가장 최신버전은 0.8.2 입니다.
 
 시작하기
 ---------------
@@ -240,6 +240,10 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.8.2 (2020-07-14)
+    * `tomotopy.DTModel.num_timepoints`와 `tomotopy.DTModel.num_docs_by_timepoint` 프로퍼티가 추가되었습니다.
+    * `seed`가 동일해서 플랫폼이 다르면 다른 결과를 내던 문제가 일부 해결되었습니다. 이로 인해 32bit 버전의 모델 학습 결과가 이전 버전과는 달라졌습니다.
+
 * 0.8.1 (2020-06-08)
     * `tomotopy.LDAModel.used_vocabs`가 잘못된 값을 반환하는 버그가 수정되었습니다.
     * 이제 `tomotopy.CTModel.prior_cov`가 `[k, k]` 모양의 공분산 행렬을 반환합니다.

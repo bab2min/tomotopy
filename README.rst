@@ -246,6 +246,11 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.8.2 (2020-07-14)
+    * New properties `tomotopy.DTModel.num_timepoints` and `tomotopy.DTModel.num_docs_by_timepoint` have been added.
+    * A bug which causes different results with the different platform even if `seeds` were the same was partially fixed. 
+      As a result of this fix, now `tomotopy` in 32 bit yields different training results from earlier version.
+
 * 0.8.1 (2020-06-08)
     * A bug where `tomotopy.LDAModel.used_vocabs` returned an incorrect value was fixed.
     * Now `tomotopy.CTModel.prior_cov` returns a covariance matrix with shape `[k, k]`.
