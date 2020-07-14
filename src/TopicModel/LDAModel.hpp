@@ -30,7 +30,7 @@ Term Weighting Scheme is based on following paper:
 				return new MDL<TermWeight::pmi, ScalarRandGen>(__VA_ARGS__);\
 			}\
 		}\
-		else{\
+		/*else{\
 			switch (TW){\
 			case TermWeight::one:\
 				return new MDL<TermWeight::one, RandGen>(__VA_ARGS__);\
@@ -39,7 +39,7 @@ Term Weighting Scheme is based on following paper:
 			case TermWeight::pmi:\
 				return new MDL<TermWeight::pmi, RandGen>(__VA_ARGS__);\
 			}\
-		}\
+		}*/\
 		return nullptr; } while(0)
 
 #define GETTER(name, type, field) type get##name() const override { return field; }
