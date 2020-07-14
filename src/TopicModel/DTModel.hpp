@@ -48,7 +48,7 @@ namespace tomoto
 
 		Eigen::Matrix<Float, -1, -1> alphas; // Dim: (Topic, Time)
 		Eigen::Matrix<Float, -1, -1> etaByDoc; // Dim: (Topic, Docs) : Topic distribution by docs(and time)
-		std::vector<size_t> numDocsByTime; // Dim: (Time)
+		std::vector<uint32_t> numDocsByTime; // Dim: (Time)
 		Eigen::Matrix<Float, -1, -1> phi; // Dim: (Word, Topic * Time)
 		std::vector<sample::AliasMethod<>> wordAliasTables; // Dim: (Word * Time)
 
@@ -495,7 +495,7 @@ namespace tomoto
 			T, shapeA, shapeB, shapeC, alphaVar, etaVar, phiVar, alphas, etaByDoc, phi);
 
 		GETTER(T, size_t, T);
-		GETTER(NumDocsByT, std::vector<size_t>, numDocsByTime);
+		GETTER(NumDocsByT, std::vector<uint32_t>, numDocsByTime);
 		GETTER(AlphaVar, Float, alphaVar);
 		GETTER(EtaVar, Float, etaVar);
 		GETTER(PhiVar, Float, phiVar);

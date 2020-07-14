@@ -99,7 +99,7 @@ jobs:
         Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
-        Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/bab2min/EigenRand/archive/v0.2.1.tar.gz
+        Invoke-WebRequest -OutFile v0.2.1.tar.gz https://github.com/bab2min/EigenRand/archive/v0.2.1.tar.gz
         tar -zxvf v0.2.1.tar.gz
         mv EigenRand-0.2.1/EigenRand include/
     - name: Build

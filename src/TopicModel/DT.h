@@ -45,7 +45,7 @@ namespace tomoto
 			size_t timepoint) const = 0;
 
 		virtual size_t getT() const = 0;
-		virtual std::vector<size_t> getNumDocsByT() const = 0;
+		virtual std::vector<uint32_t> getNumDocsByT() const = 0;
 
 		virtual Float getAlphaVar() const = 0;
 		virtual Float getEtaVar() const = 0;
