@@ -27,6 +27,11 @@ jobs:
         wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
+        git clone https://github.com/bab2min/EigenRand
+        cd EigenRand
+        git checkout tags/v0.2.1
+        cd ..
+        mv EigenRand/EigenRand include/
     - name: build
       run: |
         python3 -m pip install pdoc3 numpy
