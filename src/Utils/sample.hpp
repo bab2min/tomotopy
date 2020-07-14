@@ -3,7 +3,7 @@
 #include <random>
 #ifdef __AVX__
 #include <immintrin.h>
-#elif defined(__SSE2__)
+#elif defined(__SSE2__) || defined(_WIN64)
 #include <xmmintrin.h>
 #else
 
@@ -56,50 +56,7 @@ namespace tomoto
 #endif
 
 
-#ifdef __AVX__
-		inline __m256 scan_AVX(__m256 x)
-		{
-			__m256 t0, t1;
-			//shift1_AVX + add
-			t0 = _mm256_permute_ps(x, _MM_SHUFFLE(2, 1, 0, 3));
-			t1 = _mm256_permute2f128_ps(t0, t0, 41);
-			x = _mm256_add_ps(x, _mm256_blend_ps(t0, t1, 0x11));
-			//shift2_AVX + add
-			t0 = _mm256_permute_ps(x, _MM_SHUFFLE(1, 0, 3, 2));
-			t1 = _mm256_permute2f128_ps(t0, t0, 41);
-			x = _mm256_add_ps(x, _mm256_blend_ps(t0, t1, 0x33));
-			//shift3_AVX + add
-			x = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 41));
-			return x;
-		}
-
-		inline void prefix_sum_AVX(float *a, const int n)
-		{
-			__m256 offset = _mm256_setzero_ps();
-			for (int i = 0; i < n; i += 8)
-			{
-				__m256 x = _mm256_loadu_ps(&a[i]);
-				__m256 out = scan_AVX(x);
-				out = _mm256_add_ps(out, offset);
-				_mm256_storeu_ps(&a[i], out);
-				//broadcast last element
-				__m256 t0 = _mm256_permute2f128_ps(out, out, 0x11);
-				offset = _mm256_permute_ps(t0, 0xff);
-			}
-		}
-
-		inline void prefixSum(float* arr, size_t K)
-		{
-			size_t Kf = (K >> 3) << 3;
-			if (Kf) prefix_sum_AVX(arr, Kf);
-			else Kf = 1;
-			for (size_t i = Kf; i < K; ++i)
-			{
-				arr[i] += arr[i - 1];
-			}
-		}
-
-#elif defined(__SSE2__)
+#if defined(__SSE2__) || defined(_WIN64)
 		inline __m128 scan_SSE(__m128 x)
 		{
 			x = _mm_add_ps(x, _mm_castsi128_ps(_mm_slli_si128(_mm_castps_si128(x), 4)));
@@ -107,60 +64,60 @@ namespace tomoto
 			return x;
 		}
 
-		inline void prefix_sum_SSE(float *a, const int n)
+		inline void prefixSum(float* arr, int n)
 		{
+			int n4 = n & ~3;
 			__m128 offset = _mm_setzero_ps();
-			for (int i = 0; i < n; i += 4)
+			for (int i = 0; i < n4; i += 4)
 			{
-				__m128 x = _mm_load_ps(&a[i]);
+				__m128 x = _mm_load_ps(&arr[i]);
 				__m128 out = scan_SSE(x);
 				out = _mm_add_ps(out, offset);
-				_mm_store_ps(&a[i], out);
+				_mm_store_ps(&arr[i], out);
 				offset = _mm_shuffle_ps(out, out, _MM_SHUFFLE(3, 3, 3, 3));
 			}
-		}
-
-		inline void prefixSum(float* arr, size_t K)
-		{
-			size_t Kf = (K >> 2) << 2;
-			if (Kf) prefix_sum_SSE(arr, Kf);
-			else Kf = 1;
-			for (size_t i = Kf; i < K; ++i)
+			if (!n4) n4 = 1;
+			for (size_t i = n4; i < n; ++i)
 			{
 				arr[i] += arr[i - 1];
 			}
 		}
 #else
-		inline void prefixSum(float* arr, size_t K)
+		inline void prefixSum(float* arr, int n)
 		{
-			for (size_t i = 1; i < K; ++i)
+			int n4 = n & ~3;
+			float acc = 0;
+			for (int i = 0; i < n4; i += 4)
 			{
-				arr[i] += arr[i - 1];
+				// first accumulation
+				arr[i + 3] += arr[i + 2];
+				arr[i + 2] += arr[i + 1];
+				arr[i + 1] += arr[i];
+
+				// second accumulation
+				arr[i + 3] += arr[i + 1];
+				arr[i + 2] += arr[i];
+
+				// accumulate offset
+				arr[i] += acc;
+				arr[i + 1] += acc;
+				arr[i + 2] += acc;
+				arr[i + 3] += acc;
+
+				acc = arr[i + 3];
+			}
+
+			for (int i = n4; i < n; ++i)
+			{
+				arr[i] += acc;
 			}
 		}
 #endif
-		struct FastRealGenerator
-		{
-			template<class Random>
-			float operator()(Random& rg)
-			{
-				union
-				{
-					float f;
-					uint32_t u;
-				};
-
-				u = rg();
-				u = (127 << 23) | (u & 0x7FFFFF);
-				return f - 1;
-			}
-		};
 
 		template<class RealIt, class Random>
 		inline size_t sampleFromDiscrete(RealIt begin, RealIt end, Random& rg)
 		{
-			FastRealGenerator dist;
-			auto r = dist(rg) * std::accumulate(begin, end, 0.f);
+			auto r = rg.uniform_real() * std::accumulate(begin, end, 0.f);
 			size_t K = std::distance(begin, end);
 			size_t z = 0;
 			for (; r > *begin && z < K - 1; ++z, ++begin)
@@ -173,9 +130,7 @@ namespace tomoto
 		template<class RealIt, class Random>
 		inline size_t sampleFromDiscreteAcc(RealIt begin, RealIt end, Random& rg)
 		{
-			//auto r = std::generate_canonical<float, 32>(rg) * *(end - 1);
-			FastRealGenerator dist;
-			auto r = dist(rg) * *(end - 1);
+			auto r = rg.uniform_real() * *(end - 1);
 			size_t K = std::distance(begin, end);
 			size_t z = 0;
 #ifdef __AVX__

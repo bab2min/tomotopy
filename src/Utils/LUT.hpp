@@ -11,16 +11,16 @@ namespace tomoto
 			class LUT3
 			{
 			protected:
-				std::array<_Prec, N + M + L> points;
-				static constexpr auto P = 1.0 / S;
-				static constexpr auto Q = 1.0 / T;
-				static constexpr auto R = 1.0 / U;
+				std::array<_Prec, N + M + L> points = {};
+				static constexpr _Prec P = (_Prec)(1. / S);
+				static constexpr _Prec Q = (_Prec)(1. / T);
+				static constexpr _Prec R = (_Prec)(1. / U);
 				LUT3()
 				{
 					_Func fun;
 					for (size_t i = 0; i < N; i++)
 					{
-						points[i] = fun(i ? i * P : 0.0001);
+						points[i] = fun(i ? i * P : (_Prec)0.0001);
 					}
 					for (size_t i = 0; i < M; i++)
 					{

@@ -23,7 +23,9 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentPA<TermWeight::one>;
-		static IPAModel* create(TermWeight _weight, size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
+		static IPAModel* create(TermWeight _weight, size_t _K1 = 1, size_t _K2 = 1, 
+			Float _alpha = 0.1, Float _eta = 0.01, size_t seed = std::random_device{}(),
+			bool scalarRng = false);
 
 		virtual size_t getDirichletEstIteration() const = 0;
 		virtual void setDirichletEstIteration(size_t iter) = 0;

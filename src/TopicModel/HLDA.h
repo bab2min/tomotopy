@@ -24,7 +24,9 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentHLDA<TermWeight::one>;
-		static IHLDAModel* create(TermWeight _weight, size_t levelDepth = 1, Float alpha = 0.1, Float eta = 0.01, Float gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() });
+		static IHLDAModel* create(TermWeight _weight, size_t levelDepth = 1, 
+			Float alpha = 0.1, Float eta = 0.01, Float gamma = 0.1, size_t seed = std::random_device{}(),
+			bool scalarRng = false);
 
 		virtual Float getGamma() const = 0;
 		virtual size_t getLiveK() const = 0;

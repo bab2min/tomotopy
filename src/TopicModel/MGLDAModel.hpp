@@ -11,18 +11,18 @@ Improved version of java implementation(https://github.com/yinfeiy/MG-LDA)
 
 namespace tomoto
 {
-	template<TermWeight _tw, 
+	template<TermWeight _tw, typename _RandGen,
 		typename _Interface = IMGLDAModel,
 		typename _Derived = void, 
 		typename _DocType = DocumentMGLDA<_tw>,
 		typename _ModelState = ModelStateLDA<_tw>>
-	class MGLDAModel : public LDAModel<_tw, flags::partitioned_multisampling, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_tw>, _Derived>::type,
+	class MGLDAModel : public LDAModel<_tw, _RandGen, flags::partitioned_multisampling, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_tw, _RandGen>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, MGLDAModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -98,7 +98,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
@@ -329,7 +329,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			doc.numBySent[doc.sents[i]] += _tw == TermWeight::one ? 1 : doc.wordWeights[i];
 			auto w = doc.words[i];
@@ -361,7 +361,7 @@ namespace tomoto
 
 		MGLDAModel(size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
 			Float _alphaG = 0.1, Float _alphaL = 0.1, Float _alphaMG = 0.1, Float _alphaML = 0.1,
-			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
+			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_KG, _alphaG, _etaG, _rg), KL(_KL), T(_T),
 			alphaL(_alphaL), alphaM(_KG ? _alphaMG : 0), alphaML(_alphaML),
 			etaL(_etaL), gamma(_gamma)

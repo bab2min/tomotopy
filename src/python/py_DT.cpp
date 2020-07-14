@@ -8,17 +8,18 @@ static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1, T = 1;
-	float alphaVar = 0.1, etaVar = 0.1, phiVar = 0.1;
-	float lrA = 0.01, lrB = 0.1, lrC = 0.55;
+	float alphaVar = 0.1f, etaVar = 0.1f, phiVar = 0.1f;
+	float lrA = 0.01f, lrB = 0.1f, lrC = 0.55f;
+	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "t",
 		"alpha_var", "eta_var", "phi_var", "lr_a", "lr_b", "lr_c",
-		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffffffnOO", (char**)kwlist, 
+		"seed", "rng", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffffffnsOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &K, &T,
 		&alphaVar, &etaVar, &phiVar, &lrA, &lrB, &lrC,
-		&seed, &objCorpus, &objTransform)) return -1;
+		&seed, &rng, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -26,9 +27,24 @@ static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
+		string srng = rng;
+		bool scalarRng = false;
+		if (srng == "vector8")
+		{
+			scalarRng = false;
+		}
+		else if (srng == "scalar")
+		{
+			scalarRng = true;
+		}
+		else
+		{
+			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
+		}
+
 		tomoto::ITopicModel* inst = tomoto::IDTModel::create((tomoto::TermWeight)tw, K, T,
 			alphaVar, etaVar, phiVar, lrA, lrB, lrC,
-			0, tomoto::RandGen{ seed });
+			0, seed, scalarRng);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -299,6 +315,8 @@ static PyMethodDef DT_methods[] =
 DEFINE_GETTER(tomoto::IDTModel, DT, getShapeA);
 DEFINE_GETTER(tomoto::IDTModel, DT, getShapeB);
 DEFINE_GETTER(tomoto::IDTModel, DT, getShapeC);
+DEFINE_GETTER(tomoto::IDTModel, DT, getT);
+DEFINE_GETTER(tomoto::IDTModel, DT, getNumDocsByT);
 
 DEFINE_SETTER_CHECKED_FLOAT(tomoto::IDTModel, DT, setShapeA, value > 0);
 DEFINE_SETTER_CHECKED_FLOAT(tomoto::IDTModel, DT, setShapeB, value >= 0);
@@ -308,6 +326,8 @@ static PyGetSetDef DT_getseters[] = {
 	{ (char*)"lr_a", (getter)DT_getShapeA, (setter)DT_setShapeA, DT_lr_a__doc__, nullptr },
 	{ (char*)"lr_b", (getter)DT_getShapeB, (setter)DT_setShapeB, DT_lr_b__doc__, nullptr },
 	{ (char*)"lr_c", (getter)DT_getShapeC, (setter)DT_setShapeC, DT_lr_c__doc__, nullptr },
+	{ (char*)"num_timepoints", (getter)DT_getT, nullptr, DT_num_timepoints__doc__, nullptr },
+	{ (char*)"num_docs_by_timepoint", (getter)DT_getNumDocsByT, nullptr, DT_num_docs_by_timepoint__doc__, nullptr },
 	{ nullptr },
 };
 

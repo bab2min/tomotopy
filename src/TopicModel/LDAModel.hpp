@@ -19,15 +19,27 @@ Term Weighting Scheme is based on following paper:
 
 */
 
-#define SWITCH_TW(TW, MDL, ...) do{ switch (TW)\
-		{\
-		case TermWeight::one:\
-			return new MDL<TermWeight::one>(__VA_ARGS__);\
-		case TermWeight::idf:\
-			return new MDL<TermWeight::idf>(__VA_ARGS__);\
-		case TermWeight::pmi:\
-			return new MDL<TermWeight::pmi>(__VA_ARGS__);\
+#define TMT_SWITCH_TW(TW, SRNG, MDL, ...) do{\
+		if(SRNG){\
+			switch (TW){\
+			case TermWeight::one:\
+				return new MDL<TermWeight::one, ScalarRandGen>(__VA_ARGS__);\
+			case TermWeight::idf:\
+				return new MDL<TermWeight::idf, ScalarRandGen>(__VA_ARGS__);\
+			case TermWeight::pmi:\
+				return new MDL<TermWeight::pmi, ScalarRandGen>(__VA_ARGS__);\
+			}\
 		}\
+		/*else{\
+			switch (TW){\
+			case TermWeight::one:\
+				return new MDL<TermWeight::one, RandGen>(__VA_ARGS__);\
+			case TermWeight::idf:\
+				return new MDL<TermWeight::idf, RandGen>(__VA_ARGS__);\
+			case TermWeight::pmi:\
+				return new MDL<TermWeight::pmi, RandGen>(__VA_ARGS__);\
+			}\
+		}*/\
 		return nullptr; } while(0)
 
 #define GETTER(name, type, field) type get##name() const override { return field; }
@@ -116,30 +128,33 @@ namespace tomoto
 
 	// to make HDP friend of LDA for HDPModel::converToLDA
 	template<TermWeight _tw,
+		typename _RandGen,
 		typename _Interface,
 		typename _Derived,
 		typename _DocType,
 		typename _ModelState>
 	class HDPModel;
 
-	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, typename _RandGen,
+		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
-		typename _DocType = DocumentLDA<_tw, _Flags>,
+		typename _DocType = DocumentLDA<_tw>,
 		typename _ModelState = ModelStateLDA<_tw>>
-	class LDAModel : public TopicModel<_Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_tw, _Flags>, _Derived>::type, 
+	class LDAModel : public TopicModel<_RandGen, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_tw, _RandGen, _Flags>, _Derived>::type,
 		_DocType, _ModelState>,
 		protected TwId<_tw>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LDAModel, _Derived>::type;
-		using BaseClass = TopicModel<_Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = TopicModel<_RandGen, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend EtaHelper<DerivedClass, true>;
 		friend EtaHelper<DerivedClass, false>;
 
 		template<TermWeight,
+			typename,
 			typename,
 			typename,
 			typename,
@@ -178,11 +193,12 @@ namespace tomoto
 			auto dAlpha = math::digammaT(alpha);
 
 			size_t suggested = (len + 127) / 128;
+			if (pool && suggested > pool->getNumWorkers()) suggested = pool->getNumWorkers();
 			if (suggested <= 1 || !pool)
 			{
 				return (math::digammaApprox(listExpr.array() + alpha) - dAlpha).sum();
 			}
-			if (suggested > pool->getNumWorkers()) suggested = pool->getNumWorkers();
+
 			
 			std::vector<std::future<Float>> futures;
 			for (size_t i = 0; i < suggested; ++i)
@@ -200,9 +216,9 @@ namespace tomoto
 		}
 
 		/*
-		function for optimizing hyperparameters
+			function for optimizing hyperparameters
 		*/
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			const auto K = this->K;
 			for (size_t i = 0; i < 10; ++i)
@@ -268,7 +284,7 @@ namespace tomoto
 		/*
 		called once before sampleDocument
 		*/
-		void presampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		void presampleDocument(_DocType& doc, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt) const
 		{
 		}
 
@@ -276,7 +292,7 @@ namespace tomoto
 		main sampling procedure (can be called one or more by ParallelScheme)
 		*/
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
@@ -308,20 +324,20 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _DocIter, typename _ExtraDocData>
-		void performSampling(ThreadPool& pool, _ModelState* localData, RandGen* rgs, std::vector<std::future<void>>& res,
+		void performSampling(ThreadPool& pool, _ModelState* localData, _RandGen* rgs, std::vector<std::future<void>>& res,
 			_DocIter docFirst, _DocIter docLast, const _ExtraDocData& edd) const
 		{
 			// single-threaded sampling
 			if (_ps == ParallelScheme::none)
 			{
-				size_t docId = 0;
-				for (auto doc = docFirst; doc != docLast; ++doc)
+				forRandom((size_t)std::distance(docFirst, docLast), rgs[0](), [&](size_t id)
 				{
-					static_cast<const DerivedClass*>(this)->presampleDocument(*doc, docId, *localData, *rgs, this->iterated);
+					static_cast<const DerivedClass*>(this)->presampleDocument(docFirst[id], id, *localData, *rgs, this->iterated);
 					static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
-						*doc, edd, docId++,
+						docFirst[id], edd, id,
 						*localData, *rgs, this->iterated, 0);
-				}
+
+				});
 			}
 			// multi-threaded sampling on partition ad update into global
 			else if (_ps == ParallelScheme::partition)
@@ -446,7 +462,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps>
-		void trainOne(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void trainOne(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::vector<std::future<void>> res;
 			try
@@ -461,7 +477,7 @@ namespace tomoto
 					static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData, rgs);
 				}
 			}
-			catch (const exception::TrainingError& e)
+			catch (const exception::TrainingError&)
 			{
 				for (auto& r : res) if(r.valid()) r.get();
 				throw;
@@ -480,7 +496,7 @@ namespace tomoto
 		merges multithreaded document sampling result
 		*/
 		template<ParallelScheme _ps, typename _ExtraDocData>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 
@@ -540,12 +556,12 @@ namespace tomoto
 		* if pool is nullptr, workers has been already pooled and cannot branch works more.
 		*/
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last) const
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last)
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
 		}
 
@@ -659,7 +675,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			auto& z = doc.Zs[i];
 			auto w = doc.words[i];
@@ -676,7 +692,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer, typename _Generator>
-		void initializeDocState(_DocType& doc, size_t docId, _Generator& g, _ModelState& ld, RandGen& rgs) const
+		void initializeDocState(_DocType& doc, size_t docId, _Generator& g, _ModelState& ld, _RandGen& rgs) const
 		{
 			std::vector<uint32_t> tf(this->realV);
 			static_cast<const DerivedClass*>(this)->prepareDoc(doc, docId, doc.words.size());
@@ -750,7 +766,7 @@ namespace tomoto
 				numWorkers = std::min(numWorkers, this->maxThreads[(size_t)_ps]);
 				ThreadPool pool{ numWorkers };
 				// temporary state variable
-				RandGen rgc{};
+				_RandGen rgc{};
 				auto tmpState = this->globalState, tState = this->globalState;
 				for (auto d = docFirst; d != docLast; ++d)
 				{
@@ -758,7 +774,7 @@ namespace tomoto
 				}
 
 				std::vector<decltype(tmpState)> localData((m_flags & flags::shared_state) ? 0 : pool.getNumWorkers(), tmpState);
-				std::vector<RandGen> rgs;
+				std::vector<_RandGen> rgs;
 				for (size_t i = 0; i < pool.getNumWorkers(); ++i) rgs.emplace_back(rgc());
 
 				ExtraDocData edd;
@@ -789,7 +805,7 @@ namespace tomoto
 				const double gllRest = static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 				for (auto d = docFirst; d != docLast; ++d)
 				{
-					RandGen rgc{};
+					_RandGen rgc{};
 					auto tmpState = this->globalState;
 					initializeDocState<true>(*d, -1, generator, tmpState, rgc);
 					for (size_t i = 0; i < maxIter; ++i)
@@ -815,7 +831,7 @@ namespace tomoto
 				{
 					res.emplace_back(pool.enqueue([&, d](size_t threadId)
 					{
-						RandGen rgc{};
+						_RandGen rgc{};
 						auto tmpState = this->globalState;
 						initializeDocState<true>(*d, -1, generator, tmpState, rgc);
 						for (size_t i = 0; i < maxIter; ++i)
@@ -844,7 +860,7 @@ namespace tomoto
 
 		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, vocabWeights, alpha, alphas, eta, K, etaByWord);
 
-		LDAModel(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		LDAModel(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
 			if (_K == 0 || _K >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K value (K = %zd)", _K));
@@ -1022,9 +1038,9 @@ namespace tomoto
 
 	};
 
-	template<TermWeight _tw, size_t _Flags>
+	template<TermWeight _tw>
 	template<typename _TopicModel>
-	void DocumentLDA<_tw, _Flags>::update(WeightType* ptr, const _TopicModel& mdl)
+	void DocumentLDA<_tw>::update(WeightType* ptr, const _TopicModel& mdl)
 	{
 		numByTopic.init(ptr, mdl.getK());
 		for (size_t i = 0; i < Zs.size(); ++i)

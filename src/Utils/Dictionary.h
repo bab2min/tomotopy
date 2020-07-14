@@ -27,7 +27,7 @@ namespace tomoto
 			{
 				dict.emplace(std::make_pair(word, dict.size()));
 				id2word.emplace_back(word);
-				return dict.size() - 1;
+				return (Vid)(dict.size() - 1);
 			}
 			return it->second;
 		}

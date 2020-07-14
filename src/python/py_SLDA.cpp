@@ -8,24 +8,40 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
-	float alpha = 0.1, eta = 0.01;
+	float alpha = 0.1f, eta = 0.01f;
 	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
+	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k",
 		"vars", "alpha", "eta",
-		"mu", "nu_sq", "glm_param", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffOOOnOO", (char**)kwlist, 
+		"mu", "nu_sq", "glm_param", "seed", "rng", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffOOOnsOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &K, 
 		&vars, &alpha, &eta, 
-		&mu, &nuSq, &glmCoef, &seed, &objCorpus, &objTransform)) return -1;
+		&mu, &nuSq, &glmCoef, &seed, &rng, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
 		{
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-
 		}
+
+		string srng = rng;
+		bool scalarRng = false;
+		if (srng == "vector8")
+		{
+			scalarRng = false;
+		}
+		else if (srng == "scalar")
+		{
+			scalarRng = true;
+		}
+		else
+		{
+			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
+		}
+
 		vector<tomoto::ISLDAModel::GLM> varTypes;
 		if (vars)
 		{
@@ -46,7 +62,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		float fTemp;
 		if (mu)
 		{
-			if ((fTemp = PyFloat_AsDouble(mu)) == -1 && PyErr_Occurred())
+			if ((fTemp = (float)PyFloat_AsDouble(mu)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
 				py::UniqueObj iter;
@@ -62,7 +78,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		if (nuSq)
 		{
-			if ((fTemp = PyFloat_AsDouble(nuSq)) == -1 && PyErr_Occurred())
+			if ((fTemp = (float)PyFloat_AsDouble(nuSq)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
 				py::UniqueObj iter;
@@ -78,7 +94,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		if (glmCoef)
 		{
-			if ((fTemp = PyFloat_AsDouble(glmCoef)) == -1 && PyErr_Occurred())
+			if ((fTemp = (float)PyFloat_AsDouble(glmCoef)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
 				py::UniqueObj iter;
@@ -94,7 +110,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		tomoto::ITopicModel* inst = tomoto::ISLDAModel::create((tomoto::TermWeight)tw, K, varTypes, 
 			alpha, eta, vmu, vnuSq, vglmCoef,
-			tomoto::RandGen{ seed });
+			seed, scalarRng);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -251,13 +267,26 @@ static PyObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *
 
 static PyObject* SLDA_getRegressionCoef(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t varId;
+	PyObject* argVarId = nullptr;
 	static const char* kwlist[] = { "var_id", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &varId)) return nullptr;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist, &argVarId)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
+		if (!argVarId || argVarId == Py_None)
+		{
+			npy_intp shapes[2] = { (npy_intp)inst->getF(), (npy_intp)inst->getK() };
+			PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
+			for (size_t i = 0; i < inst->getF(); ++i)
+			{
+				auto l = inst->getRegressionCoef(i);
+				memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
+			}
+			return ret;
+		}
+
+		size_t varId = PyLong_AsLong(argVarId);
 		if (varId >= inst->getF()) throw runtime_error{ "'var_id' must be < 'f'" };
 		return py::buildPyValue(inst->getRegressionCoef(varId));
 	}

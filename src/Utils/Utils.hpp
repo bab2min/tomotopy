@@ -149,7 +149,7 @@ namespace tomoto
 			pv[i] = std::make_pair(src[i], i);
 		}
 
-		std::sort(pv.begin(), pv.end(), [&cmp](const voPair_t& a, const voPair_t& b)
+		std::stable_sort(pv.begin(), pv.end(), [&cmp](const voPair_t& a, const voPair_t& b)
 		{
 			return cmp(a.first, b.first);
 		});

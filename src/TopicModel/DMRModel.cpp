@@ -2,12 +2,12 @@
 
 namespace tomoto
 {
-	template class DMRModel<TermWeight::one>;
+	/*template class DMRModel<TermWeight::one>;
 	template class DMRModel<TermWeight::idf>;
-	template class DMRModel<TermWeight::pmi>;
+	template class DMRModel<TermWeight::pmi>;*/
 
-	IDMRModel* IDMRModel::create(TermWeight _weight, size_t _K, Float _defaultAlpha, Float _sigma, Float _eta, Float _alphaEps, const RandGen& _rg)
+	IDMRModel* IDMRModel::create(TermWeight _weight, size_t _K, Float _defaultAlpha, Float _sigma, Float _eta, Float _alphaEps, size_t seed, bool scalarRng)
 	{
-		SWITCH_TW(_weight, DMRModel, _K, _defaultAlpha, _sigma, _eta, _alphaEps, _rg);
+		TMT_SWITCH_TW(_weight, scalarRng, DMRModel, _K, _defaultAlpha, _sigma, _eta, _alphaEps, seed);
 	}
 }

@@ -14,18 +14,19 @@ namespace tomoto
 		std::vector<size_t> ndimCnt;*/
 	};
 
-	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, typename _RandGen, 
+		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IGDMRModel,
 		typename _Derived = void,
 		typename _DocType = DocumentGDMR<_tw, _Flags>,
 		typename _ModelState = ModelStateGDMR<_tw>>
-	class GDMRModel : public DMRModel<_tw, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw>, _Derived>::type,
+	class GDMRModel : public DMRModel<_tw, _RandGen, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw, _RandGen>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw>, _Derived>::type;
-		using BaseClass = DMRModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = DMRModel<_tw, _RandGen, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		friend typename BaseClass::BaseClass::BaseClass;
@@ -335,7 +336,7 @@ namespace tomoto
 
 		GDMRModel(size_t _K = 1, const std::vector<uint64_t>& _degreeByF = {}, 
 			Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _sigma0 = 1.0, Float _eta = 0.01,
-			Float _alphaEps = 1e-10, const RandGen& _rg = RandGen{ std::random_device{}() })
+			Float _alphaEps = 1e-10, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), sigma0(_sigma0), degreeByF(_degreeByF)
 		{
 			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });

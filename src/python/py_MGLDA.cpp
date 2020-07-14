@@ -8,14 +8,15 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1, KL = 1, T = 3;
-	float alpha = 0.1, alphaL = 0.1, eta = 0.01, etaL = 0.01, alphaM = 0.1, alphaML = 0.1, gamma = 0.1;
+	float alpha = 0.1f, alphaL = 0.1f, eta = 0.01f, etaL = 0.01f, alphaM = 0.1f, alphaML = 0.1f, gamma = 0.1f;
+	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml",
-		"eta_g", "eta_l", "gamma", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &KL, &T,
-		&alpha, &alphaL, &alphaM, &alphaML, &eta, &etaL, &gamma, &seed, &objCorpus, &objTransform)) return -1;
+		"eta_g", "eta_l", "gamma", "seed", "rng", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffnsOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &KL, &T, &alpha, &alphaL, &alphaM, &alphaML, &eta, &etaL, &gamma, 
+		&seed, &rng, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -23,8 +24,23 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
+		string srng = rng;
+		bool scalarRng = false;
+		if (srng == "vector8")
+		{
+			scalarRng = false;
+		}
+		else if (srng == "scalar")
+		{
+			scalarRng = true;
+		}
+		else
+		{
+			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
+		}
+
 		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, 
-			K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, tomoto::RandGen{ seed });
+			K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, seed, scalarRng);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

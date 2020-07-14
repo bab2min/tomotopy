@@ -305,8 +305,8 @@ namespace tomoto
 		template<class _Ty>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const Eigen::Matrix<_Ty, -1, -1>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.rows());
-			writeToStream<uint32_t>(ostr, v.cols());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.rows());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.cols());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
 				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
@@ -324,8 +324,8 @@ namespace tomoto
 		template<class _Ty>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const Eigen::Matrix<_Ty, -1, 1>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.rows());
-			writeToStream<uint32_t>(ostr, v.cols());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.rows());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.cols());
 			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
 				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
 		}
@@ -344,7 +344,7 @@ namespace tomoto
 		template<class _Ty>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const std::vector<_Ty>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.size());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			for (auto& e : v) writeToStream(ostr, e);
 		}
 
@@ -373,7 +373,7 @@ namespace tomoto
 		template<class _KeyTy, class _ValTy>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const std::unordered_map<_KeyTy, _ValTy>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.size());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			for (auto& e : v) writeToStream(ostr, e);
 		}
 
@@ -391,7 +391,7 @@ namespace tomoto
 		template<class _Ty, size_t _N>
 		inline void writeToBinStreamImpl(std::ostream& ostr, const std::array<_Ty, _N>& v)
 		{
-			writeToStream<uint32_t>(ostr, v.size());
+			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
 			for (auto& e : v) writeToStream(ostr, e);
 		}
 

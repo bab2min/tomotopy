@@ -16,18 +16,19 @@ namespace tomoto
 		Eigen::Matrix<Float, -1, 1> tmpK;
 	};
 
-	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, typename _RandGen, 
+		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IDMRModel,
 		typename _Derived = void,
 		typename _DocType = DocumentDMR<_tw>,
 		typename _ModelState = ModelStateDMR<_tw>>
-	class DMRModel : public LDAModel<_tw, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_tw, _Flags>, _Derived>::type,
+	class DMRModel : public LDAModel<_tw, _RandGen, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_tw, _RandGen, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DMRModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -118,7 +119,7 @@ namespace tomoto
 			}
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			Eigen::Matrix<Float, -1, -1> bLambda;
 			Float fx = 0, bestFx = INFINITY;
@@ -146,7 +147,7 @@ namespace tomoto
 			expLambda = lambda.array().exp() + alphaEps;
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::cerr << "Failed to optimize! Reset prior and retry!" << std::endl;
 			lambda.setZero();
@@ -254,7 +255,7 @@ namespace tomoto
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma, alphaEps, metadataDict, lambda);
 
 		DMRModel(size_t _K = 1, Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _eta = 0.01, 
-			Float _alphaEps = 0, const RandGen& _rg = RandGen{ std::random_device{}() })
+			Float _alphaEps = 0, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_K, defaultAlpha, _eta, _rg), sigma(_sigma), alphaEps(_alphaEps)
 		{
 			if (_sigma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong sigma value (sigma = %f)", _sigma));
@@ -362,11 +363,12 @@ namespace tomoto
 	};
 
 	/* This is for preventing 'undefined symbol' problem in compiling by clang. */
-	template<TermWeight _tw, size_t _Flags,
+	template<TermWeight _tw, typename _RandGen, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr Float DMRModel<_tw, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
+		constexpr Float DMRModel<_tw, _RandGen, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxLambda;
 
-	template<TermWeight _tw, size_t _Flags,
+	template<TermWeight _tw, typename _RandGen, size_t _Flags,
 		typename _Interface, typename _Derived, typename _DocType, typename _ModelState>
-		constexpr size_t DMRModel<_tw, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
+		constexpr size_t DMRModel<_tw, _RandGen, _Flags, _Interface, _Derived, _DocType, _ModelState>::maxBFGSIteration;
+
 }

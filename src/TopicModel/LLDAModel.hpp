@@ -10,18 +10,18 @@ Implementation of Labeled LDA using Gibbs sampling by bab2min
 
 namespace tomoto
 {
-	template<TermWeight _tw,
+	template<TermWeight _tw, typename _RandGen,
 		typename _Interface = ILLDAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentLLDA<_tw>,
 		typename _ModelState = ModelStateLDA<_tw>>
-	class LLDAModel : public LDAModel<_tw, flags::generator_by_doc | flags::partitioned_multisampling, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_tw>, _Derived>::type,
+	class LLDAModel : public LDAModel<_tw, _RandGen, flags::generator_by_doc | flags::partitioned_multisampling, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_tw, _RandGen>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, flags::generator_by_doc | flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, LLDAModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, flags::generator_by_doc | flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -81,7 +81,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			auto& z = doc.Zs[i];
 			auto w = doc.words[i];
@@ -102,7 +102,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, topicLabelDict);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, topicLabelDict);
 
-		LLDAModel(size_t _K = 1, Float _alpha = 1.0, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() })
+		LLDAModel(size_t _K = 1, Float _alpha = 1.0, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_K, _alpha, _eta, _rg)
 		{
 		}

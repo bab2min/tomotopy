@@ -23,18 +23,19 @@ namespace tomoto
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
 	};
 
-	template<TermWeight _tw, size_t _Flags = flags::partitioned_multisampling,
+	template<TermWeight _tw, typename _RandGen,
+		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IDTModel,
 		typename _Derived = void,
 		typename _DocType = DocumentDTM<_tw>,
 		typename _ModelState = ModelStateDTM<_tw>>
-		class DTModel : public LDAModel<_tw, _Flags, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_tw, _Flags>, _Derived>::type,
+	class DTModel : public LDAModel<_tw, _RandGen, _Flags, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_tw, _RandGen, _Flags>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, DTModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, _Flags, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -47,7 +48,7 @@ namespace tomoto
 
 		Eigen::Matrix<Float, -1, -1> alphas; // Dim: (Topic, Time)
 		Eigen::Matrix<Float, -1, -1> etaByDoc; // Dim: (Topic, Docs) : Topic distribution by docs(and time)
-		std::vector<size_t> numDocsByTime; // Dim: (Time)
+		std::vector<uint32_t> numDocsByTime; // Dim: (Time)
 		Eigen::Matrix<Float, -1, -1> phi; // Dim: (Word, Topic * Time)
 		std::vector<sample::AliasMethod<>> wordAliasTables; // Dim: (Word * Time)
 
@@ -76,7 +77,7 @@ namespace tomoto
 			- sampling alpha
 		*/
 
-		void presampleDocument(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt) const
+		void presampleDocument(_DocType& doc, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt) const
 		{
 			const Float eps = shapeA * (std::pow(shapeB + 1 + iterationCnt, -shapeC));
 			
@@ -88,7 +89,7 @@ namespace tomoto
 				auto prior = (alphas.col(doc.timepoint) - doc.eta) / std::max(etaVar, eps * 2);
 				auto grad = doc.numByTopic.template cast<Float>() - estimatedCnt;
 				doc.eta.array() += (eps / 2) * (prior.array() + grad.array())
-					+ Eigen::norm_dist<Eigen::Array<Float, -1, 1>>(this->K, 1, rgs) * eps;
+					+ Eigen::Rand::normal<Eigen::Array<Float, -1, 1>>(this->K, 1, rgs) * eps;
 			}
 
 			Eigen::Array<Float, -1, 1> expEta = (doc.eta.array() - doc.eta.maxCoeff()).exp();
@@ -96,7 +97,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			size_t b = 0, e = doc.words.size();
 			if (_ps == ParallelScheme::partition)
@@ -106,7 +107,6 @@ namespace tomoto
 			}
 
 			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? edd.vChunkOffset[partitionId - 1] : 0;
-			sample::FastRealGenerator frg;
 
 			// sampling zeta
 			for (size_t w = b; w < e; ++w)
@@ -122,14 +122,14 @@ namespace tomoto
 					Float acceptance = std::min(1.f,
 						std::exp(phi(v, new_z + this->K * doc.timepoint) - phi(v, doc.Zs[w] + this->K * doc.timepoint))
 					);
-					if (acceptance >= 1 || frg(rgs) < acceptance) doc.Zs[w] = new_z;
+					if (acceptance >= 1 || rgs.uniform_real() < acceptance) doc.Zs[w] = new_z;
 
 					// word proposal
 					new_z = wordAliasTables[v + this->realV * doc.timepoint](rgs);
 					acceptance = std::min(1.f,
 						std::exp(doc.eta(new_z) - doc.eta(doc.Zs[w]))
 					);
-					if (acceptance >= 1 || frg(rgs) < acceptance) doc.Zs[w] = new_z;
+					if (acceptance >= 1 || rgs.uniform_real() < acceptance) doc.Zs[w] = new_z;
 				}
 
 				addWordTo<1>(ld, doc, w, v - vOffset, doc.Zs[w]);
@@ -137,7 +137,7 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, typename _ExtraDocData>
-		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, RandGen*, const _ExtraDocData& edd) const
+		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
 			std::vector<std::future<void>> res;
 
@@ -194,7 +194,7 @@ namespace tomoto
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last)
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
 			const auto K = this->K;
 			const Float eps = shapeA * (std::pow(shapeB + 1 + this->iterated, -shapeC));
@@ -211,7 +211,7 @@ namespace tomoto
 
 					Eigen::Matrix<Float, -1, 1> grad = this->globalState.numByTopicWord.row(k + K * t).template cast<Float>();
 					grad -= estimatedCnt;
-					auto epsNoise = Eigen::norm_dist<Eigen::Array<Float, -1, 1>>(this->realV, 1, *rgs) * eps;
+					auto epsNoise = Eigen::Rand::normal<Eigen::Array<Float, -1, 1>>(this->realV, 1, *rgs) * eps;
 					if (t == 0)
 					{
 						if (T > 1)
@@ -308,18 +308,18 @@ namespace tomoto
 					newAlpha += (alphas.col(t + 1) + alphas.col(t - 1)) / alphaVar;
 				}
 				newAlpha /= lambda;
-				newAlpha.array() += Eigen::norm_dist<Eigen::Array<Float, -1, 1>>(this->K, 1, *rgs) / std::sqrt(lambda);
+				newAlpha.array() += Eigen::Rand::normal<Eigen::Array<Float, -1, 1>>(this->K, 1, *rgs) / std::sqrt(lambda);
 			}
 			alphas = newAlphas;
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last) const
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
 			// do nothing
 		}
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 		}
 
@@ -446,7 +446,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer, typename _Generator>
-		void updateStateWithDoc(_Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(_Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			auto& z = doc.Zs[i];
 			auto w = doc.words[i];
@@ -495,6 +495,7 @@ namespace tomoto
 			T, shapeA, shapeB, shapeC, alphaVar, etaVar, phiVar, alphas, etaByDoc, phi);
 
 		GETTER(T, size_t, T);
+		GETTER(NumDocsByT, std::vector<uint32_t>, numDocsByTime);
 		GETTER(AlphaVar, Float, alphaVar);
 		GETTER(EtaVar, Float, etaVar);
 		GETTER(PhiVar, Float, phiVar);
@@ -504,7 +505,7 @@ namespace tomoto
 		GETTER(ShapeC, Float, shapeC);
 
 		DTModel(size_t _K, size_t _T, Float _alphaVar, Float _etaVar, Float _phiVar,
-			Float _shapeA, Float _shapeB, Float _shapeC, Float _etaRegL2, const RandGen& _rg)
+			Float _shapeA, Float _shapeB, Float _shapeC, Float _etaRegL2, const _RandGen& _rg)
 			: BaseClass{ _K, _alphaVar, _etaVar, _rg },
 			T{ _T }, alphaVar{ _alphaVar }, etaVar{ _etaVar }, phiVar{ _phiVar },
 			shapeA{ _shapeA }, shapeB{ _shapeB }, shapeC{ _shapeC }, etaRegL2{ _etaRegL2 }

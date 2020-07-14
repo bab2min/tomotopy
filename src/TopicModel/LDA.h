@@ -76,8 +76,8 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _tw, size_t _Flags = 0>
-	struct DocumentLDA : public DocumentBase, SumWordWeight<DocumentLDA<_tw, _Flags>, _tw>
+	template<TermWeight _tw>
+	struct DocumentLDA : public DocumentBase, SumWordWeight<DocumentLDA<_tw>, _tw>
 	{
 	public:
 		using DocumentBase::DocumentBase;
@@ -113,7 +113,9 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDA<TermWeight::one>;
-		static ILDAModel* create(TermWeight _weight, size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const RandGen& _rg = RandGen{ std::random_device{}() });
+		static ILDAModel* create(TermWeight _weight, size_t _K = 1, 
+			Float _alpha = 0.1, Float _eta = 0.01, size_t seed = std::random_device{}(),
+			bool scalarRng = false);
 
 		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;

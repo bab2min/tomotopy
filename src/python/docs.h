@@ -1986,13 +1986,15 @@ y : Iterable[float]
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_get_regression_coef__doc__,
-	"get_regression_coef(self, var_id)",
+	"get_regression_coef(self, var_id=None)",
 	u8R""(Return the regression coefficient of the response variable `var_id`.
 
 Parameters
 ----------
 var_id : int
     indicating the reponse variable, in range [0, `f`)
+
+    If omitted, the whole regression coefficients with shape `[f, k]` are returned.
 )"",
 	u8R""(응답 변수 `var_id`의 회귀 계수를 반환합니다.
 
@@ -2000,6 +2002,8 @@ Parameters
 ----------
 var_id : int
     응답 변수를 지정하는 [0, `f`) 범위의 정수
+
+    생략시, `[f, k]` 모양의 전체 회귀 계수가 반환됩니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_get_var_type__doc__,
@@ -2727,3 +2731,11 @@ DOC_VARIABLE_EN_KO(DT_lr_b__doc__,
 DOC_VARIABLE_EN_KO(DT_lr_c__doc__,
 	u8R""(parameter `c` with range (0.5, 1] for SGLD step size (e_i = a * (b + i) ^ -c))"",
 	u8R""(SGLD의 스텝 크기를 결정하는 (0.5, 1] 범위의 파라미터 `c` (e_i = a * (b + i) ^ -c))"");
+
+DOC_VARIABLE_EN_KO(DT_num_timepoints__doc__,
+    u8R""(the number of timepoints of the model (read-only))"",
+    u8R""(모델의 시점 개수 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(DT_num_docs_by_timepoint__doc__,
+    u8R""(the number of documents in the model by timepoint (read-only))"",
+    u8R""(각 시점별 모델 내 문헌 개수 (읽기전용))"");

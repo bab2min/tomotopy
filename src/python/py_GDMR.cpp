@@ -8,22 +8,38 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
-	float alpha = 0.1, eta = 0.01, sigma = 1, sigma0 = 3, alphaEpsilon = 1e-10;
+	float alpha = 0.1f, eta = 0.01f, sigma = 1, sigma0 = 3, alphaEpsilon = 1e-10f;
+	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr, 
 		*objDegrees = nullptr, *objRange = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", 
 		"degrees", "alpha", "eta", "sigma", "sigma0", "alpha_epsilon", 
-		"metadata_range", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffffOnOO", (char**)kwlist, 
+		"metadata_range", "seed", "rng", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffffOnsOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop,&K, 
 		&objDegrees, &alpha, &eta, &sigma, &sigma0, &alphaEpsilon, 
-		&objRange, &seed, &objCorpus, &objTransform)) return -1;
+		&objRange, &seed, &rng, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
 		{
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
+		}
+
+		string srng = rng;
+		bool scalarRng = false;
+		if (srng == "vector8")
+		{
+			scalarRng = false;
+		}
+		else if (srng == "scalar")
+		{
+			scalarRng = true;
+		}
+		else
+		{
+			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
 		}
 
 		vector<uint64_t> degrees;
@@ -39,7 +55,7 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		}
 
 		tomoto::IGDMRModel* inst = tomoto::IGDMRModel::create((tomoto::TermWeight)tw, K,
-			degrees, alpha, sigma, sigma0, eta, alphaEpsilon, tomoto::RandGen{ seed });
+			degrees, alpha, sigma, sigma0, eta, alphaEpsilon, seed, scalarRng);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

@@ -3,11 +3,11 @@
 
 namespace tomoto
 {
-    template<TermWeight _tw, size_t _Flags = 0>
-	struct DocumentSLDA : public DocumentLDA<_tw, _Flags>
+    template<TermWeight _tw>
+	struct DocumentSLDA : public DocumentLDA<_tw>
 	{
-		using BaseDocument = DocumentLDA<_tw, _Flags>;
-		using DocumentLDA<_tw, _Flags>::DocumentLDA;
+		using BaseDocument = DocumentLDA<_tw>;
+		using DocumentLDA<_tw>::DocumentLDA;
 		std::vector<Float> y;
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, y);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, y);
@@ -28,7 +28,8 @@ namespace tomoto
 			Float alpha = 0.1, Float _eta = 0.01,
 			const std::vector<Float>& _mu = {}, const std::vector<Float>& _nuSq = {},
 			const std::vector<Float>& _glmParam = {},
-			const RandGen& _rg = RandGen{ std::random_device{}() });
+			size_t seed = std::random_device{}(),
+			bool scalarRng = false);
 
 		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<Float>& y) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<Float>& y) const = 0;

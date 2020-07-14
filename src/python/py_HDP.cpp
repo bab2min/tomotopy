@@ -8,12 +8,14 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 2;
-	float alpha = 0.1, eta = 0.01, gamma = 0.1;
+	float alpha = 0.1f, eta = 0.01f, gamma = 0.1f;
+	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "initial_k", "alpha", "eta", "gamma", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &alpha, &eta, &gamma, &seed, &objCorpus, &objTransform)) return -1;
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "initial_k", "alpha", "eta", "gamma", 
+		"seed", "rng", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnsOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &alpha, &eta, &gamma, &seed, &rng, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -21,7 +23,22 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, tomoto::RandGen{ seed });
+		string srng = rng;
+		bool scalarRng = false;
+		if (srng == "vector8")
+		{
+			scalarRng = false;
+		}
+		else if (srng == "scalar")
+		{
+			scalarRng = true;
+		}
+		else
+		{
+			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
+		}
+
+		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, seed, scalarRng);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;

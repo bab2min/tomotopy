@@ -312,18 +312,18 @@ namespace tomoto
 		}
 	};
 
-	template<TermWeight _tw,
+	template<TermWeight _tw, typename _RandGen,
 		typename _Interface = IHLDAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentHLDA<_tw>,
 		typename _ModelState = ModelStateHLDA<_tw>>
-	class HLDAModel : public LDAModel<_tw, flags::shared_state, _Interface,
-		typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw>, _Derived>::type,
+	class HLDAModel : public LDAModel<_tw, _RandGen, flags::shared_state, _Interface,
+		typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw, _RandGen>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
-		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, flags::shared_state, _Interface, DerivedClass, _DocType, _ModelState>;
+		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw, _RandGen>, _Derived>::type;
+		using BaseClass = LDAModel<_tw, _RandGen, flags::shared_state, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -332,7 +332,7 @@ namespace tomoto
 
 		Float gamma;
 
-		void optimizeParameters(ThreadPool& pool, _ModelState* localData, RandGen* rgs)
+		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			// for alphas
 			BaseClass::optimizeParameters(pool, localData, rgs);
@@ -342,7 +342,7 @@ namespace tomoto
 
 		// Words of all documents should be sorted by ascending order.
 		template<bool _MakeNewPath = true>
-		void samplePathes(_DocType& doc, ThreadPool* pool, _ModelState& ld, RandGen& rgs) const
+		void samplePathes(_DocType& doc, ThreadPool* pool, _ModelState& ld, _RandGen& rgs) const
 		{
 			if(_MakeNewPath) ld.nt->nodes[doc.path.back()].dropPathOne();
 			ld.nt->template calcNodeLikelihood<_MakeNewPath>(gamma, this->K);
@@ -439,7 +439,7 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		void sampleTopics(_DocType& doc, size_t docId, _ModelState& ld, RandGen& rgs) const
+		void sampleTopics(_DocType& doc, size_t docId, _ModelState& ld, _RandGen& rgs) const
 		{
 			for (size_t w = 0; w < doc.words.size(); ++w)
 			{
@@ -461,13 +461,13 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
+		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
 		{
 			sampleTopics(doc, docId, ld, rgs);
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last)
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
 			for (auto doc = first; doc != last; ++doc)
 			{
@@ -477,7 +477,7 @@ namespace tomoto
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, RandGen* rgs, _DocIter first, _DocIter last) const
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
 			for (auto doc = first; doc != last; ++doc)
 			{
@@ -556,7 +556,7 @@ namespace tomoto
 		}
 
 		template<bool _Infer>
-		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, RandGen& rgs, _DocType& doc, size_t i) const
+		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
 			if (i == 0)
 			{
@@ -599,7 +599,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
 
-		HLDAModel(size_t _levelDepth = 4, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, const RandGen& _rg = RandGen{ std::random_device{}() })
+		HLDAModel(size_t _levelDepth = 4, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_levelDepth, _alpha, _eta, _rg), gamma(_gamma)
 		{
 			if (_levelDepth == 0 || _levelDepth >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong levelDepth value (levelDepth = %zd)", _levelDepth));
