@@ -36,7 +36,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.8.1.
+The most recent version of tomotopy is 0.8.2.
 
 Getting Started
 ---------------
