@@ -42,6 +42,7 @@ tomotopy의 가장 최신버전은 0.8.2 입니다.
 다음과 같이 pip를 이용하면 tomotopy를 쉽게 설치할 수 있습니다.
 ::
 
+    $ pip install --upgrade pip
     $ pip install tomotopy
 
 지원하는 운영체제 및 Python 버전은 다음과 같습니다:
