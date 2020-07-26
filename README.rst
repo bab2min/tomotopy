@@ -43,6 +43,7 @@ Getting Started
 You can install tomotopy easily using pip. (https://pypi.org/project/tomotopy/)
 ::
 
+    $ pip install --upgrade pip
     $ pip install tomotopy
 
 The supported OS and Python versions are:
