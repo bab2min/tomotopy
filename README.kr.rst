@@ -208,6 +208,18 @@ infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `t
 
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
 
+버전별 속도 차이
+----------------------
+아래 그래프는 버전별 속도 차이를 표시한 것입니다. 
+LDA모델로 1000회 iteration을 수행시 걸리는 시간을 초 단위로 표시하였습니다.
+(Docs: 11314, Vocab: 60382, Words: 2364724, Intel Xeon Gold 5120 @2.2GHz)
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t1.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t4.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t8.png
+
 어휘 사전분포를 이용하여 주제 고정하기
 --------------------------------------
 0.6.0 버전부터 `tomotopy.LDAModel.set_word_prior`라는 메소드가 추가되었습니다. 이 메소드로 특정 단어의 사전분포를 조절할 수 있습니다.

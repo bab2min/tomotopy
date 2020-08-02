@@ -8,14 +8,13 @@ static int LLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
-	float alpha = 0.1f, eta = 0.01f, sigma = 1;
-	const char* rng = "scalar";
+	float alpha = 0.1f, eta = 0.01f;
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", 
-		"seed", "rng", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfffnsOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &alpha, &eta, &seed, &rng, &objCorpus, &objTransform)) return -1;
+		"seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -23,28 +22,16 @@ static int LLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
-		}
-
-		tomoto::ITopicModel* inst = tomoto::ILLDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, seed, scalarRng);
+		tomoto::ITopicModel* inst = tomoto::ILLDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, alpha, eta, seed
+		);
 
 		if (objCorpus)
 		{

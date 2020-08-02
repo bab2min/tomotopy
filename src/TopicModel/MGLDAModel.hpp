@@ -355,6 +355,19 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z, doc.sents[i], win, r);
 		}
 
+		std::vector<uint64_t> _getTopicsCount() const
+		{
+			std::vector<uint64_t> cnt(this->K + KL);
+			for (auto& doc : this->docs)
+			{
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] < this->realV) ++cnt[doc.Zs[i]];
+				}
+			}
+			return cnt;
+		}
+
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, alphaL, alphaM, alphaML, etaL, gamma, KL, T);

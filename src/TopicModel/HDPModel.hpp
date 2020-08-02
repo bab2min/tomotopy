@@ -240,7 +240,7 @@ namespace tomoto
 				// turn off dead topics
 				for (size_t k = 0; k < K; ++k)
 				{
-					if (!isLiveTopic(k)) ld.zLikelihood[k] = -INFINITY;
+					if (!ld.numTableByTopic[k]) ld.zLikelihood[k] = -INFINITY;
 				}
 
 				ld.zLikelihood = (ld.zLikelihood.array() - ld.zLikelihood.maxCoeff()).exp();

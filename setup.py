@@ -4,7 +4,7 @@ import os, os.path, struct, re, platform
 from setuptools.command.install import install
 import numpy
 
-exec(open('tomotopy/version.py').read())
+exec(open('tomotopy/_version.py').read())
 
 here = os.path.abspath(os.path.dirname(__file__))
 

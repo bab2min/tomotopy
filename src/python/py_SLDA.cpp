@@ -10,16 +10,15 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t K = 1;
 	float alpha = 0.1f, eta = 0.01f;
 	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
-	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k",
 		"vars", "alpha", "eta",
-		"mu", "nu_sq", "glm_param", "seed", "rng", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffOOOnsOO", (char**)kwlist, 
+		"mu", "nu_sq", "glm_param", "seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffOOOnOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &K, 
 		&vars, &alpha, &eta, 
-		&mu, &nuSq, &glmCoef, &seed, &rng, &objCorpus, &objTransform)) return -1;
+		&mu, &nuSq, &glmCoef, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -27,28 +26,14 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
-		}
-
 		vector<tomoto::ISLDAModel::GLM> varTypes;
+		vector<string> varTypeStrs;
 		if (vars)
 		{
 			py::UniqueObj iter;
-			if (!(iter = PyObject_GetIter(vars))) throw runtime_error{ "'vars' must be an iterable." };
-			auto vs = py::makeIterToVector<string>(iter);
-			for (auto& s : vs)
+			if (!(iter = PyObject_GetIter(vars))) throw runtime_error{ "`vars` must be an iterable." };
+			varTypeStrs = py::makeIterToVector<string>(iter);
+			for (auto& s : varTypeStrs)
 			{
 				tomoto::ISLDAModel::GLM t;
 				if (s == "l") t = tomoto::ISLDAModel::GLM::linear;
@@ -66,7 +51,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			{
 				PyErr_Clear();
 				py::UniqueObj iter;
-				if (!(iter = PyObject_GetIter(mu))) throw runtime_error{ "'mu' must be float or iterable of float." };
+				if (!(iter = PyObject_GetIter(mu))) throw runtime_error{ "`mu` must be float or iterable of float." };
 
 				vmu = py::makeIterToVector<tomoto::Float>(iter);
 			}
@@ -82,7 +67,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			{
 				PyErr_Clear();
 				py::UniqueObj iter;
-				if (!(iter = PyObject_GetIter(nuSq))) throw runtime_error{ "'nu_sq' must be float or iterable of float." };
+				if (!(iter = PyObject_GetIter(nuSq))) throw runtime_error{ "`nu_sq` must be float or iterable of float." };
 
 				vnuSq = py::makeIterToVector<tomoto::Float>(iter);
 			}
@@ -98,7 +83,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			{
 				PyErr_Clear();
 				py::UniqueObj iter;
-				if (!(iter = PyObject_GetIter(glmCoef))) throw runtime_error{ "'glm_param' must be float or iterable of float." };
+				if (!(iter = PyObject_GetIter(glmCoef))) throw runtime_error{ "`glm_param` must be float or iterable of float." };
 
 				vglmCoef = py::makeIterToVector<tomoto::Float>(iter);
 			}
@@ -110,13 +95,17 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		tomoto::ITopicModel* inst = tomoto::ISLDAModel::create((tomoto::TermWeight)tw, K, varTypes, 
 			alpha, eta, vmu, vnuSq, vglmCoef,
-			seed, scalarRng);
+			seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, varTypeStrs, alpha, eta,
+			vmu, vnuSq, vglmCoef
+		);
 
 		if (objCorpus)
 		{
@@ -311,7 +300,7 @@ static PyObject* SLDA_getTypeOfVar(TopicModelObject* self, PyObject* args, PyObj
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
 		if (varId >= inst->getF()) throw runtime_error{ "'var_id' must be < 'f'" };
-		return py::buildPyValue("l\0b" + (size_t)inst->getTypeOfVar(varId) * 2);
+		return py::buildPyValue(std::string{ "l\0b" + (size_t)inst->getTypeOfVar(varId) * 2 });
 	}
 	catch (const bad_exception&)
 	{

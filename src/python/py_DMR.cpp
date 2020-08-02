@@ -9,13 +9,12 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 1e-10;
-	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "sigma", "alpha_epsilon", 
-		"seed", "rng", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffffnsOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &alpha, &eta, &sigma, &alphaEpsilon, &seed, &rng, &objCorpus, &objTransform)) return -1;
+		"seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &alpha, &eta, &sigma, &alphaEpsilon, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -23,28 +22,16 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
-		}
-
-		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, K, alpha, sigma, eta, alphaEpsilon, seed, scalarRng);
+		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, K, alpha, sigma, eta, alphaEpsilon, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, alpha, eta, sigma, alphaEpsilon, seed
+		);
 
 		if (objCorpus)
 		{
@@ -216,11 +203,72 @@ static PyObject* DMR_getLambda(TopicModelObject* self, void* closure)
 		return nullptr;
 	}
 }
+
+static PyObject* DMR_getAlpha(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
+		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getF() };
+		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
+		for (size_t i = 0; i < inst->getK(); ++i)
+		{
+			auto l = inst->getLambdaByTopic(i);
+			Eigen::Map<Eigen::ArrayXf> ml{ l.data(), (Eigen::Index)l.size() };
+			ml = ml.exp();
+			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
+		}
+		return ret;
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getAlphaEps);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getSigma);
 DEFINE_GETTER(tomoto::IDMRModel, DMR, getF);
 
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentDMR, DMR_metadata, metadata);
+PyObject* Document_DMR_metadata(DocumentObject * self, void* closure)
+{
+	try
+	{
+		if (!self->doc) throw runtime_error{ "doc is null!" };
+		auto inst = (tomoto::IDMRModel*)self->parentModel->inst;
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentDMR<tomoto::TermWeight::one>*>(self->doc);
+			if (doc) return py::buildPyValue(inst->getMetadataDict().toWord(doc->metadata));
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentDMR<tomoto::TermWeight::idf>*>(self->doc);
+			if (doc) return py::buildPyValue(inst->getMetadataDict().toWord(doc->metadata));
+		} while (0);
+		do
+		{
+			auto* doc = dynamic_cast<const tomoto::DocumentDMR<tomoto::TermWeight::pmi>*>(self->doc);
+			if (doc) return py::buildPyValue(inst->getMetadataDict().toWord(doc->metadata));
+		} while (0);
+		return nullptr;
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
 
 DEFINE_LOADER(DMR, DMR_type);
 
@@ -239,6 +287,7 @@ static PyGetSetDef DMR_getseters[] = {
 	{ (char*)"alpha_epsilon", (getter)DMR_getAlphaEps, nullptr, DMR_alpha_epsilon__doc__, nullptr },
 	{ (char*)"metadata_dict", (getter)DMR_getMetadataDict, nullptr, DMR_metadata_dict__doc__, nullptr },
 	{ (char*)"lambdas", (getter)DMR_getLambda, nullptr, DMR_lamdas__doc__, nullptr },
+	{ (char*)"alpha", (getter)DMR_getAlpha, nullptr, DMR_alpha__doc__, nullptr },
 	{ nullptr },
 };
 

@@ -167,14 +167,14 @@ namespace tomoto
 					{
 						static_cast<DerivedClass*>(this)->template sampleDocument<ParallelScheme::copy_merge>(
 							this->docs[id * chStride + ch], 0, id * chStride + ch,
-							localData[threadId], rgs[threadId], this->iterated);
+							localData[threadId], rgs[threadId], this->globalStep);
 					});
 				}));
 			}
 			for (auto& r : res) r.get();
 			static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
 			static_cast<DerivedClass*>(this)->mergeState(pool, this->globalState, this->tState, localData);
-			if (this->iterated >= 250 && optimInterval && (this->iterated + 1) % optimInterval == 0)
+			if (this->globalStep >= 250 && optimInterval && (this->globalStep + 1) % optimInterval == 0)
 			{
 				static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData);
 			}

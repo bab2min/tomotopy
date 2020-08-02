@@ -197,7 +197,7 @@ namespace tomoto
 		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
 			const auto K = this->K;
-			const Float eps = shapeA * (std::pow(shapeB + 1 + this->iterated, -shapeC));
+			const Float eps = shapeA * (std::pow(shapeB + 1 + this->globalStep, -shapeC));
 
 			// sampling phi
 			for (size_t k = 0; k < K; ++k)

@@ -123,7 +123,7 @@ namespace tomoto
 		template<typename _DocIter>
 		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
-			if (this->iterated < this->burnIn || !this->optimInterval || (this->iterated + 1) % this->optimInterval != 0) return;
+			if (this->globalStep < this->burnIn || !this->optimInterval || (this->globalStep + 1) % this->optimInterval != 0) return;
 
 			if (pool)
 			{

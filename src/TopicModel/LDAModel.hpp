@@ -20,7 +20,7 @@ Term Weighting Scheme is based on following paper:
 */
 
 #define TMT_SWITCH_TW(TW, SRNG, MDL, ...) do{\
-		if(SRNG){\
+		i/*f(SRNG){\
 			switch (TW){\
 			case TermWeight::one:\
 				return new MDL<TermWeight::one, ScalarRandGen>(__VA_ARGS__);\
@@ -30,7 +30,7 @@ Term Weighting Scheme is based on following paper:
 				return new MDL<TermWeight::pmi, ScalarRandGen>(__VA_ARGS__);\
 			}\
 		}\
-		/*else{\
+		else*/{\
 			switch (TW){\
 			case TermWeight::one:\
 				return new MDL<TermWeight::one, RandGen>(__VA_ARGS__);\
@@ -39,7 +39,7 @@ Term Weighting Scheme is based on following paper:
 			case TermWeight::pmi:\
 				return new MDL<TermWeight::pmi, RandGen>(__VA_ARGS__);\
 			}\
-		}*/\
+		}\
 		return nullptr; } while(0)
 
 #define GETTER(name, type, field) type get##name() const override { return field; }
@@ -332,10 +332,10 @@ namespace tomoto
 			{
 				forRandom((size_t)std::distance(docFirst, docLast), rgs[0](), [&](size_t id)
 				{
-					static_cast<const DerivedClass*>(this)->presampleDocument(docFirst[id], id, *localData, *rgs, this->iterated);
+					static_cast<const DerivedClass*>(this)->presampleDocument(docFirst[id], id, *localData, *rgs, this->globalStep);
 					static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
 						docFirst[id], edd, id,
-						*localData, *rgs, this->iterated, 0);
+						*localData, *rgs, this->globalStep, 0);
 
 				});
 			}
@@ -354,12 +354,12 @@ namespace tomoto
 							{
 								static_cast<const DerivedClass*>(this)->presampleDocument(
 									docFirst[id * chStride + didx], id * chStride + didx,
-									localData[partitionId], rgs[partitionId], this->iterated
+									localData[partitionId], rgs[partitionId], this->globalStep
 								);
 							}
 							static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
 								docFirst[id * chStride + didx], edd, id * chStride + didx,
-								localData[partitionId], rgs[partitionId], this->iterated, partitionId
+								localData[partitionId], rgs[partitionId], this->globalStep, partitionId
 							);
 						});
 					});
@@ -379,11 +379,11 @@ namespace tomoto
 						{
 							static_cast<const DerivedClass*>(this)->presampleDocument(
 								docFirst[id * chStride + ch], id * chStride + ch, 
-								localData[threadId], rgs[threadId], this->iterated
+								localData[threadId], rgs[threadId], this->globalStep
 							);
 							static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
 								docFirst[id * chStride + ch], edd, id * chStride + ch,
-								localData[threadId], rgs[threadId], this->iterated, 0
+								localData[threadId], rgs[threadId], this->globalStep, 0
 							);
 						});
 					}));
@@ -472,7 +472,7 @@ namespace tomoto
 				static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
 				static_cast<DerivedClass*>(this)->template mergeState<_ps>(pool, this->globalState, this->tState, localData, rgs, eddTrain);
 				static_cast<DerivedClass*>(this)->template sampleGlobalLevel<>(&pool, localData, rgs, this->docs.begin(), this->docs.end());
-				if (this->iterated >= this->burnIn && optimInterval && (this->iterated + 1) % optimInterval == 0)
+				if (this->globalStep >= this->burnIn && optimInterval && (this->globalStep + 1) % optimInterval == 0)
 				{
 					static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData, rgs);
 				}
@@ -858,7 +858,8 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_WITH_VERSION(0, vocabWeights, alpha, alphas, eta, K);
 
-		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, vocabWeights, alpha, alphas, eta, K, etaByWord);
+		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, vocabWeights, alpha, alphas, eta, K, etaByWord,
+			burnIn, optimInterval);
 
 		LDAModel(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)

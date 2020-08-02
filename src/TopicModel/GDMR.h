@@ -3,7 +3,7 @@
 
 namespace tomoto
 {
-    template<TermWeight _tw, size_t _Flags = 0>
+    template<TermWeight _tw>
 	struct DocumentGDMR : public DocumentDMR<_tw>
 	{
 		using BaseDocument = DocumentDMR<_tw>;

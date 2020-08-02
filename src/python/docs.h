@@ -172,7 +172,7 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
-    the number of topics between 1 ~ 32767.
+    the number of topics between 1 ~ 32767
 alpha : float
     hyperparameter of Dirichlet distribution for document-topic
 eta : float
@@ -439,7 +439,7 @@ DOC_SIGNATURE_EN_KO(LDA_save__doc__,
 	u8R""(Save the model instance to file `filename`. Return `None`.
 
 If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model.
-If `False`, only topic paramters of the model will be saved. This model can be only used for inference of an unseen document.
+If `False`, only topic parameters of the model will be saved. This model can be only used for inference of an unseen document.
 
 .. versionadded:: 0.6.0
 
@@ -462,6 +462,13 @@ DOC_SIGNATURE_EN_KO(LDA_load__doc__,
 	u8R""(Return the model instance loaded from file `filename`.)"",
 	u8R""(`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
 
+DOC_SIGNATURE_EN_KO(LDA_summary__doc__,
+    "summary(self, file=None, flush=False)",
+    u8R""(.. versionadded:: 0.9.0
+)"",
+u8R""(.. versionadded:: 0.9.0
+)"");
+
 
 DOC_VARIABLE_EN_KO(LDA_tw__doc__,
 	u8R""(the term weighting scheme (read-only))"",
@@ -480,8 +487,8 @@ DOC_VARIABLE_EN_KO(LDA_k__doc__,
 	u8R""(토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_alpha__doc__,
-	u8R""(the hyperparameter alpha (read-only))"",
-	u8R""(하이퍼 파라미터 alpha (읽기전용))"");
+	u8R""(Dirichlet prior on the per-document topic distributions (read-only))"",
+	u8R""(문헌의 토픽 분포에 대한 디리클레 분포 파라미터 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_eta__doc__,
 	u8R""(the hyperparameter eta (read-only))"",
@@ -553,6 +560,14 @@ This value is 0 before `train` called.)"",
 	u8R""(현재 모델에 포함된 문헌들 전체의 단어 개수 (읽기전용)
 
 `train`이 호출되기 전에는 이 값은 0입니다.)"");
+
+DOC_VARIABLE_EN_KO(LDA_global_step__doc__,
+    u8R""(the total number of iterations of training (read-only)
+
+.. versionadded:: 0.9.0)"",
+u8R""(현재까지 수행된 학습의 총 반복 횟수 (읽기전용)
+
+.. versionadded:: 0.9.0)"");
 
 DOC_VARIABLE_EN_KO(LDA_optim_interval__doc__,
 	u8R""(get or set the interval for optimizing parameters
@@ -712,7 +727,7 @@ DOC_VARIABLE_EN_KO(DMR_f__doc__,
 	u8R""(메타데이터 자질 종류의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_sigma__doc__,
-	u8R""(the hyperparamter sigma (read-only))"",
+	u8R""(the hyperparameter sigma (read-only))"",
 	u8R""(하이퍼 파라미터 sigma (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_alpha_epsilon__doc__,
@@ -724,8 +739,16 @@ DOC_VARIABLE_EN_KO(DMR_metadata_dict__doc__,
 	u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
-	u8R""(a `list` of paramter lambdas (read-only))"",
-	u8R""(현재 모형의 lambda 파라미터를 보여주는 `list` (읽기전용))"");
+	u8R""(parameter lambdas in the shape `[k, f]` (read-only))"",
+	u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
+    u8R""(Dirichlet prior on the per-document topic distributions for each metadata in the shape `[k, f]`. Equivalent to `np.exp(DMRModel.lambdas)` (read-only)
+
+.. versionadded:: 0.9.0)"",
+    u8R""(각 메타데이터별 문헌-토픽 분포의 사전 분포, `[k, f]` 모양. `np.exp(DMRModel.lambdas)`와 동일 (읽기전용)
+
+.. versionadded:: 0.9.0)"");
 
 /*
 	class GDMR
@@ -932,7 +955,7 @@ DOC_VARIABLE_EN_KO(GDMR_degrees__doc__,
 	u8R""(르장드르 다항식의 차수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(GDMR_sigma0__doc__,
-	u8R""(the hyperparamter sigma0 (read-only))"",
+	u8R""(the hyperparameter sigma0 (read-only))"",
 	u8R""(하이퍼 파라미터 sigma0 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(GDMR_metadata_range__doc__,
@@ -970,7 +993,7 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 initial_k : int
-    the initial number of topics between 2 ~ 32767.
+    the initial number of topics between 2 ~ 32767
     The number of topics will be adjusted for data during training.
 	
 	Since version 0.3.0, the default value has been changed to 2 from 1.
@@ -1040,7 +1063,7 @@ transform : Callable[dict, dict]
 
 DOC_SIGNATURE_EN_KO(HDP_is_live_topic__doc__,
 	"is_live_topic(self, topic_id)",
-	u8R""(Return `True` if the topic `topic_id` is alive, otherwise return `False`.
+	u8R""(Return `True` if the topic `topic_id` is valid, otherwise return `False`.
 
 Parameters
 ----------
@@ -1057,19 +1080,29 @@ topic_id : int
 
 DOC_SIGNATURE_EN_KO(HDP_convert_to_lda__doc__,
 	"convert_to_lda(self, topic_threshold=0.0)",
-	u8R""(Return `True` if the topic `topic_id` is alive, otherwise return `False`.
+	u8R""(Convert the current HDP model to equivalent LDA model and return `(new_lda_model, new_topic_id)`.
+Topics with proportion less than `topic_threshold` are removed in `new_lda_model`.
+
+`new_topic_id` is an array of length `HDPModel.k` and `new_topic_id[i]` indicates a topic id of new LDA model, equivalent to topic `i` of original HDP model.
+If topic `i` of original HDP model is not alive or is removed in LDA model, `new_topic_id[i]` would be `-1`.
 
 Parameters
 ----------
-topic_id : int
-    an integer in range [0, `k`) indicating the topic
+topic_threshold : float
+    Topics with proportion less than this value is removed in new LDA model.
+    The default value is 0, and it means no topic except not alive is removed.
 )"",
-u8R""(`topic_id`가 유효한 토픽을 가리키는 경우 `True`, 아닌 경우 `False`를 반환합니다.
+u8R""(현재의 HDP 모델을 동등한 LDA모델로 변환하고, `(new_lda_mode, new_topic_id)`를 반환합니다.
+이 때 `topic_threshold`보다 작은 비율의 토픽은 `new_lda_model`에서 제거됩니다.
+
+`new_topic_id`는 길이 `HDPModel.k`의 배열이며, `new_topic_id[i]`는 새 LDA 모델에서 원 HDP 모델의 토픽 `i`와 동등한 토픽의 id를 가리킵니다.
+만약 원 HDP 모델의 토픽 `i`가 유효하지 않거나, 새 LDA 모델에서 제거된 것이라면, `new_topic_id[i]`는 `-1`이 됩니다.
 
 Parameters
 ----------
-topic_id : int
-    토픽을 가리키는 [0, `k`) 범위의 정수
+topic_threshold : float
+    이 값보다 작은 비율의 토픽은 새 LDA 모델에서 제거됩니다.
+    기본값은 0이며, 이 경우 유효하지 않는 토픽을 제외한 모든 토픽이 LDA 모델에 포함됩니다.
 )"");
 
 DOC_VARIABLE_EN_KO(HDP_gamma__doc__,
@@ -1278,43 +1311,43 @@ topic_id : int
 )"");
 
 DOC_VARIABLE_EN_KO(MGLDA_k_g__doc__,
-	u8R""(the hyperparamter k_g (read-only))"",
+	u8R""(the hyperparameter k_g (read-only))"",
 	u8R""(하이퍼 파라미터 k_g (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_k_l__doc__,
-	u8R""(the hyperparamter k_l (read-only))"",
+	u8R""(the hyperparameter k_l (read-only))"",
 	u8R""(하이퍼 파라미터 k_l (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_gamma__doc__,
-	u8R""(the hyperparamter gamma (read-only))"",
+	u8R""(the hyperparameter gamma (read-only))"",
 	u8R""(하이퍼 파라미터 gamma (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_t__doc__,
-	u8R""(the hyperparamter t (read-only))"",
+	u8R""(the hyperparameter t (read-only))"",
 	u8R""(하이퍼 파라미터 t (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_g__doc__,
-	u8R""(the hyperparamter alpha_g (read-only))"",
+	u8R""(the hyperparameter alpha_g (read-only))"",
 	u8R""(하이퍼 파라미터 alpha_g (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_l__doc__,
-	u8R""(the hyperparamter alpha_l (read-only))"",
+	u8R""(the hyperparameter alpha_l (read-only))"",
 	u8R""(하이퍼 파라미터 alpha_l (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_mg__doc__,
-	u8R""(the hyperparamter alpha_mg (read-only))"",
+	u8R""(the hyperparameter alpha_mg (read-only))"",
 	u8R""(하이퍼 파라미터 alpha_mg (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_ml__doc__,
-	u8R""(the hyperparamter alpha_ml (read-only))"",
+	u8R""(the hyperparameter alpha_ml (read-only))"",
 	u8R""(하이퍼 파라미터 alpha_ml (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_eta_g__doc__,
-	u8R""(the hyperparamter eta_g (read-only))"",
+	u8R""(the hyperparameter eta_g (read-only))"",
 	u8R""(하이퍼 파라미터 eta_g (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_eta_l__doc__,
-	u8R""(the hyperparamter eta_l (read-only))"",
+	u8R""(the hyperparameter eta_l (read-only))"",
 	u8R""(하이퍼 파라미터 eta_l (읽기전용))"");
 
 
@@ -1539,6 +1572,15 @@ together : bool
     False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 `False`입니다.
 )"");
 
+DOC_SIGNATURE_EN_KO(PA_get_count_by_super_topic__doc__,
+    "get_count_by_topics(self)",
+    u8R""(Return the number of words allocated to each super-topic.
+
+.. versionadded:: 0.9.0)"",
+    u8R""(각각의 상위 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.
+
+.. versionadded:: 0.9.0)"");
+
 DOC_VARIABLE_EN_KO(PA_k1__doc__,
 	u8R""(k1, the number of super topics (read-only))"",
 	u8R""(k1, 상위 토픽의 개수 (읽기전용))"");
@@ -1546,6 +1588,23 @@ DOC_VARIABLE_EN_KO(PA_k1__doc__,
 DOC_VARIABLE_EN_KO(PA_k2__doc__,
 	u8R""(k2, the number of sub topics (read-only))"",
 	u8R""(k2, 하위 토픽의 개수 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(PA_alpha__doc__,
+    u8R""(Dirichlet prior on the per-document super topic distributions in shape `[k1]` (read-only)
+
+.. versionadded:: 0.9.0)"",
+    u8R""(문헌의 상위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1]` 모양 (읽기전용)
+
+.. versionadded:: 0.9.0)"");
+
+DOC_VARIABLE_EN_KO(PA_subalpha__doc__,
+    u8R""(Dirichlet prior on the sub topic distributions for each super topic in shape `[k1, k2]` (read-only)
+
+.. versionadded:: 0.9.0)"",
+    u8R""(상위 토픽의 하위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1, k2]` 모양 (읽기전용)
+
+.. versionadded:: 0.9.0)"");
+
 
 /*
 	class HPA
@@ -1618,9 +1677,9 @@ k1 : int
 k2 : int
     하위 토픽의 개수, 1 ~ 32767 사이의 정수.
 alpha : float
-    문헌-상위 토픽 디리클레 분포의 하이퍼 파라미터
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터
 eta : float
-    하위 토픽-단어 디리클레 분포의 하이퍼 파라미터
+    토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
@@ -1680,6 +1739,28 @@ topic_id : int
     [1 + `k1`, 1 + `k1` + `k2`) 범위의 정수는 하위 토픽을 가리킵니다.
 )"");
 
+DOC_VARIABLE_EN_KO(HPA_alpha__doc__,
+    u8R""(Dirichlet prior on the per-document super topic distributions in shape `[k1 + 1]`. 
+Its element 0 indicates the prior to the top topic and elements 1 ~ k1 indicates ones to the super topics. (read-only)
+
+.. versionadded:: 0.9.0)"",
+    u8R""(문헌의 상위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1 + 1]` 모양.
+0번째 요소는 최상위 토픽을 가리키며, 1 ~ k1번째가 상위 토픽을 가리킨다. (읽기전용)
+
+.. versionadded:: 0.9.0)"");
+
+DOC_VARIABLE_EN_KO(HPA_subalpha__doc__,
+    u8R""(Dirichlet prior on the sub topic distributions for each super topic in shape `[k1, k2 + 1]`.
+Its `[x, 0]` element indicates the prior to the super topic `x` 
+and `[x, 1 ~ k2]` elements indicate ones to the sub topics in the super topic `x`. (read-only)
+
+.. versionadded:: 0.9.0)"",
+    u8R""(상위 토픽의 하위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1, k2 + 1]` 모양.
+`[x, 0]` 요소는 상위 토픽 `x`를 가리키며, `[x, 1 ~ k2]` 요소는 상위 토픽 `x` 내의 하위 토픽들을 가리킨다. (읽기전용)
+
+.. versionadded:: 0.9.0)"");
+
+
 /*
 	class CT
 */
@@ -1708,9 +1789,9 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
-    the number of topics between 1 ~ 32767.
-alpha : float
-    hyperparameter of Dirichlet distribution for document-topic
+    the number of topics between 1 ~ 32767
+smoothing_alpha : float
+    small smoothing value for preventing topic counts to be zero
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
@@ -1747,8 +1828,8 @@ rm_top : int
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 k : int
     토픽의 개수, 1 ~ 32767 사이의 정수
-alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+smoothing_alpha : float
+    토픽 개수가 0이 되는걸 방지하는 평탄화 계수
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -1847,7 +1928,7 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
-    the number of topics between 1 ~ 32767.
+    the number of topics between 1 ~ 32767
 vars : Iterable[str]
     indicating types of response variables.
     The length of `vars` determines the number of response variables, and each element of `vars` determines a type of the variable.
@@ -1860,11 +1941,11 @@ alpha : float
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 mu : Union[float, Iterable[float]]
-    mean of regression coefficients
+    mean of regression coefficients, default value is 0
 nu_sq : Union[float, Iterable[float]]
-    variance of regression coefficients
+    variance of regression coefficients, default value is 1
 glm_param : Union[float, Iterable[float]]
-    the parameter for Generalized Linear Model
+    the parameter for Generalized Linear Model, default value is 1
 seed : int
     random seed. The default value is a random number from `std::random_device{}` in C++
 corpus : tomotopy.utils.Corpus
@@ -1912,11 +1993,11 @@ alpha : float
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 mu : Union[float, Iterable[float]]
-    회귀 계수의 평균값
+    회귀 계수의 평균값, 기본값은 0
 nu_sq : Union[float, Iterable[float]]
-    회귀 계수의 분산값
+    회귀 계수의 분산값, 기본값은 1
 glm_param : Union[float, Iterable[float]]
-    일반화 선형 모형에서 사용될 파라미터
+    일반화 선형 모형에서 사용될 파라미터, 기본값은 1
 seed : int
     난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
     이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
@@ -2061,7 +2142,7 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
-    the number of topics between 1 ~ 32767.
+    the number of topics between 1 ~ 32767
 alpha : float
     hyperparameter of Dirichlet distribution for document-topic
 eta : float
@@ -2215,9 +2296,9 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 latent_topics : int
-    the number of latent topics, which are shared to all documents, between 1 ~ 32767.
+    the number of latent topics, which are shared to all documents, between 1 ~ 32767
 topics_per_label : int
-    the number of topics per label between 1 ~ 32767.
+    the number of topics per label between 1 ~ 32767
 alpha : float
     hyperparameter of Dirichlet distribution for document-topic
 eta : float
@@ -2340,9 +2421,9 @@ rm_top : int
     the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 depth : int
-    the maximum depth level of hierarchy between 2 ~ 32767.
+    the maximum depth level of hierarchy between 2 ~ 32767
 alpha : float
-    hyperparameter of Dirichlet distribution for document-topic
+    hyperparameter of Dirichlet distribution for document-depth level
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 gamma : float
@@ -2384,7 +2465,7 @@ rm_top : int
 depth : int
     토픽 계층의 깊이를 지정하는 2 ~ 32767 범위의 정수.
 alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+    문헌-계층 디리클레 분포의 하이퍼 파라미터
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 gamma : float
@@ -2720,6 +2801,15 @@ timepoint : int
 	시점을 가리키는 [0, `t`) 범위의 정수
 )"");
 
+DOC_SIGNATURE_EN_KO(DT_get_count_by_topics__doc__,
+    "get_count_by_topics(self)",
+    u8R""(Return the number of words allocated to each timepoint and topic in the shape `[num_timepoints, k]`.
+
+.. versionadded:: 0.9.0)"",
+    u8R""(각각의 시점과 토픽에 할당된 단어의 개수를 `[num_timepoints, k]` 모양으로 반환합니다.
+
+.. versionadded:: 0.9.0)"");
+
 DOC_VARIABLE_EN_KO(DT_lr_a__doc__,
 	u8R""(parameter `a` greater than zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
 	u8R""(SGLD의 스텝 크기를 결정하는 0보다 큰 파라미터 `a` (e_i = a * (b + i) ^ -c))"");
@@ -2739,3 +2829,19 @@ DOC_VARIABLE_EN_KO(DT_num_timepoints__doc__,
 DOC_VARIABLE_EN_KO(DT_num_docs_by_timepoint__doc__,
     u8R""(the number of documents in the model by timepoint (read-only))"",
     u8R""(각 시점별 모델 내 문헌 개수 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(DT_alpha__doc__,
+    u8R""(per-document topic distribution in the shape `[num_timepoints, k]` (read-only)
+
+.. versionadded:: 0.9.0)"",
+    u8R""(문헌별 토픽 분포, `[num_timepoints, k]` 모양 (읽기전용)
+
+.. versionadded:: 0.9.0)"");
+
+DOC_VARIABLE_EN_KO(DT_eta__doc__,
+    u8R""(This property is not available in `DTModel`. Use `DTModel.docs[x].eta` instead.
+
+.. versionadded:: 0.9.0)"",
+    u8R""(이 프로퍼티는 `DTModel`에서 사용불가합니다. 대신 `DTModel.docs[x].eta`를 사용하십시오.
+
+.. versionadded:: 0.9.0)"");

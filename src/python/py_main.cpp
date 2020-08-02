@@ -51,7 +51,7 @@ void char2Byte(const string& str, vector<uint32_t>& startPos, vector<uint16_t>& 
 
 	for (size_t i = 0; i < startPos.size(); ++i)
 	{
-		size_t s = startPos[i], e = startPos[i] + length[i];
+		size_t s = startPos[i], e = (size_t)startPos[i] + length[i];
 		startPos[i] = charPos[s];
 		length[i] = charPos[e] - charPos[s];
 	}
@@ -65,6 +65,7 @@ void TopicModelObject::dealloc(TopicModelObject* self)
 	{
 		delete self->inst;
 	}
+	Py_XDECREF(self->initParams);
 	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -384,7 +385,7 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 #endif
 		ret = Document_LDA_Z(self, closure);
 		if(ret) return ret;
-		throw runtime_error{ "doc doesn't has 'topics' field!" };
+		throw runtime_error{ "doc doesn't has `topics` field!" };
 	}
 	catch (const bad_exception&)
 	{
@@ -411,7 +412,7 @@ static PyObject* Document_metadata(DocumentObject* self, void* closure)
 		ret = Document_DMR_metadata(self, closure);
 		if (ret) return ret;
 #endif
-		throw runtime_error{ "doc doesn't has 'metadata' field!" };
+		throw runtime_error{ "doc doesn't has `metadata` field!" };
 	}
 	catch (const bad_exception&)
 	{

@@ -455,8 +455,8 @@ namespace tomoto
 		{
 			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
 			this->alphas = Eigen::Matrix<Float, -1, 1>::Constant(_K1 + 1, _alpha);
-			subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(_K1, _K2 + 1, 0.1);
-			subAlphaSum = Eigen::Matrix<Float, -1, 1>::Constant(_K1, (_K2 + 1) * 0.1);
+			subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(_K1, _K2 + 1, _alpha);
+			subAlphaSum = Eigen::Matrix<Float, -1, 1>::Constant(_K1, (_K2 + 1) * _alpha);
 			this->optimInterval = 1;
 		}
 
@@ -476,6 +476,13 @@ namespace tomoto
 				if (k2 && k1 != (k2 - 1) * this->K / K2) return 0;
 			}
 			return subAlphas(k1, k2); 
+		}
+
+		std::vector<Float> getSubAlpha(Tid k1) const override
+		{
+			std::vector<Float> ret(K2 + 1);
+			Eigen::Map<Eigen::VectorXf>{ret.data(), (Eigen::Index)ret.size()} = subAlphas.row(k1).transpose();
+			return ret;
 		}
 
 		std::vector<Float> getSubTopicBySuperTopic(Tid k) const override
@@ -544,6 +551,23 @@ namespace tomoto
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
 			THROW_ERROR_WITH_INFO(exception::Unimplemented, "HPAModel doesn't provide setWordPrior function.");
+		}
+
+		std::vector<uint64_t> getCountBySuperTopic() const override
+		{
+			std::vector<uint64_t> cnt(this->K);
+			for (auto& doc : this->docs)
+			{
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] >= this->realV) continue;
+					if (doc.Zs[i] && doc.Z2s[i] == 0)
+					{
+						++cnt[doc.Zs[i] - 1];
+					}
+				}
+			}
+			return cnt;
 		}
 	};
 

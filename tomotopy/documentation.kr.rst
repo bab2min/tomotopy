@@ -27,6 +27,7 @@ tomotopy의 가장 최신버전은 0.8.2 입니다.
 다음과 같이 pip를 이용하면 tomotopy를 쉽게 설치할 수 있습니다. (https://pypi.org/project/tomotopy/)
 ::
 
+    $ pip install --upgrade pip
     $ pip install tomotopy
 
 지원하는 운영체제 및 Python 버전은 다음과 같습니다:
@@ -246,6 +247,18 @@ infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `t
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp.png
 
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
+
+버전별 속도 차이
+----------------------
+아래 그래프는 버전별 속도 차이를 표시한 것입니다. 
+LDA모델로 1000회 iteration을 수행시 걸리는 시간을 초 단위로 표시하였습니다.
+(Docs: 11314, Vocab: 60382, Words: 2364724, Intel Xeon Gold 5120 @2.2GHz)
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t1.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t4.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t8.png
 
 어휘 사전분포를 이용하여 주제 고정하기
 --------------------------------------

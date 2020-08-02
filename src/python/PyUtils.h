@@ -178,6 +178,25 @@ namespace py
 		return Py_None;
 	}
 
+	inline PyObject* buildPyValue(bool v)
+	{
+		return PyBool_FromLong(v);
+	}
+
+	inline PyObject* buildPyValue(PyObject* v)
+	{
+		if (v)
+		{
+			Py_INCREF(v);
+			return v;
+		}
+		else
+		{
+			Py_INCREF(Py_None);
+			return Py_None;
+		}
+	}
+
 	template<typename _Ty>
 	inline typename std::enable_if<std::is_arithmetic<_Ty>::value, PyObject*>::type
 		buildPyValue(const std::vector<_Ty>& v);
@@ -427,6 +446,32 @@ namespace py
 			*(value_type*)PyArray_GETPTR1((PyArrayObject*)ret, id) = tx(*first);
 		}
 		return ret;
+	}
+
+	namespace dict
+	{
+		inline void setDictItem(PyObject* dict, const char** keys)
+		{
+
+		}
+
+		template<typename _Ty, typename... _Rest>
+		inline void setDictItem(PyObject* dict, const char** keys, _Ty&& value, _Rest&& ... rest)
+		{
+			{
+				UniqueObj v = buildPyValue(value);
+				PyDict_SetItemString(dict, keys[0], v);
+			}
+			return setDictItem(dict, keys + 1, std::forward<_Rest>(rest)...);
+		}
+	}
+
+	template<typename... _Rest>
+	inline PyObject* buildPyDict(const char** keys, _Rest&&... rest)
+	{
+		PyObject* dict = PyDict_New();
+		dict::setDictItem(dict, keys, std::forward<_Rest>(rest)...);
+		return dict;
 	}
 
 	class WarningLog

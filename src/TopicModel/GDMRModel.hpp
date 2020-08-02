@@ -18,7 +18,7 @@ namespace tomoto
 		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IGDMRModel,
 		typename _Derived = void,
-		typename _DocType = DocumentGDMR<_tw, _Flags>,
+		typename _DocType = DocumentGDMR<_tw>,
 		typename _ModelState = ModelStateGDMR<_tw>>
 	class GDMRModel : public DMRModel<_tw, _RandGen, _Flags, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw, _RandGen>, _Derived>::type,

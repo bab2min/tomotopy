@@ -1,4 +1,5 @@
 import tomotopy as tp
+import sys
 
 model_cases = [
     (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}, None),
@@ -48,7 +49,7 @@ def train1(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
         ch = line.strip().split()
@@ -61,7 +62,7 @@ def train4(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
         ch = line.strip().split()
@@ -74,7 +75,7 @@ def train0(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
         ch = line.strip().split()
@@ -82,12 +83,13 @@ def train0(cls, inputFile, mdFields, f, kargs, ps):
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
     mdl.train(200, parallel=ps)
+    mdl.summary(file=sys.stderr)
 
 def save_and_load(cls, inputFile, mdFields, f, kargs, ps):
     print('Test save & load')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
         ch = line.strip().split()
@@ -103,7 +105,7 @@ def infer(cls, inputFile, mdFields, f, kargs, ps):
     print('Test infer')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     unseen_docs = []
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
@@ -129,7 +131,7 @@ def infer_together(cls, inputFile, mdFields, f, kargs, ps):
     print('Test infer')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     unseen_docs = []
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
@@ -178,7 +180,7 @@ def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile='test/sample_with_m
     print('Test estimate')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
-    mdl = cls(tw=tw, min_cf=2, rm_top=2, **kargs)
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
     unseen_docs = []
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
@@ -251,23 +253,33 @@ def test_hdp_to_lda():
         for word, prob in lda.get_topic_words(k):
             print('\t', word, prob, sep='\t')
 
-for model_case in model_cases:
-    pss = model_case[5]
-    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
-    for ps in pss:
-        for func in [train1, train4, train0, save_and_load, infer, infer_together]:
+if True:
+    g = globals()
+    for k in list(g.keys()):
+        if k.startswith('test_'): del g[k]
+    ps = tp.ParallelScheme.DEFAULT
+    for model_case in model_cases:
+        pss = model_case[5]
+        for func in [train0]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+else:
+    for model_case in model_cases:
+        pss = model_case[5]
+        if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+        for ps in pss:
+            for func in [train1, train4, train0, save_and_load, infer, infer_together]:
+                locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-for model_case in model_corpus_cases:
-    pss = model_case[5]
-    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
-    for ps in pss:
-        for func in [train_corpus]:
-            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+    for model_case in model_corpus_cases:
+        pss = model_case[5]
+        if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+        for ps in pss:
+            for func in [train_corpus]:
+                locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-for model_case in model_raw_cases:
-    pss = model_case[5]
-    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
-    for ps in pss:
-        for func in [train_raw_corpus]:
-            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+    for model_case in model_raw_cases:
+        pss = model_case[5]
+        if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+        for ps in pss:
+            for func in [train_raw_corpus]:
+                locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
