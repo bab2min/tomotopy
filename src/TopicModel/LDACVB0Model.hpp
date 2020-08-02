@@ -51,7 +51,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDACVB0;
-		static ILDACVB0Model* create(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() });
+		static ILDACVB0Model* create(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}());
 
 		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
 		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;
@@ -332,7 +332,7 @@ namespace tomoto
 		DEFINE_SERIALIZER(alpha, eta, K);
 
 	public:
-		LDACVB0Model(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+		LDACVB0Model(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
 			alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);

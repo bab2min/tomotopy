@@ -11,7 +11,7 @@ namespace tomoto
 		std::vector<Float> metadataOrg, metadataNormalized;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, metadataOrg);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, metadataOrg);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, metadataOrg, metadataNormalized);
 	};
 
     class IGDMRModel : public IDMRModel

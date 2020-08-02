@@ -108,7 +108,7 @@ namespace tomoto
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, topicLabelDict, numLatentTopics, numTopicsPerLabel);
 
 		PLDAModel(size_t _numLatentTopics = 0, size_t _numTopicsPerLabel = 1, 
-			Float _alpha = 1.0, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+			Float _alpha = 1.0, Float _eta = 0.01, size_t _rg = std::random_device{}())
 			: BaseClass(1, _alpha, _eta, _rg), 
 			numLatentTopics(_numLatentTopics), numTopicsPerLabel(_numTopicsPerLabel)
 		{

@@ -326,7 +326,7 @@ namespace tomoto
 			Float _alpha = 0.1, Float _eta = 0.01, 
 			const std::vector<Float>& _mu = {}, const std::vector<Float>& _nuSq = {},
 			const std::vector<Float>& _glmParam = {},
-			const _RandGen& _rg = _RandGen{ std::random_device{}() })
+			size_t _rg = std::random_device{}())
 			: BaseClass(_K, _alpha, _eta, _rg), F(vars.size()), varTypes(vars), 
 			glmParam(_glmParam)
 		{

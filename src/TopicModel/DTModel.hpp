@@ -505,7 +505,7 @@ namespace tomoto
 		GETTER(ShapeC, Float, shapeC);
 
 		DTModel(size_t _K, size_t _T, Float _alphaVar, Float _etaVar, Float _phiVar,
-			Float _shapeA, Float _shapeB, Float _shapeC, Float _etaRegL2, const _RandGen& _rg)
+			Float _shapeA, Float _shapeB, Float _shapeC, Float _etaRegL2, size_t _rg)
 			: BaseClass{ _K, _alphaVar, _etaVar, _rg },
 			T{ _T }, alphaVar{ _alphaVar }, etaVar{ _etaVar }, phiVar{ _phiVar },
 			shapeA{ _shapeA }, shapeB{ _shapeB }, shapeC{ _shapeC }, etaRegL2{ _etaRegL2 }

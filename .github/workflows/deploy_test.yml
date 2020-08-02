@@ -25,7 +25,7 @@ jobs:
         rm -rf eigen-git-mirror/
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
-        git checkout tags/v0.2.1
+        git checkout tags/v0.2.2
         cd ..
         mv EigenRand/EigenRand include/
     - name: Deploy
