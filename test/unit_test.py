@@ -253,33 +253,23 @@ def test_hdp_to_lda():
         for word, prob in lda.get_topic_words(k):
             print('\t', word, prob, sep='\t')
 
-if True:
-    g = globals()
-    for k in list(g.keys()):
-        if k.startswith('test_'): del g[k]
-    ps = tp.ParallelScheme.DEFAULT
-    for model_case in model_cases:
-        pss = model_case[5]
-        for func in [train0]:
+for model_case in model_cases:
+    pss = model_case[5]
+    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+    for ps in pss:
+        for func in [train1, train4, train0, save_and_load, infer, infer_together]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
-else:
-    for model_case in model_cases:
-        pss = model_case[5]
-        if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
-        for ps in pss:
-            for func in [train1, train4, train0, save_and_load, infer, infer_together]:
-                locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-    for model_case in model_corpus_cases:
-        pss = model_case[5]
-        if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
-        for ps in pss:
-            for func in [train_corpus]:
-                locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+for model_case in model_corpus_cases:
+    pss = model_case[5]
+    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+    for ps in pss:
+        for func in [train_corpus]:
+            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
-    for model_case in model_raw_cases:
-        pss = model_case[5]
-        if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
-        for ps in pss:
-            for func in [train_raw_corpus]:
-                locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+for model_case in model_raw_cases:
+    pss = model_case[5]
+    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+    for ps in pss:
+        for func in [train_raw_corpus]:
+            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
