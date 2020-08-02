@@ -464,6 +464,34 @@ namespace py
 			}
 			return setDictItem(dict, keys + 1, std::forward<_Rest>(rest)...);
 		}
+
+		template<typename _Ty>
+		inline bool isNull(_Ty v)
+		{
+			return false;
+		}
+
+		template<>
+		inline bool isNull<PyObject*>(PyObject* v)
+		{
+			return !v;
+		}
+
+		inline void setDictItemSkipNull(PyObject* dict, const char** keys)
+		{
+
+		}
+
+		template<typename _Ty, typename... _Rest>
+		inline void setDictItemSkipNull(PyObject* dict, const char** keys, _Ty&& value, _Rest&& ... rest)
+		{
+			if(!isNull(value))
+			{
+				UniqueObj v = buildPyValue(value);
+				PyDict_SetItemString(dict, keys[0], v);
+			}
+			return setDictItemSkipNull(dict, keys + 1, std::forward<_Rest>(rest)...);
+		}
 	}
 
 	template<typename... _Rest>
@@ -472,6 +500,21 @@ namespace py
 		PyObject* dict = PyDict_New();
 		dict::setDictItem(dict, keys, std::forward<_Rest>(rest)...);
 		return dict;
+	}
+
+	template<typename... _Rest>
+	inline PyObject* buildPyDictSkipNull(const char** keys, _Rest&&... rest)
+	{
+		PyObject* dict = PyDict_New();
+		dict::setDictItemSkipNull(dict, keys, std::forward<_Rest>(rest)...);
+		return dict;
+	}
+
+	template<typename _Ty>
+	inline void setPyDictItem(PyObject* dict, const char* key, _Ty&& value)
+	{
+		UniqueObj v = buildPyValue(value);
+		PyDict_SetItemString(dict, key, v);
 	}
 
 	class WarningLog

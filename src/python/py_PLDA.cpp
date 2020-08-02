@@ -33,6 +33,7 @@ static int PLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, numLatentTopics, numTopicsPerLabel, alpha, eta, seed
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{

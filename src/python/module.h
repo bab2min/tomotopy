@@ -400,3 +400,13 @@ PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& 
 }
 
 static const char* corpus_feeder_name = "_feed_docs_to";
+
+inline std::string getVersion()
+{
+	py::UniqueObj mod = PyImport_ImportModule("tomotopy");
+	if (!mod) throw std::bad_exception{};
+	PyObject* mod_dict = PyModule_GetDict(mod);
+	if (!mod_dict) throw std::bad_exception{};
+	PyObject* version = PyDict_GetItemString(mod_dict, "__version__");
+	return PyUnicode_AsUTF8(version);
+}

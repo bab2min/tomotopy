@@ -32,6 +32,7 @@ static int CT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, K, alpha, eta, seed
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{

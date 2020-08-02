@@ -8,7 +8,7 @@ def _extract_param_desc(mdl_type:type):
     param_name = re.compile(r'^([a-zA-Z0-9_]+)\s*:\s*')
     directive = re.compile(r'^\s*\.\.')
     descriptive = re.compile(r'\s+([^\s].*)')
-    period = re.compile(r'[.,]\s')
+    period = re.compile(r'[.,](\s|$)')
     ret = {}
     name = None
     desc = ''
@@ -49,10 +49,10 @@ def basic_info_LDAModel(mdl, file):
     p = mdl.used_vocab_freq / mdl.used_vocab_freq.sum()
     entropy = (p * np.log(p)).sum()
 
-    print('| {} (version: {})'.format(type(mdl).__name__, tp.__version__), file=file)
+    print('| {} (current version: {})'.format(type(mdl).__name__, tp.__version__), file=file)
     print('| {} docs, {} words'.format(len(mdl.docs), mdl.num_words), file=file)
     print('| Total Vocabs: {}, Used Vocabs: {}'.format(len(mdl.vocabs), len(mdl.used_vocabs)), file=file)
-    print('| Entropy of words: {:.5f}'.format(entropy))
+    print('| Entropy of words: {:.5f}'.format(entropy), file=file)
     print('| Removed Vocabs: {}'.format(' '.join(mdl.removed_top_words) if mdl.removed_top_words else '<NA>'), file=file)
 
 def basic_info_DMRModel(mdl, file):
@@ -112,11 +112,16 @@ def initial_params_info_LDAModel(mdl, file):
                 else:
                     print(('| {}: {' + fmt + '}').format(k, v), file=file)
     else:
-        print('| Not Available', file=file)
+        print('| Not Available (The model seems to have been built in version < 0.9.0.)', file=file)
 
 def initial_params_info_tw_LDAModel(mdl, v, file):
     import tomotopy as tp
     print('| tw: TermWeight.{}'.format(tp.TermWeight(v).name), file=file)
+
+def initial_params_info_version_LDAModel(mdl, v, file):
+    import tomotopy as tp
+    print('| trained in version {}'.format(v), file=file)
+
 
 def initial_params_info_vars_SLDAModel(mdl, v, file):
     import tomotopy as tp

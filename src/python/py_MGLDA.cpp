@@ -34,6 +34,7 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, seed
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{

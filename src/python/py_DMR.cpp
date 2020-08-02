@@ -32,6 +32,7 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, K, alpha, eta, sigma, alphaEpsilon, seed
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{

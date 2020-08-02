@@ -38,6 +38,7 @@ static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, K, T, alphaVar, etaVar, phiVar,lrA, lrB, lrC, seed
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{

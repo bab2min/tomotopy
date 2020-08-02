@@ -106,6 +106,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			tw, minCnt, minDf, rmTop, K, varTypeStrs, alpha, eta,
 			vmu, vnuSq, vglmCoef
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{

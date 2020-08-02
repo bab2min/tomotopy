@@ -35,6 +35,7 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, K, alpha, eta, seed
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{
@@ -612,10 +613,14 @@ static PyObject* LDA_getRemovedTopWords(TopicModelObject* self, void* closure)
 
 static PyObject* LDA_summary(TopicModelObject* self, PyObject* args, PyObject* kwargs)
 {
-	PyObject* argFile = nullptr, * argFlush = nullptr;
-	static const char* kwlist[] = { "file", "flush", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO", (char**)kwlist,
-		&argFile, &argFlush)) return nullptr;
+	PyObject *argInitialHP = nullptr, 
+		*argParams = nullptr,
+		*argTopicWordTopN = nullptr,
+		*argFile = nullptr, 
+		*argFlush = nullptr;
+	static const char* kwlist[] = { "initial_hp", "params", "topic_word_top_n", "file", "flush", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOO", (char**)kwlist,
+		&argInitialHP, &argParams, &argTopicWordTopN, &argFile, &argFlush)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -627,7 +632,8 @@ static PyObject* LDA_summary(TopicModelObject* self, PyObject* args, PyObject* k
 		PyObject* summary_func = PyDict_GetItemString(mod_dict, "summary");
 		if (!summary_func) throw bad_exception{};
 		py::UniqueObj args = Py_BuildValue("(O)", self);
-		py::UniqueObj kwargs = py::buildPyDict(kwlist,
+		py::UniqueObj kwargs = py::buildPyDictSkipNull(kwlist,
+			argInitialHP, argParams, argTopicWordTopN,
 			argFile, argFlush
 		);
 		return PyObject_Call(summary_func, args, kwargs);

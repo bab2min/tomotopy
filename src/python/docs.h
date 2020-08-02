@@ -463,10 +463,40 @@ DOC_SIGNATURE_EN_KO(LDA_load__doc__,
 	u8R""(`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(LDA_summary__doc__,
-    "summary(self, file=None, flush=False)",
+    "summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=sys.stdout, flush=False)",
     u8R""(.. versionadded:: 0.9.0
+
+print human-readable description of the current model
+
+Parameters
+----------
+initial_hp : bool
+    whether to show the initial parameters at model creation
+params : bool
+    whether to show the current parameters of the model
+topic_word_top_n : int
+    the number of words by topic to display
+file
+    a file-like object (stream), default is `sys.stdout`
+flush : bool
+    whether to forcibly flush the stream
 )"",
 u8R""(.. versionadded:: 0.9.0
+
+현재 모델의 요약 정보를 읽기 편한 형태로 출력합니다.
+
+Parameters
+----------
+initial_hp : bool
+    모델 생성 시 초기 파라미터의 표시 여부
+params : bool
+    현재 모델 파라미터의 표시 여부
+topic_word_top_n : int
+    토픽별 출력할 단어의 개수
+file
+    요약 정보를 출력할 대상, 기본값은 `sys.stdout`
+flush : bool
+    출력 스트림의 강제 flush 여부
 )"");
 
 

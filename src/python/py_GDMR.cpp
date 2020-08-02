@@ -49,6 +49,7 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->initParams = py::buildPyDict(kwlist,
 			tw, minCnt, minDf, rmTop, K, degrees, alpha, eta, sigma, sigma0, alphaEpsilon
 		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objRange && objRange != Py_None)
 		{
