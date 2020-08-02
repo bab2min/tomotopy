@@ -20,7 +20,7 @@ Term Weighting Scheme is based on following paper:
 */
 
 #define TMT_SWITCH_TW(TW, SRNG, MDL, ...) do{\
-		i/*f(SRNG){\
+		/*if(SRNG){\
 			switch (TW){\
 			case TermWeight::one:\
 				return new MDL<TermWeight::one, ScalarRandGen>(__VA_ARGS__);\
