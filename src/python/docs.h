@@ -463,7 +463,7 @@ DOC_SIGNATURE_EN_KO(LDA_load__doc__,
 	u8R""(`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(LDA_summary__doc__,
-    "summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=sys.stdout, flush=False)",
+    "summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False)",
     u8R""(.. versionadded:: 0.9.0
 
 print human-readable description of the current model

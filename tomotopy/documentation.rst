@@ -299,7 +299,7 @@ History
 -------
 * 0.9.0 (2020-08-04)
     * The `tomotopy.LDAModel.summary()` method, which prints human-readable summary of the model, has been added.
-    * The random number generator of package has been replaced with `EigenRand`_. It speeds up the random number generation and solves the result difference between platforms.
+    * The random number generator of package has been replaced with [EigenRand]. It speeds up the random number generation and solves the result difference between platforms.
     * Due to above, even if `seed` is the same, the model training result may be different from the version before 0.9.0.
     * Fixed a training error in `tomotopy.HDPModel`.
     * `tomotopy.DMRModel.alpha` now shows Dirichlet prior of per-document topic distribution by metadata.
@@ -311,7 +311,7 @@ History
     * `tomotopy.MGLDAModel.get_count_by_topics()` now returns the word count for both global and local topics.
     * `tomotopy.PAModel.alpha`, `tomotopy.PAModel.subalpha`, and `tomotopy.PAModel.get_count_by_super_topic()` have been added.
 
-.. _EigenRand: https://github.com/bab2min/EigenRand
+[EigenRand]: https://github.com/bab2min/EigenRand
 
 * 0.8.2 (2020-07-14)
     * New properties `tomotopy.DTModel.num_timepoints` and `tomotopy.DTModel.num_docs_by_timepoint` have been added.

@@ -296,7 +296,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 -------
 * 0.9.0 (2020-08-04)
     * 모델의 상태를 알아보기 쉽게 출력해주는 `tomotopy.LDAModel.summary()` 메소드가 추가되었습니다.
-    * 난수 생성기를 `EigenRand`_로 대체하여 생성 속도를 높이고 플랫폼 간의 결과 차이를 해소하였습니다.
+    * 난수 생성기를 [EigenRand]로 대체하여 생성 속도를 높이고 플랫폼 간의 결과 차이를 해소하였습니다.
     * 이로 인해 `seed`가 동일해도 모델 학습 결과가 0.9.0 이전 버전과 달라질 수 있습니다.
     * `tomotopy.HDPModel`에서 간헐적으로 발생하는 학습 오류를 수정했습니다.
     * 이제 `tomotopy.DMRModel.alpha`가 메타데이터별 토픽 분포의 사전 파라미터를 보여줍니다.
@@ -308,7 +308,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
     * 이제 `tomotopy.MGLDAModel.get_count_by_topics()`가 전역 토픽과 지역 토픽 모두의 단어 개수를 보여줍니다.
     * `tomotopy.PAModel.alpha`, `tomotopy.PAModel.subalpha`, `tomotopy.PAModel.get_count_by_super_topic()`이 추가되었습니다.
 
-.. _EigenRand: https://github.com/bab2min/EigenRand
+[EigenRand]: https://github.com/bab2min/EigenRand
 
 * 0.8.2 (2020-07-14)
     * `tomotopy.DTModel.num_timepoints`와 `tomotopy.DTModel.num_docs_by_timepoint` 프로퍼티가 추가되었습니다.
