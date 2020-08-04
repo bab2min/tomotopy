@@ -289,7 +289,9 @@ Parameters
 ----------
 stemmer : Callable[str, str]
     단어를 스테밍하는데 사용되는 호출가능한 객체. 만약 이 값이 `None`이라면 스테밍은 사용되지 않습니다.
-    
+pattern : str
+    토큰을 추출하는데 사용할 정규식 패턴
+
 SimpleTokenizer와 NLTK를 사용하여 스테밍을 하는 예제는 다음과 같습니다.
 
 .. include:: ./auto_labeling_code_with_porter.rst"""

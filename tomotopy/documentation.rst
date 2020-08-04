@@ -18,7 +18,7 @@ The current version of `tomoto` supports several major topic models including
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.8.2.
+The most recent version of tomotopy is 0.9.0.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -295,6 +295,22 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.9.0 (2020-08-04)
+    * The `tomotopy.LDAModel.summary()` method, which prints human-readable summary of the model, has been added.
+    * The random number generator of package has been replaced with `EigenRand`_. It speeds up the random number generation and solves the result difference between platforms.
+    * Due to above, even if `seed` is the same, the model training result may be different from the version before 0.9.0.
+    * Fixed a training error in `tomotopy.HDPModel`.
+    * `tomotopy.DMRModel.alpha` now shows Dirichlet prior of per-document topic distribution by metadata.
+    * `tomotopy.DTModel.get_count_by_topics()` has been modified to return a 2-dimensional `ndarray`.
+    * `tomotopy.DTModel.alpha` has been modified to return the same value as `tomotopy.DTModel.get_alpha()`.
+    * Fixed an issue where the `metadata` value could not be obtained for the document of `tomotopy.GDMRModel`.
+    * `tomotopy.HLDAModel.alpha` now shows Dirichlet prior of per-document depth distribution.
+    * `tomotopy.LDAModel.global_step` has been added.
+    * `tomotopy.MGLDAModel.get_count_by_topics()` now returns the word count for both global and local topics.
+    * `tomotopy.PAModel.alpha`, `tomotopy.PAModel.subalpha`, and `tomotopy.PAModel.get_count_by_super_topic()` have been added.
+
+.. _EigenRand: https://github.com/bab2min/EigenRand
+
 * 0.8.2 (2020-07-14)
     * New properties `tomotopy.DTModel.num_timepoints` and `tomotopy.DTModel.num_docs_by_timepoint` have been added.
     * A bug which causes different results with the different platform even if `seeds` were the same was partially fixed. 

@@ -35,7 +35,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.8.2 입니다.
+tomotopy의 가장 최신버전은 0.9.0 입니다.
 
 시작하기
 ---------------
@@ -253,6 +253,22 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.9.0 (2020-08-04)
+    * 모델의 상태를 알아보기 쉽게 출력해주는 `tomotopy.LDAModel.summary()` 메소드가 추가되었습니다.
+    * 난수 생성기를 `EigenRand`_로 대체하여 생성 속도를 높이고 플랫폼 간의 결과 차이를 해소하였습니다.
+    * 이로 인해 `seed`가 동일해도 모델 학습 결과가 0.9.0 이전 버전과 달라질 수 있습니다.
+    * `tomotopy.HDPModel`에서 간헐적으로 발생하는 학습 오류를 수정했습니다.
+    * 이제 `tomotopy.DMRModel.alpha`가 메타데이터별 토픽 분포의 사전 파라미터를 보여줍니다.
+    * `tomotopy.DTModel.get_count_by_topics()`가 2차원 `ndarray`를 반환하도록 수정되었습니다.
+    * `tomotopy.DTModel.alpha`가 `tomotopy.DTModel.get_alpha()`와 동일한 값을 반환하도록 수정되었습니다.
+    * `tomotopy.GDMRModel`의 document에 대해 `metadata` 값을 얻어올 수 없던 문제가 해결되었습니다.
+    * 이제 `tomotopy.HLDAModel.alpha`가 문헌별 계층 분포의 사전 파라미터를 보여줍니다.
+    * `tomotopy.LDAModel.global_step`이 추가되었습니다.
+    * 이제 `tomotopy.MGLDAModel.get_count_by_topics()`가 전역 토픽과 지역 토픽 모두의 단어 개수를 보여줍니다.
+    * `tomotopy.PAModel.alpha`, `tomotopy.PAModel.subalpha`, `tomotopy.PAModel.get_count_by_super_topic()`이 추가되었습니다.
+
+.. _EigenRand: https://github.com/bab2min/EigenRand
+
 * 0.8.2 (2020-07-14)
     * `tomotopy.DTModel.num_timepoints`와 `tomotopy.DTModel.num_docs_by_timepoint` 프로퍼티가 추가되었습니다.
     * `seed`가 동일해서 플랫폼이 다르면 다른 결과를 내던 문제가 일부 해결되었습니다. 이로 인해 32bit 버전의 모델 학습 결과가 이전 버전과는 달라졌습니다.
