@@ -76,6 +76,8 @@ for i in range(0, 1000, 20):
     mdl.train(20)
 print('Iteration: {:04} LL per word: {:.4}'.format(1000, mdl.ll_per_word))
 
+mdl.summary()
+
 # Let's visualize the result
 topic_counts = mdl.get_count_by_topics()
 lambdas = mdl.lambdas

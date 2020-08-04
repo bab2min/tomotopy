@@ -45,6 +45,8 @@ for i in range(0, 1000, 20):
     mdl.train(20)
 print('Iteration: {:04}, LL per word: {:.4}'.format(1000, mdl.ll_per_word))
 
+mdl.summary()
+
 topic_term_dists = np.stack([mdl.get_topic_word_dist(k) for k in range(mdl.k)])
 doc_topic_dists = np.stack([doc.get_topic_dist() for doc in mdl.docs])
 doc_lengths = np.array([len(doc.words) for doc in mdl.docs])

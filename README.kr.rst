@@ -78,6 +78,8 @@ tomotopy의 가장 최신버전은 0.9.0 입니다.
     for k in range(mdl.k):
         print('Top 10 words of topic #{}'.format(k))
         print(mdl.get_topic_words(k, top_n=10))
+    
+    mdl.summary()
 
 tomotopy의 성능
 -----------------------
@@ -243,7 +245,7 @@ LDA모델로 1000회 iteration을 수행시 걸리는 시간을 초 단위로 �
 
 예제 코드
 ---------
-tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/master/example.py 를 확인하시길 바랍니다.
+tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/master/examples/ 를 확인하시길 바랍니다.
 
 예제 코드에서 사용했던 데이터 파일은 https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view 에서 다운받을 수 있습니다.
 

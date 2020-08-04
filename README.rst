@@ -79,6 +79,8 @@ Here is a sample code for simple LDA training of texts from 'sample.txt' file.
     for k in range(mdl.k):
         print('Top 10 words of topic #{}'.format(k))
         print(mdl.get_topic_words(k, top_n=10))
+    
+    mdl.summary()
 
 Performance of tomotopy
 -----------------------
@@ -248,7 +250,7 @@ See `word_prior_example` in `example.py` for more details.
 
 Examples
 --------
-You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/master/example.py .
+You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/master/examples/ .
 
 You can also get the data file used in the example code at https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view .
 

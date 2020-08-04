@@ -47,6 +47,8 @@ for i in range(0, 1000, 20):
     mdl.train(20)
 print('Iteration: {:04}, LL per word: {:.4}'.format(1000, mdl.ll_per_word))
 
+mdl.summary()
+
 # Let's visualize the result
 g = Network(width=800, height=800, font_color="#333")
 correl = mdl.get_correlations().reshape([-1])

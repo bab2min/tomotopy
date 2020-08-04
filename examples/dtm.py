@@ -28,6 +28,8 @@ for i in range(0, 1000, 20):
     mdl.train(20)
 print('Iteration: {:04}, LL per word: {:.4}'.format(1000, mdl.ll_per_word))
 
+mdl.summary()
+
 topic_dist_by_time = np.zeros(shape=[mdl.num_timepoints, mdl.k], dtype=np.float)
 for doc in mdl.docs:
     topic_dist_by_time[doc.timepoint] += doc.get_topic_dist()
