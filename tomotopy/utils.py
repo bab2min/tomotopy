@@ -197,24 +197,33 @@ filename : str
 
 class SimpleTokenizer:
     '''`SimpleTokenizer` provided a simple word-tokenizing utility with an arbitrary stemmer.'''
-    def __init__(self, stemmer=None):
+    def __init__(self, stemmer=None, pattern:str=None):
         '''Parameters
 ----------
 stemmer : Callable[str, str]
     a callable object for stemming words. If this value is set to `None`, words are not stemmed.
+pattern : str
+    a regex pattern for extracting tokens
 
 Here is an example of using SimpleTokenizer with NLTK for stemming.
 
 .. include:: ./auto_labeling_code_with_porter.rst
 '''
         import re
-        self._pat = re.compile(r"""[^\s.,;:'"?!<>(){}\[\]\\/`~@#$%^&*|]+""")
-        self._stemmer = stemmer or (lambda x:x)
+        self._pat = re.compile(pattern or r"""[^\s.,;:'"?!<>(){}\[\]\\/`~@#$%^&*|]+""")
+        if stemmer and not callable(stemmer):
+            raise ValueError("`stemmer` must be callable.")
+        self._stemmer = stemmer or None
 
     def __call__(self, raw:str, user_data=None):
-        for g in self._pat.finditer(raw.lower()):
-            start, end = g.span(0)
-            yield self._stemmer(g.group(0)), start, end - start
+        if self._stemmer:
+            for g in self._pat.finditer(raw.lower()):
+                start, end = g.span(0)
+                yield self._stemmer(g.group(0)), start, end - start
+        else:
+            for g in self._pat.finditer(raw.lower()):
+                start, end = g.span(0)
+                yield g.group(0), start, end - start
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

@@ -4,7 +4,7 @@ import os, os.path, struct, re, platform
 from setuptools.command.install import install
 import numpy
 
-exec(open('tomotopy/version.py').read())
+exec(open('tomotopy/_version.py').read())
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,13 +26,13 @@ if platform.system() == 'Windows':
     cargs = ['/O2', '/MT', '/Gy']
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
 elif platform.system() == 'Darwin': 
-    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-stdlib=libc++', '-Wno-unused-variable']
+    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-stdlib=libc++', '-Wno-unused-variable', '-Wno-switch']
     largs += ['-stdlib=libc++']
     if 'many' not in os.environ.get('AUDITWHEEL_PLAT', ''): arch_levels = {'':'-march=native'}
 elif 'many' in os.environ.get('AUDITWHEEL_PLAT', ''):
-    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-g0', '-Wno-unused-variable']
+    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-g0', '-Wno-unused-variable', '-Wno-switch']
 else:
-    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-Wno-unused-variable']
+    cargs = ['-std=c++0x', '-O3', '-fpermissive', '-Wno-unused-variable', '-Wno-switch']
     arch_levels = {'':'-march=native'}
 
 if struct.calcsize('P') < 8: arch_levels = {k:v for k, v in arch_levels.items() if k in ('', 'sse2')}

@@ -107,7 +107,20 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 			auto* p = PyObject_CallObject((PyObject*)&TYPE, args);\
 			try\
 			{\
-				((TopicModelObject*)p)->inst->loadModel(str);\
+				vector<uint8_t> extra_data;\
+				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);\
+				if (!extra_data.empty())\
+				{\
+					py::UniqueObj pickle = PyImport_ImportModule("pickle");\
+					PyObject* pickle_dict = PyModule_GetDict(pickle);\
+					py::UniqueObj bytes = PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size());\
+					py::UniqueObj args = Py_BuildValue("(O)", bytes.get());\
+					Py_XDECREF(((TopicModelObject*)p)->initParams);\
+					((TopicModelObject*)p)->initParams = PyObject_CallObject(\
+						PyDict_GetItemString(pickle_dict, "loads"),\
+						args\
+					);\
+				}\
 			}\
 			catch (const tomoto::serializer::UnfitException&)\
 			{\
@@ -154,7 +167,41 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
 			if (doc) return py::buildPyValue(doc->FIELD);\
 		} while (0);\
-		throw runtime_error{ "doc doesn't has '" #FIELD "' field!" };\
+		throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
+	}\
+	catch (const bad_exception&)\
+	{\
+		return nullptr;\
+	}\
+	catch (const exception& e)\
+	{\
+		PyErr_SetString(PyExc_Exception, e.what());\
+		return nullptr;\
+	}\
+}
+
+#define DEFINE_DOCUMENT_GETTER_WITHOUT_EXC(DOCTYPE, NAME, FIELD) \
+PyObject* Document_##NAME(DocumentObject* self, void* closure)\
+{\
+	try\
+	{\
+		if (!self->doc) throw runtime_error{ "doc is null!" };\
+		do\
+		{\
+			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->doc);\
+			if (doc) return py::buildPyValue(doc->FIELD);\
+		} while (0);\
+		do\
+		{\
+			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->doc);\
+			if (doc) return py::buildPyValue(doc->FIELD);\
+		} while (0);\
+		do\
+		{\
+			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
+			if (doc) return py::buildPyValue(doc->FIELD);\
+		} while (0);\
+		return nullptr;\
 	}\
 	catch (const bad_exception&)\
 	{\
@@ -188,7 +235,7 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
 			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
 		} while (0);\
-		throw runtime_error{ "doc doesn't has '" #FIELD "' field!" };\
+		throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
 	}\
 	catch (const bad_exception&)\
 	{\
@@ -216,7 +263,6 @@ namespace py
 	}
 }
 
-
 extern PyObject* gModule;
 extern PyTypeObject Document_type, Corpus_type, Dictionary_type;
 extern PyTypeObject LDA_type;
@@ -240,7 +286,7 @@ struct TopicModelObject
 	bool isPrepared;
 	size_t minWordCnt, minWordDf;
 	size_t removeTopWord;
-
+	PyObject* initParams;
 	static void dealloc(TopicModelObject* self);
 };
 
@@ -354,3 +400,13 @@ PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& 
 }
 
 static const char* corpus_feeder_name = "_feed_docs_to";
+
+inline std::string getVersion()
+{
+	py::UniqueObj mod = PyImport_ImportModule("tomotopy");
+	if (!mod) throw std::bad_exception{};
+	PyObject* mod_dict = PyModule_GetDict(mod);
+	if (!mod_dict) throw std::bad_exception{};
+	PyObject* version = PyDict_GetItemString(mod_dict, "__version__");
+	return PyUnicode_AsUTF8(version);
+}

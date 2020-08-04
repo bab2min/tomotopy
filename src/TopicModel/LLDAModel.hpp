@@ -102,7 +102,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, topicLabelDict);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, topicLabelDict);
 
-		LLDAModel(size_t _K = 1, Float _alpha = 1.0, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+		LLDAModel(size_t _K = 1, Float _alpha = 1.0, Float _eta = 0.01, size_t _rg = std::random_device{}())
 			: BaseClass(_K, _alpha, _eta, _rg)
 		{
 		}

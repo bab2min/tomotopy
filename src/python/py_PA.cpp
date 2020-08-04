@@ -9,13 +9,12 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1f, eta = 0.01f;
-	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k1", "k2", "alpha", "eta", 
-		"seed", "rng", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffnsOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &K2, &alpha, &eta, &seed, &rng, &objCorpus, &objTransform)) return -1;
+		"seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &K2, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -23,29 +22,18 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, 
-			K, K2, alpha, eta, seed, scalarRng);
+			K, K2, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, K2, alpha, eta, seed
+		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{
@@ -306,6 +294,30 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 	}
 }
 
+static PyObject* PA_getCountBySuperTopic(TopicModelObject* self)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
+		if (!self->isPrepared)
+		{
+			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
+			self->isPrepared = true;
+		}
+		return py::buildPyValue(inst->getCountBySuperTopic());
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 DEFINE_GETTER(tomoto::IPAModel, PA, getK2);
 DEFINE_DOCUMENT_GETTER_REORDER(tomoto::DocumentPA, Z2, Z2s);
 DEFINE_LOADER(PA, PA_type);
@@ -317,14 +329,42 @@ static PyMethodDef PA_methods[] =
 	{ "get_sub_topics", (PyCFunction)PA_getSubTopics, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topics__doc__ },
 	{ "get_topic_words", (PyCFunction)PA_getTopicWords, METH_VARARGS | METH_KEYWORDS, PA_get_topic_words__doc__},
 	{ "get_topic_word_dist", (PyCFunction)PA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, PA_get_topic_word_dist__doc__ },
+	{ "get_count_by_super_topic", (PyCFunction)PA_getCountBySuperTopic, METH_VARARGS | METH_KEYWORDS, PA_get_count_by_super_topic__doc__ },
 	{ "infer", (PyCFunction)PA_infer, METH_VARARGS | METH_KEYWORDS, PA_infer__doc__ },
 	{ nullptr }
 };
 
+static PyObject* PA_getSubalpha(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
+		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getK2() };
+		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
+		for (size_t i = 0; i < inst->getK(); ++i)
+		{
+			auto l = inst->getSubAlpha(i);
+			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
+		}
+		return ret;
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
 
 static PyGetSetDef PA_getseters[] = {
 	{ (char*)"k1", (getter)LDA_getK, nullptr, PA_k1__doc__, nullptr },
 	{ (char*)"k2", (getter)PA_getK2, nullptr, PA_k2__doc__, nullptr },
+	{ (char*)"alpha", (getter)LDA_getAlpha, nullptr, PA_alpha__doc__, nullptr },
+	{ (char*)"subalpha", (getter)PA_getSubalpha, nullptr, PA_subalpha__doc__, nullptr },
 	{ nullptr },
 };
 

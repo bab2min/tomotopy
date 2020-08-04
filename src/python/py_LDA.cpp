@@ -13,12 +13,11 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t K = 1;
 	float alpha = 0.1f, eta = 0.01f;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	const char* rng = "scalar";
 	size_t seed = random_device{}();
-	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "seed", "rng",
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "seed",
 		"corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffnsOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &K, &alpha, &eta, &seed, &rng, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffnOO", (char**)kwlist, 
+		&tw, &minCnt, &minDf, &rmTop, &K, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -26,28 +25,17 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
-		}
-
-		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, seed, scalarRng);
+		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, alpha, eta, seed
+		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{
@@ -397,7 +385,24 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		ofstream str{ filename, ios_base::binary };
 		if (!str) throw runtime_error{ std::string("cannot open file '") + filename + std::string("'") };
-		self->inst->saveModel(str, !!full);
+
+		vector<uint8_t> extra_data;
+		{
+			py::UniqueObj pickle = PyImport_ImportModule("pickle");
+			PyObject* pickle_dict = PyModule_GetDict(pickle);
+			py::UniqueObj args = Py_BuildValue("(O)", self->initParams);
+			py::UniqueObj pickled_bytes = PyObject_CallObject(
+				PyDict_GetItemString(pickle_dict, "dumps"),
+				args
+			);
+			char* buf;
+			ssize_t bufsize;
+			PyBytes_AsStringAndSize(pickled_bytes, &buf, &bufsize);
+			extra_data.resize(bufsize);
+			memcpy(extra_data.data(), buf, bufsize);
+		}
+
+		self->inst->saveModel(str, !!full, &extra_data);
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
@@ -606,6 +611,44 @@ static PyObject* LDA_getRemovedTopWords(TopicModelObject* self, void* closure)
 	}
 }
 
+static PyObject* LDA_summary(TopicModelObject* self, PyObject* args, PyObject* kwargs)
+{
+	PyObject *argInitialHP = nullptr, 
+		*argParams = nullptr,
+		*argTopicWordTopN = nullptr,
+		*argFile = nullptr, 
+		*argFlush = nullptr;
+	static const char* kwlist[] = { "initial_hp", "params", "topic_word_top_n", "file", "flush", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOO", (char**)kwlist,
+		&argInitialHP, &argParams, &argTopicWordTopN, &argFile, &argFlush)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+
+		py::UniqueObj mod = PyImport_ImportModule("tomotopy._summary");
+		if (!mod) throw bad_exception{};
+		PyObject* mod_dict = PyModule_GetDict(mod);
+		if (!mod_dict) throw bad_exception{};
+		PyObject* summary_func = PyDict_GetItemString(mod_dict, "summary");
+		if (!summary_func) throw bad_exception{};
+		py::UniqueObj args = Py_BuildValue("(O)", self);
+		py::UniqueObj kwargs = py::buildPyDictSkipNull(kwlist,
+			argInitialHP, argParams, argTopicWordTopN,
+			argFile, argFlush
+		);
+		return PyObject_Call(summary_func, args, kwargs);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getK);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getEta);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getPerplexity);
@@ -617,6 +660,7 @@ DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabCf);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getVocabDf);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getOptimInterval);
 DEFINE_GETTER(tomoto::ILDAModel, LDA, getBurnInIteration);
+DEFINE_GETTER(tomoto::ILDAModel, LDA, getGlobalStep);
 
 DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ILDAModel, LDA, setOptimInterval);
 DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ILDAModel, LDA, setBurnInIteration);
@@ -679,6 +723,11 @@ PyObject* Document_getCountVector(DocumentObject* self)
 	}
 }
 
+PyObject* LDA_getInitParams(TopicModelObject* self)
+{
+	return PyDict_Copy(self->initParams);
+}
+
 static PyMethodDef LDA_methods[] =
 {
 	{ "add_doc", (PyCFunction)LDA_addDoc, METH_VARARGS | METH_KEYWORDS, LDA_add_doc__doc__ },
@@ -694,6 +743,7 @@ static PyMethodDef LDA_methods[] =
 	{ "save", (PyCFunction)LDA_save, METH_VARARGS | METH_KEYWORDS, LDA_save__doc__},
 	{ "load", (PyCFunction)LDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__},
 	{ "_update_vocab", (PyCFunction)LDA_update_vocab, METH_VARARGS | METH_KEYWORDS, ""},
+	{ "summary", (PyCFunction)LDA_summary, METH_VARARGS | METH_KEYWORDS, LDA_summary__doc__},
 	{ nullptr }
 };
 
@@ -716,6 +766,8 @@ static PyGetSetDef LDA_getseters[] = {
 	{ (char*)"used_vocab_freq", (getter)LDA_getUsedVocabCf, nullptr, LDA_used_vocab_freq__doc__, nullptr },
 	{ (char*)"vocab_df", (getter)LDA_getVocabDf, nullptr, LDA_vocab_df__doc__, nullptr },
 	{ (char*)"used_vocab_df", (getter)LDA_getUsedVocabDf, nullptr, LDA_used_vocab_df__doc__, nullptr },
+	{ (char*)"global_step", (getter)LDA_getGlobalStep, nullptr, LDA_global_step__doc__, nullptr },
+	{ (char*)"_init_params", (getter)LDA_getInitParams, nullptr, "", nullptr },
 	{ nullptr },
 };
 

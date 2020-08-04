@@ -21,6 +21,7 @@ namespace tomoto
 		tvector<Vid> words; // word id of each word
 		std::vector<uint32_t> wOrder; // original word order (optional)
 
+		std::string docUid;
 		std::string rawStr;
 		std::vector<uint32_t> origWordPos;
 		std::vector<uint16_t> origWordLen;
@@ -28,7 +29,10 @@ namespace tomoto
 		virtual ~DocumentBase() {}
 
 		DEFINE_SERIALIZER_WITH_VERSION(0, serializer::to_key("Docu"), weight, words, wOrder);
-		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, weight, words, wOrder, rawStr, origWordPos, origWordLen);
+		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, weight, words, wOrder, 
+			rawStr, origWordPos, origWordLen,
+			docUid
+		);
 	};
 
 	enum class ParallelScheme { default_, none, copy_merge, partition, size };
@@ -118,8 +122,10 @@ namespace tomoto
 	class ITopicModel
 	{
 	public:
-		virtual void saveModel(std::ostream& writer, bool fullModel) const = 0;
-		virtual void loadModel(std::istream& reader) = 0;
+		virtual void saveModel(std::ostream& writer, bool fullModel, 
+			const std::vector<uint8_t>* extra_data = nullptr) const = 0;
+		virtual void loadModel(std::istream& reader, 
+			std::vector<uint8_t>* extra_data = nullptr) = 0;
 		virtual const DocumentBase* getDoc(size_t docId) const = 0;
 
 		virtual void updateVocab(const std::vector<std::string>& words) = 0;
@@ -134,6 +140,7 @@ namespace tomoto
 		virtual const std::vector<uint64_t>& getVocabDf() const = 0;
 
 		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_) = 0;
+		virtual size_t getGlobalStep() const = 0;
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
 		
 		virtual size_t getK() const = 0;
@@ -193,7 +200,7 @@ namespace tomoto
 		std::vector<DocType> docs;
 		std::vector<uint64_t> vocabCf;
 		std::vector<uint64_t> vocabDf;
-		size_t iterated = 0;
+		size_t globalStep = 0;
 		_ModelState globalState, tState;
 		Dictionary dict;
 		uint64_t realV = 0; // vocab size after removing stopwords
@@ -203,7 +210,7 @@ namespace tomoto
 
 		std::unique_ptr<ThreadPool> cachedPool;
 
-		void _saveModel(std::ostream& writer, bool fullModel) const
+		void _saveModel(std::ostream& writer, bool fullModel, const std::vector<uint8_t>* extra_data) const
 		{
 			serializer::writeMany(writer,
 				serializer::to_keyz(static_cast<const _Derived*>(this)->TMID),
@@ -212,7 +219,9 @@ namespace tomoto
 				serializer::to_keyz("dict"), dict, 
 				serializer::to_keyz("vocabCf"), vocabCf,
 				serializer::to_keyz("vocabDf"), vocabDf,
-				serializer::to_keyz("realV"), realV);
+				serializer::to_keyz("realV"), realV,
+				serializer::to_keyz("globalStep"), globalStep,
+				serializer::to_keyz("extra"), extra_data ? *extra_data : std::vector<uint8_t>(0));
 			serializer::writeMany(writer, *static_cast<const _Derived*>(this));
 			globalState.serializerWrite(writer);
 			if (fullModel)
@@ -225,11 +234,12 @@ namespace tomoto
 			}
 		}
 
-		void _loadModel(std::istream& reader)
+		void _loadModel(std::istream& reader, std::vector<uint8_t>* extra_data)
 		{
 			auto start_pos = reader.tellg();
 			try
 			{
+				std::vector<uint8_t> extra;
 				serializer::readMany(reader, 
 					serializer::to_keyz(static_cast<_Derived*>(this)->TMID),
 					serializer::to_keyz(static_cast<_Derived*>(this)->TWID));
@@ -237,7 +247,10 @@ namespace tomoto
 					serializer::to_keyz("dict"), dict,
 					serializer::to_keyz("vocabCf"), vocabCf,
 					serializer::to_keyz("vocabDf"), vocabDf,
-					serializer::to_keyz("realV"), realV);
+					serializer::to_keyz("realV"), realV,
+					serializer::to_keyz("globalStep"), globalStep,
+					serializer::to_keyz("extra"), extra);
+				if (extra_data) *extra_data = std::move(extra);
 			}
 			catch (const std::ios_base::failure&)
 			{
@@ -530,7 +543,7 @@ namespace tomoto
 						if(ret < 0) return ret;
 					}
 				}
-				++iterated;
+				++globalStep;
 			}
 			return 0;
 		}
@@ -639,6 +652,11 @@ namespace tomoto
 			return &_getDoc(docId);
 		}
 
+		size_t getGlobalStep() const override
+		{
+			return globalStep;
+		}
+
 		const Dictionary& getVocabDict() const override
 		{
 			return dict;
@@ -654,14 +672,14 @@ namespace tomoto
 			return vocabDf;
 		}
 
-		void saveModel(std::ostream& writer, bool fullModel) const override
+		void saveModel(std::ostream& writer, bool fullModel, const std::vector<uint8_t>* extra_data) const override
 		{ 
-			static_cast<const _Derived*>(this)->_saveModel(writer, fullModel);
+			static_cast<const _Derived*>(this)->_saveModel(writer, fullModel, extra_data);
 		}
 
-		void loadModel(std::istream& reader) override
+		void loadModel(std::istream& reader, std::vector<uint8_t>* extra_data) override
 		{ 
-			static_cast<_Derived*>(this)->_loadModel(reader);
+			static_cast<_Derived*>(this)->_loadModel(reader, extra_data);
 			static_cast<_Derived*>(this)->prepare(false);
 		}
 	};

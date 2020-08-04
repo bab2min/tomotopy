@@ -18,7 +18,7 @@ namespace tomoto
 		size_t _Flags = flags::partitioned_multisampling,
 		typename _Interface = IGDMRModel,
 		typename _Derived = void,
-		typename _DocType = DocumentGDMR<_tw, _Flags>,
+		typename _DocType = DocumentGDMR<_tw>,
 		typename _ModelState = ModelStateGDMR<_tw>>
 	class GDMRModel : public DMRModel<_tw, _RandGen, _Flags, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, GDMRModel<_tw, _RandGen>, _Derived>::type,
@@ -116,6 +116,7 @@ namespace tomoto
 						{
 							alphas[k] = exp(mappedX.row(k) * terms) + this->alphaEps;
 							ret[K * F] -= math::lgammaT(alphas[k]) - math::lgammaT(doc.numByTopic[k] + alphas[k]);
+							assert(std::isfinite(ret[K * F]));
 							if (!std::isfinite(alphas[k]) && alphas[k] > 0) tmpK[k] = 0;
 							else tmpK[k] = -(math::digammaT(alphas[k]) - math::digammaT(doc.numByTopic[k] + alphas[k]));
 						}
@@ -131,6 +132,7 @@ namespace tomoto
 						{
 							ret.segment(f * K, K).array() -= ((tmpK.array() + t) * alphas.array()) * terms[f];
 						}
+						assert(ret.allFinite());
 					}
 					return ret;
 				}));
@@ -336,7 +338,7 @@ namespace tomoto
 
 		GDMRModel(size_t _K = 1, const std::vector<uint64_t>& _degreeByF = {}, 
 			Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _sigma0 = 1.0, Float _eta = 0.01,
-			Float _alphaEps = 1e-10, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+			Float _alphaEps = 1e-10, size_t _rg = std::random_device{}())
 			: BaseClass(_K, defaultAlpha, _sigma, _eta, _alphaEps, _rg), sigma0(_sigma0), degreeByF(_degreeByF)
 		{
 			this->F = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });

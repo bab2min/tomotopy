@@ -355,13 +355,26 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z, doc.sents[i], win, r);
 		}
 
+		std::vector<uint64_t> _getTopicsCount() const
+		{
+			std::vector<uint64_t> cnt(this->K + KL);
+			for (auto& doc : this->docs)
+			{
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] < this->realV) ++cnt[doc.Zs[i]];
+				}
+			}
+			return cnt;
+		}
+
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 
 		MGLDAModel(size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
 			Float _alphaG = 0.1, Float _alphaL = 0.1, Float _alphaMG = 0.1, Float _alphaML = 0.1,
-			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, size_t _rg = std::random_device{}())
 			: BaseClass(_KG, _alphaG, _etaG, _rg), KL(_KL), T(_T),
 			alphaL(_alphaL), alphaM(_KG ? _alphaMG : 0), alphaML(_alphaML),
 			etaL(_etaL), gamma(_gamma)

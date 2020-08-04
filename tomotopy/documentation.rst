@@ -27,6 +27,7 @@ Getting Started
 You can install tomotopy easily using pip. (https://pypi.org/project/tomotopy/)
 ::
 
+    $ pip install --upgrade pip
     $ pip install tomotopy
 
 The supported OS and Python versions are:
@@ -248,6 +249,18 @@ The following chart shows the speed difference between the two algorithms based 
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp.png
 
 .. image:: https://bab2min.github.io/tomotopy/images/algo_comp2.png
+
+Performance by Version
+----------------------
+Performance changes by version are shown in the following graph. 
+The time it takes to run the LDA model train with 1000 iteration was measured. 
+(Docs: 11314, Vocab: 60382, Words: 2364724, Intel Xeon Gold 5120 @2.2GHz)
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t1.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t4.png
+
+.. image:: https://bab2min.github.io/tomotopy/images/lda-perf-t8.png
 
 Pining Topics using Word Priors
 -------------------------------

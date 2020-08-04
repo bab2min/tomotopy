@@ -338,11 +338,24 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, doc.Zs[i], doc.Z2s[i]);
 		}
 
+		std::vector<uint64_t> _getTopicsCount() const
+		{
+			std::vector<uint64_t> cnt(this->K2);
+			for (auto& doc : this->docs)
+			{
+				for (size_t i = 0; i < doc.Z2s.size(); ++i)
+				{
+					if (doc.words[i] < this->realV) ++cnt[doc.Z2s[i]];
+				}
+			}
+			return cnt;
+		}
+
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
 
-		PAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+		PAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
 			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
 		{
 			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
@@ -361,6 +374,13 @@ namespace tomoto
 		}
 
 		Float getSubAlpha(Tid k1, Tid k2) const override { return subAlphas(k1, k2); }
+
+		std::vector<Float> getSubAlpha(Tid k1) const override
+		{
+			std::vector<Float> ret(K2);
+			Eigen::Map<Eigen::VectorXf>{ret.data(), (Eigen::Index)ret.size()} = subAlphas.row(k1).transpose();
+			return ret;
+		}
 
 		std::vector<Float> getSubTopicBySuperTopic(Tid k) const override
 		{
@@ -416,6 +436,19 @@ namespace tomoto
 			}
 			this->dict.add(word);
 			this->etaByWord.emplace(word, priors);
+		}
+
+		std::vector<uint64_t> getCountBySuperTopic() const override
+		{
+			std::vector<uint64_t> cnt(this->K);
+			for (auto& doc : this->docs)
+			{
+				for (size_t i = 0; i < doc.Zs.size(); ++i)
+				{
+					if (doc.words[i] < this->realV) ++cnt[doc.Zs[i]];
+				}
+			}
+			return cnt;
 		}
 	};
 	

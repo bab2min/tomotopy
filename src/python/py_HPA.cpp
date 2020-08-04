@@ -9,13 +9,12 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1, K2 = 1;
 	float alpha = 0.1f, eta = 0.01f;
-	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k1", "k2", "alpha", "eta", 
-		"seed", "rng", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffnsOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &K2, &alpha, &eta, &seed, &rng, &objCorpus, &objTransform)) return -1;
+		"seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&K, &K2, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
@@ -23,29 +22,18 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
 		}
 
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IHPAModel::create((tomoto::TermWeight)tw, 
-			false, K, K2, alpha, eta, seed, scalarRng);
+			false, K, K2, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, K2, alpha, eta, seed
+		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objCorpus)
 		{
@@ -122,6 +110,57 @@ DEFINE_LOADER(HPA, HPA_type);
 
 PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs);
 
+static PyObject* HPA_getAlpha(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
+		npy_intp shapes[1] = { (npy_intp)inst->getK() + 1 };
+		PyObject* ret = PyArray_EMPTY(1, shapes, NPY_FLOAT, 0);
+		for (size_t i = 0; i <= inst->getK(); ++i)
+		{
+			*(float*)PyArray_GETPTR1((PyArrayObject*)ret, i) = inst->getAlpha(i);
+		}
+		return ret;
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* HPA_getSubalpha(TopicModelObject* self, void* closure)
+{
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
+		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getK2() + 1 };
+		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
+		for (size_t i = 0; i < inst->getK(); ++i)
+		{
+			auto l = inst->getSubAlpha(i);
+			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
+		}
+		return ret;
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 static PyMethodDef HPA_methods[] =
 {
 	{ "load", (PyCFunction)HPA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
@@ -132,6 +171,8 @@ static PyMethodDef HPA_methods[] =
 };
 
 static PyGetSetDef HPA_getseters[] = {
+	{ (char*)"alpha", (getter)HPA_getAlpha, nullptr, HPA_alpha__doc__, nullptr },
+	{ (char*)"subalpha", (getter)HPA_getSubalpha, nullptr, HPA_subalpha__doc__, nullptr },
 	{ nullptr },
 };
 

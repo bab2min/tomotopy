@@ -599,7 +599,7 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
 
-		HLDAModel(size_t _levelDepth = 4, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, const _RandGen& _rg = _RandGen{ std::random_device{}() })
+		HLDAModel(size_t _levelDepth = 4, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, size_t _rg = std::random_device{}())
 			: BaseClass(_levelDepth, _alpha, _eta, _rg), gamma(_gamma)
 		{
 			if (_levelDepth == 0 || _levelDepth >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong levelDepth value (levelDepth = %zd)", _levelDepth));

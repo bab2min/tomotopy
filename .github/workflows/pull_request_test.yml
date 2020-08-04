@@ -30,7 +30,7 @@ jobs:
         mv eigen-git-mirror include
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
-        git checkout tags/v0.2.1
+        git checkout tags/v0.2.2
         cd ..
         mv EigenRand/EigenRand include/
     - name: Build
@@ -41,7 +41,7 @@ jobs:
       run: |
         /opt/python/${{ matrix.cp }}/bin/python -m pip install pytest nltk
         /opt/python/${{ matrix.cp }}/bin/python -m nltk.downloader stopwords
-        /opt/python/${{ matrix.cp }}/bin/python -m pytest --verbose test/unit_test.py
+        /opt/python/${{ matrix.cp }}/bin/python -m pytest --verbose -s test/unit_test.py
 
   build_macos:
     name: Build for macOS
@@ -63,9 +63,9 @@ jobs:
         wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
-        wget https://github.com/bab2min/EigenRand/archive/v0.2.1.tar.gz
-        tar -zxvf v0.2.1.tar.gz
-        mv EigenRand-0.2.1/EigenRand include/
+        wget https://github.com/bab2min/EigenRand/archive/v0.2.2.tar.gz
+        tar -zxvf v0.2.2.tar.gz
+        mv EigenRand-0.2.2/EigenRand include/
     - name: Build
       run: |
         python -m pip install numpy
@@ -74,7 +74,7 @@ jobs:
       run: |
         python -m pip install pytest nltk
         python -m nltk.downloader stopwords
-        python -m pytest --verbose test/unit_test.py
+        python -m pytest --verbose -s test/unit_test.py
 
   build_windows:
     name: Build for Windows
@@ -99,9 +99,9 @@ jobs:
         Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
         tar -zxvf 3.3.7.tar.gz
         mv eigen-git-mirror-3.3.7 include
-        Invoke-WebRequest -OutFile v0.2.1.tar.gz https://github.com/bab2min/EigenRand/archive/v0.2.1.tar.gz
-        tar -zxvf v0.2.1.tar.gz
-        mv EigenRand-0.2.1/EigenRand include/
+        Invoke-WebRequest -OutFile v0.2.2.tar.gz https://github.com/bab2min/EigenRand/archive/v0.2.2.tar.gz
+        tar -zxvf v0.2.2.tar.gz
+        mv EigenRand-0.2.2/EigenRand include/
     - name: Build
       run: |
         python -m pip install numpy
@@ -110,4 +110,4 @@ jobs:
       run: |
         python -m pip install pytest nltk
         python -m nltk.downloader stopwords
-        python -m pytest --verbose test/unit_test.py
+        python -m pytest --verbose -s test/unit_test.py

@@ -4,7 +4,7 @@ including LDA, DMR, HDP, MG-LDA, PA and HPA. It is written in C++ for speed and 
 
 .. include:: ./documentation.rst
 """
-from tomotopy.version import __version__
+from tomotopy._version import __version__
 import tomotopy.utils as utils
 from enum import IntEnum
 

@@ -9,37 +9,21 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	size_t K = 1;
 	float alpha = 0.1f, eta = 0.01f, sigma = 1, sigma0 = 3, alphaEpsilon = 1e-10f;
-	const char* rng = "scalar";
 	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr, 
 		*objDegrees = nullptr, *objRange = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", 
 		"degrees", "alpha", "eta", "sigma", "sigma0", "alpha_epsilon", 
-		"metadata_range", "seed", "rng", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffffOnsOO", (char**)kwlist, 
+		"metadata_range", "seed", "corpus", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffffOnOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop,&K, 
 		&objDegrees, &alpha, &eta, &sigma, &sigma0, &alphaEpsilon, 
-		&objRange, &seed, &rng, &objCorpus, &objTransform)) return -1;
+		&objRange, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
 		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
 		{
 			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
-		string srng = rng;
-		bool scalarRng = false;
-		if (srng == "vector8")
-		{
-			scalarRng = false;
-		}
-		else if (srng == "scalar")
-		{
-			scalarRng = true;
-		}
-		else
-		{
-			throw runtime_error{ "Unknown `rng` type '" + srng + "'." };
 		}
 
 		vector<uint64_t> degrees;
@@ -55,13 +39,17 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		}
 
 		tomoto::IGDMRModel* inst = tomoto::IGDMRModel::create((tomoto::TermWeight)tw, K,
-			degrees, alpha, sigma, sigma0, eta, alphaEpsilon, seed, scalarRng);
+			degrees, alpha, sigma, sigma0, eta, alphaEpsilon, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
+		self->initParams = py::buildPyDict(kwlist,
+			tw, minCnt, minDf, rmTop, K, degrees, alpha, eta, sigma, sigma0, alphaEpsilon
+		);
+		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		if (objRange && objRange != Py_None)
 		{
@@ -361,7 +349,7 @@ static PyObject* GDMR_getMetadataRange(TopicModelObject* self, void* closure)
 DEFINE_GETTER(tomoto::IGDMRModel, GDMR, getSigma0);
 DEFINE_GETTER(tomoto::IGDMRModel, GDMR, getFs);
 
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentGDMR, GDMR_metadata, metadataOrg);
+DEFINE_DOCUMENT_GETTER_WITHOUT_EXC(tomoto::DocumentGDMR, GDMR_metadata, metadataOrg);
 
 DEFINE_LOADER(GDMR, GDMR_type);
 
