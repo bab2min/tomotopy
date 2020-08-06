@@ -19,8 +19,9 @@ Term Weighting Scheme is based on following paper:
 
 */
 
+#ifdef TMT_SCALAR_RNG
 #define TMT_SWITCH_TW(TW, SRNG, MDL, ...) do{\
-		/*if(SRNG){\
+		{\
 			switch (TW){\
 			case TermWeight::one:\
 				return new MDL<TermWeight::one, ScalarRandGen>(__VA_ARGS__);\
@@ -30,7 +31,10 @@ Term Weighting Scheme is based on following paper:
 				return new MDL<TermWeight::pmi, ScalarRandGen>(__VA_ARGS__);\
 			}\
 		}\
-		else*/{\
+		return nullptr; } while(0)
+#else
+#define TMT_SWITCH_TW(TW, SRNG, MDL, ...) do{\
+		{\
 			switch (TW){\
 			case TermWeight::one:\
 				return new MDL<TermWeight::one, RandGen>(__VA_ARGS__);\
@@ -41,6 +45,7 @@ Term Weighting Scheme is based on following paper:
 			}\
 		}\
 		return nullptr; } while(0)
+#endif
 
 #define GETTER(name, type, field) type get##name() const override { return field; }
 

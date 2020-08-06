@@ -194,6 +194,7 @@ namespace tomoto
 		using DocType = _DocType;
 	protected:
 		_RandGen rg;
+		std::vector<_RandGen> localRG;
 		std::vector<Vid> words;
 		std::vector<uint32_t> wOffsetByDoc;
 
@@ -432,7 +433,7 @@ namespace tomoto
 		}
 
 	public:
-		TopicModel(const _RandGen& _rg) : rg(_rg)
+		TopicModel(size_t _rg) : rg(_rg)
 		{
 		}
 
@@ -497,10 +498,14 @@ namespace tomoto
 			}
 
 			std::vector<_ModelState> localData;
-			std::vector<_RandGen> localRG;
+
+			while(localRG.size() < numWorkers)
+			{
+				localRG.emplace_back(rg());
+			}
+
 			for (size_t i = 0; i < numWorkers; ++i)
 			{
-				localRG.emplace_back(_RandGen{rg()});
 				if(ps == ParallelScheme::copy_merge) localData.emplace_back(static_cast<_Derived*>(this)->globalState);
 			}
 

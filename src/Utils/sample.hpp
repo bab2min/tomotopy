@@ -107,9 +107,10 @@ namespace tomoto
 				acc = arr[i + 3];
 			}
 
-			for (int i = n4; i < n; ++i)
+			if (!n4) n4 = 1;
+			for (size_t i = n4; i < n; ++i)
 			{
-				arr[i] += acc;
+				arr[i] += arr[i - 1];
 			}
 		}
 #endif
