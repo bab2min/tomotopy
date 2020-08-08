@@ -138,8 +138,9 @@ static PyMethodDef CT_methods[] =
 static PyGetSetDef CT_getseters[] = {
 	{ (char*)"num_beta_sample", (getter)CT_getNumBetaSample, (setter)CT_setNumBetaSample, CT_num_beta_sample__doc__, nullptr },
 	{ (char*)"num_tmn_sample", (getter)CT_getNumTMNSample, (setter)CT_setNumTMNSample, CT_num_tmn_sample__doc__, nullptr },
-	{ (char*)"prior_mean", (getter)CT_getPriorMean, nullptr, CT_get_prior_mean__doc__, nullptr },
-	{ (char*)"prior_cov", (getter)CT_getPriorCov, nullptr, CT_get_prior_cov__doc__, nullptr },
+	{ (char*)"prior_mean", (getter)CT_getPriorMean, nullptr, CT_prior_mean__doc__, nullptr },
+	{ (char*)"prior_cov", (getter)CT_getPriorCov, nullptr, CT_prior_cov__doc__, nullptr },
+	{ (char*)"alpha", nullptr, nullptr, CT_alpha__doc__, nullptr },
 	{ nullptr },
 };
 

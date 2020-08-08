@@ -36,7 +36,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.9.0.
+The most recent version of tomotopy is 0.9.1.
 
 Getting Started
 ---------------
@@ -261,6 +261,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.9.1 (2020-08-08)
+    * Memory leaks of version 0.9.0 was fixed.
+    * `tomotopy.CTModel.summary()` was fixed.
+
 * 0.9.0 (2020-08-04)
     * The `tomotopy.LDAModel.summary()` method, which prints human-readable summary of the model, has been added.
     * The random number generator of package has been replaced with `EigenRand`_. It speeds up the random number generation and solves the result difference between platforms.

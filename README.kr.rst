@@ -35,7 +35,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.9.0 입니다.
+tomotopy의 가장 최신버전은 0.9.1 입니다.
 
 시작하기
 ---------------
@@ -255,6 +255,10 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.9.1 (2020-08-08)
+    * 0.9.0 버전의 메모리 누수 문제가 해결되었습니다.
+    * `tomotopy.CTModel.summary()`가 잘못된 결과를 출력하는 문제가 해결되었습니다.
+
 * 0.9.0 (2020-08-04)
     * 모델의 상태를 알아보기 쉽게 출력해주는 `tomotopy.LDAModel.summary()` 메소드가 추가되었습니다.
     * 난수 생성기를 `EigenRand`_로 대체하여 생성 속도를 높이고 플랫폼 간의 결과 차이를 해소하였습니다.

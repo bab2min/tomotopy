@@ -18,7 +18,7 @@ The current version of `tomoto` supports several major topic models including
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.9.0.
+The most recent version of tomotopy is 0.9.1.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -297,6 +297,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.9.1 (2020-08-08)
+    * Memory leaks of version 0.9.0 was fixed.
+    * `tomotopy.CTModel.summary()` was fixed.
+
 * 0.9.0 (2020-08-04)
     * The `tomotopy.LDAModel.summary()` method, which prints human-readable summary of the model, has been added.
     * The random number generator of package has been replaced with [EigenRand]. It speeds up the random number generation and solves the result difference between platforms.
