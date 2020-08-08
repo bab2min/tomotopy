@@ -1110,7 +1110,9 @@ topic_id : int
 
 DOC_SIGNATURE_EN_KO(HDP_convert_to_lda__doc__,
 	"convert_to_lda(self, topic_threshold=0.0)",
-	u8R""(Convert the current HDP model to equivalent LDA model and return `(new_lda_model, new_topic_id)`.
+	u8R""(.. versionadded:: 0.8.0
+
+Convert the current HDP model to equivalent LDA model and return `(new_lda_model, new_topic_id)`.
 Topics with proportion less than `topic_threshold` are removed in `new_lda_model`.
 
 `new_topic_id` is an array of length `HDPModel.k` and `new_topic_id[i]` indicates a topic id of new LDA model, equivalent to topic `i` of original HDP model.
@@ -1122,7 +1124,9 @@ topic_threshold : float
     Topics with proportion less than this value is removed in new LDA model.
     The default value is 0, and it means no topic except not alive is removed.
 )"",
-u8R""(현재의 HDP 모델을 동등한 LDA모델로 변환하고, `(new_lda_mode, new_topic_id)`를 반환합니다.
+u8R""(.. versionadded:: 0.8.0
+
+현재의 HDP 모델을 동등한 LDA모델로 변환하고, `(new_lda_mode, new_topic_id)`를 반환합니다.
 이 때 `topic_threshold`보다 작은 비율의 토픽은 `new_lda_model`에서 제거됩니다.
 
 `new_topic_id`는 길이 `HDPModel.k`의 배열이며, `new_topic_id[i]`는 새 LDA 모델에서 원 HDP 모델의 토픽 `i`와 동등한 토픽의 id를 가리킵니다.
@@ -1796,7 +1800,7 @@ and `[x, 1 ~ k2]` elements indicate ones to the sub topics in the super topic `x
 */
 
 DOC_SIGNATURE_EN_KO(CT___init____doc__,
-	"CTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+	"CTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(.. versionadded:: 0.2.0
 This type provides Correlated Topic Model (CTM) and its implementation is based on following papers:
 	
@@ -1921,14 +1925,21 @@ If your model shows biased topic correlations, increasing this value may be help
 만약 결과에서 토픽 간 상관관계가 편향되게 나올 경우 이 값을 키우면 편향을 해소하는 데에 도움이 될 수 있습니다.
 )"");
 
-DOC_VARIABLE_EN_KO(CT_get_prior_mean__doc__,
+DOC_VARIABLE_EN_KO(CT_prior_mean__doc__,
 	u8R""(the mean of prior logistic-normal distribution for the topic distribution (read-only))"",
 	u8R""(토픽의 사전 분포인 로지스틱 정규 분포의 평균 벡터 (읽기전용))"");
 
-DOC_VARIABLE_EN_KO(CT_get_prior_cov__doc__,
+DOC_VARIABLE_EN_KO(CT_prior_cov__doc__,
 	u8R""(the covariance matrix of prior logistic-normal distribution the for topic distribution (read-only))"",
 	u8R""(토픽의 사전 분포인 로지스틱 정규 분포의 공분산 행렬 (읽기전용))"");
 
+DOC_VARIABLE_EN_KO(CT_alpha__doc__,
+    u8R""(This property is not available in `CTModel`. Use `CTModel.prior_mean` and `CTModel.prior_cov` instead.
+
+.. versionadded:: 0.9.1)"",
+    u8R""(이 프로퍼티는 `CTModel`에서 사용불가합니다. 대신 `CTModel.prior_mean`와 `CTModel.prior_cov`를 사용하십시오.
+
+.. versionadded:: 0.9.1)"");
 
 /*
 	class SLDA

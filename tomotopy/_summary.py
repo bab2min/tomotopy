@@ -122,7 +122,6 @@ def initial_params_info_version_LDAModel(mdl, v, file):
     import tomotopy as tp
     print('| trained in version {}'.format(v), file=file)
 
-
 def initial_params_info_vars_SLDAModel(mdl, v, file):
     import tomotopy as tp
     var_type = {'l':'linear', 'b':'binary'}
@@ -201,6 +200,14 @@ def params_info_DTModel(mdl, file):
         '|  {}'.format(_format_numpy(mdl.alpha, '|  ')), file=file)
     print('| phi (Dirichlet prior on the per-time&topic word distribution)\n'
         '|  ...', file=file)
+
+def params_info_CTModel(mdl, file):
+    print('| prior_mean (Prior mean of Logit-normal for the per-document topic distributions)\n'
+        '|  {}'.format(_format_numpy(mdl.prior_mean, '|  ')), file=file)
+    print('| prior_cov (Prior covariance of Logit-normal for the per-document topic distributions)\n'
+        '|  {}'.format(_format_numpy(mdl.prior_cov, '|  ')), file=file)
+    print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+        '|  {:.5}'.format(mdl.eta), file=file)
 
 def topics_info_LDAModel(mdl, file, topic_word_top_n):
     topic_cnt = mdl.get_count_by_topics()
