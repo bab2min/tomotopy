@@ -380,3 +380,8 @@ History
 
 * 0.1.0 (2019-05-12)
     * First version of **tomotopy**
+
+Bindings for Other Languages
+------------------------------
+
+* Ruby: https://github.com/ankane/tomoto
