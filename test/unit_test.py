@@ -208,10 +208,10 @@ def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     mdl.train(100, parallel=ps)
     
     print('Corpus1')
-    for d in tcorpus1: print(d)
+    for d in tcorpus1[:10]: print(d.get_ll())
     print()
     print('Corpus2')
-    for d in tcorpus2: print(d)
+    for d in tcorpus2[:10]: print(d.get_ll())
 
 def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile='test/sample_with_md.txt', mdFields=1, f=lambda x:list(map(float, x)), kargs={'k':10, 'vars':'b'}, ps=tp.ParallelScheme.PARTITION):
     print('Test estimate')
@@ -290,9 +290,9 @@ def test_docs():
         print("doc.__getitem__", doc[0], doc[1], doc[2], doc[3])
 
         if etc: print("doc.etc", doc.etc)
-        print("doc.words", doc.words)
-        print("doc.span", doc.span)
-        print("doc.raw", doc.raw)
+        print("doc.words", doc.words[:10])
+        print("doc.span", doc.span[:10])
+        print("doc.raw", doc.raw[:10])
     
     print("len(corpus)", len(corpus))
     print("len(corpus[:10])", len(corpus[:10]))

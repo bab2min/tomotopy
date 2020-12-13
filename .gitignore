@@ -1,6 +1,6 @@
 ﻿/build
 /dist
-/include/Eigen
+/include/
 *.pyc
 /tomotopy.egg-info
 build_windows.bat

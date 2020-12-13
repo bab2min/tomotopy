@@ -82,6 +82,10 @@ static PyObject* LDA_addCorpus(TopicModelObject* self, PyObject* args, PyObject*
 		py::UniqueObj _corpusRet{ PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self, nullptr) };
 		CorpusObject* corpusRet = (CorpusObject*)_corpusRet.get();
 		corpusRet->docIdcs = insertCorpus(self, corpus, transform);
+		for (size_t i = 0; i < corpusRet->docIdcs.size(); ++i)
+		{
+			corpusRet->invmap.emplace(self->inst->getDoc(corpusRet->docIdcs[i])->docUid, i);
+		}
 		return _corpusRet.release();
 	}
 	catch (const bad_exception&)

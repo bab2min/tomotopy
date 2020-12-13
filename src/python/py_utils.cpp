@@ -444,9 +444,11 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 			const char* utf8 = PyUnicode_AsUTF8(key);
 			if (utf8 == string{ "uid" })
 			{
+				if (value == Py_None) continue;
 				const char* uid = PyUnicode_AsUTF8(value);
 				if (!uid) throw runtime_error{ "`uid` must be str type." };
 				string suid = uid;
+				if (suid.empty()) throw runtime_error{ "wrong `uid` value : empty str not allowed" };
 				if (self->invmap.find(suid) != self->invmap.end())
 				{
 					py::UniqueObj repr{ PyObject_Repr(value) };
