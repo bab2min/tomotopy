@@ -8,7 +8,32 @@ namespace tomoto
 	{
 		namespace detail
 		{
-			struct WeightedDocId;
+			struct WeightedDocId
+			{
+				size_t docId = 0, weight = 0;
+
+				WeightedDocId() = default;
+				WeightedDocId(size_t _docId, size_t _weight)
+					: docId{ _docId }, weight{ _weight }
+				{
+				}
+
+				bool operator==(const WeightedDocId& o) const
+				{
+					return docId == o.docId;
+				}
+
+				bool operator!=(const WeightedDocId& o) const
+				{
+					return operator==(o);
+				}
+
+				bool operator<(const WeightedDocId& o) const
+				{
+					return docId < o.docId;
+				}
+			};
+
 
 			struct CountIter
 			{
@@ -23,17 +48,26 @@ namespace tomoto
 					{
 					}
 
-					template<typename T>
-					void operator=(const T&)
+					void operator=(const size_t)
 					{
 						++ci.count;
 					}
 
-					template<>
-					void operator=(const WeightedDocId&);
+					void operator=(const WeightedDocId& t)
+					{
+						ci.count += t.weight;
+					}
 				};
 
 				Wrapper operator*() { return { *this }; }
+
+				using value_type = Wrapper;
+				using reference = Wrapper;
+
+				using pointer = void;
+				using iterator_category = std::forward_iterator_tag;
+				using difference_type = std::ptrdiff_t;
+
 			};
 
 			template<ProbEstimation _pe, typename DocIdType>
@@ -118,7 +152,7 @@ namespace tomoto
 				{
 					Vid minWord = std::min(word1, word2);
 					Vid maxWord = std::max(word1, word2);
-					auto it = jointCnt.find(std::make_pair(minWord, maxWord));
+					auto it = jointCnt.find(VidPair{ minWord, maxWord });
 					if (it == jointCnt.end()) return 0;
 					return it->second / (double)totDocs;
 				}
@@ -132,7 +166,7 @@ namespace tomoto
 					Vid vFirst = std::min(words[0], words[1]);
 					Vid vSecond = std::max(words[0], words[1]);
 
-					auto it = jointII.find(std::make_pair(vFirst, vSecond));
+					auto it = jointII.find(VidPair{ vFirst, vSecond });
 					if (it == jointII.end()) return 0;
 					std::vector<DocIdType> intersection = it->second;
 					for (size_t i = (words.size() % 2) ? 1 : 2; i < words.size(); i += 2)
@@ -140,7 +174,7 @@ namespace tomoto
 						Vid vFirst = std::min(words[i], words[i + 1]);
 						Vid vSecond = std::max(words[i], words[i + 1]);
 
-						auto it = jointII.find(std::make_pair(vFirst, vSecond));
+						auto it = jointII.find(VidPair{ vFirst, vSecond });
 						if (it == jointII.end()) return 0;
 						std::vector<DocIdType> intersectionT;
 						std::set_intersection(it->second.begin(), it->second.end(),
@@ -182,7 +216,7 @@ namespace tomoto
 						Vid vFirst = std::min(word2[0], word2[1]);
 						Vid vSecond = std::max(word2[0], word2[1]);
 
-						auto it = jointII.find(std::make_pair(vFirst, vSecond));
+						auto it = jointII.find(VidPair{ vFirst, vSecond });
 						if (it != jointII.end()) intersection = it->second;
 					}
 					else do
@@ -190,7 +224,7 @@ namespace tomoto
 						Vid vFirst = std::min(word2[0], word2[1]);
 						Vid vSecond = std::max(word2[0], word2[1]);
 
-						auto it = jointII.find(std::make_pair(vFirst, vSecond));
+						auto it = jointII.find(VidPair{ vFirst, vSecond });
 						if (it == jointII.end()) break;
 						intersection = it->second;
 						for (size_t i = (word2.size() % 2) ? 1 : 2; i < word2.size(); i += 2)
@@ -198,7 +232,7 @@ namespace tomoto
 							Vid vFirst = std::min(word2[i], word2[i + 1]);
 							Vid vSecond = std::max(word2[i], word2[i + 1]);
 
-							auto it = jointII.find(std::make_pair(vFirst, vSecond));
+							auto it = jointII.find(VidPair{ vFirst, vSecond });
 							if (it == jointII.end()) break;
 							std::vector<DocIdType> intersectionT;
 							std::set_intersection(it->second.begin(), it->second.end(),
@@ -218,39 +252,6 @@ namespace tomoto
 					).count / (double)totDocs;
 				}
 			};
-
-			struct WeightedDocId
-			{
-				size_t docId = 0, weight = 0;
-
-				WeightedDocId() = default;
-				WeightedDocId(size_t _docId, size_t _weight)
-					: docId{ _docId }, weight{ _weight }
-				{
-				}
-
-				bool operator==(const WeightedDocId& o) const
-				{
-					return docId == o.docId;
-				}
-
-				bool operator!=(const WeightedDocId& o) const
-				{
-					return operator==(o);
-				}
-
-				bool operator<(const WeightedDocId& o) const
-				{
-					return docId < o.docId;
-				}
-			};
-
-
-			template<>
-			void CountIter::Wrapper::operator=(const WeightedDocId& t)
-			{
-				ci.count += t.weight;
-			}
 
 			template<>
 			class ProbEstimator<ProbEstimation::sliding_windows, WeightedDocId>

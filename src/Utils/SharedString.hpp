@@ -147,10 +147,22 @@ namespace tomoto
 		bool operator==(const SharedString& o) const
 		{
 			if (ptr == o.ptr) return true;
-			return std::equal(begin(), end(), o.begin(), o.end());
+			if (size() != o.size()) return false;
+			return std::equal(begin(), end(), o.begin());
+		}
+
+		bool operator==(const std::string& o) const
+		{
+			if (size() != o.size()) return false;
+			return std::equal(begin(), end(), o.begin());
 		}
 
 		bool operator!=(const SharedString& o) const
+		{
+			return !operator==(o);
+		}
+
+		bool operator!=(const std::string& o) const
 		{
 			return !operator==(o);
 		}
