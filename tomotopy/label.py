@@ -30,6 +30,7 @@ del _load
 Candidate = _LabelCandidate
 PMIExtractor = _LabelPMIExtractor
 FoRelevance = _LabelFoRelevance
+'''end of copy from pyc'''
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

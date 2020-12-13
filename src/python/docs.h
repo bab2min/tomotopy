@@ -68,7 +68,7 @@ u8R""(.. versionadded:: 0.7.0
 현재 문헌의 카운트 벡터를 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_ll__doc__,
-    "get_cll(self)",
+    "get_ll(self)",
     u8R""(.. versionadded:: 0.10.0
 
 Return total log-likelihood for the current document.)"",

@@ -50,7 +50,7 @@ class IndirectMeasure(IntEnum):
     JACCARD = 3
     
 class Coherence(_Coherence):
-    COH_MAP = {
+    _COH_MAP = {
         'u_mass':(ProbEstimation.DOCUMENT, 0, Segmentation.ONE_PRE, ConfirmMeasure.LOGCOND, IndirectMeasure.NONE),
         'c_v':(ProbEstimation.SLIDING_WINDOWS, 110, Segmentation.ONE_SET, ConfirmMeasure.NPMI, IndirectMeasure.COSINE),
         'c_uci':(ProbEstimation.SLIDING_WINDOWS, 10, Segmentation.ONE_ONE, ConfirmMeasure.PMI, IndirectMeasure.NONE),
@@ -70,7 +70,7 @@ class Coherence(_Coherence):
             self._topic_model = None
         
         try:
-            pe, w, seg, cm, im = Coherence.COH_MAP[coherence]
+            pe, w, seg, cm, im = Coherence._COH_MAP[coherence]
         except KeyError:
             if type(coherence) is str: raise ValueError("Unknown `coherence` value (given {})".format(repr(coherence)))
             if len(coherence) not in (3, 4): raise ValueError("`coherence` must be a tuple with len=3 or len=4 (given {})".format(repr(coherence)))

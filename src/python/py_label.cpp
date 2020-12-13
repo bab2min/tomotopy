@@ -137,7 +137,7 @@ static PyGetSetDef Candidate_getseters[] = {
 
 PyTypeObject Candidate_type = {
 	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy._LabelCandidate",             /* tp_name */
+	"tomotopy.label.Candidate",             /* tp_name */
 	sizeof(CandidateObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)CandidateObject::dealloc, /* tp_dealloc */
@@ -156,7 +156,7 @@ PyTypeObject Candidate_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Candidate",           /* tp_doc */
+	Candidate___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -283,7 +283,7 @@ static int PMIExtractor_init(ExtractorObject *self, PyObject *args, PyObject *kw
 
 PyTypeObject PMIExtractor_type = {
 	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy._LabelPMIExtractor",             /* tp_name */
+	"tomotopy.label.PMIExtractor",             /* tp_name */
 	sizeof(ExtractorObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)ExtractorObject::dealloc, /* tp_dealloc */
@@ -368,7 +368,7 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 
 PyTypeObject FoRelevance_type = {
 	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy._LabelFoRelevance",             /* tp_name */
+	"tomotopy.label.FoRelevance",             /* tp_name */
 	sizeof(LabelerObject), /* tp_basicsize */
 	0,                         /* tp_itemsize */
 	(destructor)LabelerObject::dealloc, /* tp_dealloc */
