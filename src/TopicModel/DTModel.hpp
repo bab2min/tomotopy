@@ -468,7 +468,7 @@ namespace tomoto
 			return ret;
 		}
 
-		_DocType& _updateDoc(_DocType& doc, size_t timepoint) const
+		_DocType& _updateDoc(_DocType& doc, uint32_t timepoint) const
 		{
 			if (timepoint >= T) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "timepoint must < T");
 			doc.timepoint = timepoint;
@@ -512,51 +512,34 @@ namespace tomoto
 		{
 		}
 
-		size_t addDoc(const std::vector<std::string>& words, size_t timepoint) override
+		size_t addDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) override
 		{
-			auto doc = this->_makeDoc(words);
-			return this->_addDoc(_updateDoc(doc, timepoint));
+			auto doc = this->template _makeFromRawDoc<false>(rawDoc, tokenizer);
+			return this->_addDoc(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, size_t timepoint) const override
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
-			auto doc = as_mutable(this)->template _makeDoc<true>(words);
-			return make_unique<_DocType>(_updateDoc(doc, timepoint));
+			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer);
+			return make_unique<_DocType>(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
 		}
 
-		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			size_t timepoint) override
+		size_t addDoc(const RawDoc& rawDoc) override
 		{
-			auto doc = this->template _makeRawDoc<false>(rawStr, tokenizer);
-			return this->_addDoc(_updateDoc(doc, timepoint));
+			auto doc = this->_makeFromRawDoc(rawDoc);
+			return this->_addDoc(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			size_t timepoint) const override
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
-			auto doc = as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer);
-			return make_unique<_DocType>(_updateDoc(doc, timepoint));
-		}
-
-		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			size_t timepoint) override
-		{
-			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
-			return this->_addDoc(_updateDoc(doc, timepoint));
-		}
-
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			size_t timepoint) const override
-		{
-			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
-			return make_unique<_DocType>(_updateDoc(doc, timepoint));
+			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc);
+			return make_unique<_DocType>(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
 		}
 
 		Float getAlpha(size_t k, size_t t) const override
 		{
-			return alphas(k, t);
+			if (alphas.size()) return alphas(k, t);
+			return 0;
 		}
 
 		std::vector<Float> getPhi(size_t k, size_t t) const override

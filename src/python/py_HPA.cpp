@@ -1,6 +1,7 @@
 #include "../TopicModel/HPA.h"
 
 #include "module.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -17,11 +18,6 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&K, &K2, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
-		{
-			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IHPAModel::create((tomoto::TermWeight)tw, 
 			false, K, K2, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
@@ -35,13 +31,7 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
-		if (objCorpus)
-		{
-			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
-				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
-			py::UniqueObj ret = PyObject_CallObject(feeder, param);
-			if(!ret) return -1;
-		}
+		insertCorpus(self, objCorpus, objTransform);
 	}
 	catch (const exception& e)
 	{
@@ -61,11 +51,11 @@ static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
 		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
 	}
 	catch (const bad_exception&)
@@ -89,11 +79,11 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
 		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
 	}
 	catch (const bad_exception&)
@@ -176,7 +166,7 @@ static PyGetSetDef HPA_getseters[] = {
 	{ nullptr },
 };
 
-PyTypeObject HPA_type = {
+TopicModelTypeObject HPA_type = { {
 	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.HPAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
@@ -215,4 +205,4 @@ PyTypeObject HPA_type = {
 	(initproc)HPA_init,      /* tp_init */
 	PyType_GenericAlloc,
 	PyType_GenericNew,
-};
+} };

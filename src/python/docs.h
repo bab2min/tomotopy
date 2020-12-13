@@ -67,6 +67,15 @@ u8R""(.. versionadded:: 0.7.0
 
 현재 문헌의 카운트 벡터를 반환합니다.)"");
 
+DOC_SIGNATURE_EN_KO(Document_get_ll__doc__,
+    "get_cll(self)",
+    u8R""(.. versionadded:: 0.10.0
+
+Return total log-likelihood for the current document.)"",
+u8R""(.. versionadded:: 0.10.0
+
+현재 문헌의 로그가능도 총합을 반환합니다.)"");
+
 DOC_VARIABLE_EN_KO(Document_words__doc__,
 	u8R""(a `list` of IDs for each word (read-only))"",
 	u8R""(문헌 내 단어들의 ID가 담긴 `list` (읽기전용))"");
@@ -82,6 +91,10 @@ This represents super topics in `tomotopy.PAModel` and `tomotopy.HPAModel` model
 u8R""(문헌의 단어들이 각각 할당된 토픽을 보여주는 `list` (읽기 전용)
 
 `tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서는 이 값이 상위토픽의 ID를 가리킵니다.)"");
+
+DOC_VARIABLE_EN_KO(Document_uid__doc__,
+    u8R""(a unique id of the document (read-only))"",
+    u8R""(문헌의 고유 ID (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_metadata__doc__,
 	u8R""("metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
@@ -142,6 +155,14 @@ DOC_VARIABLE_EN_KO(Document_timepoint__doc__,
 u8R""(문헌의 시점 (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.7.0)"");
+
+DOC_VARIABLE_EN_KO(Document_raw__doc__,
+    u8R""(a raw text of the document (read-only))"",
+    u8R""(문헌의 가공되지 않는 전체 텍스트 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(Document_span__doc__,
+    u8R""(a span (tuple of a start position and a end position) for each word token in the document (read-only))"",
+    u8R""(문헌의 각 단어 토큰의 구간(시작 지점과 끝 지점의 tuple) (읽기전용))"");
 
 
 /*
@@ -244,6 +265,32 @@ Parameters
 ----------
 words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable)"");
+
+DOC_SIGNATURE_EN_KO(LDA_add_corpus__doc__,
+    "add_corpus(self, corpus, transform=None)",
+    u8R""(.. versionadded:: 0.10.0
+
+Add new documents into the model instance using `tomotopy.utils.Corpus` and return an instance of corpus that contains the inserted documents. 
+This method should be called before calling the `tomotopy.LDAModel.train`.
+
+Parameters
+----------
+corpus : tomotopy.utils.Corpus
+    corpus that contains documents to be added
+transform : Callable[dict, dict]
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
+)"",
+u8R""(.. versionadded:: 0.10.0
+
+코퍼스를 이용해 현재 모델에 새로운 문헌들을 추가하고 추가된 문헌로 구성된 새 코퍼스를 반환합니다. 
+이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
+Parameters
+----------
+corpus : tomotopy.utils.Corpus
+    토픽 모델에 추가될 문헌들로 구성된 코퍼스
+transform : Callable[dict, dict]
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
+)"");
 
 DOC_SIGNATURE_EN_KO(LDA_make_doc__doc__,
 	"make_doc(self, words)",
@@ -385,15 +432,20 @@ DOC_SIGNATURE_EN_KO(LDA_get_count_by_topics__doc__,
 	u8R""(각각의 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(LDA_infer__doc__,
-	"infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False)",
+	"infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None)",
 	u8R""(Return the inferred topic distribution from unseen `doc`s.
-The return type is (a topic distribution of `doc`, log likelihood) or (a `list` of topic distribution of `doc`, log likelihood)
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
     an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document` to be inferred by the model.
     It can be acquired from `tomotopy.LDAModel.make_doc` method.
+
+    .. versionchanged:: 0.10.0
+
+    Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
+    In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
+    return a corpus contains generated documents as the result.
 iter : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
     The higher value will generate a more accuracy result.
@@ -408,13 +460,30 @@ parallel : Union[int, tomotopy.ParallelScheme]
     the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
 together : bool
     all `doc`s are infered together in one process if True, otherwise each `doc` is infered independently. Its default value is `False`.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.10.0
+    
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model. 
+    Available when `doc` is given as an instance of `tomotopy.utils.Corpus`.
+
+Returns
+-------
+result : Union[List[float], List[List[float]], tomotopy.utils.Corpus]
+    If `doc` is given as a single `tomotopy.Document`, `result` is a single `List[float]` indicating its topic distribution.
+    
+    If `doc` is given as a list of `tomotopy.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
+    
+    If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains infered documents.
+    You can get topic distribution for each document using `tomotopy.Document.get_topic_dist`.
+log_ll : List[float]
+    a list of log-likelihoods for each `doc`s
 )"",
 u8R""(새로운 문헌인 `doc`에 대해 각각의 주제 분포를 추론하여 반환합니다.
 반환 타입은 (`doc`의 주제 분포, 로그가능도) 또는 (`doc`의 주제 분포로 구성된 `list`, 로그가능도)입니다.
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
     추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
     이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
 iter : int
@@ -432,6 +501,23 @@ parallel : Union[int, tomotopy.ParallelScheme]
 together : bool
     이 값이 True인 경우 입력한 `doc` 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
     False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 `False`입니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.10.0
+    
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체.
+    `doc`이 `tomotopy.utils.Corpus`의 인스턴스로 주어진 경우에만 사용 가능합니다.
+
+Returns
+-------
+result : Union[List[float], List[List[float]], tomotopy.utils.Corpus]
+    `doc`이 `tomotopy.Document`로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`입니다.
+    
+    `doc`이 `tomotopy.Document`의 list로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`의 list입니다.
+    
+    `doc`이 `tomotopy.utils.Corpus`의 인스턴스로 주어진 경우, `result`는 추론된 결과 문서들을 담고 있는, `tomotopy.utils.Corpus`의 새로운 인스턴스입니다.
+    각 문헌별 토픽 분포를 얻기 위해서는 `tomotopy.Document.get_topic_dist`를 사용하면 됩니다.
+log_ll : float
+    각 문헌별 로그 가능도의 리스트
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_save__doc__,
@@ -1557,13 +1643,18 @@ DOC_SIGNATURE_EN_KO(PA_infer__doc__,
 	u8R""(.. versionadded:: 0.5.0
 
 Return the inferred topic distribution and sub-topic distribution from unseen `doc`s.
-The return type is ((a topic distribution of `doc`, a sub-topic distribution of `doc`), log likelihood) or (a `list` of (topic distribution of `doc`, sub-topic distribution of `doc`), log likelihood)
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
+doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
     an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document` to be inferred by the model.
     It can be acquired from `tomotopy.LDAModel.make_doc` method.
+
+    .. versionchanged:: 0.10.0
+
+    Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
+    In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
+    return a corpus contains generated documents as the result.
 iter : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
     The higher value will generate a more accuracy result.
@@ -1578,6 +1669,23 @@ parallel : Union[int, tomotopy.ParallelScheme]
     the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
 together : bool
     all `doc`s are infered together in one process if True, otherwise each `doc` is infered independently. Its default value is `False`.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.10.0
+    
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model. 
+    Available when `doc` is given as an instance of `tomotopy.utils.Corpus`.
+
+Returns
+-------
+result : Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[float]]], tomotopy.utils.Corpus]
+    If `doc` is given as a single `tomotopy.Document`, `result` is a tuple of `List[float]` indicating its topic distribution and `List[float]` indicating its sub-topic distribution.
+    
+    If `doc` is given as a list of `tomotopy.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
+    
+    If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains infered documents.
+    You can get topic distribution for each document using `tomotopy.Document.get_topic_dist` and sub-topic distribution using `tomotopy.Document.get_sub_topic_dist`
+log_ll : float
+    a list of log-likelihoods for each `doc`s
 )"",
 u8R""(.. versionadded:: 0.5.0
 
@@ -1604,10 +1712,27 @@ parallel : Union[int, tomotopy.ParallelScheme]
 together : bool
     이 값이 True인 경우 입력한 `doc` 문헌들을 한 번에 모델에 넣고 추론을 진행합니다.
     False인 경우 각각의 문헌들을 별도로 모델에 넣어 추론합니다. 기본값은 `False`입니다.
+transform : Callable[dict, dict]
+    .. versionadded:: 0.10.0
+    
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체.
+    `doc`이 `tomotopy.utils.Corpus`의 인스턴스로 주어진 경우에만 사용 가능합니다.
+
+Returns
+-------
+result : Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[float]]], tomotopy.utils.Corpus]
+    `doc`이 `tomotopy.Document`로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`와 하위 토픽 분포를 나타내는 `List[float]`의 tuple입니다.
+    
+    `doc`이 `tomotopy.Document`의 list로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`와 하위 토픽 분포를 나타내는 `List[float]`의 tuple의 list입니다.
+    
+    `doc`이 `tomotopy.utils.Corpus`의 인스턴스로 주어진 경우, `result`는 추론된 결과 문서들을 담고 있는, `tomotopy.utils.Corpus`의 새로운 인스턴스입니다.
+    각 문헌별 토픽 분포를 얻기 위해서는 `tomotopy.Document.get_topic_dist`, 하위 토픽 분포를 얻기 위해서는 `tomotopy.Document.get_sub_topic_dist`를 사용하면 됩니다.
+log_ll : List[float]
+    각 문헌별 로그 가능도의 리스트
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_count_by_super_topic__doc__,
-    "get_count_by_topics(self)",
+    "get_count_by_super_topic(self)",
     u8R""(Return the number of words allocated to each super-topic.
 
 .. versionadded:: 0.9.0)"",

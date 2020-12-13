@@ -52,7 +52,7 @@ topic_model
 )"");
 
 DOC_SIGNATURE_EN_KO(PMIExtractor___init____doc__,
-	"PMIExtractor(min_cf=10, min_df=5, max_len=5, max_cand=5000)",
+	"PMIExtractor(min_cf=10, min_df=5, min_len=1, max_len=5, max_cand=5000)",
 	u8R""(.. versionadded:: 0.6.0
 
 `PMIExtractor` exploits multivariate pointwise mutual information to extract collocations. 
@@ -66,6 +66,11 @@ min_cf : int
 min_df : int
     minimum document frequency of collocations. Collocations with a smaller document frequency than `min_df` are excluded from the candidates.
     Set this value large if the corpus is big
+min_len : int
+    .. versionadded:: 0.10.0
+    
+    minimum length of collocations. `min_len=1` means that it extracts not only collocations but also all single words.
+    The number of single words are excluded in counting `max_cand`.
 max_len : int
     maximum length of collocations
 max_cand : int
@@ -83,6 +88,11 @@ min_cf : int
 min_df : int
     추출하려는 후보의 최소 문헌 빈도. 연어가 등장하는 문헌 수가 `min_df`보다 작은 경우 후보에서 제외됩니다.
     분석하려는 코퍼스가 클 경우 이 값을 키우십시오.
+min_len : int
+    .. versionadded:: 0.10.0
+    
+    분석하려는 연어의 최소 길이. 1로 설정시 단일 단어들도 모두 추출합니다.
+    단일 단어들은 `max_cand` 개수 계산에서 제외됩니다.
 max_len : int
     분석하려는 연어의 최대 길이
 max_cand : int
@@ -113,7 +123,7 @@ top_n : int
     토픽 레이블의 개수)"");
 
 DOC_SIGNATURE_EN_KO(FoRelevance___init____doc__,
-	"FoRelevance(topic_model, cands, min_df=5, smoothing=0.01, mu=0.25, workers=0)",
+	"FoRelevance(topic_model, cands, min_df=5, smoothing=0.01, mu=0.25, window_size=-1, workers=0)",
 	u8R""(.. versionadded:: 0.6.0
 
 This type provides an implementation of First-order Relevance for topic labeling based on following papers:
@@ -133,6 +143,11 @@ smoothing : float
     a small value greater than 0 for Laplace smoothing
 mu : float
     a discriminative coefficient. Candidates with high score on a specific topic and with low score on other topics get the higher final score when this value is the larger.
+window_size : int
+    .. versionadded:: 0.10.0
+    
+    size of the sliding window for calculating co-occurrence. If `window_size=-1`, it uses the whole document, instead of the sliding windows.
+    If your documents are long, it is recommended to set this value to 50 ~ 100, not -1.
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
@@ -155,7 +170,12 @@ min_df : int
 smoothing : float
     라플라스 평활화에 사용될 0보다 큰 작은 실수
 mu : float
-    변별성 계수. 특정 토픽에 대해서만 높은 점수를 가지고, 나머지 토픽에 대해서는 낮은 점수를 가진 후보는 이 계수가 클 때 더 높은 최종 점수를 받습니다.
+    변별성 계수. 이 계수가 클 때, 특정 토픽에 대해서만 높은 점수를 가지고 나머지 토픽에 대해서는 낮은 점수를 가진 후보가 더 높은 최종 점수를 받습니다.
+window_size : int
+    .. versionadded:: 0.10.0
+    
+    동시출현 빈도를 계산하기 위한 슬라이딩 윈도우의 크기. -1로 설정시 슬라이딩 윈도우를 사용하지 않고, 문헌 전체를 활용해 동시출현 빈도를 계산합니다.
+    분석에 사용하는 문헌들의 길이가 길다면, 이 값을 -1이 아닌 50 ~ 100 정도로 설정하는 걸 권장합니다.
 workers : int
     깁스 샘플링을 수행하는 데에 사용할 스레드의 개수입니다. 
     만약 이 값을 0으로 설정할 경우 시스템 내의 가용한 모든 코어가 사용됩니다.

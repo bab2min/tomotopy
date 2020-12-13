@@ -5,161 +5,74 @@
 
 using namespace tomoto::label;
 
-namespace std
+class DocWrapper
 {
-	template <>
-	struct hash<pair<tomoto::Vid, tomoto::Vid>>
+	const tomoto::DocumentBase* doc;
+public:
+	DocWrapper(const tomoto::DocumentBase* _doc = nullptr)
+		: doc{ _doc }
 	{
-		size_t operator()(const pair<tomoto::Vid, tomoto::Vid>& k) const
-		{
-			return hash<tomoto::Vid>{}(k.first) ^ hash<tomoto::Vid>{}(k.second);
-		}
-	};
-}
+	}
 
-std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel * tm) const
+	size_t size() const
+	{
+		return doc->words.size();
+	}
+
+	tomoto::Vid operator[](size_t idx) const
+	{
+		return doc->words[doc->wOrder.empty() ? idx : doc->wOrder[idx]];
+	}
+};
+
+class DocIterator
+{
+	const tomoto::ITopicModel* tm;
+	size_t idx;
+public:
+	DocIterator(const tomoto::ITopicModel* _tm = nullptr, size_t _idx = 0)
+		: tm{ _tm }, idx{ _idx }
+	{
+	}
+
+	DocWrapper operator*() const
+	{
+		return { tm->getDoc(idx) };
+	}
+
+	DocIterator& operator++()
+	{
+		++idx;
+		return *this;
+	}
+
+	bool operator==(const DocIterator& o) const
+	{
+		return tm == o.tm && idx == o.idx;
+	}
+
+	bool operator!=(const DocIterator& o) const
+	{
+		return tm != o.tm || idx != o.idx;
+	}
+};
+
+std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel* tm) const
 {
 	auto& vocabFreqs = tm->getVocabCf();
 	auto& vocabDf = tm->getVocabDf();
-
-	// counting unigrams & bigrams
-	std::unordered_map<std::pair<Vid, Vid>, size_t> bigramCnt, bigramDf;
-
-	for (size_t i = 0; i < tm->getNumDocs(); ++i)
+	auto candidates = extractPMINgrams(DocIterator{ tm, 0 }, DocIterator{ tm, tm->getNumDocs() }, 
+		vocabFreqs, vocabDf,
+		candMinCnt, candMinDf, minLabelLen, maxLabelLen, maxCandidates, -99999.f
+	);
+	if (minLabelLen <= 1)
 	{
-		std::unordered_set<std::pair<Vid, Vid>> uniqBigram;
-		auto doc = tm->getDoc(i);
-		Vid prevWord = doc->words[doc->wOrder.empty() ? 0 : doc->wOrder[0]];
-		for (size_t j = 1; j < doc->words.size(); ++j)
+		for (size_t i = 0; i < vocabDf.size(); ++i)
 		{
-			Vid curWord = doc->words[doc->wOrder.empty() ? j : doc->wOrder[j]];
-			if (vocabFreqs[curWord] >= candMinCnt && vocabDf[curWord] >= candMinDf)
-			{
-				if (vocabFreqs[prevWord] >= candMinCnt && vocabDf[prevWord] >= candMinDf)
-				{
-					bigramCnt[std::make_pair(prevWord, curWord)]++;
-					uniqBigram.emplace(prevWord, curWord);
-				}
-			}
-			prevWord = curWord;
+			if (vocabFreqs[i] < candMinCnt) continue;
+			if (vocabDf[i] < candMinDf) continue;
+			candidates.emplace_back(0.f, i);
 		}
-
-		for (auto& p : uniqBigram) bigramDf[p]++;
-	}
-
-
-	// counting ngrams
-	std::vector<TrieEx<Vid, size_t>> trieNodes;
-
-	if (maxLabelLen > 2)
-	{
-		std::unordered_set<std::pair<Vid, Vid>> validPair;
-		for (auto& p : bigramCnt)
-		{
-			if (p.second >= candMinCnt) validPair.emplace(p.first);
-		}
-
-		trieNodes.resize(1);
-		auto allocNode = [&]() { return trieNodes.emplace_back(), &trieNodes.back(); };
-
-		for (size_t i = 0; i < tm->getNumDocs(); ++i)
-		{
-			auto doc = tm->getDoc(i);
-			if (trieNodes.capacity() < trieNodes.size() + doc->words.size() * maxLabelLen)
-			{
-				trieNodes.reserve(std::max(trieNodes.size() + doc->words.size() * maxLabelLen, trieNodes.capacity() * 2));
-			}
-
-			Vid prevWord = doc->words[doc->wOrder.empty() ? 0 : doc->wOrder[0]];
-			size_t labelLen = 0;
-			auto node = &trieNodes[0];
-			if (vocabFreqs[prevWord] >= candMinCnt)
-			{
-				node = trieNodes[0].makeNext(prevWord, allocNode);
-				node->val++;
-				labelLen = 1;
-			}
-
-			for (size_t j = 1; j < doc->words.size(); ++j)
-			{
-				Vid curWord = doc->words[doc->wOrder.empty() ? j : doc->wOrder[j]];
-
-				if (vocabFreqs[curWord] < candMinCnt)
-				{
-					node = &trieNodes[0];
-					labelLen = 0;
-				}
-				else
-				{
-					if (labelLen >= maxLabelLen)
-					{
-						node = node->getFail();
-						labelLen--;
-					}
-
-					if (validPair.count(std::make_pair(prevWord, curWord)))
-					{
-						auto nnode = node->makeNext(curWord, allocNode);
-						node = nnode;
-						do
-						{
-							nnode->val++;
-						} while (nnode = nnode->getFail());
-						labelLen++;
-					}
-					else
-					{
-						node = trieNodes[0].makeNext(curWord, allocNode);
-						node->val++;
-						labelLen = 1;
-					}
-				}
-				prevWord = curWord;
-			}
-		}
-	}
-
-	// calculating PMIs
-	std::vector<Candidate> candidates;
-	for (auto& p : bigramCnt)
-	{
-		auto& bigram = p.first;
-		if (p.second < candMinCnt) continue;
-		if (bigramDf[bigram] < candMinDf) continue;
-		auto pmi = std::log(p.second * (float)tm->getN()
-			/ vocabFreqs[bigram.first] / vocabFreqs[bigram.second]);
-		if (pmi <= 0) continue;
-		candidates.emplace_back(pmi, bigram.first, bigram.second);
-	}
-
-	if (maxLabelLen > 2)
-	{
-		std::vector<Vid> rkeys;
-		trieNodes[0].traverse_with_keys([&](const TrieEx<Vid, size_t>* node, const std::vector<Vid>& rkeys)
-		{
-			if (rkeys.size() <= 2 || node->val < candMinCnt) return;
-			float n = (float)tm->getN();
-			auto pmi = node->val / n;
-			for (auto k : rkeys)
-			{
-				pmi *= n / vocabFreqs[k];
-			}
-			pmi = std::log(pmi);
-			candidates.emplace_back(pmi, rkeys);
-		}, rkeys);
-	}
-
-	std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b)
-	{
-		return a.score > b.score;
-	});
-	if (candidates.size() > maxCandidates) candidates.erase(candidates.begin() + maxCandidates, candidates.end());
-
-	for (size_t i = 0; i < vocabDf.size(); ++i)
-	{
-		if (vocabFreqs[i] < candMinCnt) continue;
-		if (vocabDf[i] < candMinDf) continue;
-		candidates.emplace_back(0.f, i);
 	}
 	return candidates;
 }
@@ -172,8 +85,7 @@ const Eigen::ArrayXi& FoRelevance::updateContext(size_t docId, const tomoto::Doc
 	auto node = root;
 	for (size_t j = 0; j < doc->words.size(); ++j)
 	{
-		size_t t = doc->wOrder.empty() ? j : doc->wOrder[j];
-		tomoto::Vid curWord = doc->words[t];
+		tomoto::Vid curWord = doc->words[doc->wOrder.empty() ? j : doc->wOrder[j]];
 		if (curWord < tm->getV()) bdf[curWord] = 1;
 		auto nnode = node->getNext(curWord);
 		while (!nnode)
@@ -191,16 +103,15 @@ const Eigen::ArrayXi& FoRelevance::updateContext(size_t docId, const tomoto::Doc
 				// the matched candidate is found
 				if (nnode->val && nnode->val != (size_t)-1)
 				{
-					auto& c = candidates[nnode->val - 1];
 					tomoto::OptionalLock<_lock> lock{ mtx[(nnode->val - 1) % (pool ? pool->getNumWorkers() : 1)] };
+					auto& c = candidates[nnode->val - 1];
 					if (c.name.empty() && !doc->origWordPos.empty())
 					{
 						size_t start = doc->origWordPos[j + 1 - c.w.size()];
 						size_t end = doc->origWordPos[j] + doc->origWordLen[j];
 						c.names[doc->rawStr.substr(start, end - start)]++;
 					}
-					auto& docIds = c.docIds;
-					if (docIds.empty() || docIds.back() != docId) docIds.emplace_back(docId);
+					c.docIds.emplace(docId);
 				}
 			} while (nnode = nnode->getFail());
 		}
@@ -268,7 +179,22 @@ void FoRelevance::estimateContexts()
 		wordTopicDist.col(i) = Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ dist.data(), (Eigen::Index)dist.size() };
 	}
 
-	auto calcScores = [&](CandidateEx& c)
+	size_t totDocCnt = 0;
+	if (windowSize == (size_t)-1)
+	{
+		totDocCnt = tm->getNumDocs();
+	}
+	else
+	{
+		for (size_t i = 0; i < tm->getNumDocs(); ++i)
+		{
+			size_t s = tm->getDoc(i)->words.size();
+			if (s <= windowSize) totDocCnt += 1;
+			else totDocCnt += s - windowSize + 1;
+		}
+	}
+
+	auto calcScores = [&](CandidateEx& c, size_t windowSize)
 	{
 		if (c.docIds.size() < candMinDf) return;
 		if (c.name.empty() && !c.names.empty())
@@ -284,20 +210,80 @@ void FoRelevance::estimateContexts()
 			}
 		}
 
+		size_t docCnt = 0;
 		Eigen::Matrix<Float, -1, 1> wcPMI = Eigen::Matrix<Float, -1, 1>::Zero(this->tm->getV());
 		for (auto& docId : c.docIds)
 		{
 			thread_local Eigen::VectorXi bdf(this->tm->getV());
 			bdf.setZero();
 			auto doc = this->tm->getDoc(docId);
-			for (size_t i = 0; i < doc->words.size(); ++i)
+			if (doc->words.size() <= windowSize)
 			{
-				if (doc->words[i] < this->tm->getV()) bdf[doc->words[i]] = 1;
+				for (size_t i = 0; i < doc->words.size(); ++i)
+				{
+					if (doc->words[i] < this->tm->getV()) bdf[doc->words[i]] = 1;
+				}
+				docCnt++;
+				wcPMI += bdf.template cast<Float>();
 			}
-			wcPMI += bdf.cast<Float>();
+			else
+			{
+				auto wit = c.w.begin();
+				std::deque<size_t> wpos;
+				for (size_t i = 0; i < windowSize; ++i)
+				{
+					Vid word = doc->words[doc->wOrder.empty() ? i : doc->wOrder[i]];
+					if (word < this->tm->getV()) bdf[word]++;
+
+					if (word == *wit)
+					{
+						if (++wit == c.w.end())
+						{
+							wpos.emplace_back(i + 1);
+							wit = c.w.begin();
+						}
+					}
+					else if (word == c.w[0]) wit = c.w.begin() + 1;
+					else wit = c.w.begin();
+				}
+				if (!wpos.empty())
+				{
+					docCnt++;
+					wcPMI += Eigen::bool2float(bdf.array()).matrix();
+				}
+
+				for (size_t i = windowSize; i < doc->words.size(); ++i)
+				{
+					Vid oword = doc->words[doc->wOrder.empty() ? (i - windowSize) : doc->wOrder[i - windowSize]];
+					Vid word = doc->words[doc->wOrder.empty() ? i : doc->wOrder[i]];
+					if (oword < this->tm->getV()) bdf[oword]--;
+					if (word < this->tm->getV()) bdf[word]++;
+					if (!wpos.empty() && wpos.front() - c.w.size() <= i - windowSize)
+					{
+						wpos.pop_front();
+					}
+
+					if (word == *wit)
+					{
+						if (++wit == c.w.end())
+						{
+							wpos.emplace_back(i + 1);
+							wit = c.w.begin();
+						}
+					}
+					else if (word == c.w[0]) wit = c.w.begin() + 1;
+					else wit = c.w.begin();
+
+					if (!wpos.empty())
+					{
+						docCnt++;
+						wcPMI += Eigen::bool2float(bdf.array()).matrix();
+					}
+				}
+			}
 		}
 		c.scores = wordTopicDist.transpose() *
-			((wcPMI.array() + smoothing) * this->tm->getNumDocs() / c.docIds.size() / df.cast<Float>()).log().matrix();
+			((wcPMI.array() + smoothing) * totDocCnt / docCnt / df.cast<Float>()).log().matrix();
 	};
 
 	if (pool)
@@ -311,7 +297,7 @@ void FoRelevance::estimateContexts()
 			{
 				for (size_t i = g; i < candidates.size(); i += groups)
 				{
-					calcScores(candidates[i]);
+					calcScores(candidates[i], windowSize);
 				}
 			}, g));
 		}
@@ -321,7 +307,7 @@ void FoRelevance::estimateContexts()
 	{
 		for (auto& c : candidates)
 		{
-			calcScores(c);
+			calcScores(c, windowSize);
 		}
 	}
 

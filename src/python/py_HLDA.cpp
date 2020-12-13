@@ -1,6 +1,7 @@
 #include "../TopicModel/HLDA.h"
 
 #include "module.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -17,11 +18,6 @@ static int HLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&depth, &alpha, &eta, &gamma, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
-		{
-			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IHLDAModel::create((tomoto::TermWeight)tw, depth, alpha, eta, gamma, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
@@ -34,13 +30,7 @@ static int HLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
-		if (objCorpus)
-		{
-			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
-				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
-			py::UniqueObj ret = PyObject_CallObject(feeder, param);
-			if(!ret) return -1;
-		}
+		insertCorpus(self, objCorpus, objTransform);
 	}
 	catch (const exception& e)
 	{
@@ -80,17 +70,17 @@ PyObject* Document_HLDA_Z(DocumentObject* self, void* closure)
 {
 	do
 	{
-		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::one>*>(self->doc);
+		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::one>*>(self->getBoundDoc());
 		if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->path[x]; });
 	} while (0);
 	do
 	{
-		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::idf>*>(self->doc);
+		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::idf>*>(self->getBoundDoc());
 		if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->path[x]; });
 	} while (0);
 	do
 	{
-		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::pmi>*>(self->doc);
+		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
 		if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->path[x]; });
 	} while (0);
 	return nullptr;
@@ -154,7 +144,7 @@ static PyGetSetDef HLDA_getseters[] = {
 	{ nullptr },
 };
 
-PyTypeObject HLDA_type = {
+TopicModelTypeObject HLDA_type = { {
 	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.HLDAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
@@ -193,37 +183,6 @@ PyTypeObject HLDA_type = {
 	(initproc)HLDA_init,      /* tp_init */
 	PyType_GenericAlloc,
 	PyType_GenericNew,
-};
+} };
 
-PyObject* Document_path(DocumentObject* self, void* closure)
-{
-	try
-	{
-		if (!self->doc) throw runtime_error{ "doc is null!" };
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::one>*>(self->doc);
-			if (doc) return py::buildPyValue(doc->path);
-		} while (0);
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::idf>*>(self->doc);
-			if (doc) return py::buildPyValue(doc->path);
-		} while (0);
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::pmi>*>(self->doc);
-			if (doc) return py::buildPyValue(doc->path);
-		} while (0);
-		throw runtime_error{ "doc doesn't has 'path' field!" };
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
-}
+DEFINE_DOCUMENT_GETTER(tomoto::DocumentHLDA, path, path);

@@ -5,7 +5,6 @@ including LDA, DMR, HDP, MG-LDA, PA and HPA. It is written in C++ for speed and 
 .. include:: ./documentation.rst
 """
 from tomotopy._version import __version__
-import tomotopy.utils as utils
 from enum import IntEnum
 
 class TermWeight(IntEnum):
@@ -77,10 +76,13 @@ except: pass
 
 def _load():
     import importlib, os
-    from cpuinfo import get_cpu_info
-    flags = get_cpu_info()['flags']
     env_setting = os.environ.get('TOMOTOPY_ISA', '').split(',')
     if not env_setting[0]: env_setting = []
+    if len(env_setting) == 0 or len(env_setting) > 1:
+        from cpuinfo import get_cpu_info
+        flags = get_cpu_info()['flags']
+    else:
+        flags = []
     isas = ['avx2', 'avx', 'sse2', 'none']
     isas = [isa for isa in isas if (env_setting and isa in env_setting) or (not env_setting and (isa in flags or isa == 'none'))]
     if not isas: raise RuntimeError("No isa option for " + str(env_setting))
@@ -92,6 +94,10 @@ def _load():
         except:
             if isa == isas[-1]: raise
 _load()
+
+import tomotopy.utils as utils
+import tomotopy.coherence as coherence
+import tomotopy.label as label
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

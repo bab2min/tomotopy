@@ -1,6 +1,7 @@
 #include "../TopicModel/HDP.h"
 
 #include "module.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -17,11 +18,6 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&K, &alpha, &eta, &gamma, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
-		{
-			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
@@ -34,13 +30,7 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
-		if (objCorpus)
-		{
-			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
-				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
-			py::UniqueObj ret = PyObject_CallObject(feeder, param);
-			if(!ret) return -1;
-		}
+		insertCorpus(self, objCorpus, objTransform);
 	}
 	catch (const exception& e)
 	{
@@ -60,11 +50,11 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHDPModel*>(self->inst);
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->isLiveTopic(topicId));
 	}
 	catch (const bad_exception&)
@@ -89,7 +79,7 @@ static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObje
 		auto inst = static_cast<tomoto::IHDPModel*>(self->inst);
 		std::vector<tomoto::Tid> newK;
 		auto lda = inst->convertToLDA(topicThreshold, newK);
-		py::UniqueObj r = PyObject_CallObject((PyObject*)&LDA_type, nullptr);
+		py::UniqueObj r{ PyObject_CallObject((PyObject*)&LDA_type, nullptr) };
 		auto ret = (TopicModelObject*)r.get();
 		delete ret->inst;
 		ret->inst = lda.release();
@@ -114,17 +104,17 @@ PyObject* Document_HDP_Z(DocumentObject* self, void* closure)
 {
     do
     {
-        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::one>*>(self->doc);
+        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::one>*>(self->getBoundDoc());
         if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
     } while (0);
     do
     {
-        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::idf>*>(self->doc);
+        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::idf>*>(self->getBoundDoc());
         if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
     } while (0);
     do
     {
-        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::pmi>*>(self->doc);
+        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
         if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
     } while (0);
     return nullptr;
@@ -154,7 +144,7 @@ static PyGetSetDef HDP_getseters[] = {
 	{ nullptr },
 };
 
-PyTypeObject HDP_type = {
+TopicModelTypeObject HDP_type = { {
 	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.HDPModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
@@ -193,4 +183,4 @@ PyTypeObject HDP_type = {
 	(initproc)HDP_init,      /* tp_init */
 	PyType_GenericAlloc,
 	PyType_GenericNew,
-};
+} };

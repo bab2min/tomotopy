@@ -7,26 +7,111 @@
 #include "../Utils/ThreadPool.hpp"
 #include "../Utils/serializer.hpp"
 #include "../Utils/exception.h"
+#include "../Utils/SharedString.hpp"
 #include <EigenRand/EigenRand>
+#include <mapbox/variant.hpp>
 
 namespace tomoto
 {
 	using RandGen = Eigen::Rand::P8_mt19937_64<uint32_t>;
 	using ScalarRandGen = Eigen::Rand::UniversalRandomEngine<uint32_t, std::mt19937_64>;
 
-	class DocumentBase
+	struct RawDocKernel
 	{
-	public:
 		Float weight = 1;
-		tvector<Vid> words; // word id of each word
-		std::vector<uint32_t> wOrder; // original word order (optional)
-
-		std::string docUid;
-		std::string rawStr;
+		SharedString docUid;
+		SharedString rawStr;
 		std::vector<uint32_t> origWordPos;
 		std::vector<uint16_t> origWordLen;
-		DocumentBase(Float _weight = 1) : weight(_weight) {}
+
+		RawDocKernel(const RawDocKernel&) = default;
+		RawDocKernel(RawDocKernel&&) = default;
+
+		RawDocKernel(Float _weight = 1, const SharedString& _docUid = {})
+			: weight{ _weight }, docUid{ _docUid }
+		{
+		}
+	};
+
+	struct RawDoc : public RawDocKernel
+	{
+		using Var = mapbox::util::variant<
+			std::string, uint32_t, Float,
+			std::vector<std::string>, std::vector<uint32_t>, std::vector<Float>,
+			std::shared_ptr<void>
+		>;
+		using MiscType = std::unordered_map<std::string, Var>;
+
+		std::vector<Vid> words;
+		std::vector<std::string> rawWords;
+		MiscType misc;
+
+		RawDoc() = default;
+		RawDoc(const RawDoc&) = default;
+		RawDoc(RawDoc&&) = default;
+
+		RawDoc(const RawDocKernel& o) 
+			: RawDocKernel{ o }
+		{
+		}
+
+		template<typename _Ty>
+		const _Ty& getMisc(const std::string& name) const
+		{
+			auto it = misc.find(name);
+			if (it == misc.end()) throw std::invalid_argument{ "There is no value named `" + name + "` in misc data" };
+			if (!it->second.template is<_Ty>()) throw std::invalid_argument{ "Value named `" + name + "` is not in right type." };
+			return it->second.template get<_Ty>();
+		}
+
+		template<typename _Ty>
+		_Ty getMiscDefault(const std::string& name) const
+		{
+			auto it = misc.find(name);
+			if (it == misc.end()) return {};
+			if (!it->second.template is<_Ty>()) throw std::invalid_argument{ "Value named `" + name + "` is not in right type." };
+			return it->second.template get<_Ty>();
+		}
+	};
+
+	class DocumentBase : public RawDocKernel
+	{
+	public:
+		tvector<Vid> words; // word id of each word
+		std::vector<uint32_t> wOrder; // original word order (optional)
+		
+		DocumentBase(const DocumentBase&) = default;
+		DocumentBase(DocumentBase&&) = default;
+
+		DocumentBase(const RawDocKernel& o) 
+			: RawDocKernel{ o }
+		{
+		}
+
+		DocumentBase(Float _weight = 1, const SharedString& _docUid = {})
+			: RawDocKernel{ _weight, _docUid }
+		{
+		}
+
 		virtual ~DocumentBase() {}
+
+		virtual operator RawDoc() const
+		{
+			RawDoc raw{ *this };
+			if (wOrder.empty())
+			{
+				raw.words.insert(raw.words.begin(), words.begin(), words.end());
+			}
+			else
+			{
+				raw.words.resize(words.size());
+				for (size_t i = 0; i < words.size(); ++i)
+				{
+					raw.words[i] = words[wOrder[i]];
+				}
+			}
+			return raw;
+		}
 
 		DEFINE_SERIALIZER_WITH_VERSION(0, serializer::to_key("Docu"), weight, words, wOrder);
 		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, weight, words, wOrder, 
@@ -127,8 +212,20 @@ namespace tomoto
 		virtual void loadModel(std::istream& reader, 
 			std::vector<uint8_t>* extra_data = nullptr) = 0;
 		virtual const DocumentBase* getDoc(size_t docId) const = 0;
+		virtual size_t getDocIdByUid(const std::string& docUid) const = 0;
 
-		virtual void updateVocab(const std::vector<std::string>& words) = 0;
+		// it tokenizes rawDoc.rawStr to get words, pos and len of the document
+		virtual size_t addDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) = 0;
+		virtual std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const = 0;
+
+		// it uses words, pos and len of rawDoc itself.
+		virtual size_t addDoc(const RawDoc& rawDoc) = 0;
+		virtual std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const = 0;
+
+		virtual bool updateVocab(const std::vector<std::string>& words) = 0;
+
+		virtual double getDocLL(const DocumentBase* doc) const = 0;
+		virtual double getStateLL() const = 0;
 
 		virtual double getLLPerWord() const = 0;
 		virtual double getPerplexity() const = 0;
@@ -201,6 +298,7 @@ namespace tomoto
 		std::vector<DocType> docs;
 		std::vector<uint64_t> vocabCf;
 		std::vector<uint64_t> vocabDf;
+		std::unordered_map<SharedString, size_t> uidMap;
 		size_t globalStep = 0;
 		_ModelState globalState, tState;
 		Dictionary dict;
@@ -273,6 +371,8 @@ namespace tomoto
 		>::value, size_t>::type _addDoc(_DocTy&& doc)
 		{
 			if (doc.words.empty()) return -1;
+			if (!doc.docUid.empty() && uidMap.count(doc.docUid))
+				throw exception::InvalidArgument{ "there is a document with uid = " + std::string{ doc.docUid } + " already." };
 			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
 			if (vocabCf.size() <= maxWid)
 			{
@@ -282,47 +382,48 @@ namespace tomoto
 			for (auto w : doc.words) ++vocabCf[w];
 			std::unordered_set<Vid> uniq{ doc.words.begin(), doc.words.end() };
 			for (auto w : uniq) ++vocabDf[w];
+			uidMap.emplace(doc.docUid, docs.size());
 			docs.emplace_back(std::forward<_DocTy>(doc));
 			return docs.size() - 1;
 		}
 
 		template<bool _const = false>
-		DocType _makeDoc(const std::vector<std::string>& words, Float weight = 1)
+		DocType _makeFromRawDoc(const RawDoc& rawDoc)
 		{
-			DocType doc{ weight };
-			for (auto& w : words)
+			DocType doc{ rawDoc };
+			if (!rawDoc.rawWords.empty())
 			{
-				Vid id;
-				if (_const)
+				for (auto& w : rawDoc.rawWords)
 				{
-					id = dict.toWid(w);
-					if (id == (Vid)-1) continue;
+					Vid id;
+					if (_const)
+					{
+						id = dict.toWid(w);
+						if (id == (Vid)-1) continue;
+					}
+					else
+					{
+						id = dict.add(w);
+					}
+					doc.words.emplace_back(id);
 				}
-				else
-				{
-					id = dict.add(w);
-				}
-				doc.words.emplace_back(id);
+			}
+			else if(!rawDoc.words.empty())
+			{
+				for (auto& w : rawDoc.words) doc.words.emplace_back(w);
+			}
+			else
+			{
+				throw std::invalid_argument{ "Either `words` or `rawWords` must be filled." };
 			}
 			return doc;
 		}
 
-		DocType _makeRawDoc(const std::string& rawStr, const std::vector<Vid>& words, 
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, Float weight = 1) const
-		{
-			DocType doc{ weight };
-			doc.rawStr = rawStr;
-			for (auto& w : words) doc.words.emplace_back(w);
-			doc.origWordPos = pos;
-			doc.origWordLen = len;
-			return doc;
-		}
-
 		template<bool _const, typename _FnTokenizer>
-		DocType _makeRawDoc(const std::string& rawStr, _FnTokenizer&& tokenizer, Float weight = 1)
+		DocType _makeFromRawDoc(const RawDoc& rawDoc, _FnTokenizer&& tokenizer)
 		{
-			DocType doc{ weight };
-			doc.rawStr = rawStr;
+			DocType doc{ rawDoc };
+			doc.rawStr = rawDoc.rawStr;
 			for (auto& p : tokenizer(doc.rawStr))
 			{
 				Vid wid;
@@ -452,10 +553,11 @@ namespace tomoto
 			return realV;
 		}
 
-		void updateVocab(const std::vector<std::string>& words) override
+		bool updateVocab(const std::vector<std::string>& words) override
 		{
-			if(dict.size()) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "updateVocab after addDoc");
-			for(auto& w : words) dict.add(w);
+			bool empty = dict.size() == 0;
+			for (auto& w : words) dict.add(w);
+			return empty;
 		}
 
 		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) override
@@ -606,6 +708,18 @@ namespace tomoto
 			return vid2String(getWidsByDocSorted(doc, topN));
 		}
 
+		double getDocLL(const DocumentBase* doc) const override
+		{
+			auto* p = dynamic_cast<const DocType*>(doc);
+			if (!p) throw std::invalid_argument{ "wrong `doc` type." };
+			return static_cast<const _Derived*>(this)->getLLDocs(p, p + 1);
+		}
+
+		double getStateLL() const override
+		{
+			return static_cast<const _Derived*>(this)->getLLRest(this->globalState);
+		}
+
 		std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, Float tolerance, size_t numWorkers, ParallelScheme ps, bool together) const override
 		{
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
@@ -651,10 +765,16 @@ namespace tomoto
 			return extractTopN<Tid>(getTopicsByDoc(doc), topN);
 		}
 
-
 		const DocumentBase* getDoc(size_t docId) const override
 		{
 			return &_getDoc(docId);
+		}
+
+		size_t getDocIdByUid(const std::string& docUid) const override
+		{
+			auto it = uidMap.find(SharedString{ docUid });
+			if (it == uidMap.end()) return -1;
+			return it->second;
 		}
 
 		size_t getGlobalStep() const override

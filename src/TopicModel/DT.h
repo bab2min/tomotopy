@@ -10,7 +10,7 @@ namespace tomoto
 		using BaseDocument = DocumentLDA<_tw>;
 		using DocumentLDA<_tw>::DocumentLDA;
 
-		size_t timepoint = 0;
+		uint64_t timepoint = 0;
 		ShareableVector<Float> eta;
 		sample::AliasMethod<> aliasTable;
 
@@ -29,21 +29,6 @@ namespace tomoto
 			size_t seed = std::random_device{}(),
 			bool scalarRng = false);
 		
-		virtual size_t addDoc(const std::vector<std::string>& words, size_t timepoint) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, size_t timepoint) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			size_t timepoint) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			size_t timepoint) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			size_t timepoint) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			size_t timepoint) const = 0;
-
 		virtual size_t getT() const = 0;
 		virtual std::vector<uint32_t> getNumDocsByT() const = 0;
 

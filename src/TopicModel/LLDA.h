@@ -23,21 +23,6 @@ namespace tomoto
 			Float alpha = 0.1, Float eta = 0.01, size_t seed = std::random_device{}(),
 			bool scalarRng = false);
 
-		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& label) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& label) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer, 
-			const std::vector<std::string>& label) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::vector<std::string>& label) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, 
-			const std::vector<std::string>& label) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::vector<std::string>& label) const = 0;
-
 		virtual const Dictionary& getTopicLabelDict() const = 0;
 
 		virtual size_t getNumTopicsPerLabel() const = 0;

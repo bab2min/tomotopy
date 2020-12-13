@@ -154,7 +154,7 @@ namespace tomoto
 		inline float digammaT(float x) { return detail::LUT_digamma::get(x); }
 
 		template<class _T>
-		inline _T lgammaApprox(_T z)
+		inline auto lgammaApprox(_T z) -> decltype((z + 2.5)* log(z + 3) - (z + 3) + 0.91893853 + 1. / 12. / (z + 3) - log(z * (z + 1) * (z + 2)))
 		{
 			// approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))
 			return (z + 2.5) * log(z + 3) - (z + 3) + 0.91893853 + 1. / 12. / (z + 3) - log(z * (z + 1) * (z + 2));

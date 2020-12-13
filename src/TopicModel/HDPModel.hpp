@@ -302,8 +302,7 @@ namespace tomoto
 				size_t oldSize = globalState.numByTopic.size();
 				globalState.numByTopic.conservativeResize(K);
 				globalState.numByTopic.tail(K - oldSize).setZero();
-				globalState.numTableByTopic.conservativeResize(K);
-				globalState.numTableByTopic.tail(K - oldSize).setZero();
+				globalState.numTableByTopic.resize(K);
 				globalState.numByTopicWord.conservativeResize(K, Eigen::NoChange);
 				globalState.numByTopicWord.block(oldSize, 0, K - oldSize, V).setZero();
 			}
@@ -314,8 +313,6 @@ namespace tomoto
 				size_t locK = localData[i].numByTopic.size();
 				globalState.numByTopic.head(locK) 
 					+= localData[i].numByTopic.head(locK) - tState.numByTopic.head(locK);
-				globalState.numTableByTopic.head(locK)
-					+= localData[i].numTableByTopic.head(locK) - tState.numTableByTopic.head(locK);
 				globalState.numByTopicWord.block(0, 0, locK, V)
 					+= localData[i].numByTopicWord.block(0, 0, locK, V) - tState.numByTopicWord.block(0, 0, locK, V);
 			}
@@ -327,10 +324,16 @@ namespace tomoto
 				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
 			}
 
-			globalState.totalTable = accumulate(this->docs.begin(), this->docs.end(), 0, [](size_t sum, const _DocType& doc)
+
+			globalState.numTableByTopic.setZero();
+			for (auto& doc : this->docs)
 			{
-				return sum + doc.getNumTable();
-			});
+				for (auto& table : doc.numTopicByTable)
+				{
+					if (table) globalState.numTableByTopic[table.topic]++;
+				}
+			}
+			globalState.totalTable = globalState.numTableByTopic.sum();
 			
 			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 			{
@@ -368,19 +371,13 @@ namespace tomoto
 			const auto eta = this->eta;
 			double ll = 0;
 			// table partition ll
-			size_t liveK = 0;
-			for (Tid k = 0; k < K; ++k)
-			{
-				if (!isLiveTopic(k)) continue;
-				ll += math::lgammaT(ld.numTableByTopic[k]);
-				++liveK;
-			}
-			
+			size_t liveK = (ld.numTableByTopic.array() > 0).template cast<size_t>().sum();
+			Eigen::ArrayXf lg = math::lgammaApprox(ld.numTableByTopic.array().template cast<Float>());
+			ll += (ld.numTableByTopic.array() > 0).select(lg, 0).sum();
 			ll += liveK * log(gamma) - math::lgammaT(ld.totalTable + gamma) + math::lgammaT(gamma);
 
 			// topic word ll
 			ll += liveK * math::lgammaT(V * eta);
-
 			for (Tid k = 0; k < K; ++k)
 			{
 				if (!isLiveTopic(k)) continue;
@@ -545,8 +542,7 @@ namespace tomoto
 			
 			for (auto& doc : this->docs)
 			{
-				auto d = lda->_makeDoc(std::vector<std::string>{});
-				for(auto w : doc.words) d.words.emplace_back(w);
+				auto d = lda->_makeFromRawDoc(doc);
 				lda->_addDoc(d);
 			}
 			

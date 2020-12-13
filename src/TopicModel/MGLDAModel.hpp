@@ -385,53 +385,12 @@ namespace tomoto
 			if (_etaL <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong etaL value (etaL = %f)", _etaL));
 		}
 
-
-		template<bool _const = false>
-		_DocType _makeDoc(const std::vector<std::string>& words, const std::string& delimiter)
-		{
-			_DocType doc{ 1.f };
-			size_t numSent = 0;
-			for (auto& w : words)
-			{
-				if (w == delimiter)
-				{
-					++numSent;
-					continue;
-				}
-
-				Vid id;
-				if (_const)
-				{
-					id = this->dict.toWid(w);
-					if (id == (Vid)-1) continue;
-				}
-				else
-				{
-					id = this->dict.add(w);
-				}
-				doc.words.emplace_back(id);
-				doc.sents.emplace_back(numSent);
-			}
-			doc.numBySent.resize(doc.sents.empty() ? 0 : (doc.sents.back() + 1));
-			return doc;
-		}
-
-		size_t addDoc(const std::vector<std::string>& words, const std::string& delimiter) override
-		{
-			return this->_addDoc(_makeDoc(words, delimiter));
-		}
-
-		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::string& delimiter) const override
-		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeDoc<true>(words, delimiter));
-		}
-
 		template<bool _const, typename _FnTokenizer>
-		_DocType _makeRawDoc(const std::string& rawStr, _FnTokenizer&& tokenizer, const std::string& delimiter)
+		_DocType _makeFromRawDoc(const RawDoc& rawDoc, _FnTokenizer&& tokenizer, const std::string& delimiter)
 		{
-			_DocType doc{ 1.f };
+			_DocType doc;
 			size_t numSent = 0;
-			doc.rawStr = rawStr;
+			doc.rawStr = rawDoc.rawStr;
 			for (auto& p : tokenizer(doc.rawStr))
 			{
 				if (std::get<0>(p) == delimiter)
@@ -461,57 +420,85 @@ namespace tomoto
 			return doc;
 		}
 
-		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::string& delimiter)
+		size_t addDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer)
 		{
-			return this->_addDoc(_makeRawDoc<false>(rawStr, tokenizer, delimiter));
+			return this->_addDoc(_makeFromRawDoc<false>(rawDoc, tokenizer, rawDoc.template getMisc<std::string>("delimiter")));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::string& delimiter) const
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer, delimiter));
+			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer, rawDoc.template getMisc<std::string>("delimiter")));
 		}
 
-		_DocType _makeRawDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, const std::string& delimiter) const
+		template<bool _const = false>
+		_DocType _makeFromRawDoc(const RawDoc& rawDoc)
 		{
-			_DocType doc{ 1.f };
-			doc.rawStr = rawStr;
+			_DocType doc;
+			doc.rawStr = rawDoc.rawStr;
+			auto delimiter = rawDoc.template getMisc<std::string>("delimiter");
 			size_t numSent = 0;
 			Vid delimiterId = this->dict.toWid(delimiter);
-			for (size_t i = 0; i < words.size(); ++i)
+			if (!rawDoc.rawWords.empty())
 			{
-				auto& w = words[i];
-				if (w == delimiterId)
+				for (size_t i = 0; i < rawDoc.rawWords.size(); ++i)
 				{
-					++numSent;
-					continue;
+					auto& w = rawDoc.rawWords[i];
+					if (w == delimiter)
+					{
+						++numSent;
+						continue;
+					}
+
+					Vid id;
+					if (_const)
+					{
+						id = this->dict.toWid(w);
+						if (id == (Vid)-1) continue;
+					}
+					else
+					{
+						id = this->dict.add(w);
+					}
+					doc.words.emplace_back(id);
+					doc.sents.emplace_back(numSent);
+					if (rawDoc.rawWords.size() == rawDoc.origWordPos.size())
+					{
+						doc.origWordPos.emplace_back(rawDoc.origWordPos[i]);
+						doc.origWordLen.emplace_back(rawDoc.origWordLen[i]);
+					}
 				}
-				doc.words.emplace_back(w);
-				doc.sents.emplace_back(numSent);
-				if (words.size() == pos.size())
+			}
+			else if (!rawDoc.words.empty())
+			{
+				for (size_t i = 0; i < rawDoc.words.size(); ++i)
 				{
-					doc.origWordPos.emplace_back(pos[i]);
-					doc.origWordLen.emplace_back(len[i]);
+					auto& w = rawDoc.words[i];
+					if (w == delimiterId)
+					{
+						++numSent;
+						continue;
+					}
+					doc.words.emplace_back(w);
+					doc.sents.emplace_back(numSent);
+					if (rawDoc.words.size() == rawDoc.origWordPos.size())
+					{
+						doc.origWordPos.emplace_back(rawDoc.origWordPos[i]);
+						doc.origWordLen.emplace_back(rawDoc.origWordLen[i]);
+					}
 				}
 			}
 			doc.numBySent.resize(doc.sents.empty() ? 0 : (doc.sents.back() + 1));
 			return doc;
 		}
 
-		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::string& delimiter)
+		size_t addDoc(const RawDoc& rawDoc)
 		{
-			return this->_addDoc(_makeRawDoc(rawStr, words, pos, len, delimiter));
+			return this->_addDoc(_makeFromRawDoc(rawDoc));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::string& delimiter) const
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const
 		{
-			return make_unique<_DocType>(_makeRawDoc(rawStr, words, pos, len, delimiter));
+			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
 		}
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
