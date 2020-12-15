@@ -117,17 +117,6 @@ namespace tomoto
 			Float _alpha = 0.1, Float _eta = 0.01, size_t seed = std::random_device{}(),
 			bool scalarRng = false);
 
-		virtual size_t addDoc(const std::vector<std::string>& words) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len) const = 0;
-
 		virtual TermWeight getTermWeight() const = 0;
 		virtual size_t getOptimInterval() const = 0;
 		virtual void setOptimInterval(size_t) = 0;

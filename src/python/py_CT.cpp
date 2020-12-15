@@ -1,6 +1,7 @@
 #include "../TopicModel/CT.h"
 
 #include "module.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -17,11 +18,6 @@ static int CT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&K, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
-		{
-			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::ICTModel::create((tomoto::TermWeight)tw, K, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
@@ -34,13 +30,7 @@ static int CT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
-		if (objCorpus)
-		{
-			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
-				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
-			py::UniqueObj ret = PyObject_CallObject(feeder, param);
-			if(!ret) return -1;
-		}
+		insertCorpus(self, objCorpus, objTransform);
 	}
 	catch (const exception& e)
 	{
@@ -59,11 +49,11 @@ static PyObject* CT_getCorrelations(TopicModelObject* self, PyObject* args, PyOb
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ICTModel*>(self->inst);
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 
 		if (!argTopicId || argTopicId == Py_None)
 		{
@@ -103,7 +93,7 @@ PyObject* CT_getPriorCov(TopicModelObject *self, void *closure)
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ICTModel*>(self->inst);
-		py::UniqueObj obj = py::buildPyValue(inst->getPriorCov());
+		py::UniqueObj obj{ py::buildPyValue(inst->getPriorCov()) };
 		PyArray_Dims dims;
 		npy_intp d[2] = { (npy_intp)self->inst->getK(), (npy_intp)self->inst->getK() };
 		dims.ptr = d;
@@ -145,7 +135,7 @@ static PyGetSetDef CT_getseters[] = {
 };
 
 
-PyTypeObject CT_type = {
+TopicModelTypeObject CT_type = { {
 	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.CTModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
@@ -184,33 +174,37 @@ PyTypeObject CT_type = {
 	(initproc)CT_init,      /* tp_init */
 	PyType_GenericAlloc,
 	PyType_GenericNew,
-};
+}};
 
 
 PyObject* Document_beta(DocumentObject* self, void* closure)
 {
 	try
 	{
+		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `beta` field!" };
 		if (!self->doc) throw runtime_error{ "doc is null!" };
 		do
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::one>*>(self->doc);
-			if (doc) return py::buildPyValueTransform(doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(), 
+			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::one>*>(self->getBoundDoc());
+			if (doc) return py::buildPyValueTransform(
+				doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(), 
 				logf);
 		} while (0);
 		do
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::idf>*>(self->doc);
-			if (doc) return py::buildPyValueTransform(doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(),
+			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::idf>*>(self->getBoundDoc());
+			if (doc) return py::buildPyValueTransform(
+				doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(),
 				logf);
 		} while (0);
 		do
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::pmi>*>(self->doc);
-			if (doc) return py::buildPyValueTransform(doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(),
+			auto* doc = dynamic_cast<const tomoto::DocumentCTM<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
+			if (doc) return py::buildPyValueTransform(
+				doc->smBeta.data(), doc->smBeta.data() + doc->smBeta.size(),
 				logf);
 		} while (0);
-		throw runtime_error{ "doc doesn't has 'beta' field!" };
+		throw runtime_error{ "doc doesn't has `beta` field!" };
 	}
 	catch (const bad_exception&)
 	{
@@ -218,7 +212,7 @@ PyObject* Document_beta(DocumentObject* self, void* closure)
 	}
 	catch (const exception& e)
 	{
-		PyErr_SetString(PyExc_Exception, e.what());
+		PyErr_SetString(PyExc_AttributeError, e.what());
 		return nullptr;
 	}
 }

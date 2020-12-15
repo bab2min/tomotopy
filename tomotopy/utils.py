@@ -4,27 +4,33 @@ Submodule `tomotopy.utils` provides various utilities for topic modeling.
 The documents inserted into `Corpus` can be used any topic models, and you can save the corpus preprocessed into a file and load the corpus from a file.
 '''
 
-class Corpus:
+def _load():
+    import importlib, os
+    env_setting = os.environ.get('TOMOTOPY_ISA', '').split(',')
+    if not env_setting[0]: env_setting = []
+    if len(env_setting) == 0 or len(env_setting) > 1:
+        from cpuinfo import get_cpu_info
+        flags = get_cpu_info()['flags']
+    else:
+        flags = []
+    isas = ['avx2', 'avx', 'sse2', 'none']
+    isas = [isa for isa in isas if (env_setting and isa in env_setting) or (not env_setting and (isa in flags or isa == 'none'))]
+    if not isas: raise RuntimeError("No isa option for " + str(env_setting))
+    for isa in isas:
+        try:
+            mod_name = '_tomotopy' + ('_' + isa if isa != 'none' else '')
+            globals().update({k:v for k, v in vars(importlib.import_module(mod_name)).items() if k in ('_UtilsCorpus', '_UtilsVocabDict')})
+            return
+        except:
+            if isa == isas[-1]: raise
+_load()
+
+class Corpus(_UtilsCorpus):
     '''`Corpus` class is a utility that makes it easy to manage large amounts of documents.
     An instance of `Corpus` can contain multiple preprocessed documents, and can be used directly by passing them as parameters of the topic modeling classes.
     '''
-
-    class _VocabDict:
-        def __init__(self):
-            self.id2word = []
-            self.word2id = {}
-        
-        def to_id(self, word):
-            r = self.word2id.get(word, None)
-            if not r is None: return r
-            r = len(self.word2id)
-            self.word2id[word] = r
-            self.id2word.append(word)
-            return r
-
-        def to_word(self, id_):
-            return self.id2word[id_]
-
+    class _VocabDict(_UtilsVocabDict):
+        pass
     def __init__(self, tokenizer=None, batch_size=64, stopwords=None):
         '''Parameters
 ----------
@@ -38,10 +44,9 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
     When calling `tomotopy.utils.Corpus.add_doc`, words in `stopwords` are not added to the document but are excluded.
     If `stopwords` is callable, a word is excluded from the document when `stopwords(word) == True`.
         '''
-        self._docs = []
+        super().__init__()
         self._tokenizer = tokenizer
         self._batch_size = batch_size
-        self._vocab = Corpus._VocabDict()
         if callable(stopwords):
             self._stopwords = stopwords
         elif stopwords is None:
@@ -62,35 +67,6 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
         if model_type is tp.DTModel:
             return {k:v for k, v in args.items() if k in ('timepoint')}
         return {}    
-    
-    def _feed_docs_to(self, model, transform=None):
-        if not self._docs: 
-            raise ValueError("Cannot feed zero-size corpus.")
-        
-        model._update_vocab(self._vocab.id2word)
-        transform = transform or (lambda x:x)
-
-        if self._tokenizer:
-            for doc in self._docs:
-                model._add_doc(doc[0], raw=doc[1], start_pos=doc[2], length=doc[3], **self._select_args_for_model(type(model), transform(doc[4])))
-        else:
-            for doc in self._docs:
-                model._add_doc(doc[0], **self._select_args_for_model(type(model), transform(doc[1])))
-
-    def _tokenize(self, raw, user_data=None):
-        tokens, ss, ls = [], [], []
-        for t in self._tokenizer(raw, user_data=user_data):
-            if type(t) is str:
-                if self._stopwords(t): continue
-                tokens.append(self._vocab.to_id(t))
-            elif type(t) is tuple and len(t) == 3:
-                if self._stopwords(t[0]): continue
-                tokens.append(self._vocab.to_id(t[0]))
-                ss.append(t[1])
-                ls.append(t[2])
-            else:
-                raise ValueError("`tokenizer` must return `str` or `tuple` of (`str`, `int`, `int`).")
-        return tokens, ss, ls
 
     def add_doc(self, words=None, raw=None, user_data=None, **kargs):
         '''Add a new document into the corpus and return an index of the inserted document. 
@@ -112,23 +88,8 @@ user_data : Any
 **kargs
     arbitrary keyword arguments for specific topic models
         '''
-        if self._tokenizer:
-            if not words is None: 
-                raise ValueError("`raw` is required when `tokenizer` or `batch_tokenizer` is provided.")
-            if not type(raw) is str:
-                raise ValueError("`raw` must be `str` type.")
-            if not raw: return -1
-            tokens, ss, ls = self._tokenize(raw, user_data=user_data)
-            self._docs.append((tokens, raw, ss, ls, kargs))
-        else:
-            if not raw is None: 
-                raise ValueError("`words` is required when neither `tokenizer` nor `batch_tokenizer` is provided.")
-            if type(words) is str:
-                raise ValueError("`words` must not be `str`, but `iterable` of `str` type.")
-            if not words: return -1
-            self._docs.append(([self._vocab.to_id(w) for w in words], kargs))
-        return len(self._docs) - 1
-    
+        return super().add_doc(words, raw, user_data, **kargs)
+
     def process(self, data_feeder):
         '''Add multiple documents into the corpus through a given iterator `data_feeder` and return the number of documents inserted.
 
@@ -169,13 +130,8 @@ filename : str
     a path for the file where the instance is saved
         '''
         import pickle
-        tok, st = self._tokenizer, self._stopwords
-        self._tokenizer = self._tokenizer and True
-        self._stopwords = None
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
-        self._tokenizer = tok
-        self._stopwords = st
 
     @staticmethod
     def load(filename:str):
@@ -193,7 +149,46 @@ filename : str
         return obj
 
     def __len__(self):
-        return len(self._docs)
+        return super().__len__()
+    
+    def extract_ngrams(self, min_cf=10, min_df=5, max_len=5, max_cand=5000, min_score=float('-inf')):
+        '''..versionadded:: 0.10.0
+
+Extract frequent n-grams using PMI score
+
+Parameters
+----------
+min_cf : int
+    Minimum collection frequency of n-grams to be extracted
+min_df : int
+    Minimum document frequency of n-grams to be extracted
+max_len : int
+    Maximum length of n-grams to be extracted
+max_cand : int
+    Maximum number of n-grams to be extracted
+min_score : float
+    Minium PMI score of n-grams to be extracted
+
+Returns
+-------
+candidates : List[tomotopy.label.Candidate]
+    The extracted n-gram candidates in `tomotopy.label.Candidate` type
+        '''
+        return super().extract_ngrams(min_cf, min_df, max_len, max_cand, min_score)
+    
+    def concat_ngrams(self, cands, delimiter='_'):
+        '''..versionadded:: 0.10.0
+
+Concatenate n-gram matched given candidates in the corpus into single word
+
+Parameters
+----------
+cands : Iterable[tomotopy.label.Candidate]
+    n-gram candidates to be concatenated. It can be generated by `tomotopy.utils.Corpus.extract_ngrams`.
+delimiter : str
+    Delimiter to be used for concatenating words. Default value is `'_'`.
+        '''
+        return super().concat_ngrams(cands, delimiter)
 
 class SimpleTokenizer:
     '''`SimpleTokenizer` provided a simple word-tokenizing utility with an arbitrary stemmer.'''

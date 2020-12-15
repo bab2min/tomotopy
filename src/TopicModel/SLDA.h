@@ -31,21 +31,6 @@ namespace tomoto
 			size_t seed = std::random_device{}(),
 			bool scalarRng = false);
 
-		virtual size_t addDoc(const std::vector<std::string>& words, const std::vector<Float>& y) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<Float>& y) const = 0;
-		
-		virtual size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::vector<Float>& y) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::vector<Float>& y) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::vector<Float>& y) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::vector<Float>& y) const = 0;
-
 		virtual size_t getF() const = 0;
 		virtual std::vector<Float> getRegressionCoef(size_t f) const = 0;
 		virtual GLM getTypeOfVar(size_t f) const = 0;

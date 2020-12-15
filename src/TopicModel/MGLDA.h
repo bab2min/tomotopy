@@ -37,21 +37,6 @@ namespace tomoto
 			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, size_t seed = std::random_device{}(),
 			bool scalarRng = false);
 
-		virtual size_t addDoc(const std::vector<std::string>& words, const std::string& delimiter) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::string& delimiter) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::string& delimiter) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer,
-			const std::string& delimiter) const = 0;
-
-		virtual size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::string& delimiter) = 0;
-		virtual std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len,
-			const std::string& delimiter) const = 0;
-
 		virtual size_t getKL() const = 0;
 		virtual size_t getT() const = 0;
 		virtual Float getAlphaL() const = 0;

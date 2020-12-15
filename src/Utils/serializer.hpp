@@ -8,6 +8,7 @@
 #include <vector>
 #include "tvector.hpp"
 #include "text.hpp"
+#include "SharedString.hpp"
 
 /*
 
@@ -433,6 +434,22 @@ namespace tomoto
 			v.resize(size);
 			if (!istr.read((char*)v.data(), sizeof(_Ty) * v.size()))
 				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
+		}
+
+		inline void writeToBinStreamImpl(std::ostream& ostr, const SharedString& v)
+		{
+			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
+			if (!ostr.write((const char*)v.data(), v.size()))
+				throw std::ios_base::failure(std::string("writing type 'SharedString' is failed"));
+		}
+
+		inline void readFromBinStreamImpl(std::istream& istr, SharedString& v)
+		{
+			uint32_t size = readFromStream<uint32_t>(istr);
+			std::vector<char> t(size);
+			if (!istr.read((char*)t.data(), t.size()))
+				throw std::ios_base::failure(std::string("reading type 'SharedString' is failed"));
+			v = SharedString{ t.data(), t.data() + t.size() };
 		}
 
 		template<class _Ty>

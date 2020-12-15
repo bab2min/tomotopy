@@ -36,7 +36,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.9.1.
+The most recent version of tomotopy is 0.10.0.
 
 Getting Started
 ---------------
@@ -385,3 +385,16 @@ Bindings for Other Languages
 ------------------------------
 
 * Ruby: https://github.com/ankane/tomoto
+
+Bundled Libraries and Their License
+------------------------------------
+* Eigen:
+  This application uses the MPL2-licensed features of Eigen, a C++ template library for linear algebra.
+  A copy of the MPL2 license is available at https://www.mozilla.org/en-US/MPL/2.0/.
+  The source code of the Eigen library can be obtained at http://eigen.tuxfamily.org/.
+
+* EigenRand: `MIT License
+  <licenses_bundled/EigenRand>`_
+
+* Mapbox Variant: `BSD License
+  <licenses_bundled/MapboxVariant>`_

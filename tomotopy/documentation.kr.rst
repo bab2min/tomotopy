@@ -18,7 +18,7 @@ tomotopy 란?
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
 
-tomotopy의 가장 최신버전은 0.9.1 입니다.
+tomotopy의 가장 최신버전은 0.10.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -341,7 +341,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 * 0.7.0 (2020-04-18)
     * `tomotopy.DTModel`이 추가되었습니다.
     * `tomotopy.utils.Corpus.save`가 제대로 작동하지 않는 버그가 수정되었습니다.
-    * `tomotopy.LDAModel.get_count_vector`가 추가되었습니다.
+    * `tomotopy.Document.get_count_vector`가 추가되었습니다.
     * 리눅스용 바이너리가 manylinux2010 버전으로 변경되었고 이에 따른 최적화가 진행되었습니다.
 
 * 0.6.2 (2020-03-28)

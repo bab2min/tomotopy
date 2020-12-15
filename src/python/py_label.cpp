@@ -1,73 +1,68 @@
-#include "../Labeling/FoRelevance.h"
-
 #include "module.h"
 #include "label.h"
+#include "utils.h"
 #include "label_docs.h"
 
 using namespace std;
 
-struct CandidateObject
+const string& CandWordIterator::operator*() const
 {
-	PyObject_HEAD;
-	TopicModelObject* tm;
-	tomoto::label::Candidate cand;
+	auto& v = co->tm ? co->tm->inst->getVocabDict() : *co->corpus->vocab->vocabs;
+	return v.toWord(co->cand.w[idx]);
+}
 
-	static int init(CandidateObject *self, PyObject *args, PyObject *kwargs)
+int CandidateObject::init(CandidateObject *self, PyObject *args, PyObject *kwargs)
+{
+	PyObject* words;
+	static const char* kwlist[] = { "words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist,
+		&words)) return -1;
+	try
 	{
-		PyObject* tm;
-		static const char* kwlist[] = { "tm", nullptr };
-		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
-			&tm)) return -1;
-		try
-		{
-			self->tm = (TopicModelObject*)tm;
-			Py_INCREF(tm);
-			new(&self->cand) tomoto::label::Candidate{};
-		}
-		catch (const exception& e)
-		{
-			PyErr_SetString(PyExc_Exception, e.what());
-			return -1;
-		}
-		return 0;
+		self->tm = nullptr;
+		self->corpus = nullptr;
+		new(&self->cand) tomoto::label::Candidate{};
 	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return -1;
+	}
+	return 0;
+}
 
-	static void dealloc(CandidateObject* self)
-	{
-		Py_XDECREF(self->tm);
-		self->cand.~Candidate();
-	}
+void CandidateObject::dealloc(CandidateObject* self)
+{
+	Py_XDECREF(self->tm);
+	Py_XDECREF(self->corpus);
+	self->cand.~Candidate();
+	Py_TYPE(self)->tp_free((PyObject*)self);
+}
 
-	static PyObject* repr(CandidateObject* self)
+PyObject* CandidateObject::repr(CandidateObject* self)
+{
+	string ret = "tomotopy.label.Candidate(words=[";
+	for (auto& w : *self)
 	{
-		string ret = "tomotopy.label.Candidate(words=[";
-		auto& v = self->tm->inst->getVocabDict();
-		for (auto& w : self->cand.w)
-		{
-			ret.push_back('"');
-			ret += v.toWord(w);
-			ret.push_back('"');
-			ret.push_back(',');
-		}
-		ret.back() = ']';
-		ret += ", name=\"";
-		ret += self->cand.name;
-		ret += "\", score=";
-		ret += to_string(self->cand.score);
-		ret.push_back(')');
-		return py::buildPyValue(ret);
+		ret.push_back('"');
+		ret += w;
+		ret.push_back('"');
+		ret.push_back(',');
 	}
-};
+	ret.back() = ']';
+	ret += ", name=\"";
+	ret += self->cand.name;
+	ret += "\", score=";
+	ret += to_string(self->cand.score);
+	ret.push_back(')');
+	return py::buildPyValue(ret);
+}
 
 static PyObject* Candidate_getWords(CandidateObject* self, void* closure)
 {
 	try
 	{
-		auto& v = self->tm->inst->getVocabDict();
-		return py::buildPyValueTransform(self->cand.w.begin(), self->cand.w.end(), [&](tomoto::Vid w)
-		{
-			return v.toWord(w);
-		});
+		return py::buildPyValue(self->begin(), self->end());
 	}
 	catch (const bad_exception&)
 	{
@@ -161,7 +156,7 @@ PyTypeObject Candidate_type = {
 	0,                         /* tp_setattro */
 	0,                         /* tp_as_buffer */
 	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"Candidate",           /* tp_doc */
+	Candidate___init____doc__,           /* tp_doc */
 	0,                         /* tp_traverse */
 	0,                         /* tp_clear */
 	0,                         /* tp_richcompare */
@@ -197,10 +192,11 @@ struct ExtractorObject
 			PyObject* ret = PyList_New(0);
 			for (auto& c : cands)
 			{
-				py::UniqueObj param = Py_BuildValue("(O)", tm);
-				PyObject* item = PyObject_CallObject((PyObject*)&Candidate_type, param);
+				PyObject* item = PyObject_CallObject((PyObject*)&Candidate_type, nullptr);
+				((CandidateObject*)item)->tm = tm;
+				Py_INCREF(tm);
+				((CandidateObject*)item)->cand = move(c);
 				PyList_Append(ret, item);
-				((CandidateObject*)item)->cand = c;
 			}
 			return ret;
 		}
@@ -269,13 +265,13 @@ static PyMethodDef Labeler_methods[] =
 
 static int PMIExtractor_init(ExtractorObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t minCf = 10, minDf = 5, maxLen = 5, maxCand = 5000;
-	static const char* kwlist[] = { "min_cf", "min_df", "max_len", "max_cand", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnn", (char**)kwlist,
-		&minCf, &minDf, &maxLen, &maxCand)) return -1;
+	size_t minCf = 10, minDf = 5, minLen = 1, maxLen = 5, maxCand = 5000;
+	static const char* kwlist[] = { "min_cf", "min_df", "min_len", "max_len", "max_cand", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnn", (char**)kwlist,
+		&minCf, &minDf, &minLen, &maxLen, &maxCand)) return -1;
 	try
 	{
-		self->inst = new tomoto::label::PMIExtractor{ minCf, minDf, maxLen, maxCand };
+		self->inst = new tomoto::label::PMIExtractor{ minCf, minDf, minLen, maxLen, maxCand };
 	}
 	catch (const exception& e)
 	{
@@ -330,33 +326,24 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 {
 	TopicModelObject* tm;
 	PyObject* cands;
-	size_t minDf = 5, numWorkers = 0;
+	size_t minDf = 5, windowSize = -1, numWorkers = 0;
 	float smoothing = 1e-2f, mu = 0.25f;
-	static const char* kwlist[] = { "topic_model", "cands", "min_df", "smoothing", "mu", "workers", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|nffn", (char**)kwlist,
-		&tm, &cands, &minDf, &smoothing, &mu, &numWorkers)) return -1;
+	static const char* kwlist[] = { "topic_model", "cands", "min_df", "smoothing", "mu", "window_size", "workers", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|nffnn", (char**)kwlist,
+		&tm, &cands, &minDf, &smoothing, &mu, &windowSize, &numWorkers)) return -1;
 	try
 	{
 		self->tm = tm;
 		self->inst = nullptr;
 		Py_INCREF(tm);
-		py::UniqueObj iter = PyObject_GetIter(cands);
-		if (!iter)
-		{
-			throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
-		}
+		py::UniqueObj iter{ PyObject_GetIter(cands) };
+		if (!iter) throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 		vector<tomoto::label::Candidate*> pcands;
 		{
 			py::UniqueObj item;
-			while ((item = PyIter_Next(iter)))
+			while ((item = py::UniqueObj{ PyIter_Next(iter) }))
 			{
-				/*
-				In macOS following PyObject_TypeCheck function fails in dynamic loading by ISA.
-				( https://github.com/bab2min/tomotopy/issues/40 )
-				Currently, it is prevented by comparing tp_name of PyTypeObject.
-				*/
-				//if (!PyObject_TypeCheck(item, &Candidate_type))
-				if (((PyTypeObject*)PyObject_Type(item))->tp_name != string("tomotopy.label.Candidate"))
+				if (!PyObject_TypeCheck(item, &Candidate_type))
 				{
 					throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 				}
@@ -368,7 +355,7 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 			tm->inst, 
 			tomoto::makeTransformIter(pcands.begin(), deref), 
 			tomoto::makeTransformIter(pcands.end(), deref), 
-			minDf, smoothing, 0, mu, numWorkers 
+			minDf, smoothing, 0, mu, windowSize, numWorkers 
 		};
 	}
 	catch (const exception& e)
@@ -421,27 +408,15 @@ PyTypeObject FoRelevance_type = {
 };
 
 
-PyObject* makeLabelModule()
+void addLabelTypes(PyObject* mModule)
 {
-	static PyModuleDef mod =
-	{
-		PyModuleDef_HEAD_INIT,
-		"tomotopy.label",
-		"Auto labeling package for tomotopy",
-		-1,
-		nullptr,
-	};
-
-	PyObject* mModule = PyModule_Create(&mod);
-
-	if (PyType_Ready(&Candidate_type) < 0) return nullptr;
+	if (PyType_Ready(&Candidate_type) < 0) return;
 	Py_INCREF(&Candidate_type);
-	PyModule_AddObject(mModule, "Candidate", (PyObject*)&Candidate_type);
-	if (PyType_Ready(&PMIExtractor_type) < 0) return nullptr;
+	PyModule_AddObject(mModule, "_LabelCandidate", (PyObject*)&Candidate_type);
+	if (PyType_Ready(&PMIExtractor_type) < 0) return;
 	Py_INCREF(&PMIExtractor_type);
-	PyModule_AddObject(mModule, "PMIExtractor", (PyObject*)&PMIExtractor_type);
-	if (PyType_Ready(&FoRelevance_type) < 0) return nullptr;
+	PyModule_AddObject(mModule, "_LabelPMIExtractor", (PyObject*)&PMIExtractor_type);
+	if (PyType_Ready(&FoRelevance_type) < 0) return;
 	Py_INCREF(&FoRelevance_type);
-	PyModule_AddObject(mModule, "FoRelevance", (PyObject*)&FoRelevance_type);
-	return mModule;
+	PyModule_AddObject(mModule, "_LabelFoRelevance", (PyObject*)&FoRelevance_type);
 }

@@ -1,8 +1,16 @@
 #include "../TopicModel/DT.h"
 
 #include "module.h"
+#include "utils.h"
 
 using namespace std;
+
+tomoto::RawDoc::MiscType DT_misc_args(const tomoto::RawDoc::MiscType& o)
+{
+	tomoto::RawDoc::MiscType ret;
+	ret["timepoint"] = getValueFromMiscDefault<uint32_t>("timepoint", o, "`DTModel` needs a `timepoint` value in `int` type.");
+	return ret;
+}
 
 static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -21,11 +29,6 @@ static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
-		{
-			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IDTModel::create((tomoto::TermWeight)tw, K, T,
 			alphaVar, etaVar, phiVar, lrA, lrB, lrC,
 			0, seed);
@@ -40,13 +43,7 @@ static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
-		if (objCorpus)
-		{
-			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
-				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
-			py::UniqueObj ret = PyObject_CallObject(feeder, param);
-			if (!ret) return -1;
-		}
+		insertCorpus(self, objCorpus, objTransform);
 	}
 	catch (const exception& e)
 	{
@@ -67,13 +64,10 @@ static PyObject* DT_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwa
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
-		py::UniqueObj iter;
-		if (!(iter = PyObject_GetIter(argWords)))
-		{
-			throw runtime_error{ "words must be an iterable of str." };
-		}
-		auto ret = inst->addDoc(py::makeIterToVector<string>(iter), timepoint);
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		tomoto::RawDoc raw = buildRawDoc(argWords);
+		raw.misc["timepoint"] = (uint32_t)timepoint;
+		auto ret = inst->addDoc(raw);
 		return py::buildPyValue(ret);
 	}
 	catch (const bad_exception&)
@@ -87,54 +81,7 @@ static PyObject* DT_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwa
 	}
 }
 
-static PyObject* DT_addDoc_(TopicModelObject* self, PyObject* args, PyObject *kwargs)
-{
-	PyObject *argWords, *argStartPos = nullptr, *argLength = nullptr;
-	const char* argRaw = nullptr;
-	size_t timepoint = 0;
-	static const char* kwlist[] = { "words", "raw", "start_pos", "length", "timepoint", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sOOn", (char**)kwlist,
-		&argWords, &argRaw, &argStartPos, &argLength, &timepoint)) return nullptr;
-	try
-	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
-		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		string raw;
-		if (argRaw) raw = argRaw;
-		if (argRaw && (!argStartPos || !argLength))
-		{
-			throw runtime_error{ "`start_pos` and `length` must be given when `raw` is given." };
-		}
-
-		vector<tomoto::Vid> words;
-		vector<uint32_t> startPos;
-		vector<uint16_t> length;
-
-		py::UniqueObj iter = PyObject_GetIter(argWords);
-		words = py::makeIterToVector<tomoto::Vid>(iter);
-		if (argStartPos)
-		{
-			iter = PyObject_GetIter(argStartPos);
-			startPos = py::makeIterToVector<uint32_t>(iter);
-			iter = PyObject_GetIter(argLength);
-			length = py::makeIterToVector<uint16_t>(iter);
-			char2Byte(raw, startPos, length);
-		}
-		auto ret = inst->addDoc(raw, words, startPos, length, timepoint);
-		return py::buildPyValue(ret);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
-}
-
-static PyObject* DT_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+static DocumentObject* DT_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argWords;
 	size_t timepoint = 0;
@@ -144,15 +91,15 @@ static PyObject* DT_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN("[warn] 'words' should be an iterable of str.");
-		py::UniqueObj iter;
-		if (!(iter = PyObject_GetIter(argWords)))
-		{
-			throw runtime_error{ "words must be an iterable of str." };
-		}
-		auto ret = inst->makeDoc(py::makeIterToVector<string>(iter), timepoint);
-		py::UniqueObj args = Py_BuildValue("(Onn)", self, ret.release(), 1);
-		return PyObject_CallObject((PyObject*)&Document_type, args);
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		tomoto::RawDoc raw = buildRawDoc(argWords);
+		raw.misc["timepoint"] = (uint32_t)timepoint;
+		auto doc = inst->makeDoc(raw);
+		py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self, nullptr) };
+		auto* ret = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, corpus.get(), nullptr);
+		ret->doc = doc.release();
+		ret->owner = true;
+		return ret;
 	}
 	catch (const bad_exception&)
 	{
@@ -174,11 +121,11 @@ static PyObject* DT_getAlpha(TopicModelObject* self, PyObject* args, PyObject *k
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 
 		if (timepoint >= inst->getT()) throw runtime_error{ "`timepoint` must < `DTModel.num_timepoints`" };
 
@@ -209,11 +156,11 @@ static PyObject* DT_getPhi(TopicModelObject* self, PyObject* args, PyObject *kwa
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 
 		return py::buildPyValue(inst->getPhi(topicId, timepoint));
 	}
@@ -239,11 +186,11 @@ static PyObject* DT_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k" };
 		if (timepoint >= inst->getT()) throw runtime_error{ "must topic_id < t" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId + inst->getK() * timepoint, topN));
 	}
 	catch (const bad_exception&)
@@ -268,11 +215,11 @@ static PyObject* DT_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k" };
 		if (timepoint >= inst->getT()) throw runtime_error{ "must topic_id < t" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getWidsByTopic(topicId + inst->getK() * timepoint));
 	}
 	catch (const bad_exception&)
@@ -292,11 +239,11 @@ static PyObject* DT_getCountByTopics(TopicModelObject* self)
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		auto l = inst->getCountByTopic();
 
 		npy_intp shapes[2] = { (npy_intp)inst->getT(), (npy_intp)inst->getK() };
@@ -323,7 +270,6 @@ DEFINE_LOADER(DT, DT_type);
 static PyMethodDef DT_methods[] =
 {
 	{ "add_doc", (PyCFunction)DT_addDoc, METH_VARARGS | METH_KEYWORDS, DT_add_doc__doc__ },
-	{ "_add_doc", (PyCFunction)DT_addDoc_, METH_VARARGS | METH_KEYWORDS, "" },
 	{ "make_doc", (PyCFunction)DT_makeDoc, METH_VARARGS | METH_KEYWORDS, DT_make_doc__doc__ },
 	{ "get_count_by_topics", (PyCFunction)DT_getCountByTopics, METH_NOARGS, DT_get_count_by_topics__doc__},
 	{ "get_alpha", (PyCFunction)DT_getAlpha, METH_VARARGS | METH_KEYWORDS, DT_get_alpha__doc__ },
@@ -383,7 +329,7 @@ static PyGetSetDef DT_getseters[] = {
 	{ nullptr },
 };
 
-PyTypeObject DT_type = {
+TopicModelTypeObject DT_type = { {
 	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.DTModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
@@ -422,29 +368,30 @@ PyTypeObject DT_type = {
 	(initproc)DT_init,      /* tp_init */
 	PyType_GenericAlloc,
 	PyType_GenericNew,
-};
+}, DT_misc_args };
 
 PyObject* Document_eta(DocumentObject* self, void* closure)
 {
 	try
 	{
+		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `eta` field!" };
 		if (!self->doc) throw runtime_error{ "doc is null!" };
 		do
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::one>*>(self->doc);
+			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::one>*>(self->getBoundDoc());
 			if (doc) return py::buildPyValue(doc->eta.array().data(), doc->eta.array().data() + doc->eta.array().size());
 		} while (0);
 		do
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::idf>*>(self->doc);
+			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::idf>*>(self->getBoundDoc());
 			if (doc) return py::buildPyValue(doc->eta.array().data(), doc->eta.array().data() + doc->eta.array().size());
 		} while (0);
 		do
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::pmi>*>(self->doc);
+			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
 			if (doc) return py::buildPyValue(doc->eta.array().data(), doc->eta.array().data() + doc->eta.array().size());
 		} while (0);
-		throw runtime_error{ "doc doesn't has 'eta' field!" };
+		throw runtime_error{ "doc doesn't has `eta` field!" };
 	}
 	catch (const bad_exception&)
 	{
@@ -452,40 +399,9 @@ PyObject* Document_eta(DocumentObject* self, void* closure)
 	}
 	catch (const exception& e)
 	{
-		PyErr_SetString(PyExc_Exception, e.what());
+		PyErr_SetString(PyExc_AttributeError, e.what());
 		return nullptr;
 	}
 }
 
-PyObject* Document_timepoint(DocumentObject* self, void* closure)
-{
-	try
-	{
-		if (!self->doc) throw runtime_error{ "doc is null!" };
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::one>*>(self->doc);
-			if (doc) return py::buildPyValue(doc->timepoint);
-		} while (0);
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::idf>*>(self->doc);
-			if (doc) return py::buildPyValue(doc->timepoint);
-		} while (0);
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentDTM<tomoto::TermWeight::pmi>*>(self->doc);
-			if (doc) return py::buildPyValue(doc->timepoint);
-		} while (0);
-		throw runtime_error{ "doc doesn't has 'timepoint' field!" };
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
-}
+DEFINE_DOCUMENT_GETTER(tomoto::DocumentDTM, timepoint, timepoint);

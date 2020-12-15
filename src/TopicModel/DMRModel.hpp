@@ -262,63 +262,44 @@ namespace tomoto
 		}
 
 		template<bool _const = false>
-		_DocType& _updateDoc(_DocType& doc, const std::vector<std::string>& metadata)
+		_DocType& _updateDoc(_DocType& doc, const std::string& metadata)
 		{
-			std::string metadataJoined = text::join(metadata.begin(), metadata.end(), "_");
 			Vid xid;
 			if (_const)
 			{
-				xid = metadataDict.toWid(metadataJoined);
+				xid = metadataDict.toWid(metadata);
 				if (xid == (Vid)-1) throw std::invalid_argument("unknown metadata");
 			}
 			else
 			{
-				xid = metadataDict.add(metadataJoined);
+				xid = metadataDict.add(metadata);
 			}
 			doc.metadata = xid;
 			return doc;
 		}
 
-		size_t addDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) override
+		size_t addDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) override
 		{
-			auto doc = this->_makeDoc(words);
-			return this->_addDoc(_updateDoc(doc, metadata));
+			auto doc = this->template _makeFromRawDoc<false>(rawDoc, tokenizer);
+			return this->_addDoc(_updateDoc(doc, rawDoc.template getMisc<std::string>("metadata")));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words, const std::vector<std::string>& metadata) const override
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
-			auto doc = as_mutable(this)->template _makeDoc<true>(words);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
+			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMisc<std::string>("metadata")));
 		}
 
-		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer, 
-			const std::vector<std::string>& metadata) override
+		size_t addDoc(const RawDoc& rawDoc) override
 		{
-			auto doc = this->template _makeRawDoc<false>(rawStr, tokenizer);
-			return this->_addDoc(_updateDoc(doc, metadata));
+			auto doc = this->_makeFromRawDoc(rawDoc);
+			return this->_addDoc(_updateDoc(doc, rawDoc.template getMisc<std::string>("metadata")));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer, 
-			const std::vector<std::string>& metadata) const override
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
-			auto doc = as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
-		}
-
-		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, 
-			const std::vector<std::string>& metadata) override
-		{
-			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
-			return this->_addDoc(_updateDoc(doc, metadata));
-		}
-
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len, 
-			const std::vector<std::string>& metadata) const override
-		{
-			auto doc = this->_makeRawDoc(rawStr, words, pos, len);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, metadata));
+			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc);
+			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMisc<std::string>("metadata")));
 		}
 
 		GETTER(F, size_t, F);

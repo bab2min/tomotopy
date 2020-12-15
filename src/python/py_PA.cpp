@@ -1,6 +1,7 @@
 #include "../TopicModel/PA.h"
 
 #include "module.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -17,11 +18,6 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		&K, &K2, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		if (objCorpus && !PyObject_HasAttrString(objCorpus, corpus_feeder_name))
-		{
-			throw runtime_error{ "`corpus` must be `tomotopy.utils.Corpus` type." };
-		}
-
 		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, 
 			K, K2, alpha, eta, seed);
 		if (!inst) throw runtime_error{ "unknown tw value" };
@@ -35,13 +31,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
-		if (objCorpus)
-		{
-			py::UniqueObj feeder = PyObject_GetAttrString(objCorpus, corpus_feeder_name),
-				param = Py_BuildValue("(OO)", self, objTransform ? objTransform : Py_None);
-			py::UniqueObj ret = PyObject_CallObject(feeder, param);
-			if(!ret) return -1;
-		}
+		insertCorpus(self, objCorpus, objTransform);
 	}
 	catch (const exception& e)
 	{
@@ -61,11 +51,11 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId));
 	}
 	catch (const bad_exception&)
@@ -89,11 +79,11 @@ static PyObject* PA_getSubTopics(TopicModelObject* self, PyObject* args, PyObjec
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
 		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getSubTopicBySuperTopicSorted(topicId, topN));
 
 	}
@@ -118,11 +108,11 @@ static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
 		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
 	}
 	catch (const bad_exception&)
@@ -146,11 +136,11 @@ static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
 		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getWidsByTopic(topicId));
 	}
 	catch (const bad_exception&)
@@ -172,10 +162,11 @@ PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
 	try
 	{
-		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
-		auto* inst = static_cast<tomoto::IPAModel*>(self->parentModel->inst);
-		if (!self->parentModel->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
-		return py::buildPyValue(inst->getSubTopicsByDocSorted(self->doc, topN));
+		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->corpus->tm->inst);
+		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		return py::buildPyValue(inst->getSubTopicsByDocSorted(self->getBoundDoc(), topN));
 	}
 	catch (const bad_exception&)
 	{
@@ -192,10 +183,11 @@ PyObject* Document_getSubTopicDist(DocumentObject* self)
 {
 	try
 	{
-		if (!self->parentModel->inst) throw runtime_error{ "inst is null" };
-		auto* inst = static_cast<tomoto::IPAModel*>(self->parentModel->inst);
-		if (!self->parentModel->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
-		return py::buildPyValue(inst->getSubTopicsByDoc(self->doc));
+		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
+		auto* inst = static_cast<tomoto::IPAModel*>(self->corpus->tm->inst);
+		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		return py::buildPyValue(inst->getSubTopicsByDoc(self->getBoundDoc()));
 	}
 	catch (const bad_exception&)
 	{
@@ -210,34 +202,39 @@ PyObject* Document_getSubTopicDist(DocumentObject* self)
 
 static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	PyObject *argDoc;
+	PyObject *argDoc, *argTransform = nullptr;
 	size_t iteration = 100, workers = 0, together = 0, ps = 0;
 	float tolerance = -1;
-	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "parallel", "together", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnnp", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &ps, &together)) return nullptr;
+	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "parallel", "together", "transform", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnnpO", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &ps, &together, &argTransform)) return nullptr;
 	DEBUG_LOG("infer " << self->ob_base.ob_type << ", " << self->ob_base.ob_refcnt);
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->isPrepared) throw runtime_error{ "cannot infer with untrained model" };
 		auto inst = static_cast<tomoto::IPAModel*>(self->inst);
 		py::UniqueObj iter;
-		if ((iter = PyObject_GetIter(argDoc)) != nullptr)
+		if (PyObject_TypeCheck(argDoc, &UtilsCorpus_type))
+		{
+			CorpusObject* cps = makeCorpus(self, argDoc, argTransform);
+			std::vector<tomoto::DocumentBase*> docs;
+			for (auto& d : cps->docsMade) docs.emplace_back(d.get());
+			auto ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
+			return py::buildPyTuple(py::UniqueObj{ (PyObject*)cps }, ll);
+		}
+		else if ((iter = py::UniqueObj{ PyObject_GetIter(argDoc) }) != nullptr)
 		{
 			std::vector<tomoto::DocumentBase*> docs;
 			py::UniqueObj item;
-			while ((item = PyIter_Next(iter)))
+			while ((item = py::UniqueObj{ PyIter_Next(iter) }))
 			{
-				if (Py_TYPE(item) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
+				if (!PyObject_TypeCheck(item, &UtilsDocument_type)) throw runtime_error{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
 				auto* doc = (DocumentObject*)item.get();
-				if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
-				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
+				if (doc->corpus->tm != self) throw runtime_error{ "`doc` was from another model, not fit to this model" };
+				docs.emplace_back((tomoto::DocumentBase*)doc->getBoundDoc());
 			}
 			if (PyErr_Occurred()) throw bad_exception{};
-			if (!self->isPrepared)
-			{
-				inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-				self->isPrepared = true;
-			}
+			if (!self->isPrepared) throw runtime_error{ "cannot infer with untrained model" };
 			auto ll = inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
 			PyObject* ret = PyList_New(docs.size());
 			size_t i = 0;
@@ -260,26 +257,21 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 		else
 		{
 			PyErr_Clear();
-			if (Py_TYPE(argDoc) != &Document_type) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
+			if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
 			auto* doc = (DocumentObject*)argDoc;
-			if (doc->parentModel != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
-			if (!self->isPrepared)
-			{
-				inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-				self->isPrepared = true;
-			}
+			if (doc->corpus->tm != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
 			if (doc->owner)
 			{
 				std::vector<tomoto::DocumentBase*> docs;
 				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
 				double ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
-				return Py_BuildValue("((NN)f)", py::buildPyValue(inst->getTopicsByDoc(doc->doc)), 
-					py::buildPyValue(inst->getSubTopicsByDoc(doc->doc)), ll);
+				return Py_BuildValue("((NN)f)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())), 
+					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), ll);
 			}
 			else
 			{
-				return Py_BuildValue("((NN)s)", py::buildPyValue(inst->getTopicsByDoc(doc->doc)),
-					py::buildPyValue(inst->getSubTopicsByDoc(doc->doc)), nullptr);
+				return Py_BuildValue("((NN)s)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())),
+					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), nullptr);
 			}
 		}
 	}
@@ -300,11 +292,11 @@ static PyObject* PA_getCountBySuperTopic(TopicModelObject* self)
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (!self->isPrepared)
+		/*if (!self->isPrepared)
 		{
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
-		}
+		}*/
 		return py::buildPyValue(inst->getCountBySuperTopic());
 	}
 	catch (const bad_exception&)
@@ -368,7 +360,7 @@ static PyGetSetDef PA_getseters[] = {
 	{ nullptr },
 };
 
-PyTypeObject PA_type = {
+TopicModelTypeObject PA_type = { {
 	PyVarObject_HEAD_INIT(nullptr, 0)
 	"tomotopy.PAModel",             /* tp_name */
 	sizeof(TopicModelObject), /* tp_basicsize */
@@ -407,4 +399,4 @@ PyTypeObject PA_type = {
 	(initproc)PA_init,      /* tp_init */
 	PyType_GenericAlloc,
 	PyType_GenericNew,
-};
+} };

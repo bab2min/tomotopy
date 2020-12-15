@@ -32,6 +32,11 @@ jobs:
         git checkout tags/v0.2.2
         cd ..
         mv EigenRand/EigenRand include/
+        git clone https://github.com/mapbox/variant
+        cd variant
+        git checkout tags/v1.1.3
+        cd ..
+        mv variant/include/mapbox include/
     - name: build
       run: |
         python3 -m pip install pdoc3 numpy

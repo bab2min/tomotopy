@@ -18,7 +18,7 @@ The current version of `tomoto` supports several major topic models including
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.9.1.
+The most recent version of tomotopy is 0.10.0.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 

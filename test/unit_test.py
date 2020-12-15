@@ -2,7 +2,7 @@ import tomotopy as tp
 import sys
 
 model_cases = [
-    (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}, None),
+    (tp.LDAModel, 'test/sample.txt', 0, None, {'k':40}, None),
     (tp.LLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'k':5}, None),
     (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
     (tp.PLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'latent_topics':2, 'topics_per_label':2}, None),
@@ -56,7 +56,7 @@ def train1(cls, inputFile, mdFields, f, kargs, ps):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(200, workers=1, parallel=ps)
+    mdl.train(2000, workers=1, parallel=ps)
 
 def train4(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
@@ -69,7 +69,7 @@ def train4(cls, inputFile, mdFields, f, kargs, ps):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(200, workers=4, parallel=ps)
+    mdl.train(2000, workers=4, parallel=ps)
 
 def train0(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
@@ -82,7 +82,7 @@ def train0(cls, inputFile, mdFields, f, kargs, ps):
         if len(ch) < mdFields + 1: continue
         if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
         else: mdl.add_doc(ch)
-    mdl.train(200, parallel=ps)
+    mdl.train(2000, parallel=ps)
     mdl.summary(file=sys.stderr)
 
 def save_and_load(cls, inputFile, mdFields, f, kargs, ps):
@@ -165,6 +165,25 @@ def train_raw_corpus(cls, inputFile, mdFields, f, kargs, ps):
     mdl = cls(min_cf=2, rm_top=2, corpus=corpus, **kargs)
     mdl.train(100, parallel=ps)
 
+def train_infer_raw_corpus(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test train with raw corpus')
+    from nltk.stem.porter import PorterStemmer
+    from nltk.corpus import stopwords
+    stemmer = PorterStemmer()
+    stopwords = set(stopwords.words('english'))
+    corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
+        stopwords=lambda x: len(x) <= 2 or x in stopwords)
+    corpus.process(open(inputFile, encoding='utf-8'))
+    test_size = len(corpus) // 5
+    test_set, train_set = corpus[:test_size], corpus[test_size:]
+    mdl = cls(min_cf=2, rm_top=2, corpus=train_set, **kargs)
+    mdl.train(100, parallel=ps)
+    mdl.summary()
+
+    result, ll = mdl.infer(test_set)
+    print('infer ll:', ll)
+    for r in result: print(r.get_ll(), *(r[i] for i in range(10)))
+
 def train_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train with corpus')
     def feeder(file):
@@ -175,6 +194,24 @@ def train_corpus(cls, inputFile, mdFields, f, kargs, ps):
     corpus.process(feeder(inputFile))
     mdl = cls(min_cf=2, rm_top=2, corpus=corpus, **kargs)
     mdl.train(100, parallel=ps)
+
+def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test train with corpus')
+    corpus1 = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer())
+    corpus2 = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer())
+    for i, line in enumerate(open(inputFile, encoding='utf-8')):
+        chs = line.split(None, maxsplit=mdFields)
+        (corpus1 if i < 10 else corpus2).add_doc(raw=chs[-1], **f(chs[:mdFields]) if f else {})
+    mdl = cls(min_cf=2, rm_top=2, **kargs)
+    tcorpus1 = mdl.add_corpus(corpus1)
+    tcorpus2 = mdl.add_corpus(corpus2)
+    mdl.train(100, parallel=ps)
+    
+    print('Corpus1')
+    for d in tcorpus1[:10]: print(d.get_ll())
+    print()
+    print('Corpus2')
+    for d in tcorpus2[:10]: print(d.get_ll())
 
 def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile='test/sample_with_md.txt', mdFields=1, f=lambda x:list(map(float, x)), kargs={'k':10, 'vars':'b'}, ps=tp.ParallelScheme.PARTITION):
     print('Test estimate')
@@ -208,6 +245,12 @@ def test_auto_labeling():
         stopwords=lambda x: len(x) <= 2 or x in stopwords)
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
     corpus.process(open('test/sample_raw.txt', encoding='utf-8'))
+    
+    ngrams = corpus.extract_ngrams(min_cf=5, min_df=3)
+    for c in ngrams:
+        print(c)
+
+    corpus.concat_ngrams(ngrams)
 
     # make LDA model and train
     mdl = tp.LDAModel(k=10, min_cf=5, min_df=3, corpus=corpus)
@@ -222,12 +265,68 @@ def test_auto_labeling():
     extractor = tp.label.PMIExtractor(min_cf=5, min_df=3, max_len=5, max_cand=10000)
     cands = extractor.extract(mdl)
 
-    labeler = tp.label.FoRelevance(mdl, cands, min_df=3, smoothing=1e-2, mu=0.25)
+    labeler = tp.label.FoRelevance(mdl, cands, min_df=3, smoothing=1e-2, mu=0.25, workers=1)
     for k in range(mdl.k):
         print("== Topic #{} ==".format(k))
         print("Labels:", ', '.join(label for label, score in labeler.get_topic_labels(k, top_n=5)))
         for word, prob in mdl.get_topic_words(k, top_n=10):
             print(word, prob, sep='\t')
+
+def test_docs():
+    from nltk.stem.porter import PorterStemmer
+    from nltk.corpus import stopwords
+    stemmer = PorterStemmer()
+    stopwords = set(stopwords.words('english'))
+    corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
+        stopwords=lambda x: len(x) <= 2 or x in stopwords)
+    # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
+    for i, line in enumerate(open('test/sample_raw.txt', encoding='utf-8')):
+        corpus.add_doc(raw=line, uid='doc{:05}'.format(i), etc=len(line))
+
+    def _test_doc(doc, etc=False):
+        print("doc", doc)
+    
+        print("len(doc)", len(doc))
+        print("doc.__getitem__", doc[0], doc[1], doc[2], doc[3])
+
+        if etc: print("doc.etc", doc.etc)
+        print("doc.words", doc.words[:10])
+        print("doc.span", doc.span[:10])
+        print("doc.raw", doc.raw[:10])
+    
+    print("len(corpus)", len(corpus))
+    print("len(corpus[:10])", len(corpus[:10]))
+
+    _test_doc(corpus[0], etc=True)
+
+    mdl = tp.LDAModel(k=10, corpus=corpus)
+    mdl.train(100)
+    print("len(mdl.docs)", len(mdl.docs))
+    print("len(mdl.docs[:10])", len(mdl.docs[:10]))
+
+    ch = tp.coherence.Coherence(corpus=mdl, coherence='u_mass')
+    for k in range(mdl.k):
+        print('Coherence of #{} : {}'.format(k, ch.get_score(topic_id=k)))
+
+    _test_doc(mdl.docs[0])
+
+def test_corpus_transform():
+    from nltk.stem.porter import PorterStemmer
+    from nltk.corpus import stopwords
+    stemmer = PorterStemmer()
+    stopwords = set(stopwords.words('english'))
+    corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
+        stopwords=lambda x: len(x) <= 2 or x in stopwords)
+    # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
+    for i, line in enumerate(open('test/sample_raw.txt', encoding='utf-8')):
+        corpus.add_doc(raw=line, uid='doc{:05}'.format(i), metadata=line[0])
+    
+    def xform(misc):
+        misc['metadata'] += '0'
+        return misc
+    mdl = tp.DMRModel(k=10, corpus=corpus, transform=xform)
+    mdl.train(100)
+    mdl.summary()
 
 def test_hdp_to_lda():
     mdl = tp.HDPModel(tw=tp.TermWeight.ONE, min_df=5, rm_top=5, alpha=0.5, gamma=0.5, initial_k=5)
@@ -253,23 +352,39 @@ def test_hdp_to_lda():
         for word, prob in lda.get_topic_words(k):
             print('\t', word, prob, sep='\t')
 
+def test_coherence():
+    mdl = tp.LDAModel(tw=tp.TermWeight.ONE, k=20, min_df=5, rm_top=5)
+    for n, line in enumerate(open('test/sample.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        mdl.add_doc(ch)
+    mdl.train(1000)
+
+    for coh in ('u_mass', 'c_uci', 'c_npmi', 'c_v'):
+        coherence = tp.coherence.Coherence(corpus=mdl, coherence=coh)
+        print(coherence.get_score())
+
+
 for model_case in model_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train1, train4, train0, save_and_load, infer, infer_together]:
+        for func in [train1, train4, train0, 
+            save_and_load, infer, infer_together
+            ]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+
 
 for model_case in model_corpus_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train_corpus]:
+        for func in [train_corpus, train_multi_corpus]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+
 
 for model_case in model_raw_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train_raw_corpus]:
+        for func in [train_raw_corpus, train_infer_raw_corpus]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)

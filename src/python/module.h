@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fstream>
 #include <iostream>
 
@@ -10,10 +12,13 @@
 #define DEBUG_LOG(t)
 #include "PyUtils.h"
 #endif
+
 #include "../TopicModel/TopicModel.hpp"
 #include "docs.h"
 
 void char2Byte(const std::string& str, std::vector<uint32_t>& startPos, std::vector<uint16_t>& length);
+
+void char2Byte(const char* begin, const char* end, std::vector<uint32_t> & startPos, std::vector<uint16_t> & length);
 
 #define DEFINE_GETTER_PROTOTYPE(PREFIX, GETTER)\
 PyObject* PREFIX##_##GETTER(TopicModelObject *self, void *closure);
@@ -99,11 +104,11 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	try\
 	{\
 		ifstream str{ filename, ios_base::binary };\
-		if (!str) throw runtime_error{ std::string("cannot open file '") + filename + std::string("'") };\
+		if (!str) throw ios_base::failure{ std::string("cannot open file '") + filename + std::string("'") };\
 		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)\
 		{\
 			str.seekg(0);\
-			py::UniqueObj args = Py_BuildValue("(n)", i);\
+			py::UniqueObj args{ Py_BuildValue("(n)", i) };\
 			auto* p = PyObject_CallObject((PyObject*)&TYPE, args);\
 			try\
 			{\
@@ -111,10 +116,10 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);\
 				if (!extra_data.empty())\
 				{\
-					py::UniqueObj pickle = PyImport_ImportModule("pickle");\
-					PyObject* pickle_dict = PyModule_GetDict(pickle);\
-					py::UniqueObj bytes = PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size());\
-					py::UniqueObj args = Py_BuildValue("(O)", bytes.get());\
+					py::UniqueObj pickle{ PyImport_ImportModule("pickle") };\
+					PyObject* pickle_dict{ PyModule_GetDict(pickle) };\
+					py::UniqueObj bytes{ PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size()) };\
+					py::UniqueObj args{ Py_BuildValue("(O)", bytes.get()) };\
 					Py_XDECREF(((TopicModelObject*)p)->initParams);\
 					((TopicModelObject*)p)->initParams = PyObject_CallObject(\
 						PyDict_GetItemString(pickle_dict, "loads"),\
@@ -136,41 +141,9 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	{\
 		return nullptr;\
 	}\
-	catch (const exception& e)\
+	catch (const ios_base::failure& e)\
 	{\
-		PyErr_SetString(PyExc_Exception, e.what());\
-		return nullptr;\
-	}\
-}
-
-#define DEFINE_DOCUMENT_GETTER_PROTOTYPE(NAME) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure);
-
-#define DEFINE_DOCUMENT_GETTER(DOCTYPE, NAME, FIELD) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure)\
-{\
-	try\
-	{\
-		if (!self->doc) throw runtime_error{ "doc is null!" };\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->doc);\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->doc);\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-	}\
-	catch (const bad_exception&)\
-	{\
+		PyErr_SetString(PyExc_OSError, e.what());\
 		return nullptr;\
 	}\
 	catch (const exception& e)\
@@ -180,104 +153,94 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 	}\
 }
 
-#define DEFINE_DOCUMENT_GETTER_WITHOUT_EXC(DOCTYPE, NAME, FIELD) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure)\
-{\
-	try\
-	{\
-		if (!self->doc) throw runtime_error{ "doc is null!" };\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->doc);\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->doc);\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		return nullptr;\
-	}\
-	catch (const bad_exception&)\
-	{\
-		return nullptr;\
-	}\
-	catch (const exception& e)\
-	{\
-		PyErr_SetString(PyExc_Exception, e.what());\
-		return nullptr;\
-	}\
-}
 
-#define DEFINE_DOCUMENT_GETTER_REORDER(DOCTYPE, NAME, FIELD) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure)\
-{\
-	try\
-	{\
-		if (!self->doc) throw runtime_error{ "doc is null!" };\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->doc);\
-			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->doc);\
-			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->doc);\
-			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		} while (0);\
-		throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-	}\
-	catch (const bad_exception&)\
-	{\
-		return nullptr;\
-	}\
-	catch (const exception& e)\
-	{\
-		PyErr_SetString(PyExc_Exception, e.what());\
-		return nullptr;\
-	}\
-}
+extern PyObject* gModule;
+
+struct TopicModelTypeObject : public PyTypeObject
+{
+	using MiscConverter = tomoto::RawDoc::MiscType(const tomoto::RawDoc::MiscType&);
+	MiscConverter* miscConverter = nullptr;
+	TopicModelTypeObject(const PyTypeObject& _tp = {}, MiscConverter* _miscConverter = nullptr)
+		: PyTypeObject{ _tp }, miscConverter{ _miscConverter }
+	{
+	}
+};
 
 namespace py
 {
-	template<typename _Ty>
-	PyObject* buildPyValue(const tomoto::tvector<_Ty>& v)
+	struct RawDocVarToPy
 	{
-		auto ret = PyList_New(v.size());
-		size_t id = 0;
-		for (auto& e : v)
+		PyObject* ret = nullptr;
+
+		template<typename _Ty>
+		void operator()(const _Ty& s)
 		{
-			PyList_SetItem(ret, id++, buildPyValue(e));
+			ret = buildPyValue(s);
 		}
-		return ret;
-	}
+
+		void operator()(const std::shared_ptr<void>& s)
+		{
+			if (s)
+			{
+				ret = (PyObject*)s.get();
+				Py_INCREF(ret);
+			}
+		}
+	};
+
+	template<>
+	struct ValueBuilder<tomoto::RawDoc::Var>
+	{
+		PyObject* operator()(const tomoto::RawDoc::Var& v)
+		{
+			RawDocVarToPy visitor;
+			mapbox::util::apply_visitor(visitor, v);
+			return visitor.ret;
+		}
+
+		template<typename _FailMsg>
+		tomoto::RawDoc::Var _toCpp(PyObject* obj, _FailMsg&& failMsg)
+		{
+			tomoto::RawDoc::Var ret;
+			Py_INCREF(obj);
+			ret = std::shared_ptr<void>{ obj, [](void* p)
+			{
+				Py_XDECREF(p);
+			} };
+			return ret;
+		}
+	};
 }
 
-extern PyObject* gModule;
-extern PyTypeObject Document_type, Corpus_type, Dictionary_type;
-extern PyTypeObject LDA_type;
-extern PyTypeObject DMR_type;
-extern PyTypeObject HDP_type;
-extern PyTypeObject MGLDA_type;
-extern PyTypeObject PA_type;
-extern PyTypeObject HPA_type;
-extern PyTypeObject CT_type;
-extern PyTypeObject SLDA_type;
-extern PyTypeObject HLDA_type;
-extern PyTypeObject LLDA_type;
-extern PyTypeObject PLDA_type;
-extern PyTypeObject DT_type;
-extern PyTypeObject GDMR_type;
+template<typename _Ty, typename _FailMsg>
+_Ty getValueFromMisc(const char* key, const tomoto::RawDoc::MiscType& misc, _FailMsg&& failMsg)
+{
+	auto it = misc.find(key);
+	if (it == misc.end()) throw std::runtime_error{ std::forward<_FailMsg>(failMsg) };
+	return py::toCpp<_Ty>((PyObject*)it->second.template get<std::shared_ptr<void>>().get(), std::forward<_FailMsg>(failMsg));
+}
+
+template<typename _Ty, typename _FailMsg>
+_Ty getValueFromMiscDefault(const char* key, const tomoto::RawDoc::MiscType& misc, _FailMsg&& failMsg, const _Ty& def = {})
+{
+	auto it = misc.find(key);
+	if (it == misc.end()) return def;
+	return py::toCpp<_Ty>((PyObject*)it->second.template get<std::shared_ptr<void>>().get(), std::forward<_FailMsg>(failMsg));
+}
+
+extern TopicModelTypeObject LDA_type;
+extern TopicModelTypeObject DMR_type;
+extern TopicModelTypeObject HDP_type;
+extern TopicModelTypeObject MGLDA_type;
+extern TopicModelTypeObject PA_type;
+extern TopicModelTypeObject HPA_type;
+extern TopicModelTypeObject CT_type;
+extern TopicModelTypeObject SLDA_type;
+extern TopicModelTypeObject HLDA_type;
+extern TopicModelTypeObject LLDA_type;
+extern TopicModelTypeObject PLDA_type;
+extern TopicModelTypeObject DT_type;
+extern TopicModelTypeObject GDMR_type;
 
 struct TopicModelObject
 {
@@ -290,123 +253,37 @@ struct TopicModelObject
 	static void dealloc(TopicModelObject* self);
 };
 
-
-struct CorpusObject
-{
-	PyObject_HEAD;
-	TopicModelObject* parentModel;
-
-	static void dealloc(CorpusObject* self);
-};
-
-
-struct DocumentObject
-{
-	PyObject_HEAD;
-	TopicModelObject* parentModel;
-	const tomoto::DocumentBase* doc;
-	bool owner;
-
-	static PyObject* repr(DocumentObject* self);
-
-	static void dealloc(DocumentObject* self);
-};
-
-struct DictionaryObject
-{
-	PyObject_HEAD;
-	TopicModelObject* parentModel;
-	const tomoto::Dictionary* dict;
-	size_t vocabSize;
-
-	static void dealloc(DictionaryObject* self);
-
-	static Py_ssize_t len(DictionaryObject* self);
-
-	static PyObject* getitem(DictionaryObject* self, Py_ssize_t key);
-
-	static PyObject* repr(DictionaryObject* self);
-
-	static int init(DictionaryObject *self, PyObject *args, PyObject *kwargs);
-};
-
 DEFINE_GETTER_PROTOTYPE(LDA, getK);
 DEFINE_GETTER_PROTOTYPE(LDA, getAlpha);
 DEFINE_GETTER_PROTOTYPE(LDA, getEta);
 
-PyObject* Document_LDA_Z(DocumentObject* self, void* closure);
-
-PyObject* Document_HDP_Z(DocumentObject* self, void* closure);
-
-PyObject* Document_HLDA_Z(DocumentObject* self, void* closure);
-
-PyObject* Document_DMR_metadata(DocumentObject* self, void* closure);
-
-PyObject* Document_GDMR_metadata(DocumentObject* self, void* closure);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(windows);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(Z2);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(path);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(beta);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(y);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(labels);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(eta);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(timepoint);
-
-PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *kwargs);
-PyObject* Document_getSubTopicDist(DocumentObject* self);
-
-PyObject* Document_getCountVector(DocumentObject* self);
-
-template<typename _Target, typename _Order>
-PyObject* buildPyValueReorder(const _Target& target, const _Order& order)
-{
-	if (order.empty())
-	{
-		return py::buildPyValue(target);
-	}
-	else
-	{
-		using _OType = decltype(order[0]);
-		return py::buildPyValueTransform(order.begin(), order.end(), [&](_OType idx)
-		{
-			return target[idx];
-		});
-	}
-}
-
-template<typename _Target, typename _Order, typename _Tx>
-PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& transformer)
-{
-	if (order.empty())
-	{
-		return py::buildPyValueTransform(target.begin(), target.end(), transformer);
-	}
-	else
-	{
-		using _OType = decltype(order[0]);
-		return py::buildPyValueTransform(order.begin(), order.end(), [&](_OType idx)
-		{
-			return transformer(target[idx]);
-		});
-	}
-}
-
-static const char* corpus_feeder_name = "_feed_docs_to";
-
 inline std::string getVersion()
 {
-	py::UniqueObj mod = PyImport_ImportModule("tomotopy");
+	py::UniqueObj mod{ PyImport_ImportModule("tomotopy") };
 	if (!mod) throw std::bad_exception{};
 	PyObject* mod_dict = PyModule_GetDict(mod);
 	if (!mod_dict) throw std::bad_exception{};
 	PyObject* version = PyDict_GetItemString(mod_dict, "__version__");
 	return PyUnicode_AsUTF8(version);
 }
+
+inline tomoto::RawDoc buildRawDoc(PyObject* words)
+{
+	tomoto::RawDoc raw;
+	raw.rawWords = py::toCpp<std::vector<std::string>>(words, "`words` must be an iterable of str.");
+	return raw;
+}
+
+
+#define TM_DMR
+#define TM_GDMR
+#define TM_HDP
+#define TM_MGLDA
+#define TM_PA
+#define TM_HPA
+#define TM_CT
+#define TM_SLDA
+#define TM_HLDA
+#define TM_LLDA
+#define TM_PLDA
+#define TM_DT

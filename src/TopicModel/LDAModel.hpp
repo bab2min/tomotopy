@@ -609,7 +609,7 @@ namespace tomoto
 
 		double getLL() const
 		{
-			return static_cast<const DerivedClass*>(this)->template getLLDocs<>(this->docs.begin(), this->docs.end())
+			return static_cast<const DerivedClass*>(this)->getLLDocs(this->docs.begin(), this->docs.end())
 				+ static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 		}
 
@@ -898,36 +898,24 @@ namespace tomoto
 			burnIn = iteration;
 		}
 
-		size_t addDoc(const std::vector<std::string>& words) override
+		size_t addDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) override
 		{
-			return this->_addDoc(this->_makeDoc(words));
+			return this->_addDoc(this->template _makeFromRawDoc<false>(rawDoc, tokenizer));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const override
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeDoc<true>(words));
+			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer));
 		}
 
-		size_t addDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer) override
+		size_t addDoc(const RawDoc& rawDoc) override
 		{
-			return this->_addDoc(this->template _makeRawDoc<false>(rawStr, tokenizer));
+			return this->_addDoc(this->_makeFromRawDoc(rawDoc));
 		}
 
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const RawDocTokenizer::Factory& tokenizer) const override
+		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeRawDoc<true>(rawStr, tokenizer));
-		}
-
-		size_t addDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len) override
-		{
-			return this->_addDoc(this->_makeRawDoc(rawStr, words, pos, len));
-		}
-
-		std::unique_ptr<DocumentBase> makeDoc(const std::string& rawStr, const std::vector<Vid>& words,
-			const std::vector<uint32_t>& pos, const std::vector<uint16_t>& len) const override
-		{
-			return make_unique<_DocType>(this->_makeRawDoc(rawStr, words, pos, len));
+			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
 		}
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
