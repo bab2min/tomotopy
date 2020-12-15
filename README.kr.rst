@@ -35,7 +35,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.9.1 입니다.
+tomotopy의 가장 최신버전은 0.10.0 입니다.
 
 시작하기
 ---------------

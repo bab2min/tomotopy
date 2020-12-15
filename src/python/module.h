@@ -104,7 +104,7 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	try\
 	{\
 		ifstream str{ filename, ios_base::binary };\
-		if (!str) throw runtime_error{ std::string("cannot open file '") + filename + std::string("'") };\
+		if (!str) throw ios_base::failure{ std::string("cannot open file '") + filename + std::string("'") };\
 		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)\
 		{\
 			str.seekg(0);\
@@ -139,6 +139,11 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	}\
 	catch (const bad_exception&)\
 	{\
+		return nullptr;\
+	}\
+	catch (const ios_base::failure& e)\
+	{\
+		PyErr_SetString(PyExc_OSError, e.what());\
 		return nullptr;\
 	}\
 	catch (const exception& e)\

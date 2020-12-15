@@ -18,7 +18,7 @@ tomotopy 란?
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
 
-tomotopy의 가장 최신버전은 0.9.1 입니다.
+tomotopy의 가장 최신버전은 0.10.0 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
