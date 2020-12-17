@@ -133,7 +133,11 @@ PyMODINIT_FUNC PyInit__tomotopy()
 		string err = "No module named any of ";
 		for (auto& s : triedModules) err += "'_tomotopy_" + s + "', ";
 		err.pop_back(); err.pop_back();
+#if PY_MINOR_VERSION < 6
+		PyErr_SetString(PyExc_RuntimeError, err.c_str());
+#else
 		PyErr_SetString(PyExc_ModuleNotFoundError, err.c_str());
+#endif
 	}
 	return module;
 }
