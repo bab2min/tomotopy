@@ -148,7 +148,7 @@ namespace tomoto
 						+ Eigen::Matrix<Float, -1, 1>::Constant(selectedNormZ.rows(), mu / nuSq));
 
 				RandGen rng;
-				for (size_t i = 0; i < omega.size(); ++i)
+				for (size_t i = 0; i < (size_t)omega.size(); ++i)
 				{
 					if (std::isnan(ys[i])) continue;
 					omega[i] = math::drawPolyaGamma(b, (this->regressionCoef.array() * normZ.col(i).array()).sum(), rng);

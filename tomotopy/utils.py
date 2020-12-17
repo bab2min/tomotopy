@@ -4,26 +4,7 @@ Submodule `tomotopy.utils` provides various utilities for topic modeling.
 The documents inserted into `Corpus` can be used any topic models, and you can save the corpus preprocessed into a file and load the corpus from a file.
 '''
 
-def _load():
-    import importlib, os
-    env_setting = os.environ.get('TOMOTOPY_ISA', '').split(',')
-    if not env_setting[0]: env_setting = []
-    if len(env_setting) == 0 or len(env_setting) > 1:
-        from cpuinfo import get_cpu_info
-        flags = get_cpu_info()['flags']
-    else:
-        flags = []
-    isas = ['avx2', 'avx', 'sse2', 'none']
-    isas = [isa for isa in isas if (env_setting and isa in env_setting) or (not env_setting and (isa in flags or isa == 'none'))]
-    if not isas: raise RuntimeError("No isa option for " + str(env_setting))
-    for isa in isas:
-        try:
-            mod_name = '_tomotopy' + ('_' + isa if isa != 'none' else '')
-            globals().update({k:v for k, v in vars(importlib.import_module(mod_name)).items() if k in ('_UtilsCorpus', '_UtilsVocabDict')})
-            return
-        except:
-            if isa == isas[-1]: raise
-_load()
+from _tomotopy import (_UtilsCorpus, _UtilsVocabDict)
 
 class Corpus(_UtilsCorpus):
     '''`Corpus` class is a utility that makes it easy to manage large amounts of documents.

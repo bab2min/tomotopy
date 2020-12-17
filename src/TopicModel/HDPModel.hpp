@@ -84,12 +84,12 @@ namespace tomoto
 		{
 			const size_t V = this->realV;
 			size_t pos;
-			for (pos = 0; pos < ld.numTableByTopic.size(); ++pos)
+			for (pos = 0; pos < (size_t)ld.numTableByTopic.size(); ++pos)
 			{
 				if (!ld.numTableByTopic[pos]) break;
 			}
 			
-			if (pos >= ld.numByTopic.size())
+			if (pos >= (size_t)ld.numByTopic.size())
 			{
 				size_t oldSize = ld.numByTopic.size(), newSize = pos + 1;
 				ld.numTableByTopic.conservativeResize(newSize);
