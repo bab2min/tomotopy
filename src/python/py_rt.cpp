@@ -30,7 +30,7 @@ static inline unsigned long long _xgetbv(unsigned int index) {
 	return ((unsigned long long)edx << 32) | eax;
 }
 #else
-#define _xgetbv() 0
+#define _xgetbv(x) 0
 #endif
 
 void cpuid(int info[4], int InfoType) {
