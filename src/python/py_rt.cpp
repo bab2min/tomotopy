@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <vector>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -23,15 +24,15 @@ using namespace std;
 #elif defined(__unix__) || defined(__APPLE__) || defined(__MACOSX)
 #include <cpuid.h>
 
-#if __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ >= 4
+//#if __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ >= 4
 static inline unsigned long long _xgetbv(unsigned int index) {
 	unsigned int eax, edx;
 	__asm__ __volatile__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(index));
 	return ((unsigned long long)edx << 32) | eax;
 }
-#else
+/*#else
 #define _xgetbv(x) 0
-#endif
+#endif*/
 
 void cpuid(int info[4], int InfoType) {
 	__cpuid_count(InfoType, 0, info[0], info[1], info[2], info[3]);
@@ -89,22 +90,50 @@ PyMODINIT_FUNC PyInit__tomotopy()
     }
 
 	PyObject* module = nullptr;
+	vector<string> triedModules;
 	if (!module && avx2 && env_avx2)
 	{
 		module = PyImport_ImportModule("_tomotopy_avx2");
+		if (!module)
+		{
+			PyErr_Clear();
+			triedModules.emplace_back("avx2");
+		}
 	}
 	if (!module && avx && env_avx)
 	{
 		module = PyImport_ImportModule("_tomotopy_avx");
+		if (!module)
+		{
+			PyErr_Clear();
+			triedModules.emplace_back("avx");
+		}
 	}
 	if (!module && sse2 && env_sse2)
 	{
 		module = PyImport_ImportModule("_tomotopy_sse2");
+		if (!module)
+		{
+			PyErr_Clear();
+			triedModules.emplace_back("sse2");
+		}
 	}
 	if (!module)
 	{
 		module = PyImport_ImportModule("_tomotopy_none");
+		if (!module)
+		{
+			PyErr_Clear();
+			triedModules.emplace_back("none");
+		}
 	}
 
+	if (!module)
+	{
+		string err = "No module named any of ";
+		for (auto& s : triedModules) err += "'_tomotopy_" + s + "', ";
+		err.pop_back(); err.pop_back();
+		PyErr_SetString(PyExc_ModuleNotFoundError, err.c_str());
+	}
 	return module;
 }
