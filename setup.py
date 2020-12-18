@@ -14,7 +14,7 @@ for line in open(os.path.join(here, 'tomotopy/documentation.rst'), encoding='utf
 
 sources = []
 for f in os.listdir(os.path.join(here, 'src/python')):
-    if f.endswith('.cpp'): sources.append('src/python/' + f)
+    if f.endswith('.cpp') and not f.endswith('py_rt.cpp'): sources.append('src/python/' + f)
 for f in os.listdir(os.path.join(here, 'src/TopicModel')):
     if f.endswith('.cpp'): sources.append('src/TopicModel/' + f)
 for f in os.listdir(os.path.join(here, 'src/Labeling')):
@@ -42,15 +42,20 @@ lang_macro = []
 if os.environ.get('TOMOTOPY_LANG') == 'kr': lang_macro = [('DOC_KO', '1')]
 
 modules = []
+modules.append(Extension('_tomotopy',
+    libraries=[],
+    include_dirs=['include', numpy.get_include()],
+    sources=['src/python/py_rt.cpp'],
+    extra_compile_args=cargs, extra_link_args=largs))
+
 for arch, aopt in arch_levels.items():
-    module_name = '_tomotopy' + ('_' + arch if arch else '')
+    module_name = '_tomotopy_' + (arch or 'none')
     modules.append(Extension(module_name,
                     libraries=[],
                     include_dirs=['include', numpy.get_include()],
                     sources=sources,
                     define_macros=[('MODULE_NAME', 'PyInit_' + module_name)] + lang_macro,
                     extra_compile_args=cargs + (aopt.split(' ') if aopt else []), extra_link_args=largs))
-
 
 setup(
     name='tomotopy',
@@ -88,7 +93,7 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: MacOS"
     ],
-    install_requires=['py-cpuinfo', 'numpy>=1.10.0'],
+    install_requires=['numpy>=1.10.0'],
     keywords='NLP,Topic Model',
 
     packages = ['tomotopy'],

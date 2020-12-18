@@ -13,6 +13,7 @@ import re
 from sklearn.datasets import fetch_20newsgroups
 import itertools
 
+print('Training lda models...')
 try:
     # load if trained model exist already
     mdl = tp.LDAModel.load('trained_lda_model.bin')
@@ -60,6 +61,6 @@ for seg, cm, im in itertools.product(tp.coherence.Segmentation, tp.coherence.Con
     coh = tp.coherence.Coherence(mdl, coherence=(tp.coherence.ProbEstimation.DOCUMENT, seg, cm, im))
     average_coherence = coh.get_score()
     coherence_per_topic = [coh.get_score(topic_id=k) for k in range(mdl.k)]
-    print('==== Coherence : {}, {}, {} ===='.format(seg, cm, im))
+    print('==== Coherence : {}, {}, {} ===='.format(repr(seg), repr(cm), repr(im)))
     print('Average:', average_coherence, '\nPer Topic:', coherence_per_topic)
     print()

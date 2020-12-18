@@ -77,7 +77,7 @@ namespace tomoto
 				offset = _mm_shuffle_ps(out, out, _MM_SHUFFLE(3, 3, 3, 3));
 			}
 			if (!n4) n4 = 1;
-			for (size_t i = n4; i < n; ++i)
+			for (int i = n4; i < n; ++i)
 			{
 				arr[i] += arr[i - 1];
 			}

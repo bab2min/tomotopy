@@ -101,7 +101,7 @@ namespace tomoto
 			void addPathOne()
 			{
 				NCRPNode* node = this;
-				for (size_t i = 0; i <= level; ++i)
+				for (size_t i = 0; i <= (size_t)level; ++i)
 				{
 					++node->numCustomers;
 					node = node->getParent();
@@ -132,7 +132,7 @@ namespace tomoto
 			{
 				size_t idx = node - nodes.data();
 				const Float pNewNode = _MakeNewPath ? log(gamma / (node->numCustomers + gamma)) : -INFINITY;
-				nodeLikelihoods[idx] = weight + ((node->level < levelDepth - 1) ? pNewNode : 0);
+				nodeLikelihoods[idx] = weight + (((size_t)node->level < levelDepth - 1) ? pNewNode : 0);
 				for(auto * child = node->getChild(); child; child = child->getSibling())
 				{
 					updateNodeLikelihood(gamma, levelDepth, child, weight + log(child->numCustomers / (node->numCustomers + gamma)));
@@ -279,7 +279,7 @@ namespace tomoto
 					nodes[idx].level = l;
 				}
 
-				if (ld.numByTopic.size() < nodes.size())
+				if ((size_t)ld.numByTopic.size() < nodes.size())
 				{
 					size_t oldSize = ld.numByTopic.rows();
 					size_t newSize = std::max(nodes.size(), ((oldSize + oldSize / 2 + 7) / 8) * 8);
