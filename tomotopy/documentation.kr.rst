@@ -154,6 +154,48 @@ CGS와 VB는 서로 접근방법이 아예 다른 기법이기 때문에 둘을 
 
 다행히도 최신 x86-64 CPU들은 대부분 AVX2 명령어 세트를 지원하기 때문에 대부분의 경우 AVX2의 높은 성능을 활용할 수 있을 것입니다.
 
+CF와 DF를 이용한 어휘 통제
+---------------------------------------
+CF(collection frequency, 장서 빈도)와 DF(document frequency, 문헌 빈도)는 정보검색에서 다루는 개념들로, 
+각각 전체 코퍼스 내에서 특정 단어가 등장하는 총 빈도와 전체 코퍼스 내에서 특정 단어가 등장하는 문헌들의 빈도를 가리킵니다.
+`tomotopy`는 코퍼스 구축시 저빈도 어휘를 잘라낼 수 있도록 이 두가지 척도를 각각 `min_cf`와 `min_df`라는 파라미터로 사용합니다.
+
+구체적으로, 다음처럼 구성된 문헌 #0 ~ #4를 가지고 예를 들어 보자면
+::
+
+    #0 : a, b, c, d, e, c
+    #1 : a, b, e, f
+    #2 : c, d, c
+    #3 : a, e, f, g
+    #4 : a, b, g
+
+`a`와 `c`는 각각 전체 코퍼스에서 4번 등장했으므로 CF는 둘 다 4입니다.
+반면 `a`는 #0, #1, #3, #4 문헌에서 등장했으므로 DF가 4지만, `c`는 #0과 #2에서만 등장했으므로 DF가 2입니다.
+따라서 `min_cf=3`을 기준으로 저빈도 어휘를 잘라낸다면 결과는 다음과 같이 됩니다.
+::
+
+    (d, f, g 가 삭제됨)
+    #0 : a, b, c, e, c
+    #1 : a, b, e
+    #2 : c, c
+    #3 : a, e
+    #4 : a, b
+
+그러나 `min_df=3`를 기준으로 잘라내면 다음과 같습니다.
+::
+
+    (c, d, f, g가 삭제됨)
+    #0 : a, b, e
+    #1 : a, b, e
+    #2 : (빈 문헌)
+    #3 : a, e
+    #4 : a, b
+
+위 예시에서 확인할 수 있듯 `min_df`가 `min_cf`보다 더 강력한 조건입니다. 
+토픽 모델링을 수행함에 있어 한 문헌에서만 여러 번 등장하는 단어는 전체 토픽-단어 분포를 추정하는데 영향을 미치지 못합니다.
+따라서 `df`가 작은 어휘들을 제거하면 최종 결과에 거의 영향을 미치지 않으며 모델 크기는 크게 줄일 수 있습니다.
+그러므로 어휘 크기를 통제할 때는 `min_cf`보다는 `min_df`를 사용하는 걸 추천합니다.
+
 모델의 저장과 불러오기
 -------------------
 `tomotopy`는 각각의 토픽 모델 클래스에 대해 `save`와 `load` 메소드를 제공합니다.
@@ -294,6 +336,17 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.10.0 (2020-12-19)
+    * `tomotopy.utils.Corpus`와 `tomotopy.LDAModel.docs` 간의 인터페이스가 통일되었습니다. 이제 동일한 방법으로 코퍼스 내의 문헌들에 접근할 수 있습니다.
+    * `tomotopy.utils.Corpus`의 __getitem__이 개선되었습니다. int 타입 인덱싱뿐만 아니라 Iterable[int]나 slicing를 이용한 다중 인덱싱, uid를 이용한 인덱싱 등이 제공됩니다.
+    * `tomotopy.utils.Corpus.extract_ngrams`와 `tomotopy.utils.Corpus.concat_ngrams`이 추가되었습니다. PMI를 이용해 코퍼스 내에서 자동으로 n-gram collocation을 발견해 한 단어로 합치는 기능을 수행합니다.
+    * `tomotopy.LDAModel.add_corpus`가 추가되었고, `tomotopy.LDAModel.infer`가 Raw 코퍼스를 입력으로 받을 수 있게 되었습니다.
+    * `tomotopy.coherence` 모듈이 추가되었습니다. 생성된 토픽 모델의 coherence를 계산하는 기능을 담당합니다.
+    * `tomotopy.label.FoRelevance`에 window_size 파라미터가 추가되었습니다.
+    * `tomotopy.HDPModel` 학습 시 종종 NaN이 발생하는 문제를 해결했습니다.
+    * 이제 Python3.9를 지원합니다.
+    * py-cpuinfo에 대한 의존성이 제거되고, 모듈 로딩속도가 개선되었습니다.
+    
 * 0.9.1 (2020-08-08)
     * 0.9.0 버전의 메모리 누수 문제가 해결되었습니다.
     * `tomotopy.CTModel.summary()`가 잘못된 결과를 출력하는 문제가 해결되었습니다.
@@ -316,7 +369,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 * 0.8.2 (2020-07-14)
     * `tomotopy.DTModel.num_timepoints`와 `tomotopy.DTModel.num_docs_by_timepoint` 프로퍼티가 추가되었습니다.
-    * `seed`가 동일해서 플랫폼이 다르면 다른 결과를 내던 문제가 일부 해결되었습니다. 이로 인해 32bit 버전의 모델 학습 결과가 이전 버전과는 달라졌습니다.
+    * `seed`가 동일해도 플랫폼이 다르면 다른 결과를 내던 문제가 일부 해결되었습니다. 이로 인해 32bit 버전의 모델 학습 결과가 이전 버전과는 달라졌습니다.
 
 * 0.8.1 (2020-06-08)
     * `tomotopy.LDAModel.used_vocabs`가 잘못된 값을 반환하는 버그가 수정되었습니다.

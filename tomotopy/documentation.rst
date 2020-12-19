@@ -153,6 +153,49 @@ The SIMD instruction set has a great effect on performance. Following is a compa
 
 Fortunately, most of recent x86-64 CPUs provide AVX2 instruction set, so we can enjoy the performance of AVX2.
 
+Vocabulary controlling using CF and DF
+---------------------------------------
+CF(collection frequency) and DF(document frequency) are concepts used in information retreival, 
+and each represents the total number of times the word appears in the corpus 
+and the number of documents in which the word appears within the corpus, respectively.
+`tomotopy` provides these two measures under the parameters of `min_cf` and `min_df` to trim low frequency words when building the corpus.
+
+For example, let's say we have 5 documents #0 ~ #4 which are composed of the following words:
+::
+
+    #0 : a, b, c, d, e, c
+    #1 : a, b, e, f
+    #2 : c, d, c
+    #3 : a, e, f, g
+    #4 : a, b, g
+
+Both CF of `a` and CF of `c` are 4 because it appears 4 times in the entire corpus. 
+But DF of `a` is 4 and DF of `c` is 2 because `a` appears in #0, #1, #3 and #4 and `c` only appears in #0 and #2.
+So if we trim low frequency words using `min_cf=3`, the result becomes follows:
+::
+
+    (d, f and g are removed.)
+    #0 : a, b, c, e, c
+    #1 : a, b, e
+    #2 : c, c
+    #3 : a, e
+    #4 : a, b
+
+However when `min_df=3` the result is like :
+::
+
+    (c, d, f and g are removed.)
+    #0 : a, b, e
+    #1 : a, b, e
+    #2 : (empty doc)
+    #3 : a, e
+    #4 : a, b
+
+As we can see, `min_df` is a stronger criterion than `min_cf`. 
+In performing topic modeling, words that appear repeatedly in only one document do not contribute to estimating the topic-word distribution. 
+So, removing words with low `df` is a good way to reduce model size while preserving the results of the final model.
+In short, please prefer using `min_df` to `min_cf`.
+
 Model Save and Load
 -------------------
 `tomotopy` provides `save` and `load` method for each topic model class, 
@@ -297,6 +340,17 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.10.0 (2020-12-19)
+    * The interface of `tomotopy.utils.Corpus` and of `tomotopy.LDAModel.docs` were unified. Now you can access the document in corpus with the same manner.
+    * __getitem__ of `tomotopy.utils.Corpus` was improved. Not only indexing by int, but also by Iterable[int], slicing are supported. Also indexing by uid is supported.
+    * New methods `tomotopy.utils.Corpus.extract_ngrams` and `tomotopy.utils.Corpus.concat_ngrams` were added. They extracts n-gram collocations using PMI and concatenates them into a single words.
+    * A new method `tomotopy.LDAModel.add_corpus` was added, and `tomotopy.LDAModel.infer` can receive corpus as input. 
+    * A new module `tomotopy.coherence` was added. It provides the way to calculate coherence of the model.
+    * A paramter `window_size` was added to `tomotopy.label.FoRelevance`.
+    * An issue was fixed where NaN often occurs when training `tomotopy.HDPModel`.
+    * Now Python3.9 is supported.
+    * A dependency to py-cpuinfo was removed and the initializing of the module was improved.
+
 * 0.9.1 (2020-08-08)
     * Memory leaks of version 0.9.0 was fixed.
     * `tomotopy.CTModel.summary()` was fixed.

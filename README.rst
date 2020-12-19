@@ -261,6 +261,17 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.10.0 (2020-12-19)
+    * The interface of `tomotopy.utils.Corpus` and of `tomotopy.LDAModel.docs` were unified. Now you can access the document in corpus with the same manner.
+    * __getitem__ of `tomotopy.utils.Corpus` was improved. Not only indexing by int, but also by Iterable[int], slicing are supported. Also indexing by uid is supported.
+    * New methods `tomotopy.utils.Corpus.extract_ngrams` and `tomotopy.utils.Corpus.concat_ngrams` were added. They extracts n-gram collocations using PMI and concatenates them into a single words.
+    * A new method `tomotopy.LDAModel.add_corpus` was added, and `tomotopy.LDAModel.infer` can receive corpus as input. 
+    * A new module `tomotopy.coherence` was added. It provides the way to calculate coherence of the model.
+    * A paramter `window_size` was added to `tomotopy.label.FoRelevance`.
+    * An issue was fixed where NaN often occurs when training `tomotopy.HDPModel`.
+    * Now Python3.9 is supported.
+    * A dependency to py-cpuinfo was removed and the initializing of the module was improved.
+
 * 0.9.1 (2020-08-08)
     * Memory leaks of version 0.9.0 was fixed.
     * `tomotopy.CTModel.summary()` was fixed.

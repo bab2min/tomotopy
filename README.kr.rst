@@ -255,6 +255,17 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.10.0 (2020-12-19)
+    * `tomotopy.utils.Corpus`와 `tomotopy.LDAModel.docs` 간의 인터페이스가 통일되었습니다. 이제 동일한 방법으로 코퍼스 내의 문헌들에 접근할 수 있습니다.
+    * `tomotopy.utils.Corpus`의 __getitem__이 개선되었습니다. int 타입 인덱싱뿐만 아니라 Iterable[int]나 slicing를 이용한 다중 인덱싱, uid를 이용한 인덱싱 등이 제공됩니다.
+    * `tomotopy.utils.Corpus.extract_ngrams`와 `tomotopy.utils.Corpus.concat_ngrams`이 추가되었습니다. PMI를 이용해 코퍼스 내에서 자동으로 n-gram collocation을 발견해 한 단어로 합치는 기능을 수행합니다.
+    * `tomotopy.LDAModel.add_corpus`가 추가되었고, `tomotopy.LDAModel.infer`가 Raw 코퍼스를 입력으로 받을 수 있게 되었습니다.
+    * `tomotopy.coherence` 모듈이 추가되었습니다. 생성된 토픽 모델의 coherence를 계산하는 기능을 담당합니다.
+    * `tomotopy.label.FoRelevance`에 window_size 파라미터가 추가되었습니다.
+    * `tomotopy.HDPModel` 학습 시 종종 NaN이 발생하는 문제를 해결했습니다.
+    * 이제 Python3.9를 지원합니다.
+    * py-cpuinfo에 대한 의존성이 제거되고, 모듈 로딩속도가 개선되었습니다.
+
 * 0.9.1 (2020-08-08)
     * 0.9.0 버전의 메모리 누수 문제가 해결되었습니다.
     * `tomotopy.CTModel.summary()`가 잘못된 결과를 출력하는 문제가 해결되었습니다.
@@ -277,7 +288,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 * 0.8.2 (2020-07-14)
     * `tomotopy.DTModel.num_timepoints`와 `tomotopy.DTModel.num_docs_by_timepoint` 프로퍼티가 추가되었습니다.
-    * `seed`가 동일해서 플랫폼이 다르면 다른 결과를 내던 문제가 일부 해결되었습니다. 이로 인해 32bit 버전의 모델 학습 결과가 이전 버전과는 달라졌습니다.
+    * `seed`가 동일해도 플랫폼이 다르면 다른 결과를 내던 문제가 일부 해결되었습니다. 이로 인해 32bit 버전의 모델 학습 결과가 이전 버전과는 달라졌습니다.
 
 * 0.8.1 (2020-06-08)
     * `tomotopy.LDAModel.used_vocabs`가 잘못된 값을 반환하는 버그가 수정되었습니다.
@@ -373,3 +384,21 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 * 0.1.0 (2019-05-12)
     * **tomotopy**의 최초 버전
+
+다른 언어용 바인딩
+-------------------
+
+* Ruby: https://github.com/ankane/tomoto
+
+포함된 라이브러리들의 라이센스
+-------------------------------
+* Eigen:
+  This application uses the MPL2-licensed features of Eigen, a C++ template library for linear algebra.
+  A copy of the MPL2 license is available at https://www.mozilla.org/en-US/MPL/2.0/.
+  The source code of the Eigen library can be obtained at http://eigen.tuxfamily.org/.
+
+* EigenRand: `MIT License
+  <licenses_bundled/EigenRand>`_
+
+* Mapbox Variant: `BSD License
+  <licenses_bundled/MapboxVariant>`_
