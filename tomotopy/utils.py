@@ -173,13 +173,15 @@ delimiter : str
 
 class SimpleTokenizer:
     '''`SimpleTokenizer` provided a simple word-tokenizing utility with an arbitrary stemmer.'''
-    def __init__(self, stemmer=None, pattern:str=None):
+    def __init__(self, stemmer=None, pattern:str=None, lowercase=True):
         '''Parameters
 ----------
 stemmer : Callable[str, str]
     a callable object for stemming words. If this value is set to `None`, words are not stemmed.
 pattern : str
     a regex pattern for extracting tokens
+lowercase : bool
+    converts the token into lowercase if this is True
 
 Here is an example of using SimpleTokenizer with NLTK for stemming.
 
@@ -190,14 +192,15 @@ Here is an example of using SimpleTokenizer with NLTK for stemming.
         if stemmer and not callable(stemmer):
             raise ValueError("`stemmer` must be callable.")
         self._stemmer = stemmer or None
+        self._lowercase = lowercase
 
     def __call__(self, raw:str, user_data=None):
         if self._stemmer:
-            for g in self._pat.finditer(raw.lower()):
+            for g in self._pat.finditer(raw.lower() if self._lowercase else raw):
                 start, end = g.span(0)
                 yield self._stemmer(g.group(0)), start, end - start
         else:
-            for g in self._pat.finditer(raw.lower()):
+            for g in self._pat.finditer(raw.lower() if self._lowercase else raw):
                 start, end = g.span(0)
                 yield g.group(0), start, end - start
 
@@ -258,7 +261,40 @@ Parameters
 ----------
 filename : str
     읽어들일 파일의 경로"""
-    
+    __pdoc__['Corpus.extract_ngrams'] = '''..versionadded:: 0.10.0
+
+PMI 점수를 이용해 자주 등장하는 n-gram들을 추출합니다.
+
+Parameters
+----------
+min_cf : int
+    추출할 n-gram의 최소 장서빈도
+min_df : int
+    추출할 n-gram의 최소 문헌빈도
+max_len : int
+    추출할 n-gram의 최대 길이
+max_cand : int
+    추출할 n-gram의 갯수
+min_score : float
+    추출할 n-gram의 최소 PMI 점수
+
+Returns
+-------
+candidates : List[tomotopy.label.Candidate]
+    추출된 n-gram 후보의 리스트. `tomotopy.label.Candidate` 타입
+'''
+    __pdoc__['Corpus.concat_ngrams'] = '''..versionadded:: 0.10.0
+
+코퍼스 내에서 주어진 n-gram 목록과 일치하는 단어열을 하나의 단어로 합칩니다.
+
+Parameters
+----------
+cands : Iterable[tomotopy.label.Candidate]
+    합칠 n-gram의 List. `tomotopy.utils.Corpus.extract_ngrams`로 생성할 수 있습니다.
+delimiter : str
+    여러 단어들을 연결할 때 사용할 구분자. 기본값은 `'_'`입니다.
+'''
+
     __pdoc__['SimpleTokenizer'] = """`SimpleTokenizer`는 임의의 스테머를 사용할 수 있는 단순한 단어 분리 유틸리티입니다.
 
 Parameters
@@ -267,6 +303,8 @@ stemmer : Callable[str, str]
     단어를 스테밍하는데 사용되는 호출가능한 객체. 만약 이 값이 `None`이라면 스테밍은 사용되지 않습니다.
 pattern : str
     토큰을 추출하는데 사용할 정규식 패턴
+lowercase : bool
+    참일 경우 분리된 단어들을 소문자화합니다.
 
 SimpleTokenizer와 NLTK를 사용하여 스테밍을 하는 예제는 다음과 같습니다.
 

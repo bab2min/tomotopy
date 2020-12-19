@@ -58,8 +58,8 @@ DOC_SIGNATURE_EN_KO(PMIExtractor___init____doc__,
 `PMIExtractor` exploits multivariate pointwise mutual information to extract collocations. 
 It finds a string of words that often co-occur statistically.
 
-Parameter
----------
+Parameters
+----------
 min_cf : int
     minimum collection frequency of collocations. Collocations with a smaller collection frequency than `min_cf` are excluded from the candidates.
     Set this value large if the corpus is big
@@ -80,8 +80,8 @@ max_cand : int
 
 `PMIExtractor`는 다변수 점별 상호정보량을 활용해 연어를 추출합니다. 이는 통계적으로 자주 함께 등장하는 단어열을 찾아줍니다.
 
-Parameter
----------
+Parameters
+----------
 min_cf : int
     추출하려는 후보의 최소 장서 빈도. 문헌 내 등장하는 빈도수가 `min_cf`보다 작은 연어는 후보에서 제외됩니다.
     분석하려는 코퍼스가 클 경우 이 값을 키우십시오.
@@ -106,8 +106,8 @@ DOC_SIGNATURE_EN_KO(Labeler_get_topic_labels__doc__,
 	"get_topic_labels(self, k, top_n=10)",
 	u8R""(Return the top-n label candidates for the topic `k`
 
-Parameter
----------
+Parameters
+----------
 k : int
     an integer indicating a topic
 top_n : int
@@ -115,8 +115,8 @@ top_n : int
 )"",
 	u8R""(토픽 `k`에 해당하는 레이블 후보 상위 n개를 반환합니다.
 
-Parameter
----------
+Parameters
+----------
 k : int
     토픽을 지정하는 정수
 top_n : int
