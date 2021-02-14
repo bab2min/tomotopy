@@ -18,7 +18,7 @@ The current version of `tomoto` supports several major topic models including
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`).
 
-The most recent version of tomotopy is 0.10.0.
+The most recent version of tomotopy is 0.10.1.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -340,6 +340,12 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.10.1 (2021-02-14)
+    * An issue was fixed where `tomotopy.utils.Corpus.extract_ngrams` craches with empty input.
+    * An issue was fixed where `tomotopy.LDAModel.infer` raises exception with valid input.
+    * An issue was fixed where `tomotopy.HLDAModel.infer` generates wrong `tomotopy.Document.path`.
+    * Since a new parameter `freeze_topics` for `tomotopy.HLDAModel.train` was added, you can control whether to create a new topic or not when training.
+
 * 0.10.0 (2020-12-19)
     * The interface of `tomotopy.utils.Corpus` and of `tomotopy.LDAModel.docs` were unified. Now you can access the document in corpus with the same manner.
     * __getitem__ of `tomotopy.utils.Corpus` was improved. Not only indexing by int, but also by Iterable[int], slicing are supported. Also indexing by uid is supported.

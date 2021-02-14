@@ -18,7 +18,7 @@ tomotopy 란?
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
 
-tomotopy의 가장 최신버전은 0.10.0 입니다.
+tomotopy의 가장 최신버전은 0.10.1 입니다.
 
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
@@ -336,6 +336,12 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.10.1 (2021-02-14)
+    * `tomotopy.utils.Corpus.extract_ngrams`에 빈 문헌을 입력시 발생하던 에러를 수정했습니다.
+    * `tomotopy.LDAModel.infer`가 올바른 입력에도 예외를 발생시키던 문제를 수정했습니다.
+    * `tomotopy.HLDAModel.infer`가 잘못된 `tomotopy.Document.path` 값을 생성하는 문제를 수정했습니다.
+    * `tomotopy.HLDAModel.train`에 새로운 파라미터 `freeze_topics`가 추가되었습니다. 이를 통해 학습 시 신규 토픽 생성 여부를 조정할 수 있습니다.
+
 * 0.10.0 (2020-12-19)
     * `tomotopy.utils.Corpus`와 `tomotopy.LDAModel.docs` 간의 인터페이스가 통일되었습니다. 이제 동일한 방법으로 코퍼스 내의 문헌들에 접근할 수 있습니다.
     * `tomotopy.utils.Corpus`의 __getitem__이 개선되었습니다. int 타입 인덱싱뿐만 아니라 Iterable[int]나 slicing를 이용한 다중 인덱싱, uid를 이용한 인덱싱 등이 제공됩니다.
