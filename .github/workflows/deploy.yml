@@ -40,9 +40,9 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        /opt/python/cp35-cp35m/bin/python -m pip install twine wheel numpy
-        /opt/python/cp35-cp35m/bin/python setup.py sdist
-        /opt/python/cp35-cp35m/bin/python -m twine upload dist/*.tar.gz
+        /opt/python/cp38-cp38/bin/python -m pip install twine wheel numpy
+        /opt/python/cp38-cp38/bin/python setup.py sdist
+        /opt/python/cp38-cp38/bin/python -m twine upload dist/*.tar.gz
         for cp in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel numpy
