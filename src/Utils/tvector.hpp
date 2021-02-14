@@ -172,9 +172,13 @@ namespace tomoto
 
 		reverse_iterator rbegin() noexcept { return reverse_iterator(_last); }
 
+		const_reverse_iterator rbegin() const noexcept { return reverse_iterator(_last); }
+
 		const_reverse_iterator crbegin() const noexcept { return reverse_iterator(_last); }
 
 		reverse_iterator rend() noexcept { return reverse_iterator(_first); }
+
+		const_reverse_iterator rend() const noexcept { return reverse_iterator(_first); }
 
 		const_reverse_iterator crend() const noexcept { return reverse_iterator(_first); }
 

@@ -20,6 +20,7 @@ namespace tomoto
 
 		Eigen::Matrix<WeightType, -1, -1> numByTopic; // Dim: (Topic, Time)
 		Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic * Time, Vocabs)
+		//ShareableMatrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic * Time, Vocabs)
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
 	};
 
@@ -139,8 +140,6 @@ namespace tomoto
 		template<ParallelScheme _ps, typename _ExtraDocData>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
-			std::vector<std::future<void>> res;
-
 			if (_ps == ParallelScheme::copy_merge)
 			{
 				tState = globalState;
@@ -157,17 +156,10 @@ namespace tomoto
 				}
 				Eigen::Map<Eigen::Matrix<WeightType, -1, 1>>{ globalState.numByTopic.data(), globalState.numByTopic.size() }
 					= globalState.numByTopicWord.rowwise().sum();
-
-				for (size_t i = 0; i < pool.getNumWorkers(); ++i)
-				{
-					res.emplace_back(pool.enqueue([&, i](size_t)
-					{
-						localData[i] = globalState;
-					}));
-				}
 			}
 			else if (_ps == ParallelScheme::partition)
 			{
+				std::vector<std::future<void>> res;
 				res = pool.enqueueToAll([&](size_t partitionId)
 				{
 					size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
@@ -175,7 +167,6 @@ namespace tomoto
 					globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b) = localData[partitionId].numByTopicWord;
 				});
 				for (auto& r : res) r.get();
-				res.clear();
 
 				// make all count being positive
 				if (_tw != TermWeight::one)
@@ -184,17 +175,11 @@ namespace tomoto
 				}
 				Eigen::Map<Eigen::Matrix<WeightType, -1, 1>>{ globalState.numByTopic.data(), globalState.numByTopic.size() }
 					= globalState.numByTopicWord.rowwise().sum();
-
-				res = pool.enqueueToAll([&](size_t threadId)
-				{
-					localData[threadId].numByTopic = globalState.numByTopic;
-				});
 			}
-			for (auto& r : res) r.get();
 		}
 
 		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
+		void _sampleGlobalLevel(ThreadPool* pool, _ModelState*, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
 			const auto K = this->K;
 			const Float eps = shapeA * (std::pow(shapeB + 1 + this->globalStep, -shapeC));
@@ -313,10 +298,10 @@ namespace tomoto
 			alphas = newAlphas;
 		}
 
-		template<typename _DocIter>
+		template<GlobalSampler _gs, typename _DocIter>
 		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
-			// do nothing
+			if (_gs != GlobalSampler::inference) return const_cast<DerivedClass*>(this)->_sampleGlobalLevel(pool, localData, rgs, first, last);
 		}
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
@@ -343,11 +328,11 @@ namespace tomoto
 			BaseClass::prepareDoc(doc, docId, wordSize);
 			if (docId == (size_t)-1)
 			{
-				doc.eta.init(nullptr, this->K);
+				doc.eta.init(nullptr, this->K, 1);
 			}
 			else
 			{
-				doc.eta.init((Float*)etaByDoc.col(docId).data(), this->K);
+				doc.eta.init((Float*)etaByDoc.col(docId).data(), this->K, 1);
 			}
 		}
 
@@ -427,7 +412,7 @@ namespace tomoto
 				numDocsByTime[doc.timepoint]++;
 				if (!initDocs)
 				{
-					doc.eta.init((Float*)etaByDoc.col(docId++).data(), this->K);
+					doc.eta.init((Float*)etaByDoc.col(docId++).data(), this->K, 1);
 				}
 			}
 

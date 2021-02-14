@@ -58,7 +58,8 @@ namespace tomoto
 
 		Eigen::Matrix<Float, -1, 1> zLikelihood;
 		Eigen::Matrix<WeightType, -1, 1> numByTopic; // Dim: (Topic, 1)
-		Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
+		//Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
+		ShareableMatrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
 	};
 
@@ -137,7 +138,8 @@ namespace tomoto
 		typename _Interface,
 		typename _Derived,
 		typename _DocType,
-		typename _ModelState>
+		typename _ModelState
+	>
 	class HDPModel;
 
 	template<TermWeight _tw, typename _RandGen,
@@ -145,7 +147,8 @@ namespace tomoto
 		typename _Interface = ILDAModel,
 		typename _Derived = void, 
 		typename _DocType = DocumentLDA<_tw>,
-		typename _ModelState = ModelStateLDA<_tw>>
+		typename _ModelState = ModelStateLDA<_tw>
+	>
 	class LDAModel : public TopicModel<_RandGen, _Flags, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, LDAModel<_tw, _RandGen, _Flags>, _Derived>::type,
 		_DocType, _ModelState>,
@@ -306,25 +309,23 @@ namespace tomoto
 				e = edd.chunkOffsetByDoc(partitionId + 1, docId);
 			}
 
-			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? edd.vChunkOffset[partitionId - 1] : 0;
-
 			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
-				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w]);
+				static_cast<const DerivedClass*>(this)->template addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 				Float* dist;
 				if (etaByTopicWord.size())
 				{
 					dist = static_cast<const DerivedClass*>(this)->template
-						getZLikelihoods<true>(ld, doc, docId, doc.words[w] - vOffset);
+						getZLikelihoods<true>(ld, doc, docId, doc.words[w]);
 				}
 				else
 				{
 					dist = static_cast<const DerivedClass*>(this)->template
-						getZLikelihoods<false>(ld, doc, docId, doc.words[w] - vOffset);
+						getZLikelihoods<false>(ld, doc, docId, doc.words[w]);
 				}
 				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + K, rgs);
-				addWordTo<1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w]);
+				static_cast<const DerivedClass*>(this)->template addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 			}
 		}
 
@@ -335,7 +336,7 @@ namespace tomoto
 			// single-threaded sampling
 			if (_ps == ParallelScheme::none)
 			{
-				forRandom((size_t)std::distance(docFirst, docLast), rgs[0](), [&](size_t id)
+				forShuffled((size_t)std::distance(docFirst, docLast), rgs[0](), [&](size_t id)
 				{
 					static_cast<const DerivedClass*>(this)->presampleDocument(docFirst[id], id, *localData, *rgs, this->globalStep);
 					static_cast<const DerivedClass*>(this)->template sampleDocument<_ps, _infer>(
@@ -344,7 +345,7 @@ namespace tomoto
 
 				});
 			}
-			// multi-threaded sampling on partition ad update into global
+			// multi-threaded sampling on partition and update into global
 			else if (_ps == ParallelScheme::partition)
 			{
 				const size_t chStride = pool.getNumWorkers();
@@ -353,7 +354,7 @@ namespace tomoto
 					res = pool.enqueueToAll([&, i, chStride](size_t partitionId)
 					{
 						size_t didx = (i + partitionId) % chStride;
-						forRandom(((size_t)std::distance(docFirst, docLast) + (chStride - 1) - didx) / chStride, rgs[partitionId](), [&](size_t id)
+						forShuffled(((size_t)std::distance(docFirst, docLast) + (chStride - 1) - didx) / chStride, rgs[partitionId](), [&](size_t id)
 						{
 							if (i == 0)
 							{
@@ -380,7 +381,7 @@ namespace tomoto
 				{
 					res.emplace_back(pool.enqueue([&, ch, chStride](size_t threadId)
 					{
-						forRandom(((size_t)std::distance(docFirst, docLast) + (chStride - 1) - ch) / chStride, rgs[threadId](), [&](size_t id)
+						forShuffled(((size_t)std::distance(docFirst, docLast) + (chStride - 1) - ch) / chStride, rgs[threadId](), [&](size_t id)
 						{
 							static_cast<const DerivedClass*>(this)->presampleDocument(
 								docFirst[id * chStride + ch], id * chStride + ch, 
@@ -396,6 +397,16 @@ namespace tomoto
 				for (auto& r : res) r.get();
 				res.clear();
 			}
+			else
+			{
+				throw std::runtime_error{ "Unsupported ParallelScheme" };
+			}
+		}
+
+		template<ParallelScheme _ps, bool _infer, typename _DocIter>
+		void performSamplingGlobal(ThreadPool* pool, _ModelState& globalState, _RandGen* rgs, 
+			_DocIter docFirst, _DocIter docLast) const
+		{
 		}
 
 		template<typename _DocIter, typename _ExtraDocData>
@@ -444,7 +455,8 @@ namespace tomoto
 				size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
 					e = edd.vChunkOffset[partitionId];
 
-				localData[partitionId].numByTopicWord = globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b);
+				//localData[partitionId].numByTopicWord.matrix() = globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b);
+				localData[partitionId].numByTopicWord.init((WeightType*)globalState.numByTopicWord.data(), globalState.numByTopicWord.rows(), globalState.numByTopicWord.cols());
 				localData[partitionId].numByTopic = globalState.numByTopic;
 				if (!localData[partitionId].zLikelihood.size()) localData[partitionId].zLikelihood = globalState.zLikelihood;
 			});
@@ -467,16 +479,29 @@ namespace tomoto
 		}
 
 		template<ParallelScheme _ps>
-		void trainOne(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
+		void trainOne(ThreadPool& pool, _ModelState* localData, _RandGen* rgs, bool freeze_topics = false)
 		{
 			std::vector<std::future<void>> res;
 			try
 			{
-				performSampling<_ps, false>(pool, localData, rgs, res, 
-					this->docs.begin(), this->docs.end(), eddTrain);
+				static_cast<DerivedClass*>(this)->template performSampling<_ps, false>(pool, localData, rgs, res,
+					this->docs.begin(), this->docs.end(), eddTrain
+				);
 				static_cast<DerivedClass*>(this)->updateGlobalInfo(pool, localData);
 				static_cast<DerivedClass*>(this)->template mergeState<_ps>(pool, this->globalState, this->tState, localData, rgs, eddTrain);
-				static_cast<DerivedClass*>(this)->template sampleGlobalLevel<>(&pool, localData, rgs, this->docs.begin(), this->docs.end());
+				static_cast<DerivedClass*>(this)->template performSamplingGlobal<_ps, false>(&pool, this->globalState, rgs, 
+					this->docs.begin(), this->docs.end()
+				);
+				
+				if(freeze_topics) static_cast<DerivedClass*>(this)->template sampleGlobalLevel<GlobalSampler::freeze_topics>(
+					&pool, &this->globalState, rgs, this->docs.begin(), this->docs.end()
+				);
+				else static_cast<DerivedClass*>(this)->template sampleGlobalLevel<GlobalSampler::train>(
+					&pool, &this->globalState, rgs, this->docs.begin(), this->docs.end()
+				);
+
+				static_cast<DerivedClass*>(this)->template distributeMergedState<_ps>(pool, this->globalState, localData);
+				
 				if (this->globalStep >= this->burnIn && optimInterval && (this->globalStep + 1) % optimInterval == 0)
 				{
 					static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData, rgs);
@@ -503,8 +528,6 @@ namespace tomoto
 		template<ParallelScheme _ps, typename _ExtraDocData>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
-			std::vector<std::future<void>> res;
-
 			if (_ps == ParallelScheme::copy_merge)
 			{
 				tState = globalState;
@@ -517,10 +540,27 @@ namespace tomoto
 				// make all count being positive
 				if (_tw != TermWeight::one)
 				{
-					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
+					globalState.numByTopicWord.matrix() = globalState.numByTopicWord.cwiseMax(0);
 				}
 				globalState.numByTopic = globalState.numByTopicWord.rowwise().sum();
+			}
+			else if (_ps == ParallelScheme::partition)
+			{
+				// make all count being positive
+				if (_tw != TermWeight::one)
+				{
+					globalState.numByTopicWord.matrix() = globalState.numByTopicWord.cwiseMax(0);
+				}
+				globalState.numByTopic = globalState.numByTopicWord.rowwise().sum();
+			}
+		}
 
+		template<ParallelScheme _ps>
+		void distributeMergedState(ThreadPool& pool, _ModelState& globalState, _ModelState* localData) const
+		{
+			std::vector<std::future<void>> res;
+			if (_ps == ParallelScheme::copy_merge)
+			{
 				for (size_t i = 0; i < pool.getNumWorkers(); ++i)
 				{
 					res.emplace_back(pool.enqueue([&, i](size_t)
@@ -531,22 +571,6 @@ namespace tomoto
 			}
 			else if (_ps == ParallelScheme::partition)
 			{
-				res = pool.enqueueToAll([&](size_t partitionId)
-				{
-					size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
-						e = edd.vChunkOffset[partitionId];
-					globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b) = localData[partitionId].numByTopicWord;
-				});
-				for (auto& r : res) r.get();
-				res.clear();
-
-				// make all count being positive
-				if (_tw != TermWeight::one)
-				{
-					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
-				}
-				globalState.numByTopic = globalState.numByTopicWord.rowwise().sum();
-
 				res = pool.enqueueToAll([&](size_t threadId)
 				{
 					localData[threadId].numByTopic = globalState.numByTopic;
@@ -560,13 +584,8 @@ namespace tomoto
 		ex) document pathing at hLDA model
 		* if pool is nullptr, workers has been already pooled and cannot branch works more.
 		*/
-		template<typename _DocIter>
+		template<GlobalSampler _gs, typename _DocIter>
 		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
-		{
-		}
-
-		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
 		}
 
@@ -592,16 +611,33 @@ namespace tomoto
 			double ll = 0;
 			const size_t V = this->realV;
 			// topic-word distribution
-			auto lgammaEta = math::lgammaT(eta);
-			ll += math::lgammaT(V*eta) * K;
-			for (Tid k = 0; k < K; ++k)
+			if (etaByTopicWord.size())
 			{
-				ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
-				for (Vid v = 0; v < V; ++v)
+				for (Tid k = 0; k < K; ++k)
 				{
-					if (!ld.numByTopicWord(k, v)) continue;
-					ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
-					assert(std::isfinite(ll));
+					Float etasum = etaByTopicWord.row(k).sum();
+					ll += math::lgammaT(etasum) - math::lgammaT(ld.numByTopic[k] + etasum);
+					for (Vid v = 0; v < V; ++v)
+					{
+						if (!ld.numByTopicWord(k, v)) continue;
+						ll += math::lgammaT(ld.numByTopicWord(k, v) + etaByTopicWord(v, k)) - math::lgammaT(etaByTopicWord(v, k));
+						assert(std::isfinite(ll));
+					}
+				}
+			}
+			else
+			{
+				auto lgammaEta = math::lgammaT(eta);
+				ll += math::lgammaT(V * eta) * K;
+				for (Tid k = 0; k < K; ++k)
+				{
+					ll -= math::lgammaT(ld.numByTopic[k] + V * eta);
+					for (Vid v = 0; v < V; ++v)
+					{
+						if (!ld.numByTopicWord(k, v)) continue;
+						ll += math::lgammaT(ld.numByTopicWord(k, v) + eta) - lgammaEta;
+						assert(std::isfinite(ll));
+					}
 				}
 			}
 			return ll;
@@ -637,9 +673,9 @@ namespace tomoto
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
-			doc.numByTopic.init(getTopicDocPtr(docId), K);
+			doc.numByTopic.init(getTopicDocPtr(docId), K, 1);
 			doc.Zs = tvector<Tid>(wordSize);
-			if(_tw != TermWeight::one) doc.wordWeights.resize(wordSize, 1);
+			if(_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
 		void prepareWordPriors()
@@ -664,7 +700,8 @@ namespace tomoto
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(K);
-				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K, V);
+				//this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K, V);
+				this->globalState.numByTopicWord.init(nullptr, K, V);
 			}
 			if(m_flags & flags::continuous_doc_data) numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(K, this->docs.size());
 		}
@@ -791,12 +828,18 @@ namespace tomoto
 				for (size_t i = 0; i < maxIter; ++i)
 				{
 					std::vector<std::future<void>> res;
-					performSampling<_ps, true>(pool,
+					static_cast<const DerivedClass*>(this)->template performSampling<_ps, true>(pool,
 						(m_flags & flags::shared_state) ? &tmpState : localData.data(), rgs.data(), res,
-						docFirst, docLast, edd);
+						docFirst, docLast, edd
+					);
 					static_cast<const DerivedClass*>(this)->template mergeState<_ps>(pool, tmpState, tState, localData.data(), rgs.data(), edd);
-					static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
-						&pool, (m_flags & flags::shared_state) ? &tmpState : localData.data(), rgs.data(), docFirst, docLast);
+					static_cast<const DerivedClass*>(this)->template performSamplingGlobal<_ps, true>(&pool, tmpState, rgs.data(),
+						docFirst, docLast
+					);
+					static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<GlobalSampler::inference>(
+						&pool, (m_flags & flags::shared_state) ? &tmpState : localData.data(), rgs.data(), docFirst, docLast
+					);
+					static_cast<const DerivedClass*>(this)->template distributeMergedState<_ps>(pool, tmpState, localData.data());
 				}
 				double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - static_cast<const DerivedClass*>(this)->getLLRest(this->globalState);
 				ll += static_cast<const DerivedClass*>(this)->template getLLDocs<>(docFirst, docLast);
@@ -817,7 +860,9 @@ namespace tomoto
 					{
 						static_cast<const DerivedClass*>(this)->presampleDocument(*d, -1, tmpState, rgc, i);
 						static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(*d, edd, -1, tmpState, rgc, i);
-						static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
+						static_cast<const DerivedClass*>(this)->template performSamplingGlobal<_ps, true>(&pool, tmpState, &rgc,
+							&*d, &*d + 1);
+						static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<GlobalSampler::inference>(
 							&pool, &tmpState, &rgc, &*d, &*d + 1);
 					}
 					double ll = static_cast<const DerivedClass*>(this)->getLLRest(tmpState) - gllRest;
@@ -845,7 +890,9 @@ namespace tomoto
 							static_cast<const DerivedClass*>(this)->template sampleDocument<ParallelScheme::none, true>(
 								*d, edd, -1, tmpState, rgc, i
 							);
-							static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<>(
+							static_cast<const DerivedClass*>(this)->template performSamplingGlobal<_ps, true>(nullptr, tmpState, &rgc,
+								&*d, &*d + 1);
+							static_cast<const DerivedClass*>(this)->template sampleGlobalLevel<GlobalSampler::inference>(
 								nullptr, &tmpState, &rgc, &*d, &*d + 1
 							);
 						}
@@ -1036,7 +1083,7 @@ namespace tomoto
 	template<typename _TopicModel>
 	void DocumentLDA<_tw>::update(WeightType* ptr, const _TopicModel& mdl)
 	{
-		numByTopic.init(ptr, mdl.getK());
+		numByTopic.init(ptr, mdl.getK(), 1);
 		for (size_t i = 0; i < Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;

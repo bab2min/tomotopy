@@ -163,7 +163,7 @@ namespace tomoto
 			{
 				res.emplace_back(pool.enqueue([&, this, ch, chStride](size_t threadId)
 				{
-					forRandom((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
+					forShuffled((this->docs.size() - 1 - ch) / chStride + 1, rgs[threadId](), [&, this](size_t id)
 					{
 						static_cast<DerivedClass*>(this)->template sampleDocument<ParallelScheme::copy_merge>(
 							this->docs[id * chStride + ch], 0, id * chStride + ch,

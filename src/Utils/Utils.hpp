@@ -70,7 +70,7 @@ namespace tomoto
 	}
 
 	template<class UnaryFunction>
-	UnaryFunction forRandom(size_t N, size_t seed, UnaryFunction f)
+	UnaryFunction forShuffled(size_t N, size_t seed, UnaryFunction f)
 	{
 		static size_t primes[16] = {
 			65537, 65539, 65543, 65551, 65557, 65563,
@@ -206,132 +206,137 @@ namespace tomoto
 	}
 
 	template <typename _UnaryFunc, typename _Iterator>
-	class TransformIter
+	class TransformIter : public _Iterator
 	{
 	private:
-		_Iterator i;
 		_UnaryFunc f;
 	public:
 		using reference = typename std::result_of<
 			const _UnaryFunc(typename std::iterator_traits<_Iterator>::reference)
 		>::type;
 		using value_type = reference;
-
-		using pointer = void;
-		using iterator_category = typename std::iterator_traits<_Iterator>::iterator_category;
-		using difference_type = typename std::iterator_traits<_Iterator>::difference_type;
-
+		
 		TransformIter(const _Iterator& _iter = {}, _UnaryFunc _f = {})
-			: i(_iter), f(_f)
+			: _Iterator(_iter), f(_f)
 		{}
 		
 		reference operator*()
 		{
-			return f(*i);
+			return f(_Iterator::operator*());
 		}
 
 		const reference operator*() const
 		{
-			return f(*i);
+			return f(_Iterator::operator*());
 		}
 
 		reference operator[](std::size_t idx)
 		{
-			return f(i[idx]);
+			return f(_Iterator::operator[](idx));
 		}
 
 		const reference operator[](std::size_t idx) const
 		{
-			return f(i[idx]);
+			return f(_Iterator::operator[](idx));
 		}
 
 		TransformIter& operator++()
 		{
-			++i;
+			_Iterator::operator++();
 			return *this;
 		}
 
-		TransformIter& operator++(int)
+		TransformIter operator++(int)
 		{
 			auto c = *this;
-			++i;
+			_Iterator::operator++();
 			return c;
 		}
 
 		TransformIter& operator--()
 		{
-			--i;
+			_Iterator::operator--();
 			return *this;
 		}
 
-		TransformIter& operator--(int)
+		TransformIter operator--(int)
 		{
 			auto c = *this;
-			--i;
+			_Iterator::operator--();
 			return c;
 		}
 
 		TransformIter operator+(int n) const
 		{
-			return { f, i + n };
+			return { _Iterator::operator+(n), f };
 		}
 
 		TransformIter operator-(int n) const
 		{
-			return { f, i - n };
+			return { _Iterator::operator-(n), f };
 		}
 
 		TransformIter& operator+=(int n)
 		{
-			i += n;
+			_Iterator::operator+=(n);
 			return *this;
 		}
 
 		TransformIter& operator-=(int n)
 		{
-			i -= n;
+			_Iterator::operator-=(n);
 			return *this;
 		}
 
 		typename std::iterator_traits<_Iterator>::difference_type operator-(const TransformIter& o) const
 		{
-			return i - o.i;
+			return (const _Iterator&)*this - (const _Iterator&)o;
 		}
 
-		bool operator==(const TransformIter& o) const
-		{
-			return i == o.i;
-		}
-
-		bool operator!=(const TransformIter& o) const
-		{
-			return i != o.i;
-		}
-
-		bool operator<(const TransformIter& o) const
-		{
-			return i < o.i;
-		}
-
-		bool operator>(const TransformIter& o) const
-		{
-			return i > o.i;
-		}
-
-		bool operator<=(const TransformIter& o) const
-		{
-			return i <= o.i;
-		}
-
-		bool operator>=(const TransformIter& o) const
-		{
-			return i >= o.i;
-		}
 	};
 
 	template <typename _UnaryFunc, typename _Iterator> 
 	TransformIter<_UnaryFunc, _Iterator> makeTransformIter(const _Iterator& iter, _UnaryFunc f)
 	{
 		return { iter, f };
+	}
+
+	template <typename _Iterator>
+	class StrideIter : public _Iterator
+	{
+		size_t stride;
+		const _Iterator end;
+	public:
+		StrideIter(const _Iterator& iter, size_t _stride = 1, const _Iterator& _end = {})
+			: _Iterator{ iter }, stride{ _stride }, end{ _end }
+		{
+		}
+
+		StrideIter(const StrideIter&) = default;
+		StrideIter(StrideIter&&) = default;
+
+		StrideIter& operator++()
+		{
+			for (size_t i = 0; i < stride && *this != end; ++i)
+			{
+				_Iterator::operator++();
+			}
+			return *this;
+		}
+
+		StrideIter& operator--()
+		{
+			for (size_t i = 0; i < stride && *this != end; ++i)
+			{
+				_Iterator::operator--();
+			}
+			return *this;
+		}
+	};
+
+	template <typename _Iterator>
+	StrideIter<_Iterator> makeStrideIter(const _Iterator& iter, size_t stride, const _Iterator& end = {})
+	{
+		return { iter, stride, end };
 	}
 }

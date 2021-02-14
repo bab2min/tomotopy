@@ -178,9 +178,9 @@ PyObject* LDA_getWordPrior(TopicModelObject* self, PyObject* args, PyObject *kwa
 
 static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t iteration = 10, workers = 0, ps = 0;
-	static const char* kwlist[] = { "iter", "workers", "parallel", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnn", (char**)kwlist, &iteration, &workers, &ps)) return nullptr;
+	size_t iteration = 10, workers = 0, ps = 0, fixed = 0;
+	static const char* kwlist[] = { "iter", "workers", "parallel", "freeze_topics", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnp", (char**)kwlist, &iteration, &workers, &ps, &fixed)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -190,7 +190,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
-		inst->train(iteration, workers, (tomoto::ParallelScheme)ps);
+		inst->train(iteration, workers, (tomoto::ParallelScheme)ps, !!fixed);
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
@@ -282,6 +282,22 @@ PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 			auto ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
 			return py::buildPyTuple(py::UniqueObj{ (PyObject*)cps }, ll);
 		}
+		else if (PyObject_TypeCheck(argDoc, &UtilsDocument_type))
+		{
+			auto* doc = (DocumentObject*)argDoc;
+			if (doc->corpus->tm != self) throw runtime_error{ "`doc` was from another model, not fit to this model" };
+			if (doc->owner)
+			{
+				std::vector<tomoto::DocumentBase*> docs;
+				docs.emplace_back((tomoto::DocumentBase*)doc->getBoundDoc());
+				float ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
+				return Py_BuildValue("(Nf)", py::buildPyValue(self->inst->getTopicsByDoc(doc->getBoundDoc())), ll);
+			}
+			else
+			{
+				return Py_BuildValue("(Ns)", py::buildPyValue(self->inst->getTopicsByDoc(doc->getBoundDoc())), nullptr);
+			}
+		}
 		else if ((iter = py::UniqueObj{ PyObject_GetIter(argDoc) }) != nullptr)
 		{
 			std::vector<tomoto::DocumentBase*> docs;
@@ -312,21 +328,7 @@ PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 		}
 		else
 		{
-			PyErr_Clear();
-			if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw runtime_error{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
-			auto* doc = (DocumentObject*)argDoc;
-			if (doc->corpus->tm != self) throw runtime_error{ "`doc` was from another model, not fit to this model" };
-			if (doc->owner)
-			{
-				std::vector<tomoto::DocumentBase*> docs;
-				docs.emplace_back((tomoto::DocumentBase*)doc->getBoundDoc());
-				float ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
-				return Py_BuildValue("(Nf)", py::buildPyValue(self->inst->getTopicsByDoc(doc->getBoundDoc())), ll);
-			}
-			else
-			{
-				return Py_BuildValue("(Ns)", py::buildPyValue(self->inst->getTopicsByDoc(doc->getBoundDoc())), nullptr);
-			}
+			throw runtime_error{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };	
 		}
 	}
 	catch (const bad_exception&)

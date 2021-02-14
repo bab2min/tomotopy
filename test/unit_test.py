@@ -1,48 +1,51 @@
+import sys, os
 import tomotopy as tp
-import sys
+
+curpath = os.path.dirname(os.path.realpath(__file__))
+print(curpath)
 
 model_cases = [
-    (tp.LDAModel, 'test/sample.txt', 0, None, {'k':40}, None),
-    (tp.LLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'k':5}, None),
-    (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
-    (tp.PLDAModel, 'test/sample_with_md.txt', 1, lambda x:x, {'latent_topics':2, 'topics_per_label':2}, None),
-    (tp.HLDAModel, 'test/sample.txt', 0, None, {'depth':3}, [tp.ParallelScheme.NONE]),
-    (tp.CTModel, 'test/sample.txt', 0, None, {'k':10}, None),
-    (tp.HDPModel, 'test/sample.txt', 0, None, {'initial_k':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.MGLDAModel, 'test/sample.txt', 0, None, {'k_g':5, 'k_l':5}, None),
-    (tp.PAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.HPAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:'_'.join(x), {'k':10}, None),
-    (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}, None),
-    (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:int(x[0]), {'k':10, 't':13}, None),
-    (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3]}, None),
+    (tp.LDAModel, curpath + '/sample.txt', 0, None, {'k':40}, None),
+    (tp.LLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:x, {'k':5}, None),
+    (tp.PLDAModel, curpath + '/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
+    (tp.PLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:x, {'latent_topics':2, 'topics_per_label':2}, None),
+    (tp.HLDAModel, curpath + '/sample.txt', 0, None, {'depth':3}, None),
+    (tp.CTModel, curpath + '/sample.txt', 0, None, {'k':10}, None),
+    (tp.HDPModel, curpath + '/sample.txt', 0, None, {'initial_k':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.MGLDAModel, curpath + '/sample.txt', 0, None, {'k_g':5, 'k_l':5}, None),
+    (tp.PAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.HPAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.DMRModel, curpath + '/sample_with_md.txt', 1, lambda x:'_'.join(x), {'k':10}, None),
+    (tp.SLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}, None),
+    (tp.DTModel, curpath + '/sample_tp.txt', 1, lambda x:int(x[0]), {'k':10, 't':13}, None),
+    (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3]}, None),
 ]
 
 model_raw_cases = [
-    (tp.LDAModel, 'test/sample_raw.txt', 0, None, {'k':10}, None),
-    (tp.HLDAModel, 'test/sample_raw.txt', 0, None, {'depth':3}, [tp.ParallelScheme.NONE]),
-    (tp.CTModel, 'test/sample_raw.txt', 0, None, {'k':10}, None),
-    (tp.HDPModel, 'test/sample_raw.txt', 0, None, {'initial_k':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.MGLDAModel, 'test/sample_raw.txt', 0, None, {'k_g':5, 'k_l':5}, None),
-    (tp.PAModel, 'test/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.HPAModel, 'test/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.LDAModel, curpath + '/sample_raw.txt', 0, None, {'k':10}, None),
+    (tp.HLDAModel, curpath + '/sample_raw.txt', 0, None, {'depth':3}, None),
+    (tp.CTModel, curpath + '/sample_raw.txt', 0, None, {'k':10}, None),
+    (tp.HDPModel, curpath + '/sample_raw.txt', 0, None, {'initial_k':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.MGLDAModel, curpath + '/sample_raw.txt', 0, None, {'k_g':5, 'k_l':5}, None),
+    (tp.PAModel, curpath + '/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.HPAModel, curpath + '/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
 ]
 
 model_corpus_cases = [
-    (tp.LDAModel, 'test/sample.txt', 0, None, {'k':10}, None),
-    (tp.LLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'labels':x}, {'k':5}, None),
-    (tp.PLDAModel, 'test/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
-    (tp.PLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'labels':x}, {'latent_topics':2, 'topics_per_label':2}, None),
-    (tp.HLDAModel, 'test/sample.txt', 0, None, {'depth':3}, [tp.ParallelScheme.NONE]),
-    (tp.CTModel, 'test/sample.txt', 0, None, {'k':10}, None),
-    (tp.HDPModel, 'test/sample.txt', 0, None, {'initial_k':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.MGLDAModel, 'test/sample.txt', 0, None, {'k_g':5, 'k_l':5}, None),
-    (tp.PAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.HPAModel, 'test/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
-    (tp.DMRModel, 'test/sample_with_md.txt', 1, lambda x:{'metadata':'_'.join(x)}, {'k':10}, None),
-    (tp.SLDAModel, 'test/sample_with_md.txt', 1, lambda x:{'y':list(map(float, x))}, {'k':10, 'vars':'b'}, None),
-    (tp.DTModel, 'test/sample_tp.txt', 1, lambda x:{'timepoint':int(x[0])}, {'k':10, 't':13}, None),
-    (tp.GDMRModel, 'test/sample_tp.txt', 1, lambda x:{'metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
+    (tp.LDAModel, curpath + '/sample.txt', 0, None, {'k':10}, None),
+    (tp.LLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:{'labels':x}, {'k':5}, None),
+    (tp.PLDAModel, curpath + '/sample_with_md.txt', 0, None, {'latent_topics':2, 'topics_per_label':2}, None),
+    (tp.PLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:{'labels':x}, {'latent_topics':2, 'topics_per_label':2}, None),
+    (tp.HLDAModel, curpath + '/sample.txt', 0, None, {'depth':3}, None),
+    (tp.CTModel, curpath + '/sample.txt', 0, None, {'k':10}, None),
+    (tp.HDPModel, curpath + '/sample.txt', 0, None, {'initial_k':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.MGLDAModel, curpath + '/sample.txt', 0, None, {'k_g':5, 'k_l':5}, None),
+    (tp.PAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.HPAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.DMRModel, curpath + '/sample_with_md.txt', 1, lambda x:{'metadata':'_'.join(x)}, {'k':10}, None),
+    (tp.SLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:{'y':list(map(float, x))}, {'k':10, 'vars':'b'}, None),
+    (tp.DTModel, curpath + '/sample_tp.txt', 1, lambda x:{'timepoint':int(x[0])}, {'k':10, 't':13}, None),
+    (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:{'metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
 ]
 
 def train1(cls, inputFile, mdFields, f, kargs, ps):
@@ -213,7 +216,7 @@ def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print('Corpus2')
     for d in tcorpus2[:10]: print(d.get_ll())
 
-def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile='test/sample_with_md.txt', mdFields=1, f=lambda x:list(map(float, x)), kargs={'k':10, 'vars':'b'}, ps=tp.ParallelScheme.PARTITION):
+def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile=curpath + '/sample_with_md.txt', mdFields=1, f=lambda x:list(map(float, x)), kargs={'k':10, 'vars':'b'}, ps=tp.ParallelScheme.PARTITION):
     print('Test estimate')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
@@ -244,7 +247,7 @@ def test_auto_labeling():
     corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
         stopwords=lambda x: len(x) <= 2 or x in stopwords)
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
-    corpus.process(open('test/sample_raw.txt', encoding='utf-8'))
+    corpus.process(open(curpath + '/sample_raw.txt', encoding='utf-8'))
     
     ngrams = corpus.extract_ngrams(min_cf=5, min_df=3)
     for c in ngrams:
@@ -280,7 +283,7 @@ def test_docs():
     corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
         stopwords=lambda x: len(x) <= 2 or x in stopwords)
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
-    for i, line in enumerate(open('test/sample_raw.txt', encoding='utf-8')):
+    for i, line in enumerate(open(curpath + '/sample_raw.txt', encoding='utf-8')):
         corpus.add_doc(raw=line, uid='doc{:05}'.format(i), etc=len(line))
 
     def _test_doc(doc, etc=False):
@@ -318,7 +321,7 @@ def test_corpus_transform():
     corpus = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer(stemmer=stemmer.stem), 
         stopwords=lambda x: len(x) <= 2 or x in stopwords)
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
-    for i, line in enumerate(open('test/sample_raw.txt', encoding='utf-8')):
+    for i, line in enumerate(open(curpath + '/sample_raw.txt', encoding='utf-8')):
         corpus.add_doc(raw=line, uid='doc{:05}'.format(i), metadata=line[0])
     
     def xform(misc):
@@ -330,7 +333,7 @@ def test_corpus_transform():
 
 def test_hdp_to_lda():
     mdl = tp.HDPModel(tw=tp.TermWeight.ONE, min_df=5, rm_top=5, alpha=0.5, gamma=0.5, initial_k=5)
-    for n, line in enumerate(open('test/sample.txt', encoding='utf-8')):
+    for n, line in enumerate(open(curpath + '/sample.txt', encoding='utf-8')):
         ch = line.strip().split()
         mdl.add_doc(ch)
     mdl.burn_in = 100
@@ -354,7 +357,7 @@ def test_hdp_to_lda():
 
 def test_coherence():
     mdl = tp.LDAModel(tw=tp.TermWeight.ONE, k=20, min_df=5, rm_top=5)
-    for n, line in enumerate(open('test/sample.txt', encoding='utf-8')):
+    for n, line in enumerate(open(curpath + '/sample.txt', encoding='utf-8')):
         ch = line.strip().split()
         mdl.add_doc(ch)
     mdl.train(1000)

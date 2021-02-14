@@ -31,6 +31,14 @@ DOC_VARIABLE_EN_KO(Candidate_name__doc__,
 	u8R""(an actual name of the candidate for topic label)"",
 	u8R""(토픽 레이블의 실제 이름)"");
 
+DOC_VARIABLE_EN_KO(Candidate_cf__doc__,
+    u8R""(collection frequency of the candidate (read-only))"",
+    u8R""(후보의 장서빈도(읽기전용))"");
+
+DOC_VARIABLE_EN_KO(Candidate_df__doc__,
+    u8R""(document frequency of the candidate (read-only))"",
+    u8R""(후보의 문헌빈도(읽기전용))"");
+
 /*
 	class PMIExtractor
 */

@@ -144,7 +144,7 @@ namespace tomoto
 				size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
 					e = edd.vChunkOffset[partitionId];
 
-				localData[partitionId].numByTopicWord = globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b);
+				localData[partitionId].numByTopicWord.matrix() = globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b);
 				localData[partitionId].numByTopic = globalState.numByTopic;
 				localData[partitionId].numByTopic1_2 = globalState.numByTopic1_2;
 				localData[partitionId].numByTopic2 = globalState.numByTopic2;
@@ -157,8 +157,6 @@ namespace tomoto
 		template<ParallelScheme _ps, typename _ExtraDocData>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
-			std::vector<std::future<void>> res;
-
 			if (_ps == ParallelScheme::copy_merge)
 			{
 				tState = globalState;
@@ -177,19 +175,12 @@ namespace tomoto
 					globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
 					globalState.numByTopic1_2 = globalState.numByTopic1_2.cwiseMax(0);
 					globalState.numByTopic2 = globalState.numByTopic2.cwiseMax(0);
-					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
-				}
-
-				for (size_t i = 0; i < pool.getNumWorkers(); ++i)
-				{
-					res.emplace_back(pool.enqueue([&, this, i](size_t threadId)
-					{
-						localData[i] = globalState;
-					}));
+					globalState.numByTopicWord.matrix() = globalState.numByTopicWord.cwiseMax(0);
 				}
 			}
 			else if (_ps == ParallelScheme::partition)
 			{
+				std::vector<std::future<void>> res;
 				res = pool.enqueueToAll([&](size_t partitionId)
 				{
 					size_t b = partitionId ? edd.vChunkOffset[partitionId - 1] : 0,
@@ -197,7 +188,6 @@ namespace tomoto
 					globalState.numByTopicWord.block(0, b, globalState.numByTopicWord.rows(), e - b) = localData[partitionId].numByTopicWord;
 				});
 				for (auto& r : res) r.get();
-				res.clear();
 
 				tState.numByTopic1_2 = globalState.numByTopic1_2;
 				globalState.numByTopic1_2 = localData[0].numByTopic1_2;
@@ -209,11 +199,31 @@ namespace tomoto
 				// make all count being positive
 				if (_tw != TermWeight::one)
 				{
-					globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
+					globalState.numByTopicWord.matrix() = globalState.numByTopicWord.cwiseMax(0);
 				}
 				globalState.numByTopic = globalState.numByTopic1_2.rowwise().sum();
 				globalState.numByTopic2 = globalState.numByTopicWord.rowwise().sum();
 
+			}
+		}
+
+
+		template<ParallelScheme _ps>
+		void distributeMergedState(ThreadPool& pool, _ModelState& globalState, _ModelState* localData) const
+		{
+			std::vector<std::future<void>> res;
+			if (_ps == ParallelScheme::copy_merge)
+			{
+				for (size_t i = 0; i < pool.getNumWorkers(); ++i)
+				{
+					res.emplace_back(pool.enqueue([&, i](size_t)
+					{
+						localData[i] = globalState;
+					}));
+				}
+			}
+			else if (_ps == ParallelScheme::partition)
+			{
 				res = pool.enqueueToAll([&](size_t threadId)
 				{
 					localData[threadId].numByTopic = globalState.numByTopic;
@@ -221,7 +231,6 @@ namespace tomoto
 					localData[threadId].numByTopic2 = globalState.numByTopic2;
 				});
 			}
-
 			for (auto& r : res) r.get();
 		}
 
@@ -304,7 +313,8 @@ namespace tomoto
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K);
 				this->globalState.numByTopic2 = Eigen::Matrix<WeightType, -1, 1>::Zero(K2);
 				this->globalState.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2);
-				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K2, V);
+				//this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K2, V);
+				this->globalState.numByTopicWord.init(nullptr, K2, V);
 			}
 		}
 

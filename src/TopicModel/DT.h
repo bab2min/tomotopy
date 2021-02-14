@@ -11,7 +11,7 @@ namespace tomoto
 		using DocumentLDA<_tw>::DocumentLDA;
 
 		uint64_t timepoint = 0;
-		ShareableVector<Float> eta;
+		ShareableMatrix<Float, -1, 1> eta;
 		sample::AliasMethod<> aliasTable;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, timepoint);

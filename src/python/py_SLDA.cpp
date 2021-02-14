@@ -243,33 +243,34 @@ static PyObject* SLDA_estimateVars(TopicModelObject* self, PyObject* args, PyObj
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
-		if (py::UniqueObj iter = py::UniqueObj{ PyObject_GetIter(argDoc) })
+		try 
 		{
-			py::UniqueObj nextDoc;
-			std::vector<const tomoto::DocumentBase*> docs;
-			while ((nextDoc = py::UniqueObj{ PyIter_Next(iter) }))
-			{
-				if (!PyObject_TypeCheck(nextDoc, &UtilsDocument_type)) throw runtime_error{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
-				auto* doc = (DocumentObject*)nextDoc.get();
-				if (doc->corpus->tm != self) throw runtime_error{ "`doc` was from another model, not fit to this model" };
-				docs.emplace_back(doc->getBoundDoc());
-			}
-			if (PyErr_Occurred()) return nullptr;
-			return py::buildPyValueTransform(docs.begin(), docs.end(), [&](const tomoto::DocumentBase* d)
-			{
-				return inst->estimateVars(d);
-			});
+			if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw py::wrong_type_error{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
+			auto* doc = (DocumentObject*)argDoc;
+			if (doc->corpus->tm != self) throw py::wrong_type_error{ "`doc` was from another model, not fit to this model" };
+
+			return py::buildPyValue(inst->estimateVars(doc->getBoundDoc()));
 		}
-		else
+		catch (const py::wrong_type_error&)
 		{
 			PyErr_Clear();
 		}
-
-		if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw runtime_error{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
-		auto* doc = (DocumentObject*)argDoc;
-		if (doc->corpus->tm != self) throw runtime_error{ "`doc` was from another model, not fit to this model" };
-
-		return py::buildPyValue(inst->estimateVars(doc->getBoundDoc()));
+		
+		py::UniqueObj iter = py::UniqueObj{ PyObject_GetIter(argDoc) };
+		py::UniqueObj nextDoc;
+		std::vector<const tomoto::DocumentBase*> docs;
+		while ((nextDoc = py::UniqueObj{ PyIter_Next(iter) }))
+		{
+			if (!PyObject_TypeCheck(nextDoc, &UtilsDocument_type)) throw py::wrong_type_error{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
+			auto* doc = (DocumentObject*)nextDoc.get();
+			if (doc->corpus->tm != self) throw py::wrong_type_error{ "`doc` was from another model, not fit to this model" };
+			docs.emplace_back(doc->getBoundDoc());
+		}
+		if (PyErr_Occurred()) return nullptr;
+		return py::buildPyValueTransform(docs.begin(), docs.end(), [&](const tomoto::DocumentBase* d)
+		{
+			return inst->estimateVars(d);
+		});
 	}
 	catch (const bad_exception&)
 	{

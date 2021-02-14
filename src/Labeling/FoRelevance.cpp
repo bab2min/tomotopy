@@ -2,6 +2,7 @@
 #include <numeric>
 
 #include "FoRelevance.h"
+#include "Phraser.hpp"
 
 using namespace tomoto::label;
 
@@ -22,6 +23,26 @@ public:
 	tomoto::Vid operator[](size_t idx) const
 	{
 		return doc->words[doc->wOrder.empty() ? idx : doc->wOrder[idx]];
+	}
+
+	auto begin() const -> decltype(doc->words.begin())
+	{
+		return doc->words.begin();
+	}
+
+	auto end() const -> decltype(doc->words.end())
+	{
+		return doc->words.end();
+	}
+
+	auto rbegin() const -> decltype(doc->words.rbegin())
+	{
+		return doc->words.rbegin();
+	}
+
+	auto rend() const -> decltype(doc->words.rend())
+	{
+		return doc->words.rend();
 	}
 };
 
@@ -61,9 +82,10 @@ std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel* tm) cons
 {
 	auto& vocabFreqs = tm->getVocabCf();
 	auto& vocabDf = tm->getVocabDf();
-	auto candidates = extractPMINgrams(DocIterator{ tm, 0 }, DocIterator{ tm, tm->getNumDocs() }, 
+	auto candidates = phraser::extractPMINgrams(DocIterator{ tm, 0 }, DocIterator{ tm, tm->getNumDocs() }, 
 		vocabFreqs, vocabDf,
-		candMinCnt, candMinDf, minLabelLen, maxLabelLen, maxCandidates, -99999.f
+		candMinCnt, candMinDf, minLabelLen, maxLabelLen, maxCandidates, 0.f,
+		normalized
 	);
 	if (minLabelLen <= 1)
 	{
@@ -76,6 +98,29 @@ std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel* tm) cons
 	}
 	return candidates;
 }
+
+
+std::vector<Candidate> tomoto::label::PMIBEExtractor::extract(const ITopicModel* tm) const
+{
+	auto& vocabFreqs = tm->getVocabCf();
+	auto& vocabDf = tm->getVocabDf();
+	auto candidates = phraser::extractPMIBENgrams(DocIterator{ tm, 0 }, DocIterator{ tm, tm->getNumDocs() },
+		vocabFreqs, vocabDf,
+		candMinCnt, candMinDf, minLabelLen, maxLabelLen, maxCandidates, 
+		0.f, 0.f
+	);
+	if (minLabelLen <= 1)
+	{
+		for (size_t i = 0; i < vocabDf.size(); ++i)
+		{
+			if (vocabFreqs[i] < candMinCnt) continue;
+			if (vocabDf[i] < candMinDf) continue;
+			candidates.emplace_back(0.f, i);
+		}
+	}
+	return candidates;
+}
+
 
 template<bool _lock>
 const Eigen::ArrayXi& FoRelevance::updateContext(size_t docId, const tomoto::DocumentBase* doc, const tomoto::Trie<tomoto::Vid, size_t>* root)

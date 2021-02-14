@@ -2,6 +2,7 @@
 #include "module.h"
 #include "utils.h"
 #include "label.h"
+#include "../Labeling/Phraser.hpp"
 #include "../Labeling/FoRelevance.h"
 
 using namespace std;
@@ -23,10 +24,10 @@ namespace py
 		PyObject* operator()(const tomoto::RawDoc& v)
 		{
 			PyObject* ret = PyTuple_New(5);
-			PyTuple_SET_ITEM(ret, 0, buildPyValue(v.words));
+			PyTuple_SET_ITEM(ret, 0, buildPyValue(v.words, py::force_list));
 			PyTuple_SET_ITEM(ret, 1, buildPyValue(v.rawStr));
-			PyTuple_SET_ITEM(ret, 2, buildPyValue(v.origWordPos));
-			PyTuple_SET_ITEM(ret, 3, buildPyValue(v.origWordLen));
+			PyTuple_SET_ITEM(ret, 2, buildPyValue(v.origWordPos, py::force_list));
+			PyTuple_SET_ITEM(ret, 3, buildPyValue(v.origWordLen, py::force_list));
 			PyObject* dict = PyDict_New();
 			for (auto& p : v.misc)
 			{
@@ -221,6 +222,26 @@ public:
 	{
 		return raw.words[idx];
 	}
+
+	auto begin() const -> decltype(raw.words.begin())
+	{
+		return raw.words.begin();
+	}
+
+	auto end() const -> decltype(raw.words.end())
+	{
+		return raw.words.end();
+	}
+
+	auto rbegin() const -> decltype(raw.words.rbegin())
+	{
+		return raw.words.rbegin();
+	}
+
+	auto rend() const -> decltype(raw.words.rend())
+	{
+		return raw.words.rend();
+	}
 };
 
 
@@ -264,8 +285,13 @@ int CorpusObject::init(CorpusObject* self, PyObject* args, PyObject* kwargs)
 
 	if (!dep)
 	{
-		dep = PyObject_CallObject((PyObject*)&UtilsVocab_type, nullptr);
+		PyObject* utils = PyImport_AddModule("tomotopy.utils");
+		py::UniqueObj classCorpus{ PyObject_GetAttrString(utils, "Corpus") };
+		py::UniqueObj classVocabDict{ PyObject_GetAttrString(classCorpus, "_VocabDict") };
+
+		dep = PyObject_CallObject(classVocabDict, nullptr);
 		((VocabObject*)dep)->vocabs = new tomoto::Dictionary;
+		((VocabObject*)dep)->size = -1;
 	}
 	else Py_INCREF(dep);
 
@@ -355,18 +381,17 @@ PyObject* CorpusObject::setstate(CorpusObject* self, PyObject* args)
 			self->docs.emplace_back(move(doc));
 		}
 		if (PyErr_Occurred()) throw bad_exception{};
+		Py_INCREF(Py_None);
+		return Py_None;
 	}
 	catch (const bad_exception&)
 	{
-		return nullptr;
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
 	}
-	Py_INCREF(Py_None);
-	return Py_None;
+	return nullptr;
 }
 
 PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwargs)
@@ -481,9 +506,10 @@ PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObje
 {
 	size_t minCf = 10, minDf = 5, maxLen = 5, maxCand = 5000;
 	float minScore = -INFINITY;
-	static const char* kwlist[] = { "min_cf", "min_df", "max_len", "max_cand", "min_score", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnf", (char**)kwlist,
-		&minCf, &minDf, &maxLen, &maxCand, &minScore)) return nullptr;
+	size_t normalized = 0, workers = 1;
+	static const char* kwlist[] = { "min_cf", "min_df", "max_len", "max_cand", "min_score", "normalized", "workers", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfpn", (char**)kwlist,
+		&minCf, &minDf, &maxLen, &maxCand, &minScore, &normalized, &workers)) return nullptr;
 	try
 	{
 		if (!self->isIndependent())
@@ -511,9 +537,9 @@ PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObje
 		};
 		auto docBegin = tomoto::makeTransformIter(self->docs.begin(), tx);
 		auto docEnd = tomoto::makeTransformIter(self->docs.end(), tx);
-		auto cands = tomoto::label::extractPMINgrams(docBegin, docEnd,
+		auto cands = tomoto::phraser::extractPMINgrams(docBegin, docEnd,
 			cf, df,
-			minCf, minDf, 2, maxLen, maxCand, minScore
+			minCf, minDf, 2, maxLen, maxCand, minScore, normalized
 		);
 
 		PyObject* ret = PyList_New(0);
@@ -538,6 +564,7 @@ PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObje
 	}
 }
 
+// TODO: It loses some ngram patterns. Fix me!
 PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs)
 {
 	PyObject* cands;
@@ -672,9 +699,9 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 	try 
 	{
 		// indexing by int
-		if (PyLong_Check(idx))
+		Py_ssize_t v = PyLong_AsLongLong(idx);
+		if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
 		{
-			Py_ssize_t v = PyLong_AsLong(idx);
 			if(v >= len(self) || -v > len(self)) throw out_of_range{ "IndexError: " + to_string(v) };
 			auto doc = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, (PyObject*)self, nullptr);
 			if (!doc) throw bad_exception{};
@@ -704,6 +731,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			if (self->isIndependent())
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->vocab, nullptr);
+				if (!ret) throw bad_exception{};
 				for (Py_ssize_t i = start; i < end; i += step)
 				{
 					ret->docs.emplace_back(self->docs[i]);
@@ -713,6 +741,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else if (self->made)
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
+				if (!ret) throw bad_exception{};
 				for (Py_ssize_t i = start; i < end; i += step)
 				{
 					ret->docsMade.emplace_back(self->docsMade[i]);
@@ -723,6 +752,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else if(self->isSubDocs())
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
+				if (!ret) throw bad_exception{};
 				for (Py_ssize_t i = start; i < end; i += step)
 				{
 					ret->docIdcs.emplace_back(self->docIdcs[i]);
@@ -733,6 +763,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else 
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
+				if (!ret) throw bad_exception{};
 				for (Py_ssize_t i = start; i < end; i += step)
 				{
 					ret->docIdcs.emplace_back(i);
@@ -742,14 +773,14 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			}
 		}
 		// indexing by list of uid or int
-		else if (PyList_Check(idx))
+		else if (py::UniqueObj{ PyObject_GetIter(idx) })
 		{
 			vector<size_t> idcs;
 			py::foreach<PyObject*>(idx, [&](PyObject* o)
 			{
-				if (PyLong_Check(o))
+				Py_ssize_t v = PyLong_AsLongLong(o);
+				if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
 				{
-					Py_ssize_t v = PyLong_AsLong(o);
 					if (v >= len(self) || -v > len(self))
 					{
 						throw out_of_range{ "IndexError. len = " + to_string(len(self)) + ", idx = " + to_string(v) };
@@ -766,7 +797,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 				}
 				else
 				{
-					py::UniqueObj ty{ PyObject_Type(idx) };
+					py::UniqueObj ty{ PyObject_Type(o) };
 					py::UniqueObj repr{ PyObject_Str(ty) };
 					throw runtime_error{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
 				}
@@ -775,6 +806,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			if (self->isIndependent())
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->vocab, nullptr);
+				if (!ret) throw bad_exception{};
 				for (auto i : idcs)
 				{
 					ret->docs.emplace_back(self->docs[i]);
@@ -784,6 +816,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else if (self->made)
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
+				if (!ret) throw bad_exception{};
 				for (auto i : ret->docIdcs)
 				{
 					ret->docsMade.emplace_back(self->docsMade[i]);
@@ -794,6 +827,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
+				if (!ret) throw bad_exception{};
 				ret->docIdcs = move(idcs);
 				for (auto i : ret->docIdcs)
 				{
@@ -811,18 +845,16 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 	}
 	catch (const bad_exception&)
 	{
-		return nullptr;
 	}
 	catch (const out_of_range& e)
 	{
 		PyErr_SetString(PyExc_KeyError, e.what());
-		return nullptr;
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
 	}
+	return nullptr;
 }
 
 PyObject* CorpusObject::iter(CorpusObject* self)

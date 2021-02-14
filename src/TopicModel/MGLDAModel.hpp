@@ -107,18 +107,16 @@ namespace tomoto
 				e = edd.chunkOffsetByDoc(partitionId + 1, docId);
 			}
 
-			size_t vOffset = (_ps == ParallelScheme::partition && partitionId) ? edd.vChunkOffset[partitionId - 1] : 0;
-
 			const auto K = this->K;
 			for (size_t w = b; w < e; ++w)
 			{
 				if (doc.words[w] >= this->realV) continue;
-				addWordTo<-1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
-				auto dist = getVZLikelihoods(ld, doc, doc.words[w] - vOffset, doc.sents[w]);
+				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
+				auto dist = getVZLikelihoods(ld, doc, doc.words[w], doc.sents[w]);
 				auto vz = sample::sampleFromDiscreteAcc(dist, dist + T * (K + KL), rgs);
 				doc.Vs[w] = vz / (K + KL);
 				doc.Zs[w] = vz % (K + KL);
-				addWordTo<1>(ld, doc, w, doc.words[w] - vOffset, doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
+				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w] - (doc.Zs[w] < K ? 0 : K), doc.sents[w], doc.Vs[w], doc.Zs[w] < K ? 0 : 1);
 			}
 		}
 
@@ -294,7 +292,7 @@ namespace tomoto
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.Vs.resize(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
-			doc.numByTopic.init(nullptr, this->K + KL);
+			doc.numByTopic.init(nullptr, this->K + KL, 1);
 			doc.numBySentWin = Eigen::Matrix<WeightType, -1, -1>::Zero(S, T);
 			doc.numByWin = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);
 			doc.numByWinL = Eigen::Matrix<WeightType, -1, 1>::Zero(S + T - 1);
@@ -308,7 +306,8 @@ namespace tomoto
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K + KL);
-				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K + KL, V);
+				//this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K + KL, V);
+				this->globalState.numByTopicWord.init(nullptr, this->K + KL, V);
 			}
 		}
 
@@ -533,7 +532,7 @@ namespace tomoto
 	template<typename _TopicModel>
 	void DocumentMGLDA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
-		this->numByTopic.init(ptr, mdl.getK() + mdl.getKL());
+		this->numByTopic.init(ptr, mdl.getK() + mdl.getKL(), 1);
 		numBySent.resize(*std::max_element(sents.begin(), sents.end()) + 1);
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{

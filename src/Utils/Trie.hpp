@@ -26,10 +26,31 @@ namespace tomoto
 		}
 	};
 
+	template<class _Map, class _Node>
+	class TrieIterator : public _Map::const_iterator
+	{
+		using Base = typename _Map::const_iterator;
+		using Key = typename _Map::key_type;
+		const _Node* base = nullptr;
+	public:
+
+		TrieIterator(const Base& it, const _Node* _base)
+			: Base(it), base(_base)
+		{
+		}
+
+		std::pair<const Key, const _Node*> operator*() const
+		{
+			auto p = Base::operator*();
+			return std::make_pair(p.first, base + p.second);
+		}
+	};
+
 	template<class _Key, class _Value, class _KeyStore = ConstAccess<std::map<_Key, int32_t>>, class _Trie = void>
 	struct Trie
 	{
 		using Node = typename std::conditional<std::is_same<_Trie, void>::value, Trie, _Trie>::type;
+		using iterator = TrieIterator<_KeyStore, Node>;
 		_KeyStore next = {};
 		int32_t fail = 0;
 		_Value val = {};
@@ -47,13 +68,23 @@ namespace tomoto
 			return fail ? (Node*)this + fail : nullptr;
 		}
 
+		iterator begin() const
+		{
+			return { next.begin(), (const Node*)this };
+		}
+
+		iterator end() const
+		{
+			return { next.end(), (const Node*)this };
+		}
+
 		template<typename _TyIter, typename _FnAlloc>
-		void build(_TyIter first, _TyIter last, const _Value& _val, _FnAlloc&& alloc)
+		Node* build(_TyIter first, _TyIter last, const _Value& _val, _FnAlloc&& alloc)
 		{
 			if (first == last)
 			{
 				if (!val) val = _val;
-				return;
+				return (Node*)this;
 			}
 
 			auto v = *first;
@@ -61,13 +92,13 @@ namespace tomoto
 			{
 				next[v] = alloc() - this;
 			}
-			getNext(v)->build(++first, last, _val, alloc);
+			return getNext(v)->build(++first, last, _val, alloc);
 		}
 
 		template<typename _TyIter>
 		Node* findNode(_TyIter begin, _TyIter end)
 		{
-			if (begin == end) return this;
+			if (begin == end) return (Node*)this;
 			auto n = getNext(*begin);
 			if (n) return n->findNode(++begin, end);
 			return nullptr;
@@ -173,21 +204,21 @@ namespace tomoto
 		int32_t parent = 0;
 
 		template<typename _TyIter, typename _FnAlloc>
-		void build(_TyIter first, _TyIter last, const _Value& _val, _FnAlloc&& alloc)
+		TrieEx* build(_TyIter first, _TyIter last, const _Value& _val, _FnAlloc&& alloc)
 		{
 			if (first == last)
 			{
 				if (!this->val) this->val = _val;
-				return;
+				return this;
 			}
 
 			auto v = *first;
-			if (!getNext(v))
+			if (!this->getNext(v))
 			{
 				this->next[v] = alloc() - this;
 				this->getNext(v)->parent = -this->next[v];
 			}
-			this->getNext(v)->build(++first, last, _val, alloc);
+			return this->getNext(v)->build(++first, last, _val, alloc);
 		}
 
 		template<typename _FnAlloc>

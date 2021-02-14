@@ -121,6 +121,7 @@ namespace tomoto
 	};
 
 	enum class ParallelScheme { default_, none, copy_merge, partition, size };
+	enum class GlobalSampler { train, freeze_topics, inference, size };
 
 	inline const char* toString(ParallelScheme ps)
 	{
@@ -236,7 +237,7 @@ namespace tomoto
 		virtual const std::vector<uint64_t>& getVocabCf() const = 0;
 		virtual const std::vector<uint64_t>& getVocabDf() const = 0;
 
-		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_) = 0;
+		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_, bool freeze_topics = false) = 0;
 		virtual size_t getGlobalStep() const = 0;
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
 		
@@ -588,7 +589,7 @@ namespace tomoto
 			return ps;
 		}
 
-		int train(size_t iteration, size_t numWorkers, ParallelScheme ps) override
+		int train(size_t iteration, size_t numWorkers, ParallelScheme ps, bool freeze_topics = false) override
 		{
 			if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 			ps = getRealScheme(ps);
@@ -606,16 +607,20 @@ namespace tomoto
 				localRG.emplace_back(rg());
 			}
 
-			for (size_t i = 0; i < numWorkers; ++i)
+			if (ps == ParallelScheme::copy_merge)
 			{
-				if(ps == ParallelScheme::copy_merge) localData.emplace_back(static_cast<_Derived*>(this)->globalState);
+				for (size_t i = 0; i < numWorkers; ++i)
+				{
+					localData.emplace_back(static_cast<_Derived*>(this)->globalState);
+				}
 			}
-
-			if (ps == ParallelScheme::partition)
+			else if (ps == ParallelScheme::partition)
 			{
 				localData.resize(numWorkers);
-				static_cast<_Derived*>(this)->updatePartition(*cachedPool, globalState, localData.data(), docs.begin(), docs.end(), 
-					static_cast<_Derived*>(this)->eddTrain);
+				static_cast<_Derived*>(this)->updatePartition(
+					*cachedPool, globalState, localData.data(), docs.begin(), docs.end(), 
+					static_cast<_Derived*>(this)->eddTrain
+				);
 			}
 
 			auto state = ps == ParallelScheme::none ? &globalState : localData.data();
@@ -629,15 +634,15 @@ namespace tomoto
 						{
 						case ParallelScheme::none:
 							static_cast<_Derived*>(this)->template trainOne<ParallelScheme::none>(
-								*cachedPool, state, localRG.data());
+								*cachedPool, state, localRG.data(), freeze_topics);
 							break;
 						case ParallelScheme::copy_merge:
 							static_cast<_Derived*>(this)->template trainOne<ParallelScheme::copy_merge>(
-								*cachedPool, state, localRG.data());
+								*cachedPool, state, localRG.data(), freeze_topics);
 							break;
 						case ParallelScheme::partition:
 							static_cast<_Derived*>(this)->template trainOne<ParallelScheme::partition>(
-								*cachedPool, state, localRG.data());
+								*cachedPool, state, localRG.data(), freeze_topics);
 							break;
 						}
 						break;

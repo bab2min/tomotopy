@@ -119,19 +119,26 @@ namespace tomoto
 
 			DEFINE_SERIALIZER(nodes, levelBlocks);
 
-			template<bool _MakeNewPath = true>
+			template<bool _makeNewPath = true>
 			void calcNodeLikelihood(Float gamma, size_t levelDepth)
 			{
 				nodeLikelihoods.resize(nodes.size());
 				nodeLikelihoods.array() = -INFINITY;
-				updateNodeLikelihood<_MakeNewPath>(gamma, levelDepth, &nodes[0]);
+				updateNodeLikelihood<_makeNewPath>(gamma, levelDepth, &nodes[0]);
+				if (!_makeNewPath)
+				{
+					for (size_t i = 0; i < levelBlocks.size(); ++i)
+					{
+						if (levelBlocks[i] < levelDepth - 1) nodeLikelihoods.segment((i + 1) * blockSize, blockSize).array() = -INFINITY;
+					}
+				}
 			}
 
-			template<bool _MakeNewPath = true>
+			template<bool _makeNewPath = true>
 			void updateNodeLikelihood(Float gamma, size_t levelDepth, NCRPNode* node, Float weight = 0)
 			{
 				size_t idx = node - nodes.data();
-				const Float pNewNode = _MakeNewPath ? log(gamma / (node->numCustomers + gamma)) : -INFINITY;
+				const Float pNewNode = _makeNewPath ? log(gamma / (node->numCustomers + gamma)) : -INFINITY;
 				nodeLikelihoods[idx] = weight + (((size_t)node->level < levelDepth - 1) ? pNewNode : 0);
 				for(auto * child = node->getChild(); child; child = child->getSibling())
 				{
@@ -187,7 +194,7 @@ namespace tomoto
 				std::vector<std::future<void>> futures;
 				futures.reserve(levelBlocks.size());
 
-				auto calc = [this, eta, realV, &doc, &ld](size_t threadId, size_t b)
+				auto calc = [&, eta, realV](size_t threadId, size_t b)
 				{
 					Float cnt = 0;
 					Vid prevWord = -1;
@@ -284,7 +291,7 @@ namespace tomoto
 					size_t oldSize = ld.numByTopic.rows();
 					size_t newSize = std::max(nodes.size(), ((oldSize + oldSize / 2 + 7) / 8) * 8);
 					ld.numByTopic.conservativeResize(newSize);
-					ld.numByTopicWord.conservativeResize(newSize, Eigen::NoChange);
+					ld.numByTopicWord.conservativeResize(newSize, ld.numByTopicWord.cols());
 					ld.numByTopic.segment(oldSize, newSize - oldSize).setZero();
 					ld.numByTopicWord.block(oldSize, 0, newSize - oldSize, ld.numByTopicWord.cols()).setZero();
 				}
@@ -317,13 +324,13 @@ namespace tomoto
 		typename _Derived = void,
 		typename _DocType = DocumentHLDA<_tw>,
 		typename _ModelState = ModelStateHLDA<_tw>>
-	class HLDAModel : public LDAModel<_tw, _RandGen, flags::shared_state, _Interface,
+	class HLDAModel : public LDAModel<_tw, _RandGen, flags::partitioned_multisampling, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw, _RandGen>, _Derived>::type,
 		_DocType, _ModelState>
 	{
 	protected:
 		using DerivedClass = typename std::conditional<std::is_same<_Derived, void>::value, HLDAModel<_tw, _RandGen>, _Derived>::type;
-		using BaseClass = LDAModel<_tw, _RandGen, flags::shared_state, _Interface, DerivedClass, _DocType, _ModelState>;
+		using BaseClass = LDAModel<_tw, _RandGen, flags::partitioned_multisampling, _Interface, DerivedClass, _DocType, _ModelState>;
 		friend BaseClass;
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
@@ -341,11 +348,11 @@ namespace tomoto
 		}
 
 		// Words of all documents should be sorted by ascending order.
-		template<bool _MakeNewPath = true>
+		template<GlobalSampler _gs>
 		void samplePathes(_DocType& doc, ThreadPool* pool, _ModelState& ld, _RandGen& rgs) const
 		{
-			if(_MakeNewPath) ld.nt->nodes[doc.path.back()].dropPathOne();
-			ld.nt->template calcNodeLikelihood<_MakeNewPath>(gamma, this->K);
+			if(_gs != GlobalSampler::inference) ld.nt->nodes[doc.path.back()].dropPathOne();
+			ld.nt->template calcNodeLikelihood<_gs == GlobalSampler::train>(gamma, this->K);
 
 			std::vector<Float> newTopicWeights(this->K - 1);
 			std::vector<WeightType> cntByLevel(this->K);
@@ -355,7 +362,7 @@ namespace tomoto
 				if (doc.words[w] >= this->realV) break;
 				addWordToOnlyLocal<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 
-				if (_MakeNewPath)
+				if (_gs == GlobalSampler::train)
 				{
 					if (doc.words[w] != prevWord)
 					{
@@ -371,7 +378,7 @@ namespace tomoto
 				}
 			}
 
-			if (_MakeNewPath)
+			if (_gs == GlobalSampler::train)
 			{
 				for (size_t l = 1; l < this->K; ++l)
 				{
@@ -386,7 +393,7 @@ namespace tomoto
 			size_t newPath = sample::sampleFromDiscreteAcc(ld.nt->nodeLikelihoods.data(),
 				ld.nt->nodeLikelihoods.data() + ld.nt->nodeLikelihoods.size(), rgs);
 
-			if(_MakeNewPath) newPath = ld.nt->template generateLeafNode<_tw>(newPath, this->K, ld);
+			if(_gs == GlobalSampler::train) newPath = ld.nt->template generateLeafNode<_tw>(newPath, this->K, ld);
 			doc.path.back() = newPath;
 			for (size_t l = this->K - 2; l > 0; --l)
 			{
@@ -398,7 +405,7 @@ namespace tomoto
 				if (doc.words[w] >= this->realV) break;
 				addWordToOnlyLocal<1>(ld, doc, w, doc.words[w], doc.Zs[w]);
 			}
-			if (_MakeNewPath) ld.nt->nodes[doc.path.back()].addPathOne();
+			if (_gs != GlobalSampler::inference) ld.nt->nodes[doc.path.back()].addPathOne();
 		}
 
 		template<int _inc>
@@ -426,6 +433,7 @@ namespace tomoto
 		template<bool _asymEta>
 		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
+			if (_asymEta) THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
@@ -439,50 +447,14 @@ namespace tomoto
 			return &zLikelihood[0];
 		}
 
-		void sampleTopics(_DocType& doc, size_t docId, _ModelState& ld, _RandGen& rgs) const
-		{
-			for (size_t w = 0; w < doc.words.size(); ++w)
-			{
-				if (doc.words[w] >= this->realV) continue;
-				addWordTo<-1>(ld, doc, w, doc.words[w], doc.Zs[w]);
-				Float* dist;
-				if (this->etaByTopicWord.size())
-				{
-					THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
-				}
-				else
-				{
-					dist = static_cast<const DerivedClass*>(this)->template
-						getZLikelihoods<false>(ld, doc, docId, doc.words[w]);
-				}
-				doc.Zs[w] = sample::sampleFromDiscreteAcc(dist, dist + this->K, rgs);
-				addWordTo<1>(ld, doc, w, doc.words[w], doc.Zs[w]);
-			}
-		}
-
-		template<ParallelScheme _ps, bool _infer, typename _ExtraDocData>
-		void sampleDocument(_DocType& doc, const _ExtraDocData& edd, size_t docId, _ModelState& ld, _RandGen& rgs, size_t iterationCnt, size_t partitionId = 0) const
-		{
-			sampleTopics(doc, docId, ld, rgs);
-		}
-
-		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last)
+		template<GlobalSampler _gs, typename _DocIter>
+		void sampleGlobalLevel(ThreadPool* pool, _ModelState* globalData, _RandGen* rgs, _DocIter first, _DocIter last) const
 		{
 			for (auto doc = first; doc != last; ++doc)
 			{
-				samplePathes<>(*doc, pool, *localData, rgs[0]);
+				samplePathes<_gs>(*doc, pool, *globalData, rgs[0]);
 			}
-			localData->nt->markEmptyBlocks();
-		}
-
-		template<typename _DocIter>
-		void sampleGlobalLevel(ThreadPool* pool, _ModelState* localData, _RandGen* rgs, _DocIter first, _DocIter last) const
-		{
-			for (auto doc = first; doc != last; ++doc)
-			{
-				samplePathes<false>(*doc, pool, *localData, rgs[0]);
-			}
+			if (_gs != GlobalSampler::inference) globalData->nt->markEmptyBlocks();
 		}
 
 		template<typename _DocIter>
@@ -539,7 +511,8 @@ namespace tomoto
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K);
-				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, V);
+				//this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, V);
+				this->globalState.numByTopicWord.init(nullptr, this->K, V);
 				this->globalState.nt->nodes.resize(detail::NodeTrees::blockSize);
 			}
 		}
@@ -547,7 +520,7 @@ namespace tomoto
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
-			doc.numByTopic.init(nullptr, this->K);
+			doc.numByTopic.init(nullptr, this->K, 1);
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.path.resize(this->K);
 			for (size_t l = 0; l < this->K; ++l) doc.path[l] = l;
@@ -593,6 +566,31 @@ namespace tomoto
 				}
 			}
 			return cnt;
+		}
+
+		template<ParallelScheme _ps>
+		void distributeMergedState(ThreadPool& pool, _ModelState& globalState, _ModelState* localData) const
+		{
+			std::vector<std::future<void>> res;
+			if (_ps == ParallelScheme::copy_merge)
+			{
+				for (size_t i = 0; i < pool.getNumWorkers(); ++i)
+				{
+					res.emplace_back(pool.enqueue([&, i](size_t)
+					{
+						localData[i] = globalState;
+					}));
+				}
+			}
+			else if (_ps == ParallelScheme::partition)
+			{
+				res = pool.enqueueToAll([&](size_t threadId)
+				{
+					localData[threadId].numByTopicWord.init((WeightType*)globalState.numByTopicWord.data(), globalState.numByTopicWord.rows(), globalState.numByTopicWord.cols());
+					localData[threadId].numByTopic = globalState.numByTopic;
+				});
+			}
+			for (auto& r : res) r.get();
 		}
 
 	public:
@@ -671,7 +669,7 @@ namespace tomoto
 	template<typename _TopicModel>
 	inline void DocumentHLDA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
-		this->numByTopic.init(ptr, mdl.getLevelDepth());
+		this->numByTopic.init(ptr, mdl.getLevelDepth(), 1);
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;

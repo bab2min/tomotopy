@@ -356,7 +356,7 @@ word : str
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_train__doc__,
-	"train(self, iter=10, workers=0, parallel=0)",
+	"train(self, iter=10, workers=0, parallel=0, freeze_topics=False)",
 	u8R""(Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
 After calling this method, you cannot `tomotopy.LDAModel.add_doc` or `tomotopy.LDAModel.set_word_prior` more.
 
@@ -370,7 +370,11 @@ workers : int
 parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
     
-    the parallelism scheme for training. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
+    the parallelism scheme for training. the default value is `tomotopy.ParallelScheme.DEFAULT` which means that tomotopy selects the best scheme by model.
+freeze_topics : bool
+    .. versionadded:: 0.10.1
+
+    prevents to create a new topic when training. Only valid for `tomotopy.HLDAModel`
 )"",
 u8R""(깁스 샘플링을 `iter` 회 반복하여 현재 모델을 학습시킵니다. 반환값은 `None`입니다. 
 이 메소드가 호출된 이후에는 더 이상 `tomotopy.LDAModel.add_doc`로 현재 모델에 새로운 학습 문헌을 추가시킬 수 없습니다.
@@ -386,6 +390,10 @@ parallel : Union[int, tomotopy.ParallelScheme]
     .. versionadded:: 0.5.0
 
     학습에 사용할 병렬화 방법. 기본값은 ParallelScheme.DEFAULT로 이는 모델에 따라 최적의 방법을 tomotopy가 알아서 선택하도록 합니다.
+freeze_topics : bool
+    .. versionadded:: 0.10.1
+
+    학습 시 새로운 토픽을 생성하지 못하도록 합니다. 이 파라미터는 오직 `tomotopy.HLDAModel`에만 유효합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_words__doc__,

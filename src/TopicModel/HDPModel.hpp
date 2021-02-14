@@ -96,7 +96,7 @@ namespace tomoto
 				ld.numTableByTopic.tail(newSize - oldSize).setZero();
 				ld.numByTopic.conservativeResize(newSize);
 				ld.numByTopic.tail(newSize - oldSize).setZero();
-				ld.numByTopicWord.conservativeResize(newSize, Eigen::NoChange);
+				ld.numByTopicWord.conservativeResize(newSize, V);
 				ld.numByTopicWord.block(oldSize, 0, newSize - oldSize, V).setZero();
 			}
 			else
@@ -155,7 +155,7 @@ namespace tomoto
 			if (_inc > 0 && tid >= doc.numByTopic.size())
 			{
 				size_t oldSize = doc.numByTopic.size();
-				doc.numByTopic.conservativeResize(tid + 1);
+				doc.numByTopic.conservativeResize(tid + 1, 1);
 				doc.numByTopic.tail(tid + 1 - oldSize).setZero();
 			}
 			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
@@ -282,7 +282,7 @@ namespace tomoto
 						auto& doc = this->docs[j];
 						if (doc.numByTopic.size() >= K) continue;
 						size_t oldSize = doc.numByTopic.size();
-						doc.numByTopic.conservativeResize(K);
+						doc.numByTopic.conservativeResize(K, 1);
 						doc.numByTopic.tail(K - oldSize).setZero();
 					}
 				}, this->docs.size() * i / pool.getNumWorkers(), this->docs.size() * (i + 1) / pool.getNumWorkers()));
@@ -293,7 +293,6 @@ namespace tomoto
 		template<ParallelScheme _ps, typename _ExtraDocData>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
-			std::vector<std::future<void>> res;
 			const size_t V = this->realV;
 			auto K = this->K;
 
@@ -303,7 +302,7 @@ namespace tomoto
 				globalState.numByTopic.conservativeResize(K);
 				globalState.numByTopic.tail(K - oldSize).setZero();
 				globalState.numTableByTopic.resize(K);
-				globalState.numByTopicWord.conservativeResize(K, Eigen::NoChange);
+				globalState.numByTopicWord.conservativeResize(K, V);
 				globalState.numByTopicWord.block(oldSize, 0, K - oldSize, V).setZero();
 			}
 
@@ -321,7 +320,7 @@ namespace tomoto
 			if (_tw != TermWeight::one)
 			{
 				globalState.numByTopic = globalState.numByTopic.cwiseMax(0);
-				globalState.numByTopicWord = globalState.numByTopicWord.cwiseMax(0);
+				globalState.numByTopicWord.matrix() = globalState.numByTopicWord.cwiseMax(0);
 			}
 
 
@@ -334,15 +333,6 @@ namespace tomoto
 				}
 			}
 			globalState.totalTable = globalState.numTableByTopic.sum();
-			
-			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
-			{
-				res.emplace_back(pool.enqueue([&, this, i](size_t threadId)
-				{
-					localData[i] = globalState;
-				}));
-			}
-			for (auto& r : res) r.get();
 		}
 
 		/* this LL calculation is based on https://github.com/blei-lab/hdp/blob/master/hdp/state.cpp */
@@ -400,13 +390,14 @@ namespace tomoto
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(K);
 				this->globalState.numTableByTopic = Eigen::Matrix<int32_t, -1, 1>::Zero(K);
-				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K, V);
+				//this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(K, V);
+				this->globalState.numByTopicWord.init(nullptr, K, V);
 			}
 		}
 
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			doc.numByTopic.init(nullptr, this->K);
+			doc.numByTopic.init(nullptr, this->K, 1);
 			doc.numTopicByTable.clear();
 			doc.Zs = tvector<Tid>(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
@@ -577,7 +568,7 @@ namespace tomoto
 	template<typename _TopicModel>
 	void DocumentHDP<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
-		this->numByTopic.init(ptr, mdl.getK());
+		this->numByTopic.init(ptr, mdl.getK(), 1);
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{
 			if (this->words[i] >= mdl.getV()) continue;

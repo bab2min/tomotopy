@@ -12,8 +12,8 @@ void char2Byte(const char* strBegin, const char* strEnd, vector<uint32_t>& start
 {
 	if (strBegin == strEnd) return;
 	vector<size_t> charPos;
-	auto it = strBegin, end = strEnd;
-	for (; it != end; )
+	auto it = strBegin;
+	for (; it != strEnd; )
 	{
 		charPos.emplace_back(it - strBegin);
 		uint8_t c = *it;
@@ -35,7 +35,7 @@ void char2Byte(const char* strBegin, const char* strEnd, vector<uint32_t>& start
 		}
 		else it += 1;
 	}
-	charPos.emplace_back(std::distance(strBegin, strEnd));
+	charPos.emplace_back(strEnd - strBegin);
 
 	for (size_t i = 0; i < startPos.size(); ++i)
 	{
@@ -48,6 +48,11 @@ void char2Byte(const char* strBegin, const char* strEnd, vector<uint32_t>& start
 void char2Byte(const string& str, vector<uint32_t>& startPos, vector<uint16_t>& length)
 {
 	return char2Byte(&str[0], &str[0] + str.size(), startPos, length);
+}
+
+void char2Byte(const tomoto::SharedString& str, vector<uint32_t>& startPos, vector<uint16_t>& length)
+{
+	return char2Byte(str.begin(), str.end(), startPos, length);
 }
 
 void TopicModelObject::dealloc(TopicModelObject* self)

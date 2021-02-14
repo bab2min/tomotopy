@@ -408,11 +408,11 @@ namespace py
 		};
 	}
 
-	struct cast_to_signed_t
-	{
-	};
-
+	struct cast_to_signed_t {};
 	static constexpr cast_to_signed_t cast_to_signed{};
+
+	struct force_list_t {};
+	static constexpr force_list_t force_list{};
 
 	template<typename _Ty>
 	struct ValueBuilder<std::vector<_Ty>, 
@@ -538,6 +538,17 @@ namespace py
 		for (; first != last; ++first)
 		{
 			PyList_SetItem(ret, id++, buildPyValue(*first));
+		}
+		return ret;
+	}
+
+	template<typename _Ty>
+	inline PyObject* buildPyValue(const std::vector<_Ty>& v, force_list_t)
+	{
+		PyObject* ret = PyList_New(v.size());
+		for (size_t i = 0; i < v.size(); ++i)
+		{
+			PyList_SetItem(ret, i, buildPyValue(v[i]));
 		}
 		return ret;
 	}
@@ -724,6 +735,12 @@ namespace py
 				printed.insert(key);
 			}
 		}
+	};
+
+	class wrong_type_error : public std::runtime_error
+	{
+	public:
+		using std::runtime_error::runtime_error;
 	};
 }
 

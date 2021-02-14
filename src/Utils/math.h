@@ -153,28 +153,32 @@ namespace tomoto
 		inline float lgammaT(float x) { return detail::LUT_lgamma::get(x); }
 		inline float digammaT(float x) { return detail::LUT_digamma::get(x); }
 
+		// approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))
 		template<class _T>
 		inline auto lgammaApprox(_T z) -> decltype((z + 2.5)* log(z + 3) - (z + 3) + 0.91893853 + 1. / 12. / (z + 3) - log(z * (z + 1) * (z + 2)))
 		{
-			// approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))
 			return (z + 2.5) * log(z + 3) - (z + 3) + 0.91893853 + 1. / 12. / (z + 3) - log(z * (z + 1) * (z + 2));
 		}
 
+		// calc lgamma(z + a) - lgamma(z)
 		template<class _T, class _U>
-		inline _T lgammaSubt(_T z, _U a) // calc lgamma(z + a) - lgamma(z)
+		inline auto lgammaSubt(_T z, _U a) -> decltype((z + a + 1.5)* log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log(((z + a) * (z + a + 1)) / (z * (z + 1))))
 		{
 			return (z + a + 1.5) * log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log(((z + a) * (z + a + 1)) / (z * (z + 1)));
 		}
 
+		// approximation : digamma(z) ~= ln(z+4) - 1/2/(z+4) - 1/12/(z+4)^2 - 1/z - 1/(z+1) - 1/(z+2) - 1/(z+3)
 		template<class _T>
 		inline auto digammaApprox(_T z) -> decltype(log(z + 4) - 1. / 2. / (z + 4) - 1. / 12. / ((z + 4) * (z + 4)) - 1. / z - 1. / (z + 1) - 1. / (z + 2) - 1. / (z + 3))
 		{
-			// approximation : digamma(z) ~= ln(z+4) - 1/2/(z+4) - 1/12/(z+4)^2 - 1/z - 1/(z+1) - 1/(z+2) - 1/(z+3)
 			return log(z + 4) - 1. / 2. / (z + 4) - 1. / 12. / ((z + 4) * (z + 4)) - 1. / z - 1. / (z + 1) - 1. / (z + 2) - 1. / (z + 3);
 		}
 
+		// calc digamma(z + a) - digamma(z)
 		template<class _T, class _U>
-		inline _T digammaSubt(_T z, _U a) // calc digamma(z + a) - digamma(z)
+		inline auto digammaSubt(_T z, _U a) -> decltype(log((z + a + 2) / (z + 2)) - (1 / (z + a + 2) - 1 / (z + 2)) / 2 - (1 / (z + a + 2) / (z + a + 2) - 1 / (z + 2) / (z + 2)) / 12
+			- 1. / (z + a) - 1. / (z + a + 1)
+			- 1. / z - 1. / (z + 1))
 		{
 			return log((z + a + 2) / (z + 2)) - (1 / (z + a + 2) - 1 / (z + 2)) / 2 - (1 / (z + a + 2) / (z + a + 2) - 1 / (z + 2) / (z + 2)) / 12
 				- 1. / (z + a) - 1. / (z + a + 1)
