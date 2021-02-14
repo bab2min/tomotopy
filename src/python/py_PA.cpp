@@ -222,6 +222,24 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 			auto ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
 			return py::buildPyTuple(py::UniqueObj{ (PyObject*)cps }, ll);
 		}
+		else if (PyObject_TypeCheck(argDoc, &UtilsDocument_type))
+		{
+			auto* doc = (DocumentObject*)argDoc;
+			if (doc->corpus->tm != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
+			if (doc->owner)
+			{
+				std::vector<tomoto::DocumentBase*> docs;
+				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
+				double ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
+				return Py_BuildValue("((NN)f)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())),
+					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), ll);
+			}
+			else
+			{
+				return Py_BuildValue("((NN)s)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())),
+					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), nullptr);
+			}
+		}
 		else if ((iter = py::UniqueObj{ PyObject_GetIter(argDoc) }) != nullptr)
 		{
 			std::vector<tomoto::DocumentBase*> docs;
@@ -256,23 +274,7 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 		}
 		else
 		{
-			PyErr_Clear();
-			if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
-			auto* doc = (DocumentObject*)argDoc;
-			if (doc->corpus->tm != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
-			if (doc->owner)
-			{
-				std::vector<tomoto::DocumentBase*> docs;
-				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
-				double ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
-				return Py_BuildValue("((NN)f)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())), 
-					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), ll);
-			}
-			else
-			{
-				return Py_BuildValue("((NN)s)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())),
-					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), nullptr);
-			}
+			throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
 		}
 	}
 	catch (const bad_exception&)

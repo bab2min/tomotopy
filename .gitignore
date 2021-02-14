@@ -13,5 +13,7 @@ enwiki-1000.txt
 /html/
 .vscode/
 *.pyd
+*.log
 examples/*
 !examples/*.py
+enwiki-16000.txt

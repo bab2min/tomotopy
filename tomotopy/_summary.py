@@ -228,7 +228,7 @@ def topics_info_HLDAModel(mdl, file, topic_word_top_n):
 
     def print_hierarchical(k=0, level=0):
         words = ' '.join(w for w, _ in mdl.get_topic_words(k, top_n=topic_word_top_n))
-        print('| {}#{} ({}) : {}'.format('  ' * level, k, topic_cnt[k], words), file=file)
+        print('| {}#{} ({}, {}) : {}'.format('  ' * level, k, topic_cnt[k], mdl.num_docs_of_topic(k), words), file=file)
         for c in np.sort(mdl.children_topics(k)):
             print_hierarchical(c, level + 1)
 

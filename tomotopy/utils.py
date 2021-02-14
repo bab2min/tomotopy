@@ -102,7 +102,7 @@ data_feeder : Iterable[Union[str, Tuple[str, Any], Tuple[str, Any, dict]]]
         
         return num
 
-    def save(self, filename:str):
+    def save(self, filename:str, protocol=0):
         '''Save the current instance into the file `filename`. 
 
 Parameters
@@ -132,7 +132,7 @@ filename : str
     def __len__(self):
         return super().__len__()
     
-    def extract_ngrams(self, min_cf=10, min_df=5, max_len=5, max_cand=5000, min_score=float('-inf')):
+    def extract_ngrams(self, min_cf=10, min_df=5, max_len=5, max_cand=5000, min_score=float('-inf'), normalized=False, workers=0):
         '''..versionadded:: 0.10.0
 
 Extract frequent n-grams using PMI score
@@ -149,13 +149,18 @@ max_cand : int
     Maximum number of n-grams to be extracted
 min_score : float
     Minium PMI score of n-grams to be extracted
+normalized : bool
+    whether to use Normalized PMI or just PMI
+workers : int
+    an integer indicating the number of workers to perform samplings. 
+    If `workers` is 0, the number of cores in the system will be used.
 
 Returns
 -------
 candidates : List[tomotopy.label.Candidate]
     The extracted n-gram candidates in `tomotopy.label.Candidate` type
         '''
-        return super().extract_ngrams(min_cf, min_df, max_len, max_cand, min_score)
+        return super().extract_ngrams(min_cf, min_df, max_len, max_cand, min_score, normalized, workers)
     
     def concat_ngrams(self, cands, delimiter='_'):
         '''..versionadded:: 0.10.0
@@ -196,13 +201,17 @@ Here is an example of using SimpleTokenizer with NLTK for stemming.
 
     def __call__(self, raw:str, user_data=None):
         if self._stemmer:
-            for g in self._pat.finditer(raw.lower() if self._lowercase else raw):
+            for g in self._pat.finditer(raw if self._lowercase else raw):
                 start, end = g.span(0)
-                yield self._stemmer(g.group(0)), start, end - start
+                word = g.group(0)
+                if self._lowercase: word = word.lower()
+                yield self._stemmer(word), start, end - start
         else:
-            for g in self._pat.finditer(raw.lower() if self._lowercase else raw):
+            for g in self._pat.finditer(raw if self._lowercase else raw):
                 start, end = g.span(0)
-                yield g.group(0), start, end - start
+                word = g.group(0)
+                if self._lowercase: word = word.lower()
+                yield word, start, end - start
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

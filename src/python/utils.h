@@ -57,7 +57,7 @@ struct CorpusObject
 
 	inline bool isIndependent() const
 	{
-		return !!PyObject_TypeCheck(vocab, &UtilsVocab_type);
+		return vocab && !!PyObject_TypeCheck(vocab, &UtilsVocab_type);
 	}
 
 	inline bool isSubDocs() const

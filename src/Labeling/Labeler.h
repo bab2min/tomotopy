@@ -10,6 +10,7 @@ namespace tomoto
 		struct Candidate
 		{
 			float score = 0;
+			size_t cf = 0, df = 0;
 			std::vector<Vid> w;
 			std::string name;
 
@@ -18,17 +19,17 @@ namespace tomoto
 			}
 
 			Candidate(float _score, Vid w1)
-				: w{ w1 }, score{ _score }
+				: score{ _score }, w{ w1 }
 			{
 			}
 
 			Candidate(float _score, Vid w1, Vid w2)
-				: w{ w1, w2 }, score{ _score }
+				: score{ _score }, w{ w1, w2 }
 			{
 			}
 
 			Candidate(float _score, const std::vector<Vid>& _w)
-				: w{ _w }, score{ _score }
+				: score{ _score }, w{ _w }
 			{
 			}
 		};
@@ -36,6 +37,7 @@ namespace tomoto
 		class IExtractor
 		{
 		public:
+			
 			virtual std::vector<Candidate> extract(const ITopicModel* tm) const = 0;
 			virtual ~IExtractor() {}
 		};

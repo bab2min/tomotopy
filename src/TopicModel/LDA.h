@@ -5,32 +5,67 @@ namespace tomoto
 {
     enum class TermWeight { one, idf, pmi, size };
 
-	template<typename _Scalar>
-	struct ShareableVector : Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>
+	template<typename _Scalar, Eigen::Index _rows, Eigen::Index _cols>
+	struct ShareableMatrix : Eigen::Map<Eigen::Matrix<_Scalar, _rows, _cols>>
 	{
-		Eigen::Matrix<_Scalar, -1, 1> ownData;
-		ShareableVector(_Scalar* ptr = nullptr, Eigen::Index len = 0) 
-			: Eigen::Map<Eigen::Matrix<_Scalar, -1, 1>>(nullptr, 0)
+		using BaseType = Eigen::Map<Eigen::Matrix<_Scalar, _rows, _cols>>;
+		Eigen::Matrix<_Scalar, _rows, _cols> ownData;
+
+		ShareableMatrix(_Scalar* ptr = nullptr, Eigen::Index rows = 0, Eigen::Index cols = 0) 
+			: BaseType(nullptr, _rows != -1 ? _rows : 0, _cols != -1 ? _cols : 0)
 		{
-			init(ptr, len);
+			init(ptr, rows, cols);
 		}
 
-		void init(_Scalar* ptr, Eigen::Index len)
+		ShareableMatrix(const ShareableMatrix& o)
+			: BaseType(nullptr, _rows != -1 ? _rows : 0, _cols != -1 ? _cols : 0), ownData{ o.ownData }
 		{
-			if (!ptr && len)
+			if (o.ownData.data())
 			{
-				ownData = Eigen::Matrix<_Scalar, -1, 1>::Zero(len);
+				new (this) BaseType(ownData.data(), ownData.rows(), ownData.cols());
+			}
+			else
+			{
+				new (this) BaseType((_Scalar*)o.data(), o.rows(), o.cols());
+			}
+		}
+
+		ShareableMatrix(ShareableMatrix&& o) = default;
+
+		ShareableMatrix& operator=(const ShareableMatrix& o)
+		{
+			if (o.ownData.data())
+			{
+				ownData = o.ownData;
+				new (this) BaseType(ownData.data(), ownData.rows(), ownData.cols());
+			}
+			else
+			{
+				new (this) BaseType((_Scalar*)o.data(), o.rows(), o.cols());
+			}
+			return *this;
+		}
+
+		ShareableMatrix& operator=(ShareableMatrix&& o) = default;
+
+		void init(_Scalar* ptr, Eigen::Index rows, Eigen::Index cols)
+		{
+			if (!ptr && rows && cols)
+			{
+				ownData = Eigen::Matrix<_Scalar, _rows, _cols>::Zero(_rows != -1 ? _rows : rows, _cols != -1 ? _cols : cols);
 				ptr = ownData.data();
 			}
-			// is this the best way??
-			this->m_data = ptr;
-			((Eigen::internal::variable_if_dynamic<Eigen::Index, -1>*)&this->m_rows)->setValue(len);
+			else
+			{
+				ownData = Eigen::Matrix<_Scalar, _rows, _cols>{};
+			}
+			new (this) BaseType(ptr, _rows != -1 ? _rows : rows, _cols != -1 ? _cols : cols);
 		}
 
-		void conservativeResize(size_t newSize)
+		void conservativeResize(size_t newRows, size_t newCols)
 		{
-			ownData.conservativeResize(newSize);
-			init(ownData.data(), ownData.size());
+			ownData.conservativeResize(_rows != -1 ? _rows : newRows, _cols != -1 ? _cols : newCols);
+			new (this) BaseType(ownData.data(), ownData.rows(), ownData.cols());
 		}
 
 		void becomeOwner()
@@ -38,8 +73,25 @@ namespace tomoto
 			if (ownData.data() != this->m_data)
 			{
 				ownData = *this;
-				init(ownData.data(), ownData.size());
+				new (this) BaseType(ownData.data(), ownData.rows(), ownData.cols());
 			}
+		}
+
+		void serializerRead(std::istream& istr)
+		{
+			uint32_t rows = serializer::readFromStream<uint32_t>(istr);
+			uint32_t cols = serializer::readFromStream<uint32_t>(istr);
+			init(nullptr, rows, cols);
+			if (!istr.read((char*)this->data(), sizeof(_Scalar) * this->size()))
+				throw std::ios_base::failure(std::string("reading type '") + typeid(_Scalar).name() + std::string("' is failed"));
+		}
+
+		void serializerWrite(std::ostream& ostr) const
+		{
+			serializer::writeToStream<uint32_t>(ostr, (uint32_t)this->rows());
+			serializer::writeToStream<uint32_t>(ostr, (uint32_t)this->cols());
+			if (!ostr.write((const char*)this->data(), sizeof(_Scalar) * this->size()))
+				throw std::ios_base::failure(std::string("writing type '") + typeid(_Scalar).name() + std::string("' is failed"));
 		}
 	};
 
@@ -85,7 +137,7 @@ namespace tomoto
 
 		tvector<Tid> Zs;
 		tvector<Float> wordWeights;
-		ShareableVector<WeightType> numByTopic;
+		ShareableMatrix<WeightType, -1, 1> numByTopic;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(DocumentBase, 0, Zs, wordWeights);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(DocumentBase, 1, 0x00010001, Zs, wordWeights);

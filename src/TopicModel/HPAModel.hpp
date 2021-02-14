@@ -28,7 +28,8 @@ namespace tomoto
 		typename _Interface = IHPAModel,
 		typename _Derived = void,
 		typename _DocType = DocumentHPA<_tw>,
-		typename _ModelState = ModelStateHPA<_tw>>
+		typename _ModelState = ModelStateHPA<_tw>
+	>
 	class HPAModel : public LDAModel<_tw, _RandGen, 0, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, HPAModel<_tw, _RandGen, _Exclusive>, _Derived>::type,
 		_DocType, _ModelState>
@@ -250,8 +251,6 @@ namespace tomoto
 		template<ParallelScheme _ps, typename _ExtraDocData>
 		void mergeState(ThreadPool& pool, _ModelState& globalState, _ModelState& tState, _ModelState* localData, _RandGen*, const _ExtraDocData& edd) const
 		{
-			std::vector<std::future<void>> res;
-
 			tState = globalState;
 			globalState = localData[0];
 			for (size_t i = 1; i < pool.getNumWorkers(); ++i)
@@ -276,15 +275,6 @@ namespace tomoto
 				globalState.numByTopicWord[1] = globalState.numByTopicWord[1].cwiseMax(0);
 				globalState.numByTopicWord[2] = globalState.numByTopicWord[2].cwiseMax(0);
 			}
-
-			for (size_t i = 0; i < pool.getNumWorkers(); ++i)
-			{
-				res.emplace_back(pool.enqueue([&, this, i](size_t threadId)
-				{
-					localData[i] = globalState;
-				}));
-			}
-			for (auto& r : res) r.get();
 		}
 
 		std::vector<uint64_t> _getTopicsCount() const
@@ -379,7 +369,7 @@ namespace tomoto
 
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			doc.numByTopic.init(nullptr, this->K + 1);
+			doc.numByTopic.init(nullptr, this->K + 1, 1);
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
 			doc.Zs = tvector<Tid>(wordSize);
 			doc.Z2s = tvector<Tid>(wordSize);
@@ -575,7 +565,7 @@ namespace tomoto
 	template<typename _TopicModel>
 	void DocumentHPA<_tw>::update(WeightType * ptr, const _TopicModel & mdl)
 	{
-		this->numByTopic.init(ptr, mdl.getK() + 1);
+		this->numByTopic.init(ptr, mdl.getK() + 1, 1);
 		this->numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(mdl.getK(), mdl.getK2() + 1);
 		for (size_t i = 0; i < this->Zs.size(); ++i)
 		{

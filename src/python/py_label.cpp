@@ -128,10 +128,46 @@ static PyObject* Candidate_getScore(CandidateObject* self, void* closure)
 	}
 }
 
+static PyObject* Candidate_getCf(CandidateObject* self, void* closure)
+{
+	try
+	{
+		return py::buildPyValue(self->cand.cf);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+static PyObject* Candidate_getDf(CandidateObject* self, void* closure)
+{
+	try
+	{
+		return py::buildPyValue(self->cand.df);
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
 static PyGetSetDef Candidate_getseters[] = {
 	{ (char*)"words", (getter)Candidate_getWords, nullptr, Candidate_words__doc__, nullptr },
 	{ (char*)"name", (getter)Candidate_getName, (setter)Candidate_setName, Candidate_name__doc__, nullptr },
 	{ (char*)"score", (getter)Candidate_getScore, nullptr, Candidate_score__doc__, nullptr },
+	{ (char*)"cf", (getter)Candidate_getCf, nullptr, Candidate_cf__doc__, nullptr },
+	{ (char*)"df", (getter)Candidate_getDf, nullptr, Candidate_df__doc__, nullptr },
 	{ nullptr },
 };
 
@@ -265,13 +301,13 @@ static PyMethodDef Labeler_methods[] =
 
 static int PMIExtractor_init(ExtractorObject *self, PyObject *args, PyObject *kwargs)
 {
-	size_t minCf = 10, minDf = 5, minLen = 1, maxLen = 5, maxCand = 5000;
-	static const char* kwlist[] = { "min_cf", "min_df", "min_len", "max_len", "max_cand", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnn", (char**)kwlist,
-		&minCf, &minDf, &minLen, &maxLen, &maxCand)) return -1;
+	size_t minCf = 10, minDf = 5, minLen = 1, maxLen = 5, maxCand = 5000, normalized = 0;
+	static const char* kwlist[] = { "min_cf", "min_df", "min_len", "max_len", "max_cand", "normalized", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnp", (char**)kwlist,
+		&minCf, &minDf, &minLen, &maxLen, &maxCand, &normalized)) return -1;
 	try
 	{
-		self->inst = new tomoto::label::PMIExtractor{ minCf, minDf, minLen, maxLen, maxCand };
+		self->inst = new tomoto::label::PMIExtractor{ minCf, minDf, minLen, maxLen, maxCand, !!normalized };
 	}
 	catch (const exception& e)
 	{
@@ -350,7 +386,7 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 				pcands.emplace_back(&((CandidateObject*)item.get())->cand);
 			}
 		}
-		auto deref = [](tomoto::label::Candidate* p) { return *p; };
+		auto deref = [](tomoto::label::Candidate* p)->tomoto::label::Candidate& { return *p; };
 		self->inst = new tomoto::label::FoRelevance{ 
 			tm->inst, 
 			tomoto::makeTransformIter(pcands.begin(), deref), 
