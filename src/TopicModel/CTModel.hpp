@@ -65,6 +65,7 @@ namespace tomoto
 			{
 				if (i == 0) pbeta = Eigen::Matrix<Float, -1, 1>::Ones(this->K);
 				else pbeta = doc.beta.col(i % numBetaSample).array().exp();
+
 				Float betaESum = pbeta.sum() + 1;
 				pbeta /= betaESum;
 				for (size_t k = 0; k < this->K; ++k)
@@ -78,7 +79,9 @@ namespace tomoto
 
 					Float c = betaESum * (1 - pbeta[k]);
 					lowerBound[k] = log(c * max_uk / (1 - max_uk));
-					upperBound[k] = log(c * min_unk / (1 - min_unk));
+					lowerBound[k] = std::max(std::min(lowerBound[k], (Float)100), (Float)-100);
+					upperBound[k] = log(c * min_unk / (1 - min_unk + epsilon));
+					upperBound[k] = std::max(std::min(upperBound[k], (Float)100), (Float)-100);
 					if (lowerBound[k] > upperBound[k])
 					{
 						THROW_ERROR_WITH_INFO(exception::TrainingError,

@@ -480,6 +480,8 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 					throw runtime_error{ string{ "there is a document with uid = " } + PyUnicode_AsUTF8(repr) + " already." };
 				}
 				self->invmap.emplace(suid, self->docs.size());
+				doc.docUid = tomoto::SharedString{ uid };
+				continue;
 			}
 
 			Py_INCREF(value);
@@ -1506,9 +1508,11 @@ vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject*
 
 		for (size_t i = 0; i < rdoc.words.size(); ++i)
 		{
-			if(rdoc.words[i] == tomoto::non_vocab_id) continue;
+			if (rdoc.words[i] == tomoto::non_vocab_id) continue;
+			
 			if (insert_into_empty) doc.words.emplace_back(rdoc.words[i]);
 			else doc.words.emplace_back(corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict()));
+			
 			if (!doc.rawStr.empty())
 			{
 				doc.origWordPos.emplace_back(rdoc.origWordPos[i]);

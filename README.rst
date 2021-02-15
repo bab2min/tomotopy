@@ -250,7 +250,7 @@ See `word_prior_example` in `example.py` for more details.
 
 Examples
 --------
-You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/master/examples/ .
+You can find an example python code of tomotopy at https://github.com/bab2min/tomotopy/blob/main/examples/ .
 
 You can also get the data file used in the example code at https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view .
 

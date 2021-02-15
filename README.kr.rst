@@ -245,7 +245,7 @@ LDA모델로 1000회 iteration을 수행시 걸리는 시간을 초 단위로 �
 
 예제 코드
 ---------
-tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/master/examples/ 를 확인하시길 바랍니다.
+tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/main/examples/ 를 확인하시길 바랍니다.
 
 예제 코드에서 사용했던 데이터 파일은 https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view 에서 다운받을 수 있습니다.
 
