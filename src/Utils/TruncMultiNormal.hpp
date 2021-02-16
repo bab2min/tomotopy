@@ -48,7 +48,18 @@ namespace tomoto
 							upper_neg = std::min(upper_neg, at[k]);
 						}
 					}
-					z[j] = rtnorm::rtnorm(rng, std::max(lower_pos, lower_neg), std::min(upper_pos, upper_neg));
+					lower_pos = std::max(lower_pos, lower_neg);
+					upper_pos = std::min(upper_pos, upper_neg);
+					// this is due to numerical instability
+					if (lower_pos >= upper_pos)
+					{
+						std::cerr << __FILE__ << "(" << __LINE__ << "): wrong truncation range [" << lower_pos << ", " << upper_pos << "]" << std::endl;
+						z[j] = (lower_pos + upper_pos) / 2;
+					}
+					else
+					{
+						z[j] = rtnorm::rtnorm(rng, lower_pos, upper_pos);
+					}
 				}
 			}
 			ret = (l * z) + multiNormal.mean;
