@@ -35,7 +35,7 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.10.0 입니다.
+tomotopy의 가장 최신버전은 0.10.2 입니다.
 
 시작하기
 ---------------
@@ -255,6 +255,10 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.10.2 (2021-02-16)
+    * `tomotopy.CTModel.train`가 큰 K값에 대해 실패하는 문제가 수정되었습니다.
+    * `tomotopy.utils.Corpus`가 `uid`값을 잃는 문제가 수정되었습니다.
+
 * 0.10.1 (2021-02-14)
     * `tomotopy.utils.Corpus.extract_ngrams`에 빈 문헌을 입력시 발생하던 에러를 수정했습니다.
     * `tomotopy.LDAModel.infer`가 올바른 입력에도 예외를 발생시키던 문제를 수정했습니다.
