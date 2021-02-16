@@ -36,7 +36,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.10.1.
+The most recent version of tomotopy is 0.10.2.
 
 Getting Started
 ---------------
@@ -261,6 +261,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.10.2 (2021-02-16)
+    * An issue was fixed where `tomotopy.CTModel.train` fails with large K.
+    * An issue was fixed where `tomotopy.utils.Corpus` loses their `uid` values.
+
 * 0.10.1 (2021-02-14)
     * An issue was fixed where `tomotopy.utils.Corpus.extract_ngrams` craches with empty input.
     * An issue was fixed where `tomotopy.LDAModel.infer` raises exception with valid input.
