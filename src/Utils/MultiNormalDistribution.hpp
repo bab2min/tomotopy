@@ -51,8 +51,9 @@ namespace tomoto
 					}
 					if (len > 1) newDist.cov /= len - 1;
 				}
-				newDist.l = newDist.cov.llt().matrixL();
-				newDist.logDet = newDist.l.diagonal().array().log().sum();
+				Eigen::MatrixXd l = newDist.cov.template cast<double>().llt().matrixL();
+				newDist.l = l.template cast<float>();
+				newDist.logDet = l.diagonal().array().log().sum();
 				return newDist;
 			}
 
