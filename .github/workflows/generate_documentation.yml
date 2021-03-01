@@ -39,7 +39,7 @@ jobs:
         mv variant/include/mapbox include/
     - name: build
       run: |
-        python3 -m pip install numpy
+        python3 -m pip install numpy==1.10.4
         python3 -m pip install pdoc3==0.8.4
         export TOMOTOPY_LANG=${{ matrix.language }}
         python3 setup.py install

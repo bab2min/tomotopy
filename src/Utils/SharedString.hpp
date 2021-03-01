@@ -109,7 +109,7 @@ namespace tomoto
 
 		bool empty() const
 		{
-			return ptr == nullptr;
+			return ptr == nullptr || size() == 0;
 		}
 
 		operator std::string() const
