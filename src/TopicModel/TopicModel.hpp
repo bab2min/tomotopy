@@ -373,7 +373,7 @@ namespace tomoto
 		{
 			if (doc.words.empty()) return -1;
 			if (!doc.docUid.empty() && uidMap.count(doc.docUid))
-				throw exception::InvalidArgument{ "there is a document with uid = " + std::string{ doc.docUid } + " already." };
+				throw exception::InvalidArgument{ "there is a document with uid = '" + std::string{ doc.docUid } + "' already." };
 			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
 			if (vocabCf.size() <= maxWid)
 			{
@@ -383,7 +383,7 @@ namespace tomoto
 			for (auto w : doc.words) ++vocabCf[w];
 			std::unordered_set<Vid> uniq{ doc.words.begin(), doc.words.end() };
 			for (auto w : uniq) ++vocabDf[w];
-			uidMap.emplace(doc.docUid, docs.size());
+			if (!doc.docUid.empty()) uidMap.emplace(doc.docUid, docs.size());
 			docs.emplace_back(std::forward<_DocTy>(doc));
 			return docs.size() - 1;
 		}

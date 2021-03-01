@@ -403,52 +403,40 @@ namespace tomoto
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
-		template<bool _Infer>
+		template<bool _infer>
 		void updateStateWithDoc(typename BaseClass::Generator& g, _ModelState& ld, _RandGen& rgs, _DocType& doc, size_t i) const
 		{
-			// generate tables for each topic when inferring
-			if (_Infer)
+			Tid t;
+			std::vector<double> dist;
+			dist.emplace_back(this->alpha);
+			for (auto& d : doc.numTopicByTable) dist.emplace_back(d.num);
+			std::discrete_distribution<Tid> ddist{ dist.begin(), dist.end() };
+			t = ddist(rgs);
+			if (t == 0)
 			{
-				if (i < this->K)
+				// new table
+				Tid k;
+				if (_infer)
 				{
-					Tid t = i;
-					if (isLiveTopic(i))
+					std::uniform_int_distribution<> theta{ 0, this->K - 1 };
+					do
 					{
-						t = doc.addNewTable(i);
-					}
-					else
-					{
-						t = std::uniform_int_distribution<size_t>{ 0, doc.getNumTable() - 1 }(rgs);
-					}
-					++ld.numTableByTopic[doc.numTopicByTable[t].topic];
-					++ld.totalTable;
-					doc.Zs[i] = t;
-				}
-				else doc.Zs[i] = std::uniform_int_distribution<size_t>{ 0, doc.getNumTable() - 1 }(rgs);
-			}
-			// generate tables following CRP
-			else
-			{
-				Tid t;
-				std::vector<double> dist;
-				dist.emplace_back(this->alpha);
-				for (auto& d : doc.numTopicByTable) dist.emplace_back(d.num);
-				std::discrete_distribution<Tid> ddist{ dist.begin(), dist.end() };
-				t = ddist(rgs);
-				if (t == 0)
-				{
-					// new table
-					Tid k = g.theta(rgs);
-					t = doc.addNewTable(k);
-					++ld.numTableByTopic[k];
-					++ld.totalTable;
+						k = theta(rgs);
+					} while (!isLiveTopic(k));
 				}
 				else
 				{
-					t -= 1;
+					k = g.theta(rgs);
 				}
-				doc.Zs[i] = t;
+				t = doc.addNewTable(k);
+				++ld.numTableByTopic[k];
+				++ld.totalTable;
 			}
+			else
+			{
+				t -= 1;
+			}
+			doc.Zs[i] = t;
 			addWordTo<1>(ld, doc, i, doc.words[i], doc.Zs[i], doc.numTopicByTable[doc.Zs[i]].topic);
 		}
 

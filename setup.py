@@ -96,7 +96,7 @@ setup(
     install_requires=['numpy>=1.10.0'],
     keywords='NLP,Topic Model',
 
-    packages = ['tomotopy'],
+    packages=['tomotopy'],
     include_package_data=True,
-    ext_modules = modules
+    ext_modules=modules
 )

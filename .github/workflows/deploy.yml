@@ -40,12 +40,12 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        /opt/python/cp38-cp38/bin/python -m pip install twine wheel numpy
+        /opt/python/cp38-cp38/bin/python -m pip install twine wheel numpy==1.10.0
         /opt/python/cp38-cp38/bin/python setup.py sdist
         /opt/python/cp38-cp38/bin/python -m twine upload dist/*.tar.gz
         for cp in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
         do
-          /opt/python/${cp}/bin/python -m pip install twine wheel numpy
+          /opt/python/${cp}/bin/python -m pip install twine wheel numpy==1.10.0
           /opt/python/${cp}/bin/python setup.py build bdist_wheel
           auditwheel repair dist/*-${cp}-linux_x86_64.whl
         done
@@ -84,7 +84,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        python -m pip install twine wheel numpy
+        python -m pip install twine wheel numpy==1.10.0
         python setup.py bdist_wheel
         twine upload dist/*
 
@@ -122,6 +122,6 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python -m pip install twine wheel numpy
+        python -m pip install twine wheel numpy==1.10.0
         python setup.py bdist_wheel
         twine upload dist/*
