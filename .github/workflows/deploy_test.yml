@@ -39,12 +39,12 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        /opt/python/cp35-cp35m/bin/python -m pip install twine wheel numpy==1.10.4
+        /opt/python/cp35-cp35m/bin/python -m pip install twine wheel numpy==`/opt/python/cp35-cp35m/bin/python test/numpy_version.py`
         /opt/python/cp35-cp35m/bin/python setup.py sdist
         /opt/python/cp35-cp35m/bin/python -m twine upload --repository testpypi dist/*.tar.gz
         for cp in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38
         do
-          /opt/python/${cp}/bin/python -m pip install twine wheel numpy==1.10.4
+          /opt/python/${cp}/bin/python -m pip install twine wheel numpy==`/opt/python/${cp}/bin/python test/numpy_version.py`
           /opt/python/${cp}/bin/python setup.py build bdist_wheel
           auditwheel repair dist/*-${cp}-linux_x86_64.whl
         done
@@ -83,7 +83,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        python -m pip install twine wheel numpy==1.10.4
+        python -m pip install twine wheel numpy==`python test/numpy_version.py`
         python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
 
@@ -121,6 +121,6 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python -m pip install twine wheel numpy==1.10.4
+        python -m pip install twine wheel numpy==$(python test/numpy_version.py)
         python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
