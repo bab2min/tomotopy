@@ -93,7 +93,7 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: MacOS"
     ],
-    install_requires=['numpy>=1.15.0'],
+    install_requires=['numpy>=1.11.0'],
     keywords='NLP,Topic Model',
 
     packages=['tomotopy'],
