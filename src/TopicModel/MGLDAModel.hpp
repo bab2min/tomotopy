@@ -381,7 +381,7 @@ namespace tomoto
 
 			if (args.alpha.size() != 1)
 			{
-				THROW_ERROR_WITH_INFO(exc::Unimplemented, text::format("An asymmetric alpha prior is not supported yet at MGLDA."));
+				THROW_ERROR_WITH_INFO(exc::Unimplemented, "An asymmetric alpha prior is not supported yet at MGLDA.");
 			}
 
 			if (args.alphaL.size() == 1)
@@ -389,7 +389,7 @@ namespace tomoto
 			}
 			else if (args.alphaL.size() == args.kL)
 			{
-				THROW_ERROR_WITH_INFO(exc::Unimplemented, text::format("An asymmetric alphaL prior is not supported yet at MGLDA."));
+				THROW_ERROR_WITH_INFO(exc::Unimplemented, "An asymmetric alphaL prior is not supported yet at MGLDA.");
 			}
 			else
 			{

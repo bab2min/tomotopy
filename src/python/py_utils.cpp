@@ -476,8 +476,7 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 				if (suid.empty()) throw runtime_error{ "wrong `uid` value : empty str not allowed" };
 				if (self->invmap.find(suid) != self->invmap.end())
 				{
-					py::UniqueObj repr{ PyObject_Repr(value) };
-					throw runtime_error{ string{ "there is a document with uid = " } + PyUnicode_AsUTF8(repr) + " already." };
+					throw runtime_error{ "there is a document with uid = " + py::repr(value) + " already." };
 				}
 				self->invmap.emplace(suid, self->docs.size());
 				doc.docUid = tomoto::SharedString{ uid };
@@ -716,9 +715,9 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			string v = PyUnicode_AsUTF8(idx);
 			auto doc = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, (PyObject*)self, nullptr);
 			if (!doc) throw bad_exception{};
-			size_t idx = self->findUid(v);
-			if (idx == (size_t)-1) throw out_of_range{ "Cannot find a document with uid = '" + v + "'" }; 
-			doc->doc = self->getDoc(idx);
+			size_t iidx = self->findUid(v);
+			if (iidx == (size_t)-1) throw out_of_range{ "Cannot find a document with uid = " + py::repr(idx)  }; 
+			doc->doc = self->getDoc(iidx);
 			return (PyObject*)doc;
 		}
 		// slicing
@@ -794,7 +793,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 				{
 					string k = py::toCpp<string>(o);
 					size_t idx = self->findUid(k);
-					if (idx == (size_t)-1) throw out_of_range{ "cannot find a document with uid = " + k };
+					if (idx == (size_t)-1) throw out_of_range{ "Cannot find a document with uid = " + py::repr(o) };
 					idcs.emplace_back(idx);
 				}
 				else

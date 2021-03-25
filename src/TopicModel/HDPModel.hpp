@@ -461,7 +461,7 @@ namespace tomoto
 			: BaseClass(args), gamma(args.gamma)
 		{
 			if (gamma <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong gamma value (gamma = %f)", gamma));
-			if (args.alpha.size() > 1) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("Asymmetric alpha is not supported at HDP."));
+			if (args.alpha.size() > 1) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "Asymmetric alpha is not supported at HDP.");
 		}
 
 		size_t getTotalTables() const override
