@@ -5,29 +5,26 @@
 
 using namespace std;
 
-tomoto::RawDoc::MiscType MGLDA_misc_args(const tomoto::RawDoc::MiscType& o)
+tomoto::RawDoc::MiscType MGLDA_misc_args(TopicModelObject* self, const tomoto::RawDoc::MiscType& o)
 {
 	tomoto::RawDoc::MiscType ret;
-	ret["delimiter"] = getValueFromMiscDefault<string>("delimiter", o, "`MGLDAModel` needs a `delimiter` value in `str` type.", ".");
+	ret["delimiter"] = getValueFromMiscDefault<string>("delimiter", o, "`MGLDAModel` requires a `delimiter` value in `str` type.", ".");
 	return ret;
 }
 
 static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t K = 1, KL = 1, T = 3;
-	float alpha = 0.1f, alphaL = 0.1f, eta = 0.01f, etaL = 0.01f, alphaM = 0.1f, alphaML = 0.1f, gamma = 0.1f;
-	size_t seed = random_device{}();
+	tomoto::MGLDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml",
 		"eta_g", "eta_l", "gamma", "seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &KL, &T, &alpha, &alphaL, &alphaM, &alphaML, &eta, &etaL, &gamma, 
-		&seed, &objCorpus, &objTransform)) return -1;
+		&margs.k, &margs.kL, &margs.t, &margs.alpha[0], &margs.alphaL[0], &margs.alphaMG, &margs.alphaML, &margs.eta, &margs.etaL, &margs.gamma,
+		&margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, 
-			K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, seed);
+		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -35,18 +32,23 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, KL, T, alpha, alphaL, alphaM, alphaML, eta, etaL, gamma, seed
+			tw, minCnt, minDf, rmTop, 
+			margs.k, margs.kL, margs.t, margs.alpha[0], margs.alphaL[0], 
+			margs.alphaMG, margs.alphaML, margs.eta, margs.etaL, margs.gamma, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -60,7 +62,7 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["delimiter"] = delimiter;
 		auto ret = inst->addDoc(raw);
@@ -87,7 +89,7 @@ static DocumentObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyO
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["delimiter"] = delimiter;
 		auto doc = inst->makeDoc(raw);
@@ -138,9 +140,9 @@ static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyO
 
 static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId;
-	static const char* kwlist[] = { "topic_id", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	size_t topicId, normalize = 1;
+	static const char* kwlist[] = { "topic_id", "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -151,7 +153,7 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}*/
-		return py::buildPyValue(inst->getWidsByTopic(topicId));
+		return py::buildPyValue(inst->getWidsByTopic(topicId, !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -180,6 +182,7 @@ DEFINE_LOADER(MGLDA, MGLDA_type);
 static PyMethodDef MGLDA_methods[] =
 {
 	{ "load", (PyCFunction)MGLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)MGLDA_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "add_doc", (PyCFunction)MGLDA_addDoc, METH_VARARGS | METH_KEYWORDS, MGLDA_add_doc__doc__ },
 	{ "make_doc", (PyCFunction)MGLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, MGLDA_make_doc__doc__ },
 	{ "get_topic_words", (PyCFunction)MGLDA_getTopicWords, METH_VARARGS | METH_KEYWORDS, MGLDA_get_topic_words__doc__ },

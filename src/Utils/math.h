@@ -162,9 +162,9 @@ namespace tomoto
 
 		// calc lgamma(z + a) - lgamma(z)
 		template<class _T, class _U>
-		inline auto lgammaSubt(_T z, _U a) -> decltype((z + a + 1.5)* log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log(((z + a) * (z + a + 1)) / (z * (z + 1))))
+		inline auto lgammaSubt(_T z, _U a) -> decltype((z + a + 1.5)* log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log((z + a) / z * (z + a + 1) / (z + 1)))
 		{
-			return (z + a + 1.5) * log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log(((z + a) * (z + a + 1)) / (z * (z + 1)));
+			return (z + a + 1.5) * log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log((z + a) / z * (z + a + 1) / (z + 1));
 		}
 
 		// approximation : digamma(z) ~= ln(z+4) - 1/2/(z+4) - 1/12/(z+4)^2 - 1/z - 1/(z+1) - 1/(z+2) - 1/(z+3)

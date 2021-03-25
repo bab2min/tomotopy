@@ -56,12 +56,21 @@ namespace tomoto
 		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 	};
 
+	struct HDPArgs : public LDAArgs
+	{
+		Float gamma = 0.1;
+		
+		HDPArgs()
+		{
+			k = 2;
+		}
+	};
+
     class IHDPModel : public ILDAModel
 	{
 	public:
 		using DefaultDocType = DocumentHDP<TermWeight::one>;
-		static IHDPModel* create(TermWeight _weight, size_t _K = 1, 
-			Float alpha = 0.1, Float eta = 0.01, Float gamma = 0.1, size_t seed = std::random_device{}(),
+		static IHDPModel* create(TermWeight _weight, const HDPArgs& args,
 			bool scalarRng = false);
 
 		virtual Float getGamma() const = 0;

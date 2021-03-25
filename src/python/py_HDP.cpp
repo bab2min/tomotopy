@@ -8,17 +8,15 @@ using namespace std;
 static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t K = 2;
-	float alpha = 0.1f, eta = 0.01f, gamma = 0.1f;
-	size_t seed = random_device{}();
+	tomoto::HDPArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "initial_k", "alpha", "eta", "gamma", 
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &alpha, &eta, &gamma, &seed, &objCorpus, &objTransform)) return -1;
+		&margs.k, &margs.alpha[0], &margs.eta, &margs.gamma, &margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, K, alpha, eta, gamma, seed);
+		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -26,18 +24,21 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, alpha, eta, gamma, seed
+			tw, minCnt, minDf, rmTop, margs.k, margs.alpha[0], margs.eta, margs.gamma, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -131,6 +132,7 @@ DEFINE_LOADER(HDP, HDP_type);
 static PyMethodDef HDP_methods[] =
 {
 	{ "load", (PyCFunction)HDP_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)HDP_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, HDP_is_live_topic__doc__ },
 	{ "convert_to_lda", (PyCFunction)HDP_convertToLDA, METH_VARARGS | METH_KEYWORDS, HDP_convert_to_lda__doc__ },
 	{ nullptr }

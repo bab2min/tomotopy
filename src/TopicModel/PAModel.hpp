@@ -365,12 +365,24 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
 
-		PAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
-			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
+		PAModel(const PAArgs& args)
+			: BaseClass(args), K2(args.k2)
 		{
-			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
-			subAlphaSum = Eigen::Matrix<Float, -1, 1>::Constant(_K1, _K2 * 0.1);
-			subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(_K1, _K2, 0.1);
+			if (K2 == 0 || K2 >= 0x80000000) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong K2 value (K2 = %zd)", K2));
+
+			if (args.subalpha.size() == 1)
+			{
+				subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(args.k, args.k2, args.subalpha[0]);
+			}
+			else if(args.subalpha.size() == args.k2)
+			{
+				subAlphas = Eigen::Map<const Eigen::Matrix<Float, 1, -1>>(args.subalpha.data(), args.subalpha.size()).replicate(args.k, 1);
+			}
+			else
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong subalpha value (len = %zd)", args.subalpha.size()));
+			}
+			subAlphaSum = subAlphas.rowwise().sum();
 			this->optimInterval = 1;
 		}
 
@@ -392,43 +404,54 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> getSubTopicBySuperTopic(Tid k) const override
+		std::vector<Float> getSubTopicBySuperTopic(Tid k, bool normalize) const override
 		{
 			assert(k < this->K);
+			std::vector<Float> ret(K2);
 			Float sum = this->globalState.numByTopic[k] + subAlphaSum[k];
-			Eigen::Matrix<Float, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<Float>() + subAlphas.row(k).array()) / sum;
-			return { ret.data(), ret.data() + K2 };
+			if (!normalize) sum = 1;
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), K2 };
+			m = (this->globalState.numByTopic1_2.row(k).array().template cast<Float>() + subAlphas.row(k).array()) / sum;
+			return ret;
 		}
 
 		std::vector<std::pair<Tid, Float>> getSubTopicBySuperTopicSorted(Tid k, size_t topN) const override
 		{
-			return extractTopN<Tid>(getSubTopicBySuperTopic(k), topN);
+			return extractTopN<Tid>(getSubTopicBySuperTopic(k, true), topN);
 		}
 
-		std::vector<Float> getSubTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getSubTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(K2);
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), K2 }.array() =
-				((doc.numByTopic1_2.array().template cast<Float>() + subAlphas.array()).colwise().sum()) / (doc.getSumWordWeight() + subAlphas.sum());
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), K2 };
+			if (normalize)
+			{
+				m = ((doc.numByTopic1_2.array().template cast<Float>() + subAlphas.array()).colwise().sum()) / (doc.getSumWordWeight() + subAlphas.sum());
+			}
+			else
+			{
+				m = (doc.numByTopic1_2.array().template cast<Float>() + subAlphas.array()).colwise().sum();
+			}
 			return ret;
 		}
 
-		std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc) const override
+		std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc, bool normalize) const override
 		{
-			return static_cast<const DerivedClass*>(this)->getSubTopicsByDoc(*static_cast<const _DocType*>(doc));
+			return static_cast<const DerivedClass*>(this)->getSubTopicsByDoc(*static_cast<const _DocType*>(doc), normalize);
 		}
 
 		std::vector<std::pair<Tid, Float>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
 		{
-			return extractTopN<Tid>(getSubTopicsByDoc(doc), topN);
+			return extractTopN<Tid>(getSubTopicsByDoc(doc, true), topN);
 		}
 
-		std::vector<Float> _getWidsByTopic(Tid k2) const
+		std::vector<Float> _getWidsByTopic(Tid k2, bool normalize = true) const
 		{
 			assert(k2 < K2);
 			const size_t V = this->realV;
 			std::vector<Float> ret(V);
 			Float sum = this->globalState.numByTopic2[k2] + V * this->eta;
+			if (!normalize) sum = 1;
 			auto r = this->globalState.numByTopicWord.row(k2);
 			for (size_t v = 0; v < V; ++v)
 			{
@@ -439,10 +462,10 @@ namespace tomoto
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			if (priors.size() != K2) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors.size() must be equal to K2.");
+			if (priors.size() != K2) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors.size() must be equal to K2.");
 			for (auto p : priors)
 			{
-				if (p < 0) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors must not be less than 0.");
+				if (p < 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors must not be less than 0.");
 			}
 			this->dict.add(word);
 			this->etaByWord.emplace(word, priors);

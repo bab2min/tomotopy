@@ -27,9 +27,25 @@ DOC_SIGNATURE_EN_KO(Document_get_topics__doc__,
 	u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_topic_dist__doc__,
-	"get_topic_dist(self)",
-	u8R""(Return a distribution of the topics in the document.)"",
-	u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.)"");
+	"get_topic_dist(self, normalize=True)",
+	u8R""(Return a distribution of the topics in the document.
+
+Parameters
+----------
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
+)"",
+	u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.
+
+Parameters
+----------
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
+)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_sub_topics__doc__,
 	"get_sub_topics(self, top_n=10)",
@@ -41,13 +57,28 @@ Return the `top_n` sub topics with its probability of the document. (for only `t
 현재 문헌의 상위 `top_n`개의 하위 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용))"");
 
 DOC_SIGNATURE_EN_KO(Document_get_sub_topic_dist__doc__,
-	"get_sub_topic_dist(self)",
+	"get_sub_topic_dist(self, normalize=True)",
 	u8R""(.. versionadded:: 0.5.0
 
-Return a distribution of the sub topics in the document. (for only `tomotopy.PAModel`))"",
+Return a distribution of the sub topics in the document. (for only `tomotopy.PAModel`)
+
+Parameters
+----------
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.)"",
 	u8R""(.. versionadded:: 0.5.0
 
-현재 문헌의 하위 토픽 확률 분포를 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용))"");
+현재 문헌의 하위 토픽 확률 분포를 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용)
+
+Parameters
+----------
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
+)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_words__doc__,
 	"get_words(self, top_n=10)",
@@ -97,8 +128,16 @@ DOC_VARIABLE_EN_KO(Document_uid__doc__,
     u8R""(문헌의 고유 ID (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_metadata__doc__,
-	u8R""("metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
-	u8R""(문헌의 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
+	u8R""("categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
+	u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
+
+DOC_VARIABLE_EN_KO(Document_numeric_metadata__doc__,
+    u8R""("continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
+
+.. versionadded:: 0.11.0)"",
+    u8R""(문헌의 연속형 숫자 메타데이터 (`tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.11.0)"");
 
 DOC_VARIABLE_EN_KO(Document_subtopics__doc__,
 	u8R""(a `list` of sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model, read-only))"",
@@ -161,9 +200,16 @@ DOC_VARIABLE_EN_KO(Document_raw__doc__,
     u8R""(문헌의 가공되지 않는 전체 텍스트 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_span__doc__,
-    u8R""(a span (tuple of a start position and a end position) for each word token in the document (read-only))"",
-    u8R""(문헌의 각 단어 토큰의 구간(시작 지점과 끝 지점의 tuple) (읽기전용))"");
+    u8R""(a span (tuple of a start position and a end position in bytes) for each word token in the document (read-only))"",
+    u8R""(문헌의 각 단어 토큰의 구간(바이트 단위 시작 지점과 끝 지점의 tuple) (읽기전용))"");
 
+DOC_VARIABLE_EN_KO(Document_pseudo_doc_id__doc__,
+    u8R""(id of a pseudo document where the document is allocated to (for only `tomotopy.PTModel` model, read-only)
+
+.. versionadded:: 0.11.0)"",
+u8R""(문헌이 할당된 가상 문헌의 id (`tomotopy.PTModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.11.0)"");
 
 /*
 	class LDA
@@ -194,8 +240,8 @@ rm_top : int
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
-alpha : float
-    hyperparameter of Dirichlet distribution for document-topic
+alpha : Union[float, Iterable[float]]
+    hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
@@ -233,8 +279,8 @@ rm_top : int
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 k : int
     토픽의 개수, 1 ~ 32767 범위의 정수.
-alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -416,7 +462,7 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id)",
+	"get_topic_word_dist(self, topic_id, normalize=True)",
 	u8R""(Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
@@ -424,6 +470,10 @@ Parameters
 ----------
 topic_id : int
     an integer in range [0, `k`) indicating the topic
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 )"",
 u8R""(토픽 `topic_id`의 단어 분포를 반환합니다.
 반환하는 값은 현재 토픽 내 각각의 단어들의 발생확률을 나타내는 `len(vocabs)`개의 소수로 구성된 `list`입니다.
@@ -432,6 +482,10 @@ Parameters
 ----------
 topic_id : int
     토픽을 가리키는 [0, `k`) 범위의 정수
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_count_by_topics__doc__,
@@ -551,10 +605,33 @@ u8R""(현재 모델을 `filename` 경로의 파일에 저장합니다. `None`을
 따라서 0.6.0 이후 버전에서 저장된 모델 파일 포맷은 0.5.2 버전 이전과는 호환되지 않습니다.
 )"");
 
+DOC_SIGNATURE_EN_KO(LDA_saves__doc__,
+    "saves(self, full=True)",
+    u8R""(.. versionadded:: 0.11.0
+
+Serialize the model instance into `bytes` object and return it.
+
+If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model.
+If `False`, only topic parameters of the model will be saved. This model can be only used for inference of an unseen document.
+)"",
+u8R""(.. versionadded:: 0.11.0
+
+현재 모델을 직렬화하여 `bytes`로 만든 뒤 이를 반환합니다.
+
+`full`이 `True`일 경우, 모델의 전체 상태가 파일에 모두 저장됩니다. 저장된 모델을 다시 읽어들여 학습(`train`)을 더 진행하고자 한다면 `full` = `True`로 하여 저장하십시오.
+반면 `False`일 경우, 토픽 추론에 관련된 파라미터만 파일에 저장됩니다. 이 경우 파일의 용량은 작아지지만, 추가 학습은 불가하고 새로운 문헌에 대해 추론(`infer`)하는 것만 가능합니다.
+)"");
+
+
 DOC_SIGNATURE_EN_KO(LDA_load__doc__,
 	"load(filename)",
 	u8R""(Return the model instance loaded from file `filename`.)"",
 	u8R""(`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
+
+DOC_SIGNATURE_EN_KO(LDA_loads__doc__,
+    "loads(data)",
+    u8R""(Return the model instance loaded from `data` in bytes-like object.)"",
+    u8R""(bytes-like object인 `data`로로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(LDA_summary__doc__,
     "summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False)",
@@ -741,8 +818,8 @@ rm_top : int
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
-alpha : float
-    an initial value of exponential of mean of normal distribution for `lambdas`
+alpha : Union[float, Iterable[float]]
+    an initial value of exponential of mean of normal distribution for `lambdas`, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic - word
 sigma : float
@@ -783,8 +860,8 @@ rm_top : int
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 k : int
     토픽의 개수, 1 ~ 32767 범위의 정수.
-alpha : float
-    `lambdas` 파라미터의 평균의 exp의 초기값
+alpha : Union[float, Iterable[float]]
+    `lambdas` 파라미터의 평균의 exp의 초기값, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 sigma : float
@@ -878,7 +955,7 @@ DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
 	class GDMR
 */
 DOC_SIGNATURE_EN_KO(GDMR___init____doc__,
-	"GDMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None)",
+	"GDMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Generalized DMR(g-DMR) topic model and its implementation is based on following papers:
 
 > * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
@@ -903,19 +980,23 @@ k : int
 degrees : Iterable[int]
     a list of the degrees of Legendre polynomials for TDF(Topic Distribution Function). Its length should be equal to the number of metadata variables.
 
-    Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as the LDA model. 
-alpha : float
-    exponential of mean of normal distribution for `lambdas`
+    Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as the LDA or DMR model. 
+alpha : Union[float, Iterable[float]]
+    exponential of mean of normal distribution for `lambdas`, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic - word
 sigma : float
     standard deviation of normal distribution for non-constant terms of `lambdas`
 sigma0 : float
     standard deviation of normal distribution for constant terms of `lambdas`
+decay : float
+    .. versionadded:: 0.11.0
+
+    decay's exponent that causes the coefficient of the higher-order term of `lambdas` to become smaller
 alpha_epsilon : float
     small smoothing value for preventing `exp(lambdas)` to be near zero
 metadata_range : Iterable[Iterable[float]]
-    a list of minimum and maximum value of each metadata variable. Its length should be equal to the length of `degrees`.
+    a list of minimum and maximum value of each numeric metadata variable. Its length should be equal to the length of `degrees`.
     
     For example, `metadata_range = [(2000, 2017), (0, 1)]` means that the first variable has a range from 2000 and 2017 and the second one has a range from 0 to 1.
 	Its default value is `None` in which case the ranges of each variable are obtained from input documents.
@@ -948,13 +1029,19 @@ k : int
 degrees : Iterable[int]
     TDF(토픽 분포 함수)로 쓰일 르장드르 다항식의 차수를 나타내는 list. 길이는 메타데이터 변수의 개수와 동일해야 합니다.
 
-    기본값은 `[]`으로 이 경우 모델은 어떤 메타데이터 변수도 포함하지 않으므로 LDA 모델과 동일해집니다.
-alpha : float
-    `lambdas` 파라미터의 평균의 exp의 초기값
+    기본값은 `[]`으로 이 경우 모델은 어떤 메타데이터 변수도 포함하지 않으므로 LDA 또는 DMR 모델과 동일해집니다.
+alpha : Union[float, Iterable[float]]
+    `lambdas` 파라미터의 평균의 exp의 초기값, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 sigma : float
-    `lambdas` 파라미터의 표준 편차
+    `lambdas` 파라미터 중 비상수 항의 표준 편차
+sigma0 : float
+    `lambdas` 파라미터 중 상수 항의 표준 편차
+decay : float
+    .. versionadded:: 0.11.0
+
+    `lambdas` 파라미터 중 고차항의 계수가 더 작아지도록하는 감쇠 지수
 alpha_epsilon : float
     `exp(lambdas)`가 0이 되는 것을 방지하는 평탄화 계수
 metadata_range : Iterable[Iterable[float]]
@@ -972,55 +1059,91 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_add_doc__doc__,
-	"add_doc(self, words, metadata=[])",
+	"add_doc(self, words, numeric_metadata=[], metadata='')",
 	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+
+..versionchanged:: 0.11.0
+
+Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
+Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
+and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
 
 Parameters
 ----------
 words : Iterable[str]
     an iterable of `str`
-metadata : Iterable[float]
-    continuous metadata variable of the document. Its length should be equal to the length of `degrees`.
+numeric_metadata : Iterable[float]
+    continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
+metadata : str
+    categorical metadata of the document (e.g., author, title, journal or country)
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+
+..versionchanged:: 0.11.0
+
+0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
+0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+`metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
 
 Parameters
 ----------
 words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
-metadata : Iterable[float]
-    문헌의 연속 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+numeric_metadata : Iterable[float]
+    문헌의 연속형 숫자 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+metadata : str
+    문헌의 범주형 메타데이터 (예를 들어 저자나 제목, 저널, 국가 등)
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_make_doc__doc__,
-	"make_doc(self, words, metadata=[])",
+	"make_doc(self, words, numeric_metadata=[], metadata='')",
 	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+
+..versionchanged:: 0.11.0
+
+Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
+Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
+and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
 
 Parameters
 ----------
 words : Iterable[str]
     an iteratable of `str`
-metadata : Iterable[float]
-    continuous metadata variable of the document. Its length should be equal to the length of `degrees`.
+numeric_metadata : Iterable[float]
+    continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
+metadata : str
+    categorical metadata of the document (e.g., author, title, journal or country)
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+
+..versionchanged:: 0.11.0
+
+0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
+0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+`metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
 
 Parameters
 ----------
 words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
-metadata : Iterable[float]
-    문헌의 연속 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+numeric_metadata : Iterable[float]
+    문헌의 연속형 숫자 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+metadata : str
+    문헌의 범주형 메타데이터 (예를 들어 저자나 제목, 저널, 국가 등)
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_tdf__doc__,
-	"tdf(self, metadata, normalize=True)",
+	"tdf(self, numeric_metadata, metadata='', normalize=True)",
 	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+
+..versionchanged:: 0.11.0
 
 Parameters
 ----------
-metadata : Iterable[float]
-    continuous metadata variable. Its length should be equal to the length of `degrees`.
+numeric_metadata : Iterable[float]
+    continuous metadata variable whose length should be equal to the length of `degrees`.
+metadata : str    
+    categorical metadata variable
 normalize : bool
     If true, the method returns probabilities for each topic in range [0, 1]. Otherwise, it returns raw values in logit.
 )"",
@@ -1028,25 +1151,31 @@ u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이�
 
 Parameters
 ----------
-metadata : Iterable[float]
-    문헌의 연속 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+numeric_metadata : Iterable[float]
+    연속형 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
+metadata : str
+    범주형 메타데이터 변수
 normalize : bool
     참인 경우, 각 값이 [0, 1] 범위에 있는 확률 분포를 반환합니다. 거짓인 경우 logit값을 그대로 반환합니다.
 )"");
 
 
 DOC_SIGNATURE_EN_KO(GDMR_tdf_linspace__doc__,
-	"tdf_linspace(self, metadata_start, metadata_stop, num, endpoint=True, normalize=True)",
+	"tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', endpoint=True, normalize=True)",
 	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+
+..versionchanged:: 0.11.0
 
 Parameters
 ----------
-metadata_start : Iterable[float]
-    the starting value of each continuous metadata variable. Its length should be equal to the length of `degrees`.
-metadata_stop : Iterable[float]
-    the end value of each continuous metadata variable. Its length should be equal to the length of `degrees`.
+numeric_metadata_start : Iterable[float]
+    the starting value of each continuous metadata variable whose length should be equal to the length of `degrees`.
+numeric_metadata_stop : Iterable[float]
+    the end value of each continuous metadata variable whose length should be equal to the length of `degrees`.
 num : Iterable[int]
     the number of samples to generate for each metadata variable. Must be non-negative. Its length should be equal to the length of `degrees`.
+metadata : str
+    categorical metadata variable
 endpoint : bool
     If True, `metadata_stop` is the last sample. Otherwise, it is not included. Default is True.
 normalize : bool
@@ -1061,12 +1190,14 @@ u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이�
 
 Parameters
 ----------
-metadata_start : Iterable[float]
+numeric_metadata_start : Iterable[float]
     문헌의 연속 메타데이터 변수의 시작값. 길이는 `degrees`의 길이와 동일해야 합니다.
-metadata_stop : Iterable[float]
+numeric_metadata_stop : Iterable[float]
     문헌의 연속 메타데이터 변수의 끝값. 길이는 `degrees`의 길이와 동일해야 합니다.
 num : Iterable[int]
     각 메타데이터 변수별로 생성할 샘플의 개수(0보다 큰 정수). 길이는 `degrees`의 길이와 동일해야 합니다.
+metadata : str
+    범주형 메타데이터 변수
 endpoint : bool
     참인 경우 `metadata_stop`이 마지막 샘플이 됩니다. 거짓인 경우 끝값이 샘플에 포함되지 않습니다. 기본값은 참입니다.
 normalize : bool
@@ -1081,6 +1212,10 @@ DOC_VARIABLE_EN_KO(GDMR_degrees__doc__,
 DOC_VARIABLE_EN_KO(GDMR_sigma0__doc__,
 	u8R""(the hyperparameter sigma0 (read-only))"",
 	u8R""(하이퍼 파라미터 sigma0 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(GDMR_decay__doc__,
+    u8R""(the hyperparameter decay (read-only))"",
+    u8R""(하이퍼 파라미터 decay (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(GDMR_metadata_range__doc__,
 	u8R""(the ranges of each metadata variable (read-only))"",
@@ -1419,7 +1554,7 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id)",
+	"get_topic_word_dist(self, topic_id, normalize=True)",
 	u8R""(Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
@@ -1428,6 +1563,10 @@ Parameters
 topic_id : int 
     A number in range [0, `k_g`) indicates a global topic and 
     a number in range [`k_g`, `k_g` + `k_l`) indicates a local topic.
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 )"",
 u8R""(토픽 `topic_id`의 단어 분포를 반환합니다.
 반환하는 값은 현재 토픽 내 각각의 단어들의 발생확률을 나타내는 `len(vocabs)`개의 소수로 구성된 `list`입니다.
@@ -1436,6 +1575,10 @@ Parameters
 ----------
 topic_id : int
     [0, `k_g`) 범위의 정수는 전역 토픽을, [`k_g`, `k_g` + `k_l`) 범위의 정수는 지역 토픽을 가리킵니다.
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
 )"");
 
 DOC_VARIABLE_EN_KO(MGLDA_k_g__doc__,
@@ -1483,7 +1626,7 @@ DOC_VARIABLE_EN_KO(MGLDA_eta_l__doc__,
 	class PA
 */
 DOC_SIGNATURE_EN_KO(PA___init____doc__,
-	"PAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+	"PAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Pachinko Allocation(PA) topic model and its implementation is based on following papers:
 
 > * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.
@@ -1509,8 +1652,12 @@ k1 : int
     the number of super topics between 1 ~ 32767
 k2 : int
     the number of sub topics between 1 ~ 32767
-alpha : float
-    initial hyperparameter of Dirichlet distribution for document-super topic 
+alpha : Union[float, Iterable[float]]
+    initial hyperparameter of Dirichlet distribution for document-super topic, given as a single `float` in case of symmetric prior and as a list with length `k1` of `float` in case of asymmetric prior.
+subalpha : Union[float, Iterable[float]]
+    .. versionadded:: 0.11.0
+
+    initial hyperparameter of Dirichlet distribution for super-sub topic, given as a single `float` in case of symmetric prior and as a list with length `k2` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for sub topic-word
 seed : int
@@ -1541,7 +1688,7 @@ min_df : int
     단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
-    .. versionadded:: 0.2.0    
+    .. versionadded:: 0.2.0
     
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.* `k1` : 상위 토픽의 개수, 1 ~ 32767 사이의 정수.
@@ -1549,8 +1696,12 @@ k1 : int
     상위 토픽의 개수, 1 ~ 32767 사이의 정수
 k2 : int
     하위 토픽의 개수, 1 ~ 32767 사이의 정수.
-alpha : float
-    문헌-상위 토픽 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-상위 토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k1` 길이의 `float` 리스트로 입력할 수 있습니다.
+subalpha : Union[float, Iterable[float]]
+    .. versionadded:: 0.11.0
+
+    상위-하위 토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k2` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     하위 토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -1586,7 +1737,7 @@ sub_topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, sub_topic_id)",
+	"get_topic_word_dist(self, sub_topic_id, normalize=True)",
 	u8R""(Return the word distribution of the sub topic `sub_topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current sub topic.
 
@@ -1594,6 +1745,10 @@ Parameters
 ----------
 sub_topic_id : int
     indicating the sub topic, in range [0, `k2`)
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 )"",
 u8R""(하위 토픽 `sub_topic_id`의 단어 분포를 반환합니다.
 반환하는 값은 현재 하위 토픽 내 각각의 단어들의 발생확률을 나타내는 `len(vocabs)`개의 소수로 구성된 `list`입니다.
@@ -1602,6 +1757,10 @@ Parameters
 ----------
 sub_topic_id : int
     하위 토픽을 가리키는 [0, `k2`) 범위의 정수
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_sub_topics__doc__,
@@ -1628,7 +1787,7 @@ super_topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_sub_topic_dist__doc__,
-	"get_sub_topic_dist(self, super_topic_id)",
+	"get_sub_topic_dist(self, super_topic_id, normalize=True)",
 	u8R""(Return a distribution of the sub topics in a super topic `super_topic_id`.
 The returned value is a `list` that has `k2` fraction numbers indicating probabilities for each sub topic in the current super topic.
 
@@ -1644,6 +1803,10 @@ Parameters
 ----------
 super_topic_id : int
     상위 토픽을 가리키는 [0, `k1`) 범위의 정수
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_infer__doc__,
@@ -1777,7 +1940,7 @@ DOC_VARIABLE_EN_KO(PA_subalpha__doc__,
 	class HPA
 */
 DOC_SIGNATURE_EN_KO(HPA___init____doc__,
-	"HPAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+	"HPAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on following papers:
 
 > * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
@@ -1803,8 +1966,12 @@ k1 : int
     the number of super topics between 1 ~ 32767
 k2 : int
     the number of sub topics between 1 ~ 32767
-alpha : float
-    initial hyperparameter of Dirichlet distribution for document-topic 
+alpha : Union[float, Iterable[float]]
+    initial hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k1 + 1` of `float` in case of asymmetric prior.
+subalpha : Union[float, Iterable[float]]
+    .. versionadded:: 0.11.0
+
+    initial hyperparameter of Dirichlet distribution for super-sub topic, given as a single `float` in case of symmetric prior and as a list with length `k2 + 1` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
@@ -1835,7 +2002,7 @@ min_df : int
     단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
     기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
 rm_top : int
-    .. versionadded:: 0.2.0    
+    .. versionadded:: 0.2.0
     
     제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.* `k1` : 상위 토픽의 개수, 1 ~ 32767 사이의 정수.
@@ -1843,8 +2010,12 @@ k1 : int
     상위 토픽의 개수, 1 ~ 32767 사이의 정수
 k2 : int
     하위 토픽의 개수, 1 ~ 32767 사이의 정수.
-alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k1 + 1` 길이의 `float` 리스트로 입력할 수 있습니다.
+subalpha : Union[float, Iterable[float]]
+    .. versionadded:: 0.11.0
+
+    상위-하위 토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k2 + 1` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -1884,7 +2055,7 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HPA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id)",
+	"get_topic_word_dist(self, topic_id, normalize=True)",
 	u8R""(Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.
 
@@ -1894,6 +2065,10 @@ topic_id : int
     0 indicates the top topic, 
     a number in range [1, 1 + `k1`) indicates a super topic and
     a number in range [1 + `k1`, 1 + `k1` + `k2`) indicates a sub topic.
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 )"",
 u8R""(토픽 `topic_id`의 단어 분포를 반환합니다.
 반환하는 값은 현재 하위 토픽 내 각각의 단어들의 발생확률을 나타내는 `len(vocabs)`개의 소수로 구성된 `list`입니다.
@@ -1904,6 +2079,10 @@ topic_id : int
     0일 경우 최상위 토픽을 가리키며,
     [1, 1 + `k1`) 범위의 정수는 상위 토픽을,
     [1 + `k1`, 1 + `k1` + `k2`) 범위의 정수는 하위 토픽을 가리킵니다.
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
 )"");
 
 DOC_VARIABLE_EN_KO(HPA_alpha__doc__,
@@ -1957,8 +2136,8 @@ rm_top : int
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
-smoothing_alpha : float
-    small smoothing value for preventing topic counts to be zero
+smoothing_alpha : Union[float, Iterable[float]]
+    small smoothing value for preventing topic counts to be zero, given as a single `float` in case of symmetric and as a list with length `k` of `float` in case of asymmetric.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
@@ -1995,8 +2174,8 @@ rm_top : int
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 k : int
     토픽의 개수, 1 ~ 32767 사이의 정수
-smoothing_alpha : float
-    토픽 개수가 0이 되는걸 방지하는 평탄화 계수
+smoothing_alpha : Union[float, Iterable[float]]
+    토픽 개수가 0이 되는걸 방지하는 평탄화 계수, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -2110,8 +2289,8 @@ vars : Iterable[str]
     
     > * 'l': linear variable (any real value)
     > * 'b': binary variable (0 or 1)
-alpha : float
-    hyperparameter of Dirichlet distribution for document-topic
+alpha : Union[float, Iterable[float]]
+    hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 mu : Union[float, Iterable[float]]
@@ -2162,8 +2341,8 @@ vars : Iterable[str]
     
     > * 'l': 선형 변수 (아무 실수 값이나 가능)
     > * 'b': 이진 변수 (0 혹은 1만 가능)
-alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 mu : Union[float, Iterable[float]]
@@ -2300,6 +2479,9 @@ DOC_SIGNATURE_EN_KO(LLDA___init____doc__,
 
 .. versionadded:: 0.3.0
 
+.. deprecated:: 0.11.0
+Use `tomotopy.PLDA()` instead.
+
 Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
@@ -2317,8 +2499,8 @@ rm_top : int
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
-alpha : float
-    hyperparameter of Dirichlet distribution for document-topic
+alpha : Union[float, Iterable[float]]
+    hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
@@ -2338,6 +2520,9 @@ u8R""(이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합�
 
 .. versionadded:: 0.3.0
 
+.. deprecated:: 0.11.0
+Use `tomotopy.PLDA()` instead.
+
 Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
@@ -2355,8 +2540,8 @@ rm_top : int
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 k : int
     토픽의 개수, 1 ~ 32767 범위의 정수.
-alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -2447,7 +2632,7 @@ DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
 	class PLDA
 */
 DOC_SIGNATURE_EN_KO(PLDA___init____doc__,
-	"PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, latent_topics=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+	"PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
 	u8R""(This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
@@ -2473,8 +2658,8 @@ latent_topics : int
     the number of latent topics, which are shared to all documents, between 1 ~ 32767
 topics_per_label : int
     the number of topics per label between 1 ~ 32767
-alpha : float
-    hyperparameter of Dirichlet distribution for document-topic
+alpha : Union[float, Iterable[float]]
+    hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 seed : int
@@ -2513,8 +2698,8 @@ latent_topics : int
     모든 문헌에 공유되는 잠재 토픽의 개수, 1 ~ 32767 사이의 정수.
 topics_per_label : int
     레이블별 토픽의 개수, 1 ~ 32767 사이의 정수.
-alpha : float
-    문헌-토픽 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 seed : int
@@ -2596,8 +2781,8 @@ rm_top : int
     The default value is 0, which means no top words are removed.
 depth : int
     the maximum depth level of hierarchy between 2 ~ 32767
-alpha : float
-    hyperparameter of Dirichlet distribution for document-depth level
+alpha : Union[float, Iterable[float]]
+    hyperparameter of Dirichlet distribution for document-depth level, given as a single `float` in case of symmetric prior and as a list with length `depth` of `float` in case of asymmetric prior.
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 gamma : float
@@ -2638,8 +2823,8 @@ rm_top : int
     기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
 depth : int
     토픽 계층의 깊이를 지정하는 2 ~ 32767 범위의 정수.
-alpha : float
-    문헌-계층 디리클레 분포의 하이퍼 파라미터
+alpha : Union[float, Iterable[float]]
+    문헌-계층 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `depth` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float
     토픽-단어 디리클레 분포의 하이퍼 파라미터
 gamma : float
@@ -2953,7 +3138,7 @@ timepoint : int
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id, timepoint)",
+	"get_topic_word_dist(self, topic_id, timepoint, normalize=True)",
 	u8R""(Return the word distribution of the topic `topic_id` with `timepoint`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
@@ -2963,6 +3148,10 @@ topic_id : int
     an integer in range [0, `k`) indicating the topic
 timepoint : int
 	an integer in range [0, `t`), indicating the timepoint
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 )"",
 u8R""(시점 `timepoint`의 토픽 `topic_id`의 단어 분포를 반환합니다.
 반환하는 값은 현재 토픽 내 각각의 단어들의 발생확률을 나타내는 `len(vocabs)`개의 소수로 구성된 `list`입니다.
@@ -2973,6 +3162,10 @@ topic_id : int
     토픽을 가리키는 [0, `k`) 범위의 정수
 timepoint : int
 	시점을 가리키는 [0, `t`) 범위의 정수
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_get_count_by_topics__doc__,
@@ -3019,3 +3212,87 @@ DOC_VARIABLE_EN_KO(DT_eta__doc__,
     u8R""(이 프로퍼티는 `DTModel`에서 사용불가합니다. 대신 `DTModel.docs[x].eta`를 사용하십시오.
 
 .. versionadded:: 0.9.0)"");
+
+
+/*
+    class PT
+*/
+
+DOC_SIGNATURE_EN_KO(PT___init____doc__,
+    "PTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, p=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(.. versionadded:: 0.11.0
+This type provides Pseudo-document based Topic Model (PTM) and its implementation is based on following papers:
+	
+> * Zuo, Y., Wu, J., Zhang, H., Lin, H., Wang, F., Xu, K., & Xiong, H. (2016, August). Topic modeling of short texts: A pseudo-document view. In Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining (pp. 2105-2114).
+
+Parameters
+----------
+tw : Union[int, tomotopy.TermWeight]
+    term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
+min_cf : int
+    minimum collection frequency of words. Words with a smaller collection frequency than `min_cf` are excluded from the model.
+    The default value is 0, which means no words are excluded.
+min_df : int
+    minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
+    The default value is 0, which means no words are excluded
+rm_top : int
+    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    The default value is 0, which means no top words are removed.
+k : int
+    the number of topics between 1 ~ 32767
+p : int
+    the number of pseudo documents
+alpha : Union[float, Iterable[float]]
+    hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
+eta : float
+    hyperparameter of Dirichlet distribution for topic-word
+seed : int
+    random seed. The default value is a random number from `std::random_device{}` in C++
+corpus : tomotopy.utils.Corpus
+    a list of documents to be added into the model
+transform : Callable[dict, dict]
+    a callable object to manipulate arbitrary keyword arguments for a specific topic model
+)"",
+u8R""(.. versionadded:: 0.11.0
+이 타입은 Pseudo-document based Topic Model (PTM)의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
+	
+> * Zuo, Y., Wu, J., Zhang, H., Lin, H., Wang, F., Xu, K., & Xiong, H. (2016, August). Topic modeling of short texts: A pseudo-document view. In Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining (pp. 2105-2114).
+
+Parameters
+----------
+tw : Union[int, tomotopy.TermWeight]
+    용어 가중치 기법을 나타내는 `tomotopy.TermWeight`의 열거값. 기본값은 TermWeight.ONE 입니다.
+min_cf : int
+    단어의 최소 장서 빈도. 전체 문헌 내의 출현 빈도가 `min_cf`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+min_df : int
+    단어의 최소 문헌 빈도. 출현한 문헌 숫자가 `min_df`보다 작은 단어들은 모델에서 제외시킵니다.
+    기본값은 0으로, 이 경우 어떤 단어도 제외되지 않습니다.
+rm_top : int
+    제거될 최상위 빈도 단어의 개수. 만약 너무 흔한 단어가 토픽 모델 상위 결과에 등장해 이를 제거하고 싶은 경우, 이 값을 1 이상의 수로 설정하십시오.
+    기본값은 0으로, 이 경우 최상위 빈도 단어는 전혀 제거되지 않습니다.
+k : int
+    토픽의 개수, 1 ~ 32767 사이의 정수
+p : int
+    가상 문헌의 개수
+alpha : Union[float, Iterable[float]]
+    문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
+eta : float
+    토픽-단어 디리클레 분포의 하이퍼 파라미터
+seed : int
+    난수의 시드값. 기본값은 C++의 `std::random_device{}`이 생성하는 임의의 정수입니다.
+    이 값을 고정하더라도 `train`시 `workers`를 2 이상으로 두면, 멀티 스레딩 과정에서 발생하는 우연성 때문에 실행시마다 결과가 달라질 수 있습니다.
+corpus : tomotopy.utils.Corpus
+    토픽 모델에 추가될 문헌들의 집합을 지정합니다.
+transform : Callable[dict, dict]
+    특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
+)"");
+
+
+DOC_VARIABLE_EN_KO(PT_p__doc__,
+    u8R""(the number of pseudo documents (read-only)
+
+.. versionadded:: 0.11.0)"",
+u8R""(가상 문헌의 개수 (읽기전용)
+
+.. versionadded:: 0.11.0)"");

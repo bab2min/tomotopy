@@ -102,8 +102,8 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, topicLabelDict);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, topicLabelDict);
 
-		LLDAModel(size_t _K = 1, Float _alpha = 1.0, Float _eta = 0.01, size_t _rg = std::random_device{}())
-			: BaseClass(_K, _alpha, _eta, _rg)
+		LLDAModel(const LDAArgs& args)
+			: BaseClass(args)
 		{
 		}
 
@@ -168,13 +168,20 @@ namespace tomoto
 			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			auto maskedAlphas = this->alphas.array() * doc.labelMask.template cast<Float>().array();
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), this->K }.array() =
-				(doc.numByTopic.array().template cast<Float>() + maskedAlphas)
-				/ (doc.getSumWordWeight() + maskedAlphas.sum());
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			if (normalize)
+			{
+				m = (doc.numByTopic.array().template cast<Float>() + maskedAlphas)
+					/ (doc.getSumWordWeight() + maskedAlphas.sum());
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>() + maskedAlphas;
+			}
 			return ret;
 		}
 

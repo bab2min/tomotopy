@@ -403,7 +403,7 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> _getWidsByTopic(Tid tid) const
+		std::vector<Float> _getWidsByTopic(Tid tid, bool normalize = true) const
 		{
 			assert(tid < K);
 			const size_t V = this->realV;

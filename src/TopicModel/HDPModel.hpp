@@ -457,10 +457,11 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
 
-		HDPModel(size_t initialK = 2, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, size_t _rg = std::random_device{}())
-			: BaseClass(initialK, _alpha, _eta, _rg), gamma(_gamma)
+		HDPModel(const HDPArgs& args)
+			: BaseClass(args), gamma(args.gamma)
 		{
-			if (_gamma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong gamma value (gamma = %f)", _gamma));
+			if (gamma <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong gamma value (gamma = %f)", gamma));
+			if (args.alpha.size() > 1) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "Asymmetric alpha is not supported at HDP.");
 		}
 
 		size_t getTotalTables() const override
@@ -485,13 +486,21 @@ namespace tomoto
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			THROW_ERROR_WITH_INFO(exception::Unimplemented, "HDPModel doesn't provide setWordPrior function.");
+			THROW_ERROR_WITH_INFO(exc::Unimplemented, "HDPModel doesn't provide setWordPrior function.");
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), this->K }.array() = doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			if (normalize)
+			{
+				m = doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>();
+			}
 			return ret;
 		}
 
@@ -516,7 +525,11 @@ namespace tomoto
 				liveK++;
 			}
 
-			auto lda = make_unique<LDAModel<_tw, _RandGen>>(liveK, 0.1f, this->eta);
+			LDAArgs args;
+			args.k = liveK;
+			args.alpha[0] = 0.1f;
+			args.eta = this->eta;
+			auto lda = make_unique<LDAModel<_tw, _RandGen>>(args);
 			lda->dict = this->dict;
 			
 			for (auto& doc : this->docs)

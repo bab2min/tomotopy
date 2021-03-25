@@ -70,8 +70,8 @@ namespace tomoto
 				pbeta /= betaESum;
 				for (size_t k = 0; k < this->K; ++k)
 				{
-					Float N_k = doc.numByTopic[k] + this->alpha;
-					Float N_nk = doc.getSumWordWeight() + this->alpha * (this->K + 1) - N_k;
+					Float N_k = doc.numByTopic[k] + this->alphas[k];
+					Float N_nk = doc.getSumWordWeight() + this->alphas[k] * (this->K + 1) - N_k;
 					Float u1 = rg.uniform_real(), u2 = rg.uniform_real();
 					Float max_uk = epsilon + pow(u1, (Float)1 / N_k)  * (pbeta[k] - epsilon);
 					Float min_unk = (1 - pow(u2, (Float)1 / N_nk))
@@ -84,7 +84,7 @@ namespace tomoto
 					upperBound[k] = std::max(std::min(upperBound[k], (Float)100), (Float)-100);
 					if (lowerBound[k] > upperBound[k])
 					{
-						THROW_ERROR_WITH_INFO(exception::TrainingError,
+						THROW_ERROR_WITH_INFO(exc::TrainingError,
 							text::format("Bound Error: LB(%f) > UB(%f)\n"
 								"max_uk: %f, min_unk: %f, c: %f", lowerBound[k], upperBound[k], max_uk, min_unk, c));
 					}
@@ -96,14 +96,14 @@ namespace tomoto
 						topicPrior, lowerBound, upperBound, rg, numTMNSample);
 
 					if (!std::isfinite(doc.beta.col((i + 1) % numBetaSample)[0])) 
-						THROW_ERROR_WITH_INFO(exception::TrainingError,
+						THROW_ERROR_WITH_INFO(exc::TrainingError,
 							text::format("doc.beta.col(%d) is %f", (i + 1) % numBetaSample, 
 							doc.beta.col((i + 1) % numBetaSample)[0]));
 				}
 				catch (const std::runtime_error& e)
 				{
 					std::cerr << e.what() << std::endl;
-					THROW_ERROR_WITH_INFO(exception::TrainingError, e.what());
+					THROW_ERROR_WITH_INFO(exc::TrainingError, e.what());
 				}
 			}
 
@@ -157,7 +157,7 @@ namespace tomoto
 			}
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
+		int restoreFromTrainingError(const exc::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::cerr << "Failed to sample! Reset prior and retry!" << std::endl;
 			const size_t chStride = std::min(pool.getNumWorkers() * 8, this->docs.size());
@@ -186,7 +186,7 @@ namespace tomoto
 				return this->docs[i / numBetaSample].beta.col(i % numBetaSample);
 			}, this->docs.size() * numBetaSample);
 			if (!std::isfinite(topicPrior.mean[0]))
-				THROW_ERROR_WITH_INFO(exception::TrainingError, 
+				THROW_ERROR_WITH_INFO(exc::TrainingError, 
 					text::format("topicPrior.mean is %f", topicPrior.mean[0]));
 		}
 
@@ -194,7 +194,6 @@ namespace tomoto
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
 			const auto K = this->K;
-			const auto alpha = this->alpha;
 
 			double ll = 0;
 			for (; _first != _last; ++_first)
@@ -204,11 +203,11 @@ namespace tomoto
 				Float last = pbeta[K - 1];
 				for (Tid k = 0; k < K; ++k)
 				{
-					ll += pbeta[k] * (doc.numByTopic[k] + alpha) - math::lgammaT(doc.numByTopic[k] + alpha + 1);
+					ll += pbeta[k] * (doc.numByTopic[k] + this->alphas[k]) - math::lgammaT(doc.numByTopic[k] + this->alphas[k] + 1);
 				}
 				pbeta.array() -= last;
 				ll += topicPrior.getLL(pbeta.head(this->K));
-				ll += math::lgammaT(doc.getSumWordWeight() + alpha * K + 1);
+				ll += math::lgammaT(doc.getSumWordWeight() + this->alphas.sum() + 1);
 			}
 			return ll;
 		}
@@ -242,17 +241,24 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, numBetaSample, numTMNSample, topicPrior);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, numBetaSample, numTMNSample, topicPrior);
 
-		CTModel(size_t _K = 1, Float smoothingAlpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
-			: BaseClass(_K, smoothingAlpha, _eta, _rg)
+		CTModel(const CTArgs& args)
+			: BaseClass(args)
 		{
 			this->optimInterval = 2;
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ret.data(), this->K}.array() =
-				doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			if (normalize)
+			{
+				m = doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>();
+			}
 			return ret;
 		}
 

@@ -20,12 +20,21 @@ namespace tomoto
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, path);
 	};
 
+	struct HLDAArgs : public LDAArgs
+	{
+		Float gamma = 0.1;
+
+		HLDAArgs()
+		{
+			k = 2;
+		}
+	};
+
 	class IHLDAModel : public ILDAModel
 	{
 	public:
 		using DefaultDocType = DocumentHLDA<TermWeight::one>;
-		static IHLDAModel* create(TermWeight _weight, size_t levelDepth = 1, 
-			Float alpha = 0.1, Float eta = 0.01, Float gamma = 0.1, size_t seed = std::random_device{}(),
+		static IHLDAModel* create(TermWeight _weight, const HLDAArgs& args,
 			bool scalarRng = false);
 
 		virtual Float getGamma() const = 0;

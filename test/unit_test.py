@@ -19,6 +19,20 @@ model_cases = [
     (tp.SLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b'}, None),
     (tp.DTModel, curpath + '/sample_tp.txt', 1, lambda x:int(x[0]), {'k':10, 't':13}, None),
     (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3]}, None),
+    (tp.PTModel, curpath + '/sample.txt', 0, None, {'k':40, 'p':200}, [tp.ParallelScheme.PARTITION]),
+]
+
+model_asym_cases = [
+    (tp.LDAModel, curpath + '/sample.txt', 0, None, {'k':40, 'alpha':[0.1 * (i+1) for i in range(40)]}, None),
+    (tp.LLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:x, {'k':5, 'alpha':[0.1 * (i+1) for i in range(5)]}, None),
+    (tp.HLDAModel, curpath + '/sample.txt', 0, None, {'depth':3, 'alpha':[0.1 * (i+1) for i in range(3)]}, None),
+    (tp.CTModel, curpath + '/sample.txt', 0, None, {'k':10, 'smoothing_alpha':[0.1 * (i+1) for i in range(10)]}, None),
+    (tp.PAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10, 'alpha':[0.1 * (i+1) for i in range(5)], 'subalpha':[0.1 * (i+1) for i in range(10)]}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.HPAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10, 'alpha':[0.1 * (i+1) for i in range(6)], 'subalpha':[0.1 * (i+1) for i in range(11)]}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.DMRModel, curpath + '/sample_with_md.txt', 1, lambda x:'_'.join(x), {'k':10, 'alpha':[0.1 * (i+1) for i in range(10)]}, None),
+    (tp.SLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:list(map(float, x)), {'k':10, 'vars':'b', 'alpha':[0.1 * (i+1) for i in range(10)]}, None),
+    (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:list(map(float, x)), {'k':10, 'degrees':[3], 'alpha':[0.1 * (i+1) for i in range(10)]}, None),
+    (tp.PTModel, curpath + '/sample.txt', 0, None, {'k':40, 'p':200, 'alpha':[0.1 * (i+1) for i in range(40)]}, [tp.ParallelScheme.PARTITION]),
 ]
 
 model_raw_cases = [
@@ -29,6 +43,7 @@ model_raw_cases = [
     (tp.MGLDAModel, curpath + '/sample_raw.txt', 0, None, {'k_g':5, 'k_l':5}, None),
     (tp.PAModel, curpath + '/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
     (tp.HPAModel, curpath + '/sample_raw.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
+    (tp.PTModel, curpath + '/sample_raw.txt', 0, None, {'k':10, 'p':100}, [tp.ParallelScheme.PARTITION]),
 ]
 
 model_corpus_cases = [
@@ -45,7 +60,8 @@ model_corpus_cases = [
     (tp.DMRModel, curpath + '/sample_with_md.txt', 1, lambda x:{'metadata':'_'.join(x)}, {'k':10}, None),
     (tp.SLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:{'y':list(map(float, x))}, {'k':10, 'vars':'b'}, None),
     (tp.DTModel, curpath + '/sample_tp.txt', 1, lambda x:{'timepoint':int(x[0])}, {'k':10, 't':13}, None),
-    (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:{'metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
+    (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:{'numeric_metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
+    (tp.PTModel, curpath + '/sample.txt', 0, None, {'k':10, 'p':100}, [tp.ParallelScheme.PARTITION]),
 ]
 
 def train1(cls, inputFile, mdFields, f, kargs, ps):
@@ -88,6 +104,21 @@ def train0(cls, inputFile, mdFields, f, kargs, ps):
     mdl.train(2000, parallel=ps)
     mdl.summary(file=sys.stderr)
 
+def train0_without_optim(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test train')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
+    mdl.optim_interval = 0
+    print('Adding docs...')
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+        else: mdl.add_doc(ch)
+    mdl.train(2000, parallel=ps)
+    mdl.summary(file=sys.stderr)
+
 def save_and_load(cls, inputFile, mdFields, f, kargs, ps):
     print('Test save & load')
     tw = 0
@@ -102,6 +133,10 @@ def save_and_load(cls, inputFile, mdFields, f, kargs, ps):
     mdl.train(20, parallel=ps)
     mdl.save('test.model.{}.bin'.format(cls.__name__))
     mdl = cls.load('test.model.{}.bin'.format(cls.__name__))
+    mdl.train(20, parallel=ps)
+    
+    bytearr = mdl.saves()
+    mdl = cls.loads(bytearr)
     mdl.train(20, parallel=ps)
 
 def infer(cls, inputFile, mdFields, f, kargs, ps):
@@ -198,6 +233,16 @@ def train_corpus(cls, inputFile, mdFields, f, kargs, ps):
     mdl = cls(min_cf=2, rm_top=2, corpus=corpus, **kargs)
     mdl.train(100, parallel=ps)
 
+def train_corpus_only_words(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test train with corpus - only words')
+    corpus = tp.utils.Corpus()
+    tokenizer = tp.utils.SimpleTokenizer()
+    for line in open(inputFile, encoding='utf-8'):
+        chs = line.split(None, maxsplit=mdFields)
+        corpus.add_doc(words=[w for w, _, _ in tokenizer(chs[-1])], **(f(chs[:mdFields]) if f else {}))
+    mdl = cls(min_cf=2, rm_top=2, corpus=corpus, **kargs)
+    mdl.train(100, parallel=ps)
+
 def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train with corpus')
     corpus1 = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer())
@@ -215,6 +260,34 @@ def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print()
     print('Corpus2')
     for d in tcorpus2[:10]: print(d.get_ll())
+
+def test_empty_uid():
+    cps = tp.utils.Corpus()
+    cps.add_doc("test text".split())
+    cps.add_doc("test text".split())
+    cps.add_doc("test text".split())
+
+    mdl = tp.HDPModel(corpus=cps)
+    assert len(cps) == len(mdl.docs)
+    assert cps[0].uid == mdl.docs[0].uid
+    mdl.train(0)
+
+    mdl = tp.HDPModel()
+    ccps = mdl.add_corpus(cps)
+    mdl.add_corpus(ccps)
+
+def test_uid():
+    cps = tp.utils.Corpus()
+    cps.add_doc("test text".split(), uid="001")
+    cps.add_doc("test text".split(), uid="abc")
+    cps.add_doc("test text".split(), uid="0x1f")
+
+    mdl = tp.LDAModel(k=2, corpus=cps)
+    assert len(cps) == len(mdl.docs)
+    assert cps[0].uid == mdl.docs[0].uid
+    print(mdl.docs["001"])
+    print(mdl.docs["abc"])
+    print(mdl.docs["0x1f"])
 
 def test_estimate_SLDA_PARTITION(cls=tp.SLDAModel, inputFile=curpath + '/sample_with_md.txt', mdFields=1, f=lambda x:list(map(float, x)), kargs={'k':10, 'vars':'b'}, ps=tp.ParallelScheme.PARTITION):
     print('Test estimate')
@@ -366,6 +439,15 @@ def test_coherence():
         coherence = tp.coherence.Coherence(corpus=mdl, coherence=coh)
         print(coherence.get_score())
 
+def test_corpus_save_load():
+    corpus = tp.utils.Corpus()
+    # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
+    for i, line in enumerate(open('test/sample_raw.txt', encoding='utf-8')):
+        corpus.add_doc(words=line.split(), uid='doc{:05}'.format(i))
+    
+    corpus.save('test.cps')
+
+    corpus = tp.utils.Corpus.load('test.cps')
 
 for model_case in model_cases:
     pss = model_case[5]
@@ -376,12 +458,19 @@ for model_case in model_cases:
             ]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
+for model_case in model_asym_cases:
+    pss = model_case[5]
+    if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
+    for ps in pss:
+        for func in [train1, train4, train0_without_optim, 
+        ][-1:]:
+            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 for model_case in model_corpus_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train_corpus, train_multi_corpus]:
+        for func in [train_corpus, train_corpus_only_words, train_multi_corpus]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 

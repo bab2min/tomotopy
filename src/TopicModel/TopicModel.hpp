@@ -74,6 +74,8 @@ namespace tomoto
 		}
 	};
 
+	class ITopicModel;
+
 	class DocumentBase : public RawDocKernel
 	{
 	public:
@@ -95,6 +97,11 @@ namespace tomoto
 
 		virtual ~DocumentBase() {}
 
+		virtual RawDoc::MiscType makeMisc(const ITopicModel*) const
+		{
+			return {};
+		}
+
 		virtual operator RawDoc() const
 		{
 			RawDoc raw{ *this };
@@ -110,6 +117,7 @@ namespace tomoto
 					raw.words[i] = words[wOrder[i]];
 				}
 			}
+			//raw.misc = makeMisc();
 			return raw;
 		}
 
@@ -242,12 +250,12 @@ namespace tomoto
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
 		
 		virtual size_t getK() const = 0;
-		virtual std::vector<Float> getWidsByTopic(size_t tid) const = 0;
+		virtual std::vector<Float> getWidsByTopic(size_t tid, bool normalize = true) const = 0;
 		virtual std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(size_t tid, size_t topN) const = 0;
 
 		virtual std::vector<std::pair<std::string, Float>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 		
-		virtual std::vector<Float> getTopicsByDoc(const DocumentBase* doc) const = 0;
+		virtual std::vector<Float> getTopicsByDoc(const DocumentBase* doc, bool normalize = true) const = 0;
 		virtual std::vector<std::pair<Tid, Float>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 		virtual std::vector<double> infer(const std::vector<DocumentBase*>& docs, size_t maxIter, Float tolerance, size_t numWorkers, ParallelScheme ps, bool together) const = 0;
 		virtual ~ITopicModel() {}
@@ -373,7 +381,7 @@ namespace tomoto
 		{
 			if (doc.words.empty()) return -1;
 			if (!doc.docUid.empty() && uidMap.count(doc.docUid))
-				throw exception::InvalidArgument{ "there is a document with uid = '" + std::string{ doc.docUid } + "' already." };
+				throw exc::InvalidArgument{ "there is a document with uid = '" + std::string{ doc.docUid } + "' already." };
 			size_t maxWid = *std::max_element(doc.words.begin(), doc.words.end());
 			if (vocabCf.size() <= maxWid)
 			{
@@ -529,7 +537,7 @@ namespace tomoto
 			}
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
+		int restoreFromTrainingError(const exc::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			throw e;
 		}
@@ -578,11 +586,11 @@ namespace tomoto
 				if ((_Flags & flags::shared_state)) return ParallelScheme::none;
 				return ParallelScheme::copy_merge;
 			case ParallelScheme::copy_merge:
-				if ((_Flags & flags::shared_state)) THROW_ERROR_WITH_INFO(exception::InvalidArgument, 
+				if ((_Flags & flags::shared_state)) THROW_ERROR_WITH_INFO(exc::InvalidArgument, 
 					std::string{ "This model doesn't provide ParallelScheme::" } + toString(ps));
 				break;
 			case ParallelScheme::partition:
-				if (!(_Flags & flags::partitioned_multisampling)) THROW_ERROR_WITH_INFO(exception::InvalidArgument,
+				if (!(_Flags & flags::partitioned_multisampling)) THROW_ERROR_WITH_INFO(exc::InvalidArgument,
 					std::string{ "This model doesn't provide ParallelScheme::" } + toString(ps));
 				break;
 			}
@@ -647,7 +655,7 @@ namespace tomoto
 						}
 						break;
 					}
-					catch (const exception::TrainingError& e)
+					catch (const exc::TrainingError& e)
 					{
 						std::cerr << e.what() << std::endl;
 						int ret = static_cast<_Derived*>(this)->restoreFromTrainingError(
@@ -675,14 +683,14 @@ namespace tomoto
 			return 0;
 		}
 
-		std::vector<Float> getWidsByTopic(size_t tid) const override
+		std::vector<Float> getWidsByTopic(size_t tid, bool normalize) const override
 		{
-			return static_cast<const _Derived*>(this)->_getWidsByTopic(tid);
+			return static_cast<const _Derived*>(this)->_getWidsByTopic(tid, normalize);
 		}
 
 		std::vector<std::pair<Vid, Float>> getWidsByTopicSorted(size_t tid, size_t topN) const
 		{
-			return extractTopN<Vid>(static_cast<const _Derived*>(this)->_getWidsByTopic(tid), topN);
+			return extractTopN<Vid>(static_cast<const _Derived*>(this)->_getWidsByTopic(tid, true), topN);
 		}
 
 		std::vector<std::pair<std::string, Float>> vid2String(const std::vector<std::pair<Vid, Float>>& vids) const
@@ -757,17 +765,17 @@ namespace tomoto
 					return static_cast<const _Derived*>(this)->template _infer<false, ParallelScheme::partition>(b, e, maxIter, tolerance, numWorkers);
 				}
 			}
-			THROW_ERROR_WITH_INFO(exception::InvalidArgument, "invalid ParallelScheme");
+			THROW_ERROR_WITH_INFO(exc::InvalidArgument, "invalid ParallelScheme");
 		}
 
-		std::vector<Float> getTopicsByDoc(const DocumentBase* doc) const override
+		std::vector<Float> getTopicsByDoc(const DocumentBase* doc, bool normalize) const override
 		{
-			return static_cast<const _Derived*>(this)->getTopicsByDoc(*static_cast<const DocType*>(doc));
+			return static_cast<const _Derived*>(this)->getTopicsByDoc(*static_cast<const DocType*>(doc), normalize);
 		}
 
 		std::vector<std::pair<Tid, Float>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override
 		{
-			return extractTopN<Tid>(getTopicsByDoc(doc), topN);
+			return extractTopN<Tid>(getTopicsByDoc(doc, true), topN);
 		}
 
 		const DocumentBase* getDoc(size_t docId) const override

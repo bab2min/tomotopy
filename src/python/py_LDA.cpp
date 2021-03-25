@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "../TopicModel/LDA.h"
 
@@ -11,17 +12,20 @@ using namespace std;
 static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t K = 1;
-	float alpha = 0.1f, eta = 0.01f;
+	tomoto::LDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	size_t seed = random_device{}();
+	PyObject* objAlpha = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "seed",
 		"corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffnOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &K, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfnOO", (char**)kwlist, 
+		&tw, &minCnt, &minDf, &rmTop, &margs.k, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, K, alpha, eta, seed);
+		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k, 
+			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
+		);
+
+		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -29,18 +33,21 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, alpha, eta, seed
+			tw, minCnt, minDf, rmTop, margs.k, margs.alpha, margs.eta, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -90,13 +97,12 @@ static PyObject* LDA_addCorpus(TopicModelObject* self, PyObject* args, PyObject*
 	}
 	catch (const bad_exception&)
 	{
-		return nullptr;
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
 	}
+	return nullptr;
 }
 
 static DocumentObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -108,7 +114,7 @@ static DocumentObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObj
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		auto doc = inst->makeDoc(raw);
 		py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self, nullptr) };
@@ -235,9 +241,9 @@ PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kw
 
 static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId;
-	static const char* kwlist[] = { "topic_id", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	size_t topicId, normalize = 1;
+	static const char* kwlist[] = { "topic_id", "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -248,7 +254,7 @@ static PyObject* LDA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}*/
-		return py::buildPyValue(inst->getWidsByTopic(topicId));
+		return py::buildPyValue(inst->getWidsByTopic(topicId, !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -383,6 +389,45 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 		PyErr_SetString(PyExc_Exception, e.what());
 		return nullptr;
 	}
+}
+
+static PyObject* LDA_saves(TopicModelObject* self, PyObject* args, PyObject* kwargs)
+{
+	size_t full = 1;
+	static const char* kwlist[] = { "full", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &full)) return nullptr;
+	try
+	{
+		if (!self->inst) throw runtime_error{ "inst is null" };
+		ostringstream str;
+
+		vector<uint8_t> extra_data;
+		{
+			py::UniqueObj pickle{ PyImport_ImportModule("pickle") };
+			PyObject* pickle_dict{ PyModule_GetDict(pickle) };
+			py::UniqueObj args{ Py_BuildValue("(O)", self->initParams) };
+			py::UniqueObj pickled_bytes{ PyObject_CallObject(
+				PyDict_GetItemString(pickle_dict, "dumps"),
+				args
+			) };
+			char* buf;
+			ssize_t bufsize;
+			PyBytes_AsStringAndSize(pickled_bytes, &buf, &bufsize);
+			extra_data.resize(bufsize);
+			memcpy(extra_data.data(), buf, bufsize);
+		}
+
+		self->inst->saveModel(str, !!full, &extra_data);
+		return PyBytes_FromStringAndSize(str.str().data(), str.str().size());
+	}
+	catch (const bad_exception&)
+	{
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+	}
+	return nullptr;
 }
 
 static PyObject* LDA_update_vocab(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -642,6 +687,116 @@ DEFINE_SETTER_NON_NEGATIVE_INT(tomoto::ILDAModel, LDA, setBurnInIteration);
 
 DEFINE_LOADER(LDA, LDA_type);
 
+/*
+PyObject * LDA_load(PyObject*, PyObject * args, PyObject * kwargs)
+{
+	const char* filename;
+	static const char* kwlist[] = { "filename", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist, &filename)) return nullptr;
+	try
+	{
+		ifstream str{ filename, ios_base::binary };
+		if (!str) throw ios_base::failure{ std::string("cannot open file '") + filename + std::string("'") };
+		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)
+		{
+			str.seekg(0);
+			py::UniqueObj args{ Py_BuildValue("(n)", i) };
+			auto* p = PyObject_CallObject((PyObject*)&LDA_type, args);
+			try
+			{
+				vector<uint8_t> extra_data;
+				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);
+				if (!extra_data.empty())
+				{
+					py::UniqueObj pickle{ PyImport_ImportModule("pickle") };
+					PyObject* pickle_dict{ PyModule_GetDict(pickle) };
+					py::UniqueObj bytes{ PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size()) };
+					py::UniqueObj args{ Py_BuildValue("(O)", bytes.get()) };
+					Py_XDECREF(((TopicModelObject*)p)->initParams);
+					((TopicModelObject*)p)->initParams = PyObject_CallObject(
+						PyDict_GetItemString(pickle_dict, "loads"),
+						args
+					);
+				}
+			}
+			catch (const tomoto::serializer::UnfitException&)
+			{
+				Py_XDECREF(p);
+				continue;
+			}
+			((TopicModelObject*)p)->isPrepared = true;
+			return p;
+		}
+		throw runtime_error{ std::string("'") + filename + std::string("' is not valid model file") };
+	}
+	catch (const bad_exception&)
+	{
+	}
+	catch (const ios_base::failure& e)
+	{
+		PyErr_SetString(PyExc_OSError, e.what());
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+	}
+	return nullptr;
+}
+
+PyObject* LDA_loads(PyObject*, PyObject* args, PyObject *kwargs)
+{
+	Py_buffer data;
+	static const char* kwlist[] = { "data", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*", (char**)kwlist, &data)) return nullptr;
+	try
+	{
+		tomoto::serializer::imstream str{ (char*)data.buf, data.len };
+		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)
+		{
+			str.seekg(0);
+			py::UniqueObj args{ Py_BuildValue("(n)", i) };
+			auto* p = PyObject_CallObject((PyObject*)&LDA_type, args);
+			try
+			{
+				vector<uint8_t> extra_data;
+				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);
+				if (!extra_data.empty())
+				{
+					py::UniqueObj pickle{ PyImport_ImportModule("pickle") };
+					PyObject* pickle_dict{ PyModule_GetDict(pickle) };
+					py::UniqueObj bytes{ PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size()) };
+					py::UniqueObj args{ Py_BuildValue("(O)", bytes.get()) };
+					Py_XDECREF(((TopicModelObject*)p)->initParams);
+					((TopicModelObject*)p)->initParams = PyObject_CallObject(
+						PyDict_GetItemString(pickle_dict, "loads"),
+						args
+					);
+				}
+			}
+			catch (const tomoto::serializer::UnfitException&)
+			{
+				Py_XDECREF(p);
+				continue;
+			}
+			((TopicModelObject*)p)->isPrepared = true;
+			return p;
+		}
+		throw runtime_error{ "`data` is not valid model file" };
+	}
+	catch (const bad_exception&)
+	{
+	}
+	catch (const ios_base::failure& e)
+	{
+		PyErr_SetString(PyExc_OSError, e.what());
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+	}
+	return nullptr;
+}
+*/
 
 PyObject* Document_LDA_Z(DocumentObject* self, void* closure)
 {
@@ -717,7 +872,9 @@ static PyMethodDef LDA_methods[] =
 	{ "get_topic_word_dist", (PyCFunction)LDA_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, LDA_get_topic_word_dist__doc__ },
 	{ "infer", (PyCFunction)LDA_infer, METH_VARARGS | METH_KEYWORDS, LDA_infer__doc__ },
 	{ "save", (PyCFunction)LDA_save, METH_VARARGS | METH_KEYWORDS, LDA_save__doc__},
+	{ "saves", (PyCFunction)LDA_saves, METH_VARARGS | METH_KEYWORDS, LDA_saves__doc__},
 	{ "load", (PyCFunction)LDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__},
+	{ "loads", (PyCFunction)LDA_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__},
 	{ "_update_vocab", (PyCFunction)LDA_update_vocab, METH_VARARGS | METH_KEYWORDS, ""},
 	{ "summary", (PyCFunction)LDA_summary, METH_VARARGS | METH_KEYWORDS, LDA_summary__doc__},
 	{ nullptr }

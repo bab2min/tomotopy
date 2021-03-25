@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "serializer.hpp"
 
 namespace tomoto
 {
@@ -167,6 +168,30 @@ namespace tomoto
 			return !operator==(o);
 		}
 	};
+
+	namespace serializer
+	{
+		template<>
+		struct Serializer<SharedString>
+		{
+			using VTy = SharedString;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				if (!ostr.write((const char*)v.data(), v.size()))
+					throw std::ios_base::failure(std::string("writing type 'SharedString' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				std::vector<char> t(size);
+				if (!istr.read((char*)t.data(), t.size()))
+					throw std::ios_base::failure(std::string("reading type 'SharedString' is failed"));
+				v = SharedString{ t.data(), t.data() + t.size() };
+			}
+		};
+	}
 }
 
 namespace std

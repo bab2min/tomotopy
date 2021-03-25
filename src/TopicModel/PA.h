@@ -18,13 +18,18 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, Z2s);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, Z2s);
 	};
+
+	struct PAArgs : public LDAArgs
+	{
+		size_t k2 = 1;
+		std::vector<Float> subalpha = { 0.1 };
+	};
     
     class IPAModel : public ILDAModel
 	{
 	public:
 		using DefaultDocType = DocumentPA<TermWeight::one>;
-		static IPAModel* create(TermWeight _weight, size_t _K1 = 1, size_t _K2 = 1, 
-			Float _alpha = 0.1, Float _eta = 0.01, size_t seed = std::random_device{}(),
+		static IPAModel* create(TermWeight _weight, const PAArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getDirichletEstIteration() const = 0;
@@ -32,10 +37,10 @@ namespace tomoto
 		virtual size_t getK2() const = 0;
 		virtual Float getSubAlpha(Tid k1, Tid k2) const = 0;
 		virtual std::vector<Float> getSubAlpha(Tid k1) const = 0;
-		virtual std::vector<Float> getSubTopicBySuperTopic(Tid k) const = 0;
+		virtual std::vector<Float> getSubTopicBySuperTopic(Tid k, bool normalize = true) const = 0;
 		virtual std::vector<std::pair<Tid, Float>> getSubTopicBySuperTopicSorted(Tid k, size_t topN) const = 0;
 
-		virtual std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc) const = 0;
+		virtual std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc, bool normalize = true) const = 0;
 		virtual std::vector<std::pair<Tid, Float>> getSubTopicsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 
 		virtual std::vector<uint64_t> getCountBySuperTopic() const = 0;

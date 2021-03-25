@@ -8,18 +8,25 @@ using namespace std;
 static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
+	tomoto::PAArgs margs;
 	size_t K = 1, K2 = 1;
-	float alpha = 0.1f, eta = 0.01f;
-	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k1", "k2", "alpha", "eta", 
+	PyObject* objAlpha = nullptr, *objSubAlpha = nullptr;
+	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k1", "k2", "alpha", "subalpha", "eta", 
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &K2, &alpha, &eta, &seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.k, &margs.k2, &objAlpha, &objSubAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, 
-			K, K2, alpha, eta, seed);
+		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
+			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k1` (given " + py::repr(objAlpha) + ")"; }
+		);
+
+		if (objSubAlpha) margs.subalpha = broadcastObj<tomoto::Float>(objSubAlpha, margs.k2,
+			[=]() { return "`subalpha` must be an instance of `float` or `List[float]` with length `k2` (given " + py::repr(objSubAlpha) + ")"; }
+		);
+
+		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -27,25 +34,28 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, K2, alpha, eta, seed
+			tw, minCnt, minDf, rmTop, margs.k, margs.k2, margs.alpha, margs.subalpha, margs.eta, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId;
-	static const char* kwlist[] = { "super_topic_id", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	size_t topicId, normalize = 1;
+	static const char* kwlist[] = { "super_topic_id", "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -56,7 +66,7 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}*/
-		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId));
+		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId, !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -128,9 +138,9 @@ static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 
 static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId;
-	static const char* kwlist[] = { "sub_topic_id", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
+	size_t topicId, normalize = 1;
+	static const char* kwlist[] = { "sub_topic_id", "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -141,7 +151,7 @@ static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}*/
-		return py::buildPyValue(inst->getWidsByTopic(topicId));
+		return py::buildPyValue(inst->getWidsByTopic(topicId, !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -179,15 +189,18 @@ PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *
 	}
 }
 
-PyObject* Document_getSubTopicDist(DocumentObject* self)
+PyObject* Document_getSubTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs)
 {
+	size_t normalize = 1;
+	static const char* kwlist[] = { "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
 	try
 	{
 		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
 		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->corpus->tm->inst);
 		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
-		return py::buildPyValue(inst->getSubTopicsByDoc(self->getBoundDoc()));
+		return py::buildPyValue(inst->getSubTopicsByDoc(self->getBoundDoc(), !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -319,6 +332,7 @@ DEFINE_LOADER(PA, PA_type);
 static PyMethodDef PA_methods[] =
 {
 	{ "load", (PyCFunction)PA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)PA_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "get_sub_topic_dist", (PyCFunction)PA_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topic_dist__doc__ },
 	{ "get_sub_topics", (PyCFunction)PA_getSubTopics, METH_VARARGS | METH_KEYWORDS, PA_get_sub_topics__doc__ },
 	{ "get_topic_words", (PyCFunction)PA_getTopicWords, METH_VARARGS | METH_KEYWORDS, PA_get_topic_words__doc__},

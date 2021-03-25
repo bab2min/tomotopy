@@ -4,6 +4,7 @@
 #include <deque>
 #include <functional>
 #include <iterator>
+#include "serializer.hpp"
 
 namespace tomoto
 {
@@ -23,6 +24,17 @@ namespace tomoto
 			auto it = this->find(key);
 			if (it == this->end()) return this->emplace(key, typename _Map::mapped_type{}).first->second;
 			else return it->second;
+		}
+
+		void serializerWrite(std::ostream& os) const
+		{
+			serializer::writeMany(os, (const _Map&)*this);
+		}
+
+		template<typename _Istr>
+		void serializerRead(_Istr& is)
+		{
+			serializer::readMany(is, (_Map&)*this);
 		}
 	};
 
@@ -50,10 +62,13 @@ namespace tomoto
 	struct Trie
 	{
 		using Node = typename std::conditional<std::is_same<_Trie, void>::value, Trie, _Trie>::type;
+		using Key = _Key;
+		using KeyStore = _KeyStore;
 		using iterator = TrieIterator<_KeyStore, Node>;
 		_KeyStore next = {};
-		int32_t fail = 0;
 		_Value val = {};
+		int32_t fail = 0;
+		uint32_t depth = 0;
 
 		Trie() {}
 		~Trie() {}
@@ -84,13 +99,14 @@ namespace tomoto
 			if (first == last)
 			{
 				if (!val) val = _val;
-				return (Node*)this;
+				return this;
 			}
 
 			auto v = *first;
 			if (!getNext(v))
 			{
 				next[v] = alloc() - this;
+				getNext(v)->depth = depth + 1;
 			}
 			return getNext(v)->build(++first, last, _val, alloc);
 		}
@@ -104,31 +120,14 @@ namespace tomoto
 			return nullptr;
 		}
 
-		template<class _Func>
-		void traverse(_Func&& func)
-		{
-			if (val)
-			{
-				if (func(val)) return;
-			}
-			for (auto& p : next)
-			{
-				if (getNext(p.first))
-				{
-					getNext(p.first)->traverse(std::forward<_Func>(func));
-				}
-			}
-			return;
-		}
-
 		template<typename _Fn>
-		void traverse_with_keys(_Fn&& fn, std::vector<_Key>& rkeys)
+		void traverse_with_keys(_Fn&& fn, std::vector<_Key>& rkeys) const
 		{
 			fn((Node*)this, rkeys);
 
 			for (auto& p : next)
 			{
-				if (p.first)
+				if (p.second)
 				{
 					rkeys.emplace_back(p.first);
 					getNext(p.first)->traverse_with_keys(fn, rkeys);
@@ -137,17 +136,32 @@ namespace tomoto
 			}
 		}
 
-		template<class _Iterator>
-		std::pair<_Value*, size_t> findMaximumMatch(_Iterator begin, _Iterator end, size_t idxCnt = 0)
+		template<typename _Fn>
+		void traverse_with_keys_post(_Fn&& fn, std::vector<_Key>& rkeys) const
 		{
-			if (begin == end) return std::make_pair(val ? &val : nullptr, idxCnt);
+			for (auto& p : next)
+			{
+				if (p.second)
+				{
+					rkeys.emplace_back(p.first);
+					getNext(p.first)->traverse_with_keys_post(fn, rkeys);
+					rkeys.pop_back();
+				}
+			}
+			fn((Node*)this, rkeys);
+		}
+
+		template<class _Iterator>
+		std::pair<Node*, size_t> findMaximumMatch(_Iterator begin, _Iterator end, size_t idxCnt = 0) const
+		{
+			if (begin == end) return std::make_pair((Node*)this, idxCnt);
 			auto n = getNext(*begin);
 			if (n)
 			{
 				auto v = n->findMaximumMatch(++begin, end, idxCnt + 1);
-				if (v.first) return v;
+				if (v.first->val) return v;
 			}
-			return std::make_pair(val ? &val : nullptr, idxCnt);
+			return std::make_pair((Node*)this, idxCnt);
 		}
 
 		Node* findFail(_Key i) const
@@ -172,7 +186,7 @@ namespace tomoto
 		void fillFail()
 		{
 			std::deque<Node*> dq;
-			for (dq.emplace_back(this); !dq.empty(); dq.pop_front())
+			for (dq.emplace_back((Node*)this); !dq.empty(); dq.pop_front())
 			{
 				auto p = dq.front();
 				for (auto&& kv : p->next)
@@ -195,6 +209,17 @@ namespace tomoto
 					}
 				}
 			}
+		}
+
+		void serializerWrite(std::ostream& os) const
+		{
+			serializer::writeMany(os, next, val, fail, depth);
+		}
+
+		template<typename _Istr>
+		void serializerRead(_Istr& is)
+		{
+			serializer::readMany(is, next, val, fail, depth);
 		}
 	};
 

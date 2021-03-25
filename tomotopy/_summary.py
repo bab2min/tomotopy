@@ -64,14 +64,22 @@ def basic_info_DMRModel(mdl, file):
         print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
 
 def basic_info_GDMRModel(mdl, file):
+    from collections import Counter
     import numpy as np
     basic_info_LDAModel(mdl, file)
-    md_stack = np.stack([doc.metadata for doc in mdl.docs])
+
+    md_cnt = Counter(doc.metadata for doc in mdl.docs)
+    if len(md_cnt) > 1:
+        print('| Categorical metadata of docs and its distribution', file=file)
+        for md in mdl.metadata_dict:
+            print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+
+    md_stack = np.stack([doc.numeric_metadata for doc in mdl.docs])
     md_min = md_stack.min(axis=0)
     md_max = md_stack.max(axis=0)
     md_avg = np.average(md_stack, axis=0)
     md_std = np.std(md_stack, axis=0)
-    print('| Metadata distribution of docs', file=file)
+    print('| Numeric metadata distribution of docs', file=file)
     for i in range(md_stack.shape[1]):
         print('|  #{}: Range={:.5}~{:.5}, Avg={:.5}, Stdev={:.5}'.format(i, md_min[i], md_max[i], md_avg[i], md_std[i]), file=file)
 

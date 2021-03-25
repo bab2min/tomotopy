@@ -28,13 +28,22 @@ namespace tomoto
 		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 	};
 
+	struct MGLDAArgs : public LDAArgs
+	{
+		size_t kL = 1;
+		size_t t = 3;
+		std::vector<Float> alphaL = { 0.1 };
+		Float alphaMG = 0.1;
+		Float alphaML = 0.1;
+		Float etaL = 0.01;
+		Float gamma = 0.1;
+	};
+
 	class IMGLDAModel : public ILDAModel
 	{
 	public:
 		using DefaultDocType = DocumentMGLDA<TermWeight::one>;
-		static IMGLDAModel* create(TermWeight _weight, size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
-			Float _alphaG = 0.1, Float _alphaL = 0.1, Float _alphaMG = 0.1, Float _alphaML = 0.1,
-			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, size_t seed = std::random_device{}(),
+		static IMGLDAModel* create(TermWeight _weight, const MGLDAArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getKL() const = 0;

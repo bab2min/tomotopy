@@ -2,11 +2,13 @@
 
 #include "../Utils/Dictionary.h"
 #include "module.h"
+#include "../Labeling/Phraser.hpp"
 
 extern PyTypeObject UtilsCorpus_type;
 extern PyTypeObject UtilsCorpusIter_type;
 extern PyTypeObject UtilsDocument_type;
 extern PyTypeObject UtilsVocab_type;
+extern PyTypeObject Phraser_type;
 
 struct VocabObject
 {
@@ -174,6 +176,25 @@ struct DocumentObject
 	static PyObject* getattro(DocumentObject* self, PyObject* attr);
 };
 
+struct PhraserObject
+{
+	PyObject_HEAD;
+
+	tomoto::Dictionary vocabs;
+	using TrieNode = tomoto::Trie<tomoto::Vid, size_t, tomoto::ConstAccess<tomoto::phraser::map<tomoto::Vid, int32_t>>>;
+	std::vector<TrieNode> trie_nodes;
+	std::vector<std::pair<std::string, size_t>> cand_info;
+
+	static PhraserObject* _new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs);
+	static int init(PhraserObject* self, PyObject* args, PyObject* kwargs);
+	static void dealloc(PhraserObject* self);
+	static PyObject* repr(PhraserObject* self);
+	static PyObject* call(PhraserObject* self, PyObject* args, PyObject* kwargs);
+	static PyObject* save(PhraserObject* self, PyObject* args, PyObject* kwargs);
+	static PyObject* load(PhraserObject*, PyObject* args, PyObject* kwargs);
+	static PyObject* findall(PhraserObject* self, PyObject* args, PyObject* kwargs);
+};
+
 void addUtilsTypes(PyObject* gModule);
 
 #define DEFINE_DOCUMENT_GETTER_PROTOTYPE(NAME) \
@@ -307,7 +328,7 @@ PyObject* Document_HLDA_Z(DocumentObject* self, void* closure);
 
 PyObject* Document_DMR_metadata(DocumentObject* self, void* closure);
 
-PyObject* Document_GDMR_metadata(DocumentObject* self, void* closure);
+PyObject* Document_numeric_metadata(DocumentObject* self, void* closure);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(windows);
 
@@ -325,8 +346,10 @@ DEFINE_DOCUMENT_GETTER_PROTOTYPE(eta);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(timepoint);
 
+DEFINE_DOCUMENT_GETTER_PROTOTYPE(pseudo_doc_id);
+
 PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject* kwargs);
-PyObject* Document_getSubTopicDist(DocumentObject* self);
+PyObject* Document_getSubTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs);
 
 PyObject* Document_getCountVector(DocumentObject* self);
 

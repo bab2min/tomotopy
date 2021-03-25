@@ -70,7 +70,7 @@ namespace tomoto
 					sum += *it;
 				}
 
-				if (!std::isfinite(sum)) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "cannot build NaN value distribution");
+				if (!std::isfinite(sum)) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "cannot build NaN value distribution");
 
 				// ceil to power of 2
 				nbsize = log2_ceil(msize);

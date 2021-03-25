@@ -3,7 +3,7 @@
 #include "text.hpp"
 namespace tomoto
 {
-	namespace exception
+	namespace exc
 	{
 		class TrainingError : public std::runtime_error
 		{

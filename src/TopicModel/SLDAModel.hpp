@@ -322,22 +322,48 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, F, responseVars, mu, nuSq);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, F, responseVars, mu, nuSq);
 
-		SLDAModel(size_t _K = 1, const std::vector<ISLDAModel::GLM>& vars = {}, 
-			Float _alpha = 0.1, Float _eta = 0.01, 
-			const std::vector<Float>& _mu = {}, const std::vector<Float>& _nuSq = {},
-			const std::vector<Float>& _glmParam = {},
-			size_t _rg = std::random_device{}())
-			: BaseClass(_K, _alpha, _eta, _rg), F(vars.size()), varTypes(vars), 
-			glmParam(_glmParam)
+		SLDAModel(const SLDAArgs& args)
+			: BaseClass(args), F(args.vars.size()), varTypes(args.vars),
+			glmParam(args.glmParam)
 		{
 			for (auto t : varTypes)
 			{
-				if (t != ISLDAModel::GLM::linear && t != ISLDAModel::GLM::binary_logistic) THROW_ERROR_WITH_INFO(std::runtime_error, "unknown var GLM type in 'vars'");
+				if ((size_t)t > (size_t)ISLDAModel::GLM::binary_logistic) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "unknown var GLM type in `vars`");
 			}
-			mu = decltype(mu)::Zero(F);
-			std::copy(_mu.begin(), _mu.end(), mu.data());
-			nuSq = decltype(nuSq)::Ones(F);
-			std::copy(_nuSq.begin(), _nuSq.end(), nuSq.data());
+
+			if (args.mu.size() == 0)
+			{
+				mu = Eigen::Matrix<Float, -1, 1>::Zero(F);
+			}
+			else if (args.mu.size() == 1)
+			{
+				mu = Eigen::Matrix<Float, -1, 1>::Constant(F, args.mu[0]);
+			}
+			else if (args.mu.size() == F)
+			{
+				mu = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.mu.data(), args.mu.size());
+			}
+			else
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong mu value (len = %zd)", args.mu.size()));
+			}
+
+			if (args.nuSq.size() == 0)
+			{
+				nuSq = Eigen::Matrix<Float, -1, 1>::Ones(F);
+			}
+			else if (args.mu.size() == 1)
+			{
+				nuSq = Eigen::Matrix<Float, -1, 1>::Constant(F, args.nuSq[0]);
+			}
+			else if (args.mu.size() == F)
+			{
+				nuSq = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.nuSq.data(), args.nuSq.size());
+			}
+			else
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong nuSq value (len = %zd)", args.nuSq.size()));
+			}
 		}
 
 		std::vector<Float> getRegressionCoef(size_t f) const override

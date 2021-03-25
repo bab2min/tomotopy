@@ -101,6 +101,16 @@ namespace tomoto
 			}
 			return r;
 		}
+
+		std::vector<Vid> mapToNewDictAdd(const std::vector<Vid>& v, Dictionary& newDict) const
+		{
+			std::vector<Vid> r(v.size());
+			for (size_t i = 0; i < v.size(); ++i)
+			{
+				r[i] = mapToNewDict(v[i], newDict);
+			}
+			return r;
+		}
 	};
 
 }

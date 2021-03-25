@@ -25,7 +25,7 @@ namespace tomoto
 	template<TermWeight _tw, typename _RandGen,
 		typename _Interface = IPTModel,
 		typename _Derived = void,
-		typename _DocType = DocumentPTM<_tw>,
+		typename _DocType = DocumentPT<_tw>,
 		typename _ModelState = ModelStatePTM<_tw>>
 	class PTModel : public LDAModel<_tw, _RandGen, flags::continuous_doc_data | flags::partitioned_multisampling, _Interface,
 		typename std::conditional<std::is_same<_Derived, void>::value, PTModel<_tw, _RandGen>, _Derived>::type,
@@ -164,8 +164,6 @@ namespace tomoto
 
 		void initGlobalState(bool initDocs)
 		{
-			this->alphas.resize(this->K);
-			this->alphas.array() = this->alpha;
 			this->globalState.pLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(numPDocs);
 			this->globalState.numDocsByPDoc = Eigen::ArrayXi::Zero(numPDocs);
 			this->globalState.numByTopicPDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, numPDocs);
@@ -256,17 +254,34 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, numPDocs, lambda);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, numPDocs, lambda);
 
-		PTModel(size_t _K = 1, size_t _P = 100, Float _alpha = 1.0, Float _eta = 0.01, Float _lambda = 0.01,
-			size_t _rg = std::random_device{}())
-			: BaseClass(_K, _alpha, _eta, _rg), numPDocs(_P), lambda(_lambda)
+		GETTER(P, size_t, numPDocs);
+
+		PTModel(const PTArgs& args)
+			: BaseClass(args), numPDocs(args.p), lambda(args.lambda)
 		{
+		}
+
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		{
+			std::vector<Float> ret(this->K);
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			m = this->alphas.array();
+			for (size_t i = 0; i < doc.words.size(); ++i)
+			{
+				if (doc.words[i] >= this->realV) continue;
+				typename std::conditional<_tw != TermWeight::one, float, int32_t>::type weight
+					= _tw != TermWeight::one ? doc.wordWeights[i] : 1;
+				ret[doc.Zs[i]] += weight;
+			}
+			if (normalize) m /= m.sum();
+			return ret;
 		}
 
 		void updateDocs()
 		{
 			for (auto& doc : this->docs)
 			{
-				doc.template update<>(this->getTopicDocPtr(doc.pseudoDoc), *static_cast<DerivedClass*>(this));
+				doc.template update<>(this->globalState.numByTopicPDoc.col(doc.pseudoDoc).data(), *static_cast<DerivedClass*>(this));
 			}
 		}
 	};

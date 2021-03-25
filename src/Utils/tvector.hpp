@@ -1,6 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <cstring>
+#include "serializer.hpp"
+
 namespace tomoto
 {
 	/**
@@ -544,4 +546,45 @@ namespace tomoto
 			return geometric;
 		}
 	};
+
+	namespace serializer
+	{
+		template<typename _Ty>
+		struct Serializer<tvector<_Ty>, typename std::enable_if<std::is_fundamental<_Ty>::value>::type>
+		{
+			using VTy = tvector<_Ty>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.resize(size);
+				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<tvector<_Ty>, typename std::enable_if<!std::is_fundamental<_Ty>::value>::type>
+		{
+			using VTy = tvector<_Ty>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				for (auto& e : v) Serializer<_Ty>{}.write(ostr, e);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.resize(size);
+				for (auto& e : v) Serializer<_Ty>{}.read(istr, e);
+			}
+		};
+	}
 }

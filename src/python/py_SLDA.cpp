@@ -5,31 +5,33 @@
 
 using namespace std;
 
-tomoto::RawDoc::MiscType SLDA_misc_args(const tomoto::RawDoc::MiscType& o)
+tomoto::RawDoc::MiscType SLDA_misc_args(TopicModelObject* self, const tomoto::RawDoc::MiscType& o)
 {
 	tomoto::RawDoc::MiscType ret;
-	ret["y"] = getValueFromMiscDefault<vector<float>>("y", o, "`SLDAModel` needs a `y` value in `Iterable[float]` type.");
+	ret["y"] = getValueFromMiscDefault<vector<float>>("y", o, "`SLDAModel` requires a `y` value in `Iterable[float]` type.");
 	return ret;
 }
 
 static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t K = 1;
-	float alpha = 0.1f, eta = 0.01f;
+	tomoto::SLDAArgs margs;
 	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
-	size_t seed = random_device{}();
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	PyObject* objAlpha = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k",
 		"vars", "alpha", "eta",
 		"mu", "nu_sq", "glm_param", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffOOOnOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &K, 
-		&vars, &alpha, &eta, 
-		&mu, &nuSq, &glmCoef, &seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfOOOnOO", (char**)kwlist, 
+		&tw, &minCnt, &minDf, &rmTop, &margs.k,
+		&vars, &objAlpha, &margs.eta,
+		&mu, &nuSq, &glmCoef, &margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		vector<tomoto::ISLDAModel::GLM> varTypes;
+		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
+			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
+		);
+
 		vector<string> varTypeStrs;
 		if (vars)
 		{
@@ -40,22 +42,21 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 				if (s == "l") t = tomoto::ISLDAModel::GLM::linear;
 				else if (s == "b") t = tomoto::ISLDAModel::GLM::binary_logistic;
 				else throw runtime_error{ "Unknown var type '" + s + "'" };
-				varTypes.emplace_back(t);
+				margs.vars.emplace_back(t);
 			}
 		}
 		
-		vector<tomoto::Float> vmu, vnuSq, vglmCoef; 
 		float fTemp;
 		if (mu)
 		{
 			if ((fTemp = (float)PyFloat_AsDouble(mu)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
-				vmu = py::toCpp<vector<tomoto::Float>>(mu, "`mu` must be float or iterable of float.");
+				margs.mu = py::toCpp<vector<tomoto::Float>>(mu, "`mu` must be float or iterable of float.");
 			}
 			else
 			{
-				vmu.resize(varTypes.size(), fTemp);
+				margs.mu.resize(varTypeStrs.size(), fTemp);
 			}
 		}
 
@@ -64,11 +65,11 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			if ((fTemp = (float)PyFloat_AsDouble(nuSq)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
-				vnuSq = py::toCpp<vector<tomoto::Float>>(nuSq, "`nu_sq` must be float or iterable of float.");
+				margs.nuSq = py::toCpp<vector<tomoto::Float>>(nuSq, "`nu_sq` must be float or iterable of float.");
 			}
 			else
 			{
-				vnuSq.resize(varTypes.size(), fTemp);
+				margs.nuSq.resize(varTypeStrs.size(), fTemp);
 			}
 		}
 
@@ -77,17 +78,15 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			if ((fTemp = (float)PyFloat_AsDouble(glmCoef)) == -1 && PyErr_Occurred())
 			{
 				PyErr_Clear();
-				vglmCoef = py::toCpp<vector<tomoto::Float>>(glmCoef, "`glm_param` must be float or iterable of float.");
+				margs.glmParam = py::toCpp<vector<tomoto::Float>>(glmCoef, "`glm_param` must be float or iterable of float.");
 			}
 			else
 			{
-				vglmCoef.resize(varTypes.size(), fTemp);
+				margs.glmParam.resize(varTypeStrs.size(), fTemp);
 			}
 		}
 
-		tomoto::ITopicModel* inst = tomoto::ISLDAModel::create((tomoto::TermWeight)tw, K, varTypes, 
-			alpha, eta, vmu, vnuSq, vglmCoef,
-			seed);
+		tomoto::ITopicModel* inst = tomoto::ISLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -95,19 +94,23 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, varTypeStrs, alpha, eta,
-			vmu, vnuSq, vglmCoef
+			tw, minCnt, minDf, rmTop, 
+			margs.k, varTypeStrs, margs.alpha, margs.eta,
+			margs.mu, margs.nuSq, margs.glmParam
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -120,7 +123,7 @@ static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 
 		if (argY)
@@ -150,7 +153,7 @@ static DocumentObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		
 		if (argY)
@@ -197,7 +200,7 @@ static PyObject* SLDA_getRegressionCoef(TopicModelObject* self, PyObject* args, 
 		}
 
 		size_t varId = PyLong_AsLong(argVarId);
-		if (varId >= inst->getF()) throw runtime_error{ "'var_id' must be < 'f'" };
+		if (varId >= inst->getF()) throw runtime_error{ "`var_id` must be < `f`" };
 		return py::buildPyValue(inst->getRegressionCoef(varId));
 	}
 	catch (const bad_exception&)
@@ -220,7 +223,7 @@ static PyObject* SLDA_getTypeOfVar(TopicModelObject* self, PyObject* args, PyObj
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
-		if (varId >= inst->getF()) throw runtime_error{ "'var_id' must be < 'f'" };
+		if (varId >= inst->getF()) throw runtime_error{ "`var_id` must be < `f`" };
 		return py::buildPyValue(std::string{ "l\0b" + (size_t)inst->getTypeOfVar(varId) * 2 });
 	}
 	catch (const bad_exception&)
@@ -245,13 +248,13 @@ static PyObject* SLDA_estimateVars(TopicModelObject* self, PyObject* args, PyObj
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
 		try 
 		{
-			if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw py::wrong_type_error{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
+			if (!PyObject_TypeCheck(argDoc, &UtilsDocument_type)) throw py::ConversionFail{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
 			auto* doc = (DocumentObject*)argDoc;
-			if (doc->corpus->tm != self) throw py::wrong_type_error{ "`doc` was from another model, not fit to this model" };
+			if (doc->corpus->tm != self) throw py::ConversionFail{ "`doc` was from another model, not fit to this model" };
 
 			return py::buildPyValue(inst->estimateVars(doc->getBoundDoc()));
 		}
-		catch (const py::wrong_type_error&)
+		catch (const py::ConversionFail&)
 		{
 			PyErr_Clear();
 		}
@@ -261,9 +264,9 @@ static PyObject* SLDA_estimateVars(TopicModelObject* self, PyObject* args, PyObj
 		std::vector<const tomoto::DocumentBase*> docs;
 		while ((nextDoc = py::UniqueObj{ PyIter_Next(iter) }))
 		{
-			if (!PyObject_TypeCheck(nextDoc, &UtilsDocument_type)) throw py::wrong_type_error{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
+			if (!PyObject_TypeCheck(nextDoc, &UtilsDocument_type)) throw py::ConversionFail{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
 			auto* doc = (DocumentObject*)nextDoc.get();
-			if (doc->corpus->tm != self) throw py::wrong_type_error{ "`doc` was from another model, not fit to this model" };
+			if (doc->corpus->tm != self) throw py::ConversionFail{ "`doc` was from another model, not fit to this model" };
 			docs.emplace_back(doc->getBoundDoc());
 		}
 		if (PyErr_Occurred()) return nullptr;
@@ -294,6 +297,7 @@ DEFINE_LOADER(SLDA, SLDA_type);
 static PyMethodDef SLDA_methods[] =
 {
 	{ "load", (PyCFunction)SLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)SLDA_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "add_doc", (PyCFunction)SLDA_addDoc, METH_VARARGS | METH_KEYWORDS, SLDA_add_doc__doc__ },
 	{ "make_doc", (PyCFunction)SLDA_makeDoc, METH_VARARGS | METH_KEYWORDS, SLDA_make_doc__doc__},
 	{ "get_regression_coef", (PyCFunction)SLDA_getRegressionCoef, METH_VARARGS | METH_KEYWORDS, SLDA_get_regression_coef__doc__},
