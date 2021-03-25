@@ -17,6 +17,7 @@ tomotopy 란?
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
 * Dynamic Topic Model (`tomotopy.DTModel`)
+* Pseudo-document based Topic Model (`tomotopy.PTModel`)
 
 tomotopy의 가장 최신버전은 0.11.0 입니다.
 
@@ -336,8 +337,15 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
-* 0.10.3 (2021-03-01)
-    * `tomotopy.HDPModel.infer`가 종종 세그멘테이션 폴트를 발생시키던 문제가 해결되었습니다.
+* 0.11.0 (2021-03-26)
+    * 짧은 텍스트를 위한 토픽 모델인 `tomotopy.PTModel`가 추가되었습니다.
+    * `tomotopy.HDPModel.infer`가 종종 segmentation fault를 발생시키는 문제가 해결되었습니다.
+    * numpy API 버전 충돌이 해결되었습니다.
+    * 이제 비대칭 문헌-토픽 사전 분포가 지원됩니다.
+    * 토픽 모델 객체를 메모리 상의 `bytes`로 직렬화하는 기능이 지원됩니다.
+    * `get_topic_dist()`, `get_topic_word_dist()`, `get_sub_topic_dist()`에 결과의 정규화 여부를 조절하는 `normalize` 인자가 추가되었습니다.
+    * `tomotopy.DMRModel.lambdas`와 `tomotopy.DMRModel.alpha`가 잘못된 값을 제공하던 문제가 해결되었습니다.
+    * Python3.5 지원이 종료되었습니다.
 
 * 0.10.2 (2021-02-16)
     * `tomotopy.CTModel.train`가 큰 K값에 대해 실패하는 문제가 수정되었습니다.

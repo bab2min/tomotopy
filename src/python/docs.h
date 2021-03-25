@@ -128,11 +128,11 @@ DOC_VARIABLE_EN_KO(Document_uid__doc__,
     u8R""(문헌의 고유 ID (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_metadata__doc__,
-	u8R""("categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
+	u8R""(categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
 	u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_numeric_metadata__doc__,
-    u8R""("continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
+    u8R""(continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
 
 .. versionadded:: 0.11.0)"",
     u8R""(문헌의 연속형 숫자 메타데이터 (`tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
@@ -609,11 +609,7 @@ DOC_SIGNATURE_EN_KO(LDA_saves__doc__,
     "saves(self, full=True)",
     u8R""(.. versionadded:: 0.11.0
 
-Serialize the model instance into `bytes` object and return it.
-
-If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model.
-If `False`, only topic parameters of the model will be saved. This model can be only used for inference of an unseen document.
-)"",
+Serialize the model instance into `bytes` object and return it. The arguments work the same as `tomotopy.LDAModel.save`.)"",
 u8R""(.. versionadded:: 0.11.0
 
 현재 모델을 직렬화하여 `bytes`로 만든 뒤 이를 반환합니다.
@@ -940,16 +936,33 @@ DOC_VARIABLE_EN_KO(DMR_metadata_dict__doc__,
 	u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
-	u8R""(parameter lambdas in the shape `[k, f]` (read-only))"",
-	u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용))"");
+	u8R""(parameter lambdas in the shape `[k, f]` (read-only)
+
+.. warning::
+
+Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.
+)"",
+	u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용)
+
+.. warning::
+
+0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
 
 DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
     u8R""(Dirichlet prior on the per-document topic distributions for each metadata in the shape `[k, f]`. Equivalent to `np.exp(DMRModel.lambdas)` (read-only)
 
-.. versionadded:: 0.9.0)"",
+.. versionadded:: 0.9.0
+
+.. warning::
+
+Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.)"",
     u8R""(각 메타데이터별 문헌-토픽 분포의 사전 분포, `[k, f]` 모양. `np.exp(DMRModel.lambdas)`와 동일 (읽기전용)
 
-.. versionadded:: 0.9.0)"");
+.. versionadded:: 0.9.0
+
+.. warning::
+
+0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
 
 /*
 	class GDMR
@@ -961,6 +974,13 @@ DOC_SIGNATURE_EN_KO(GDMR___init____doc__,
 > * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
 
 .. versionadded:: 0.8.0
+
+.. warning::
+
+Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
+Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
+and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+So `metadata` arguments in the older codes should be replaced with `numeric_metadata` to work in version 0.11.0.
 
 Parameters
 ----------
@@ -1010,6 +1030,15 @@ transform : Callable[dict, dict]
 u8R""(이 타입은 Generalized DMR(g-DMR) 토픽 모델의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 
 > * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
+
+.. versionadded:: 0.8.0
+
+.. warning::
+
+0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
+0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+`metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+따라서 이전 코드의 `metadata` 인자를 `numeric_metadata`로 바꿔주어야 0.11.0 버전에서 작동합니다.
 
 Parameters
 ----------

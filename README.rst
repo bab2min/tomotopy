@@ -32,7 +32,8 @@ The current version of `tomoto` supports several major topic models including
 * Pachinko Allocation (`tomotopy.PAModel`)
 * Hierarchical PA (`tomotopy.HPAModel`)
 * Correlated Topic Model (`tomotopy.CTModel`)
-* Dynamic Topic Model (`tomotopy.DTModel`).
+* Dynamic Topic Model (`tomotopy.DTModel`)
+* Pseudo-document based Topic Model (`tomotopy.PTModel`).
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
@@ -261,8 +262,15 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
-* 0.10.3 (2021-03-01)
+* 0.11.0 (2021-03-26)
+    * A new topic model `tomotopy.PTModel` for short texts was added into the package.
     * An issue was fixed where `tomotopy.HDPModel.infer` causes a segmentation fault sometimes.
+    * A mismatch of numpy API version was fixed.
+    * Now asymmetric document-topic priors are supported.
+    * Serializing topic models to `bytes` in memory is supported.
+    * An argument `normalize` was added to `get_topic_dist()`, `get_topic_word_dist()` and `get_sub_topic_dist()` for controlling normalization of results.
+    * Now `tomotopy.DMRModel.lambdas` and `tomotopy.DMRModel.alpha` give correct values.
+    * Python3.5 support was dropped.
 
 * 0.10.2 (2021-02-16)
     * An issue was fixed where `tomotopy.CTModel.train` fails with large K.

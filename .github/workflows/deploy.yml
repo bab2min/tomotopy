@@ -43,7 +43,7 @@ jobs:
         /opt/python/cp38-cp38/bin/python -m pip install twine wheel numpy==`/opt/python/cp38-cp38/bin/python test/numpy_version.py`
         /opt/python/cp38-cp38/bin/python setup.py sdist
         /opt/python/cp38-cp38/bin/python -m twine upload dist/*.tar.gz
-        for cp in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+        for cp in cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel numpy==`/opt/python/${cp}/bin/python test/numpy_version.py`
           /opt/python/${cp}/bin/python setup.py build bdist_wheel
@@ -57,7 +57,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v1
@@ -94,7 +94,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9]
         architecture: [x86, x64]
 
     steps:

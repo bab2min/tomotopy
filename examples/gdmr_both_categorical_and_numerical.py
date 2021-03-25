@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import re
 
+#You can get the sample data file from https://github.com/bab2min/g-dmr/tree/master/data .
 corpus = tp.utils.Corpus()
 for line in open('text_mining_year_journal.txt', encoding='utf-8'):
     fd = line.strip().split('\t', maxsplit=2)
