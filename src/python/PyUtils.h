@@ -7,6 +7,7 @@
 #include <limits>
 #include <exception>
 #include <string>
+#include <functional>
 #include <iostream>
 #include <cstring>
 
