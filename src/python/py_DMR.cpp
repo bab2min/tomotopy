@@ -5,7 +5,7 @@
 
 using namespace std;
 
-tomoto::RawDoc::MiscType DMR_misc_args(const tomoto::RawDoc::MiscType& o)
+tomoto::RawDoc::MiscType DMR_misc_args(TopicModelObject* self, const tomoto::RawDoc::MiscType& o)
 {
 	tomoto::RawDoc::MiscType ret;
 	ret["metadata"] = getValueFromMiscDefault<std::string>("metadata", o, "`DMRModel` needs a `metadata` value in `str` type.");
@@ -15,17 +15,20 @@ tomoto::RawDoc::MiscType DMR_misc_args(const tomoto::RawDoc::MiscType& o)
 static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t K = 1;
-	float alpha = 0.1, eta = 0.01, sigma = 1, alphaEpsilon = 1e-10;
-	size_t seed = random_device{}();
+	tomoto::DMRArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	PyObject* objAlpha = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "sigma", "alpha_epsilon", 
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&K, &alpha, &eta, &sigma, &alphaEpsilon, &seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.k, &objAlpha, &margs.eta, &margs.sigma, &margs.alphaEps, &margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, K, alpha, sigma, eta, alphaEpsilon, seed);
+		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
+			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
+		);
+
+		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -33,18 +36,21 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, alpha, eta, sigma, alphaEpsilon, seed
+			tw, minCnt, minDf, rmTop, margs.k, margs.alpha, margs.eta, margs.sigma, margs.alphaEps, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -58,7 +64,7 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["metadata"] = metadata;
 		auto ret = inst->addDoc(raw);
@@ -85,7 +91,7 @@ static DocumentObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObj
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["metadata"] = metadata;
 		auto doc = inst->makeDoc(raw);
@@ -229,6 +235,7 @@ static PyMethodDef DMR_methods[] =
 	{ "add_doc", (PyCFunction)DMR_addDoc, METH_VARARGS | METH_KEYWORDS, DMR_add_doc__doc__ },
 	{ "make_doc", (PyCFunction)DMR_makeDoc, METH_VARARGS | METH_KEYWORDS, DMR_make_doc__doc__ },
 	{ "load", (PyCFunction)DMR_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)DMR_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ nullptr }
 };
 

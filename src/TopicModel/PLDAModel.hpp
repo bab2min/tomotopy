@@ -107,15 +107,14 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, topicLabelDict, numLatentTopics, numTopicsPerLabel);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, topicLabelDict, numLatentTopics, numTopicsPerLabel);
 
-		PLDAModel(size_t _numLatentTopics = 0, size_t _numTopicsPerLabel = 1, 
-			Float _alpha = 1.0, Float _eta = 0.01, size_t _rg = std::random_device{}())
-			: BaseClass(1, _alpha, _eta, _rg), 
-			numLatentTopics(_numLatentTopics), numTopicsPerLabel(_numTopicsPerLabel)
+		PLDAModel(const PLDAArgs& args)
+			: BaseClass(args.setK(1)),
+			numLatentTopics(args.numLatentTopics), numTopicsPerLabel(args.numTopicsPerLabel)
 		{
-			if (_numLatentTopics >= 0x80000000) 
-				THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong numLatentTopics value (numLatentTopics = %zd)", _numLatentTopics));
-			if (_numTopicsPerLabel == 0 || _numTopicsPerLabel >= 0x80000000) 
-				THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong numTopicsPerLabel value (numTopicsPerLabel = %zd)", _numTopicsPerLabel));
+			if (numLatentTopics >= 0x80000000)
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong numLatentTopics value (numLatentTopics = %zd)", numLatentTopics));
+			if (numTopicsPerLabel == 0 || numTopicsPerLabel >= 0x80000000)
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong numTopicsPerLabel value (numTopicsPerLabel = %zd)", numTopicsPerLabel));
 		}
 
 		template<bool _const = false>
@@ -177,13 +176,20 @@ namespace tomoto
 			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			auto maskedAlphas = this->alphas.array() * doc.labelMask.template cast<Float>().array();
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), this->K }.array() =
-				(doc.numByTopic.array().template cast<Float>() + maskedAlphas)
-				/ (doc.getSumWordWeight() + maskedAlphas.sum());
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			if (normalize)
+			{
+				m = (doc.numByTopic.array().template cast<Float>() + maskedAlphas)
+					/ (doc.getSumWordWeight() + maskedAlphas.sum());
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>() + maskedAlphas;
+			}
 			return ret;
 		}
 

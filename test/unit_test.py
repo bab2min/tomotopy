@@ -198,6 +198,16 @@ def train_corpus(cls, inputFile, mdFields, f, kargs, ps):
     mdl = cls(min_cf=2, rm_top=2, corpus=corpus, **kargs)
     mdl.train(100, parallel=ps)
 
+def train_corpus_only_words(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test train with corpus - only words')
+    corpus = tp.utils.Corpus()
+    tokenizer = tp.utils.SimpleTokenizer()
+    for line in open(inputFile, encoding='utf-8'):
+        chs = line.split(None, maxsplit=mdFields)
+        corpus.add_doc(words=[w for w, _, _ in tokenizer(chs[-1])], **(f(chs[:mdFields]) if f else {}))
+    mdl = cls(min_cf=2, rm_top=2, corpus=corpus, **kargs)
+    mdl.train(100, parallel=ps)
+
 def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train with corpus')
     corpus1 = tp.utils.Corpus(tokenizer=tp.utils.SimpleTokenizer())
@@ -381,7 +391,7 @@ for model_case in model_corpus_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train_corpus, train_multi_corpus]:
+        for func in [train_corpus, train_corpus_only_words, train_multi_corpus]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 

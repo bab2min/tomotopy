@@ -62,7 +62,7 @@ setup(
 
     version=__version__,
 
-    description='Tomoto, The Topic Modeling Tool for Python',
+    description='Tomoto, Topic Modeling Tool for Python',
     long_description=long_description,
 
     url='https://github.com/bab2min/tomotopy',

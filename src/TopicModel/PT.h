@@ -4,7 +4,7 @@
 namespace tomoto
 {
 	template<TermWeight _tw>
-	struct DocumentPTM : public DocumentLDA<_tw>
+	struct DocumentPT : public DocumentLDA<_tw>
 	{
 		using BaseDocument = DocumentLDA<_tw>;
 		using DocumentLDA<_tw>::DocumentLDA;
@@ -16,12 +16,19 @@ namespace tomoto
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, pseudoDoc);
 	};
 
+	struct PTArgs : public LDAArgs
+	{
+		size_t p = 100;
+		Float lambda = 0.01;
+	};
+
 	class IPTModel : public ILDAModel
 	{
 	public:
-		using DefaultDocType = DocumentPTM<TermWeight::one>;
-		static IPTModel* create(TermWeight _weight, size_t _K = 1, size_t _P = 100, 
-			Float alpha = 0.1, Float eta = 0.01, Float lambda = 0.01, size_t seed = std::random_device{}(),
+		using DefaultDocType = DocumentPT<TermWeight::one>;
+		static IPTModel* create(TermWeight _weight, const PTArgs& args,
 			bool scalarRng = false);
+
+		virtual size_t getP() const = 0;
 	};
 }

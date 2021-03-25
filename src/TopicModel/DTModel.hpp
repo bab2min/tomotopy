@@ -45,7 +45,7 @@ namespace tomoto
 
 		uint64_t T;
 		Float shapeA = 0.03f, shapeB = 0.1f, shapeC = 0.55f;
-		const Float alphaVar = 1.f, etaVar = 1.f, phiVar = 1.f, etaRegL2 = 0.0f;
+		Float alphaVar = 1.f, etaVar = 1.f, phiVar = 1.f, etaRegL2 = 0.0f;
 
 		Eigen::Matrix<Float, -1, -1> alphas; // Dim: (Topic, Time)
 		Eigen::Matrix<Float, -1, -1> etaByDoc; // Dim: (Topic, Docs) : Topic distribution by docs(and time)
@@ -418,7 +418,7 @@ namespace tomoto
 
 			for (Tid t = 0; t < T; ++t)
 			{
-				if (initDocs && !numDocsByTime[t]) THROW_ERROR_WITH_INFO(exception::InvalidArgument, text::format("No document with timepoint = %d", t));
+				if (initDocs && !numDocsByTime[t]) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("No document with timepoint = %d", t));
 
 				// update alias tables for word proposal
 				for (Vid v = 0; v < this->realV; ++v)
@@ -439,23 +439,26 @@ namespace tomoto
 			addWordTo<1>(ld, doc, i, w, z);
 		}
 
-		std::vector<Float> _getWidsByTopic(size_t tid) const
+		std::vector<Float> _getWidsByTopic(size_t tid, bool normalize = true) const
 		{
 			const size_t V = this->realV;
 			std::vector<Float> ret(V);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> retMap(ret.data(), V);
 			retMap = phi.col(tid).array().exp();
-			retMap /= retMap.sum();
-			Eigen::Array<Float, -1, 1> t = this->globalState.numByTopicWord.row(tid).array().template cast<Float>();
-			t /= std::max(t.sum(), (Float)0.1);
-			retMap += t;
-			retMap /= 2;
+			if (normalize)
+			{
+				retMap /= retMap.sum();
+				Eigen::Array<Float, -1, 1> t = this->globalState.numByTopicWord.row(tid).array().template cast<Float>();
+				t /= std::max(t.sum(), (Float)0.1);
+				retMap += t;
+				retMap /= 2;
+			}
 			return ret;
 		}
 
 		_DocType& _updateDoc(_DocType& doc, uint32_t timepoint) const
 		{
-			if (timepoint >= T) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "timepoint must < T");
+			if (timepoint >= T) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "timepoint must < T");
 			doc.timepoint = timepoint;
 			return doc;
 		}
@@ -489,11 +492,10 @@ namespace tomoto
 		GETTER(ShapeB, Float, shapeB);
 		GETTER(ShapeC, Float, shapeC);
 
-		DTModel(size_t _K, size_t _T, Float _alphaVar, Float _etaVar, Float _phiVar,
-			Float _shapeA, Float _shapeB, Float _shapeC, Float _etaRegL2, size_t _rg)
-			: BaseClass{ _K, _alphaVar, _etaVar, _rg },
-			T{ _T }, alphaVar{ _alphaVar }, etaVar{ _etaVar }, phiVar{ _phiVar },
-			shapeA{ _shapeA }, shapeB{ _shapeB }, shapeC{ _shapeC }, etaRegL2{ _etaRegL2 }
+		DTModel(const DTArgs& args)
+			: BaseClass{ args },
+			T{ args.t }, alphaVar{ args.alpha[0] }, etaVar{ args.eta }, phiVar{ args.phi },
+			shapeA{ args.shapeA }, shapeB{ args.shapeB }, shapeC{ args.shapeC }, etaRegL2{ args.etaL2Reg }
 		{
 		}
 

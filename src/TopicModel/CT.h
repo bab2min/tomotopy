@@ -15,13 +15,16 @@ namespace tomoto
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, smBeta);
 	};
 
+	struct CTArgs : public LDAArgs
+	{
+
+	};
+
 	class ICTModel : public ILDAModel
 	{
 	public:
 		using DefaultDocType = DocumentCTM<TermWeight::one>;
-		static ICTModel* create(TermWeight _weight, size_t _K = 1,
-			Float smoothingAlpha = 0.1,  Float _eta = 0.01,
-			size_t seed = std::random_device{}(),
+		static ICTModel* create(TermWeight _weight, const CTArgs& args,
 			bool scalarRng = false);
 
 		virtual void setNumBetaSample(size_t numSample) = 0;

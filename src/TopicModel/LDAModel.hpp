@@ -507,7 +507,7 @@ namespace tomoto
 					static_cast<DerivedClass*>(this)->optimizeParameters(pool, localData, rgs);
 				}
 			}
-			catch (const exception::TrainingError&)
+			catch (const exc::TrainingError&)
 			{
 				for (auto& r : res) if(r.valid()) r.get();
 				throw;
@@ -780,12 +780,13 @@ namespace tomoto
 			return cnt;
 		}
 
-		std::vector<Float> _getWidsByTopic(size_t tid) const
+		std::vector<Float> _getWidsByTopic(size_t tid, bool normalize = true) const
 		{
 			assert(tid < this->globalState.numByTopic.rows());
 			const size_t V = this->realV;
 			std::vector<Float> ret(V);
 			Float sum = this->globalState.numByTopic[tid] + V * eta;
+			if (!normalize) sum = 1;
 			auto r = this->globalState.numByTopicWord.row(tid);
 			for (size_t v = 0; v < V; ++v)
 			{
@@ -913,13 +914,26 @@ namespace tomoto
 		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, vocabWeights, alpha, alphas, eta, K, etaByWord,
 			burnIn, optimInterval);
 
-		LDAModel(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
-			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
-		{ 
-			if (_K == 0 || _K >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K value (K = %zd)", _K));
-			if (_alpha <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong alpha value (alpha = %f)", _alpha));
-			if (_eta <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong eta value (eta = %f)", _eta));
-			alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);
+		LDAModel(const LDAArgs& args, bool checkAlpha = true)
+			: BaseClass(args.seed), K(args.k), alpha(args.alpha[0]), eta(args.eta)
+		{
+			if (K == 0 || K >= 0x80000000) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong K value (K = %zd)", K));
+
+			if (args.alpha.size() == 1)
+			{
+				alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);
+			}
+			else if (args.alpha.size() == args.k)
+			{
+				alphas = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.alpha.data(), args.alpha.size());
+			}
+			else if (checkAlpha)
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong alpha value (len = %zd)", args.alpha.size()));
+			}
+
+			if ((alphas.array() <= 0).any()) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong alpha value"));
+			if (eta <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong eta value (eta = %f)", eta));
 		}
 
 		GETTER(K, size_t, K);
@@ -967,10 +981,10 @@ namespace tomoto
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			if (priors.size() != K) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors.size() must be equal to K.");
+			if (priors.size() != K) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors.size() must be equal to K.");
 			for (auto p : priors)
 			{
-				if (p < 0) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors must not be less than 0.");
+				if (p < 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors must not be less than 0.");
 			}
 			this->dict.add(word);
 			etaByWord.emplace(word, priors);
@@ -1069,11 +1083,18 @@ namespace tomoto
 			return static_cast<const DerivedClass*>(this)->_getTopicsCount();
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(K);
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), K }.array() = 
-				(doc.numByTopic.array().template cast<Float>() + alphas.array()) / (doc.getSumWordWeight() + alphas.sum());
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), K };
+			if (normalize)
+			{
+				m = (doc.numByTopic.array().template cast<Float>() + alphas.array()) / (doc.getSumWordWeight() + alphas.sum());
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>() + alphas.array();
+			}
 			return ret;
 		}
 

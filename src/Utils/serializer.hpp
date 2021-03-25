@@ -4,11 +4,11 @@
 #include <string>
 #include <array>
 #include <type_traits>
-#include <Eigen/Dense>
 #include <vector>
-#include "tvector.hpp"
+#include <map>
+#include <unordered_map>
+#include <Eigen/Dense>
 #include "text.hpp"
-#include "SharedString.hpp"
 
 /*
 
@@ -30,6 +30,40 @@ namespace tomoto
 {
 	namespace serializer
 	{
+		struct membuf : std::streambuf 
+		{
+			membuf(char* base, std::ptrdiff_t n) 
+			{
+				this->setg(base, base, base + n);
+			}
+
+			pos_type seekpos(pos_type sp, std::ios_base::openmode which) override {
+				return seekoff(sp - pos_type(off_type(0)), std::ios_base::beg, which);
+			}
+
+			pos_type seekoff(off_type off,
+				std::ios_base::seekdir dir,
+				std::ios_base::openmode which = std::ios_base::in) override {
+				if (dir == std::ios_base::cur)
+					gbump(off);
+				else if (dir == std::ios_base::end)
+					setg(eback(), egptr() + off, egptr());
+				else if (dir == std::ios_base::beg)
+					setg(eback(), eback() + off, egptr());
+				return gptr() - eback();
+			}
+		};
+
+		class imstream : public std::istream
+		{
+			membuf buf;
+		public:
+			imstream(const char* base, std::ptrdiff_t n)
+				: std::istream(&buf), buf((char*)base, n)
+			{
+			}
+		};
+
 		namespace detail
 		{
 			template<class _T> using Invoke = typename _T::type;
@@ -133,15 +167,49 @@ namespace tomoto
 			return Key<_n>{detail::to_arrayz(a)};
 		}
 
+		template<typename _Ty, typename = void>
+		struct Serializer;
+
+		template<typename _Ty, size_t _version = 0, typename = void>
+		struct SerializerV;
+
+		template<typename _Ty>
+		inline void writeToStream(std::ostream& ostr, const _Ty& v)
+		{
+			Serializer<
+				typename std::remove_const<typename std::remove_reference<_Ty>::type>::type
+			>{}.write(ostr, v);
+		}
+
+		template<typename _Ty>
+		inline void readFromStream(std::istream& istr, _Ty& v)
+		{
+			Serializer<
+				typename std::remove_const<typename std::remove_reference<_Ty>::type>::type
+			>{}.read(istr, v);
+		}
+
+		template<typename _Ty>
+		inline _Ty readFromStream(std::istream& istr)
+		{
+			_Ty v;
+			Serializer<
+				typename std::remove_const<typename std::remove_reference<_Ty>::type>::type
+			>{}.read(istr, v);
+			return v;
+		}
+
 		inline void writeMany(std::ostream& ostr)
 		{
 			// do nothing
 		}
 
 		template<typename _FirstTy, typename ... _RestTy>
-		inline typename std::enable_if<!is_key<_FirstTy>::value>::type writeMany(std::ostream& ostr, const _FirstTy& first, _RestTy&&... rest)
+		inline typename std::enable_if<
+			!is_key<typename std::remove_reference<_FirstTy>::type>::value
+		>::type writeMany(std::ostream& ostr, _FirstTy&& first, _RestTy&&... rest)
 		{
-			writeToStream(ostr, first);
+			writeToStream(ostr, std::forward<_FirstTy>(first));
 			writeMany(ostr, std::forward<_RestTy>(rest)...);
 		}
 
@@ -158,9 +226,11 @@ namespace tomoto
 		}
 
 		template<typename _FirstTy, typename ... _RestTy>
-		inline typename std::enable_if<!is_key<_FirstTy>::value>::type readMany(std::istream& istr, _FirstTy& first, _RestTy&&... rest)
+		inline typename std::enable_if<
+			!is_key<typename std::remove_reference<_FirstTy>::type>::value
+		>::type readMany(std::istream& istr, _FirstTy&& first, _RestTy&&... rest)
 		{
-			readFromStream(istr, first);
+			readFromStream(istr, std::forward<_FirstTy>(first));
 			readMany(istr, std::forward<_RestTy>(rest)...);
 		}
 
@@ -234,255 +304,303 @@ namespace tomoto
 		template<typename _Ty, size_t _version>
 		struct hasLoadV : decltype(detail::testLoadV<_Ty, _version>(0)){};
 
-		template<class _Ty>
-		inline typename std::enable_if<std::is_fundamental<_Ty>::value>::type writeToBinStreamImpl(std::ostream& ostr, const _Ty& v)
+		template<typename _Ty>
+		struct Serializer<_Ty, typename std::enable_if<std::is_fundamental<_Ty>::value>::type>
 		{
-			if (!ostr.write((const char*)&v, sizeof(_Ty)))
-				throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline typename std::enable_if<std::is_fundamental<_Ty>::value>::type readFromBinStreamImpl(std::istream& istr, _Ty& v)
-		{
-			if (!istr.read((char*)&v, sizeof(_Ty)))
-				throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline typename std::enable_if<hasSave<_Ty>::value>::type writeToBinStreamImpl(std::ostream& ostr, const _Ty& v)
-		{
-			v.serializerWrite(ostr);
-		}
-
-		template<class _Ty, size_t _version = 0>
-		inline typename std::enable_if<
-			hasSaveV<_Ty, _version>::value && !hasSaveV<_Ty, _version + 1>::value
-		>::type writeToBinStreamImpl(std::ostream& ostr, const _Ty& v)
-		{
-			v.serializerWrite(version_holder<_version>{}, ostr);
-		}
-
-		template<class _Ty, size_t _version = 0>
-		inline typename std::enable_if<
-			hasSaveV<_Ty, _version>::value && hasSaveV<_Ty, _version + 1>::value
-		>::type writeToBinStreamImpl(std::ostream& ostr, const _Ty& v)
-		{
-			return writeToBinStreamImpl<_Ty, _version + 1>(ostr, v);
-		}
-
-		template<class _Ty>
-		inline typename std::enable_if<hasLoad<_Ty>::value>::type readFromBinStreamImpl(std::istream& istr, _Ty& v)
-		{
-			v.serializerRead(istr);
-		}
-
-		template<class _Ty, size_t _version = 0>
-		inline typename std::enable_if<
-			hasLoadV<_Ty, _version>::value && !hasLoadV<_Ty, _version + 1>::value
-		>::type readFromBinStreamImpl(std::istream& istr, _Ty& v)
-		{
-			v.serializerRead(version_holder<_version>{}, istr);
-		}
-
-		template<class _Ty, size_t _version = 0>
-		inline typename std::enable_if<
-			hasLoadV<_Ty, _version>::value && hasLoadV<_Ty, _version + 1>::value
-		>::type readFromBinStreamImpl(std::istream& istr, _Ty& v)
-		{
-			auto pos = istr.tellg();
-			try
+			void write(std::ostream& ostr, const _Ty& v)
 			{
-				// try higher version first
-				return readFromBinStreamImpl<_Ty, _version + 1>(istr, v);
+				if (!ostr.write((const char*)&v, sizeof(_Ty)))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
-			catch (const std::ios_base::failure&)
+
+			void read(std::istream& istr, _Ty& v)
 			{
-				istr.seekg(pos);
-				// try current version if fails
-				v.serializerRead(version_holder<_version>{}, istr);
+				if (!istr.read((char*)&v, sizeof(_Ty)))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
-		}
-
-		template<class _Ty>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const Eigen::Matrix<_Ty, -1, -1>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.rows());
-			writeToStream<uint32_t>(ostr, (uint32_t)v.cols());
-			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline void readFromBinStreamImpl(std::istream& istr, Eigen::Matrix<_Ty, -1, -1>& v)
-		{
-			uint32_t rows = readFromStream<uint32_t>(istr);
-			uint32_t cols = readFromStream<uint32_t>(istr);
-			v = Eigen::Matrix<_Ty, -1, -1>::Zero(rows, cols);
-			if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
-				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const Eigen::Matrix<_Ty, -1, 1>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.rows());
-			writeToStream<uint32_t>(ostr, (uint32_t)v.cols());
-			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline void readFromBinStreamImpl(std::istream& istr, Eigen::Matrix<_Ty, -1, 1>& v)
-		{
-			uint32_t rows = readFromStream<uint32_t>(istr);
-			uint32_t cols = readFromStream<uint32_t>(istr);
-			if (cols != 1) throw std::ios_base::failure( "matrix cols != 1'" );
-			v = Eigen::Matrix<_Ty, -1, 1>::Zero(rows);
-			if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
-				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const std::vector<_Ty>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
-			for (auto& e : v) writeToStream(ostr, e);
-		}
-
-		template<class _Ty>
-		inline void readFromBinStreamImpl(std::istream& istr, std::vector<_Ty>& v)
-		{
-			uint32_t size = readFromStream<uint32_t>(istr);
-			v.resize(size);
-			for (auto& e : v) readFromStream(istr, e);
-		}
-
-		template<class _Ty1, class _Ty2>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const std::pair<_Ty1, _Ty2>& v)
-		{
-			writeToStream(ostr, v.first);
-			writeToStream(ostr, v.second);
-		}
-
-		template<class _Ty1, class _Ty2>
-		inline void readFromBinStreamImpl(std::istream& istr, std::pair<_Ty1, _Ty2>& v)
-		{
-			readFromStream(istr, v.first);
-			readFromStream(istr, v.second);
-		}
-
-		template<class _KeyTy, class _ValTy>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const std::unordered_map<_KeyTy, _ValTy>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
-			for (auto& e : v) writeToStream(ostr, e);
-		}
-
-		template<class _KeyTy, class _ValTy>
-		inline void readFromBinStreamImpl(std::istream& istr, std::unordered_map<_KeyTy, _ValTy>& v)
-		{
-			uint32_t size = readFromStream<uint32_t>(istr);
-			v.clear();
-			for (size_t i = 0; i < size; ++i)
-			{
-				v.emplace(readFromStream<std::pair<_KeyTy, _ValTy>>(istr));
-			}
-		}
-
-		template<class _Ty, size_t _N>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const std::array<_Ty, _N>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
-			for (auto& e : v) writeToStream(ostr, e);
-		}
-
-		template<class _Ty, size_t _N>
-		inline void readFromBinStreamImpl(std::istream& istr, std::array<_Ty, _N>& v)
-		{
-			uint32_t size = readFromStream<uint32_t>(istr);
-			if (_N != size) throw std::ios_base::failure( text::format("the size of array must be %zd, not %zd", _N, size) );
-			for (auto& e : v) readFromStream(istr, e);
-		}
-
-		template<class _Ty>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const tvector<_Ty>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
-			for (auto& e : v) writeToStream(ostr, e);
-		}
-
-		template<class _Ty>
-		inline void readFromBinStreamImpl(std::istream& istr, tvector<_Ty>& v)
-		{
-			uint32_t size = readFromStream<uint32_t>(istr);
-			v.resize(size);
-			for (auto& e : v) readFromStream(istr, e);
-		}
-
-		template<class _Ty>
-		inline void writeToBinStreamImpl(std::ostream& ostr, const std::basic_string<_Ty>& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
-			if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure( std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		template<class _Ty>
-		inline void readFromBinStreamImpl(std::istream& istr, std::basic_string<_Ty>& v)
-		{
-			uint32_t size = readFromStream<uint32_t>(istr);
-			v.resize(size);
-			if (!istr.read((char*)v.data(), sizeof(_Ty) * v.size()))
-				throw std::ios_base::failure( std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed") );
-		}
-
-		inline void writeToBinStreamImpl(std::ostream& ostr, const SharedString& v)
-		{
-			writeToStream<uint32_t>(ostr, (uint32_t)v.size());
-			if (!ostr.write((const char*)v.data(), v.size()))
-				throw std::ios_base::failure(std::string("writing type 'SharedString' is failed"));
-		}
-
-		inline void readFromBinStreamImpl(std::istream& istr, SharedString& v)
-		{
-			uint32_t size = readFromStream<uint32_t>(istr);
-			std::vector<char> t(size);
-			if (!istr.read((char*)t.data(), t.size()))
-				throw std::ios_base::failure(std::string("reading type 'SharedString' is failed"));
-			v = SharedString{ t.data(), t.data() + t.size() };
-		}
-
-		template<class _Ty>
-		inline typename std::enable_if<std::is_abstract<_Ty>::value>::type writeToBinStreamImpl(std::ostream& ostr, const std::unique_ptr<_Ty>& v)
-		{
-			_Ty::serializerWrite(v, ostr);
-		}
-
-		template<class _Ty>
-		inline typename std::enable_if<std::is_abstract<_Ty>::value>::type readFromBinStreamImpl(std::istream& istr, std::unique_ptr<_Ty>& v)
-		{
-			_Ty::serializerRead(v, istr);
-		}
-
-		template<typename _Ty> 
-		inline void writeToStream(std::ostream& ostr, const _Ty& v)
-		{
-			return writeToBinStreamImpl(ostr, v);
-		}
-
-		template<typename _Ty> 
-		inline void readFromStream(std::istream& istr, _Ty& v)
-		{
-			return readFromBinStreamImpl(istr, v);
-		}
+		};
 
 		template<typename _Ty>
-		inline _Ty readFromStream(std::istream& istr)
+		struct Serializer<_Ty, typename std::enable_if<hasSave<_Ty>::value>::type>
 		{
-			_Ty v;
-			readFromBinStreamImpl(istr, v);
-			return v;
-		}
+			void write(std::ostream& ostr, const _Ty& v)
+			{
+				v.serializerWrite(ostr);
+			}
+
+			void read(std::istream& istr, _Ty& v)
+			{
+				v.serializerRead(istr);
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<_Ty, typename std::enable_if<hasSaveV<_Ty, 0>::value>::type>
+		{
+			void write(std::ostream& ostr, const _Ty& v)
+			{
+				SerializerV<_Ty>{}.write(ostr, v);
+			}
+
+			void read(std::istream& istr, _Ty& v)
+			{
+				SerializerV<_Ty>{}.read(istr, v);
+			}
+		};
+		
+		template<typename _Ty, size_t _version>
+		struct SerializerV<_Ty, _version, typename std::enable_if<
+			hasSaveV<_Ty, _version>::value && !hasSaveV<_Ty, _version + 1>::value
+		>::type>
+		{
+			void write(std::ostream& ostr, const _Ty& v)
+			{
+				v.serializerWrite(version_holder<_version>{}, ostr);
+			}
+
+			void read(std::istream& istr, _Ty& v)
+			{
+				v.serializerRead(version_holder<_version>{}, istr);
+			}
+		};
+
+		template<typename _Ty, size_t _version>
+		struct SerializerV<_Ty, _version, typename std::enable_if<
+			hasSaveV<_Ty, _version>::value && hasSaveV<_Ty, _version + 1>::value
+		>::type>
+		{
+			void write(std::ostream& ostr, const _Ty& v)
+			{
+				SerializerV<_Ty, _version + 1>{}.write(ostr, v);
+			}
+
+			void read(std::istream& istr, _Ty& v)
+			{
+				auto pos = istr.tellg();
+				try
+				{
+					// try higher version first
+					return SerializerV<_Ty, _version + 1>{}.read(istr, v);
+				}
+				catch (const std::ios_base::failure&)
+				{
+					istr.seekg(pos);
+					// try current version if fails
+					v.serializerRead(version_holder<_version>{}, istr);
+				}
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<Eigen::Matrix<_Ty, -1, -1>>
+		{
+			using VTy = Eigen::Matrix<_Ty, -1, -1>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeMany(ostr, (uint32_t)v.rows(), (uint32_t)v.cols());
+				if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				uint32_t rows, cols;
+				readMany(istr, rows, cols);
+				v = Eigen::Matrix<_Ty, -1, -1>::Zero(rows, cols);
+				if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<Eigen::Matrix<_Ty, -1, 1>>
+		{
+			using VTy = Eigen::Matrix<_Ty, -1, 1>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeMany(ostr, (uint32_t)v.rows(), (uint32_t)v.cols());
+				if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				uint32_t rows, cols;
+				readMany(istr, rows, cols);
+				if (cols != 1) throw std::ios_base::failure("matrix cols != 1");
+				v = Eigen::Matrix<_Ty, -1, -1>::Zero(rows, cols);
+				if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<std::vector<_Ty>, typename std::enable_if<std::is_fundamental<_Ty>::value>::type>
+		{
+			using VTy = std::vector<_Ty>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.resize(size);
+				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<std::vector<_Ty>, typename std::enable_if<!std::is_fundamental<_Ty>::value>::type>
+		{
+			using VTy = std::vector<_Ty>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				for (auto& e : v) Serializer<_Ty>{}.write(ostr, e);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.resize(size);
+				for (auto& e : v) Serializer<_Ty>{}.read(istr, e);
+			}
+		};
+
+		template<typename _Ty, size_t n>
+		struct Serializer<std::array<_Ty, n>, typename std::enable_if<std::is_fundamental<_Ty>::value>::type>
+		{
+			using VTy = std::array<_Ty, n>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				if (n != size) throw std::ios_base::failure(text::format("the size of array must be %zd, not %zd", n, size));
+				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+		};
+
+		template<typename _Ty, size_t n>
+		struct Serializer<std::array<_Ty, n>, typename std::enable_if<!std::is_fundamental<_Ty>::value>::type>
+		{
+			using VTy = std::array<_Ty, n>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				for (auto& e : v) Serializer<_Ty>{}.write(ostr, e);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				if (n != size) throw std::ios_base::failure(text::format("the size of array must be %zd, not %zd", n, size));
+				for (auto& e : v) Serializer<_Ty>{}.read(istr, e);
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<std::basic_string<_Ty>>
+		{
+			using VTy = std::basic_string<_Ty>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				if (!ostr.write((const char*)v.data(), sizeof(_Ty) * v.size()))
+					throw std::ios_base::failure(std::string("writing type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.resize(size);
+				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
+					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+		};
+
+		template<typename _Ty1, typename _Ty2>
+		struct Serializer<std::pair<_Ty1, _Ty2>>
+		{
+			using VTy = std::pair<_Ty1, _Ty2>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeMany(ostr, v.first, v.second);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				readMany(istr, v.first, v.second);
+			}
+		};
+
+		template<typename _Ty1, typename _Ty2>
+		struct Serializer<std::unordered_map<_Ty1, _Ty2>>
+		{
+			using VTy = std::unordered_map<_Ty1, _Ty2>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				for (auto& e : v) writeToStream(ostr, e);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.clear();
+				for (size_t i = 0; i < size; ++i)
+				{
+					v.emplace(readFromStream<std::pair<_Ty1, _Ty2>>(istr));
+				}
+			}
+		};
+
+		template<typename _Ty1, typename _Ty2>
+		struct Serializer<std::map<_Ty1, _Ty2>>
+		{
+			using VTy = std::map<_Ty1, _Ty2>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				writeToStream(ostr, (uint32_t)v.size());
+				for (auto& e : v) writeToStream(ostr, e);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				auto size = readFromStream<uint32_t>(istr);
+				v.clear();
+				for (size_t i = 0; i < size; ++i)
+				{
+					v.emplace(readFromStream<std::pair<_Ty1, _Ty2>>(istr));
+				}
+			}
+		};
+
+		template<typename _Ty>
+		struct Serializer<std::unique_ptr<_Ty>, typename std::enable_if<std::is_abstract<_Ty>::value>::type>
+		{
+			using VTy = std::unique_ptr<_Ty>;
+			void write(std::ostream& ostr, const VTy& v)
+			{
+				_Ty::serializerWrite(v, ostr);
+			}
+
+			void read(std::istream& istr, VTy& v)
+			{
+				_Ty::serializerRead(v, istr);
+			}
+		};
 
 		static auto taggedDataKey = to_key("TPTK");
 

@@ -19,8 +19,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLLDA<TermWeight::one>;
-		static ILLDAModel* create(TermWeight _weight, size_t _K = 1, 
-			Float alpha = 0.1, Float eta = 0.01, size_t seed = std::random_device{}(),
+		static ILLDAModel* create(TermWeight _weight, const LDAArgs& args,
 			bool scalarRng = false);
 
 		virtual const Dictionary& getTopicLabelDict() const = 0;

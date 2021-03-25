@@ -17,3 +17,4 @@ enwiki-1000.txt
 examples/*
 !examples/*.py
 enwiki-16000.txt
+*.cps

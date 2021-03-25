@@ -36,7 +36,7 @@ The current version of `tomoto` supports several major topic models including
 
 Please visit https://bab2min.github.io/tomotopy to see more information.
 
-The most recent version of tomotopy is 0.10.2.
+The most recent version of tomotopy is 0.11.0.
 
 Getting Started
 ---------------
@@ -261,6 +261,9 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.10.3 (2021-03-01)
+    * An issue was fixed where `tomotopy.HDPModel.infer` causes a segmentation fault sometimes.
+
 * 0.10.2 (2021-02-16)
     * An issue was fixed where `tomotopy.CTModel.train` fails with large K.
     * An issue was fixed where `tomotopy.utils.Corpus` loses their `uid` values.
@@ -273,7 +276,7 @@ History
 
 * 0.10.0 (2020-12-19)
     * The interface of `tomotopy.utils.Corpus` and of `tomotopy.LDAModel.docs` were unified. Now you can access the document in corpus with the same manner.
-    * __getitem__ of `tomotopy.utils.Corpus` was improved. Not only indexing by int, but also by Iterable[int], slicing are supported. Also indexing by uid is supported.
+    * `__getitem__` of `tomotopy.utils.Corpus` was improved. Not only indexing by int, but also by Iterable[int], slicing are supported. Also indexing by uid is supported.
     * New methods `tomotopy.utils.Corpus.extract_ngrams` and `tomotopy.utils.Corpus.concat_ngrams` were added. They extracts n-gram collocations using PMI and concatenates them into a single words.
     * A new method `tomotopy.LDAModel.add_corpus` was added, and `tomotopy.LDAModel.infer` can receive corpus as input. 
     * A new module `tomotopy.coherence` was added. It provides the way to calculate coherence of the model.

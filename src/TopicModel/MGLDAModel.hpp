@@ -371,17 +371,33 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 
-		MGLDAModel(size_t _KG = 1, size_t _KL = 1, size_t _T = 3,
-			Float _alphaG = 0.1, Float _alphaL = 0.1, Float _alphaMG = 0.1, Float _alphaML = 0.1,
-			Float _etaG = 0.01, Float _etaL = 0.01, Float _gamma = 0.1, size_t _rg = std::random_device{}())
-			: BaseClass(_KG, _alphaG, _etaG, _rg), KL(_KL), T(_T),
-			alphaL(_alphaL), alphaM(_KG ? _alphaMG : 0), alphaML(_alphaML),
-			etaL(_etaL), gamma(_gamma)
+		MGLDAModel(const MGLDAArgs& args)
+			: BaseClass(args), KL(args.kL), T(args.t),
+			alphaL(args.alphaL[0]), alphaM(args.k ? args.alphaMG : 0), alphaML(args.alphaML),
+			etaL(args.etaL), gamma(args.gamma)
 		{
-			if (_KL == 0 || _KL >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong KL value (KL = %zd)", _KL));
-			if (_T == 0 || _T >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong T value (T = %zd)", _T));
-			if (_alphaL <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong alphaL value (alphaL = %f)", _alphaL));
-			if (_etaL <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong etaL value (etaL = %f)", _etaL));
+			if (KL == 0 || KL >= 0x80000000) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong KL value (KL = %zd)", KL));
+			if (T == 0 || T >= 0x80000000) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong T value (T = %zd)", T));
+
+			if (args.alpha.size() != 1)
+			{
+				THROW_ERROR_WITH_INFO(exc::Unimplemented, text::format("An asymmetric alpha prior is not supported yet at MGLDA."));
+			}
+
+			if (args.alphaL.size() == 1)
+			{
+			}
+			else if (args.alphaL.size() == args.kL)
+			{
+				THROW_ERROR_WITH_INFO(exc::Unimplemented, text::format("An asymmetric alphaL prior is not supported yet at MGLDA."));
+			}
+			else
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong alphaL value (len = %zd)", args.alphaL.size()));
+			}
+
+			if (alphaL <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong alphaL value (alphaL = %f)", alphaL));
+			if (etaL <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong etaL value (etaL = %f)", etaL));
 		}
 
 		template<bool _const, typename _FnTokenizer>
@@ -502,20 +518,27 @@ namespace tomoto
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			if (priors.size() != this->K + KL) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors.size() must be equal to K.");
+			if (priors.size() != this->K + KL) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors.size() must be equal to K.");
 			for (auto p : priors)
 			{
-				if (p < 0) THROW_ERROR_WITH_INFO(exception::InvalidArgument, "priors must not be less than 0.");
+				if (p < 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors must not be less than 0.");
 			}
 			this->dict.add(word);
 			this->etaByWord.emplace(word, priors);
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K + KL);
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>> { ret.data(), this->K + KL }.array() =
-				doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K + KL };
+			if (normalize)
+			{
+				m = doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>();
+			}
 			return ret;
 		}
 

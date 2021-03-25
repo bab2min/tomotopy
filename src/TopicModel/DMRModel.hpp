@@ -112,11 +112,8 @@ namespace tomoto
 
 		void initParameters()
 		{
-			auto dist = std::normal_distribution<Float>(log(this->alpha), sigma);
-			for (size_t i = 0; i < this->K; ++i) for (size_t j = 0; j < F; ++j)
-			{
-				lambda(i, j) = dist(this->rg);
-			}
+			lambda = Eigen::Rand::normalLike(lambda, this->rg, 0, sigma);
+			lambda += log(this->alphas.array()).matrix().replicate(1, F);
 		}
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
@@ -140,14 +137,14 @@ namespace tomoto
 			}
 			if (!std::isfinite(bestFx))
 			{
-				throw exception::TrainingError{ "optimizing parameters has been failed!" };
+				throw exc::TrainingError{ "optimizing parameters has been failed!" };
 			}
 			lambda = bLambda;
 			//std::cerr << fx << std::endl;
 			expLambda = lambda.array().exp() + alphaEps;
 		}
 
-		int restoreFromTrainingError(const exception::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
+		int restoreFromTrainingError(const exc::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			std::cerr << "Failed to optimize! Reset prior and retry!" << std::endl;
 			lambda.setZero();
@@ -241,7 +238,7 @@ namespace tomoto
 			F = metadataDict.size();
 			if (initDocs)
 			{
-				lambda = Eigen::Matrix<Float, -1, -1>::Constant(this->K, F, log(this->alpha));
+				lambda = log(this->alphas.array()).replicate(1, F);
 			}
 			if (_Flags & flags::continuous_doc_data) this->numByTopicDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, this->docs.size());
 			expLambda = lambda.array().exp();
@@ -254,11 +251,10 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma, alphaEps, metadataDict, lambda);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma, alphaEps, metadataDict, lambda);
 
-		DMRModel(size_t _K = 1, Float defaultAlpha = 1.0, Float _sigma = 1.0, Float _eta = 0.01, 
-			Float _alphaEps = 0, size_t _rg = std::random_device{}())
-			: BaseClass(_K, defaultAlpha, _eta, _rg), sigma(_sigma), alphaEps(_alphaEps)
+		DMRModel(const DMRArgs& args)
+			: BaseClass(args), sigma(args.sigma), alphaEps(args.alphaEps)
 		{
-			if (_sigma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong sigma value (sigma = %f)", _sigma));
+			if (sigma <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong sigma value (sigma = %f)", sigma));
 		}
 
 		template<bool _const = false>
@@ -317,12 +313,19 @@ namespace tomoto
 			optimRepeat = _optimRepeat;
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			auto alphaDoc = expLambda.col(doc.metadata);
-			Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ret.data(), this->K}.array() =
-				(doc.numByTopic.array().template cast<Float>() + alphaDoc.array()) / (doc.getSumWordWeight() + alphaDoc.sum());
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			if (normalize)
+			{
+				m = (doc.numByTopic.array().template cast<Float>() + alphaDoc.array()) / (doc.getSumWordWeight() + alphaDoc.sum());
+			}
+			else
+			{
+				m = doc.numByTopic.array().template cast<Float>() + alphaDoc.array();
+			}
 			return ret;
 		}
 
@@ -335,9 +338,12 @@ namespace tomoto
 
 		std::vector<Float> getLambdaByTopic(Tid tid) const override
 		{
-			assert(tid < this->K);
-			auto l = lambda.row(tid);
-			return { l.data(), l.data() + F };
+			std::vector<Float> ret(F);
+			if (this->lambda.size())
+			{
+				Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ ret.data(), (Eigen::Index)ret.size() } = this->lambda.row(tid);
+			}
+			return ret;
 		}
 
 		const Dictionary& getMetadataDict() const override { return metadataDict; }

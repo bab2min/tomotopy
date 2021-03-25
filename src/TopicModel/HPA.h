@@ -16,12 +16,15 @@ namespace tomoto
 		DEFINE_SERIALIZER_BASE_WITH_VERSION(BaseDocument, 1);
 	};
 
+	struct HPAArgs : public PAArgs
+	{
+	};
+
 	class IHPAModel : public IPAModel
 	{
 	public:
 		using DefaultDocType = DocumentHPA<TermWeight::one>;
-		static IHPAModel* create(TermWeight _weight, bool _exclusive = false, size_t _K1 = 1, size_t _K2 = 1, 
-			Float _alpha = 50, Float _eta = 0.01, size_t seed = std::random_device{}(),
+		static IHPAModel* create(TermWeight _weight, bool _exclusive, const HPAArgs& args,
 			bool scalarRng = false);
 	};
 }

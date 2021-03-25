@@ -195,7 +195,7 @@ namespace tomoto
 				Float* dist;
 				if (this->etaByTopicWord.size())
 				{
-					THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
+					THROW_ERROR_WITH_INFO(exc::Unimplemented, "Unimplemented features");
 				}
 				else
 				{
@@ -440,13 +440,37 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
 
-		HPAModel(size_t _K1 = 1, size_t _K2 = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
-			: BaseClass(_K1, _alpha, _eta, _rg), K2(_K2)
+		HPAModel(const HPAArgs& args)
+			: BaseClass(args, false), K2(args.k2)
 		{
-			if (_K2 == 0 || _K2 >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong K2 value (K2 = %zd)", _K2));
-			this->alphas = Eigen::Matrix<Float, -1, 1>::Constant(_K1 + 1, _alpha);
-			subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(_K1, _K2 + 1, _alpha);
-			subAlphaSum = Eigen::Matrix<Float, -1, 1>::Constant(_K1, (_K2 + 1) * _alpha);
+			if (K2 == 0 || K2 >= 0x80000000) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong K2 value (K2 = %zd)", K2));
+
+			if (args.alpha.size() == 1)
+			{
+				this->alphas = Eigen::Matrix<Float, -1, 1>::Constant(args.k + 1, args.alpha[0]);
+			}
+			else if (args.alpha.size() == args.k + 1)
+			{
+				this->alphas = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.alpha.data(), (Eigen::Index)args.alpha.size());
+			}
+			else
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong alpha value (len = %zd)", args.alpha.size()));
+			}
+
+			if (args.subalpha.size() == 1)
+			{
+				subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(args.k, args.k2 + 1, args.subalpha[0]);
+			}
+			else if (args.subalpha.size() == args.k2 + 1)
+			{
+				subAlphas = Eigen::Map<const Eigen::Matrix<Float, 1, -1>>(args.subalpha.data(), args.subalpha.size()).replicate(args.k, 1);
+			}
+			else
+			{
+				THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong subalpha value (len = %zd)", args.subalpha.size()));
+			}
+			subAlphaSum = subAlphas.rowwise().sum();
 			this->optimInterval = 1;
 		}
 
@@ -475,20 +499,23 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> getSubTopicBySuperTopic(Tid k) const override
+		std::vector<Float> getSubTopicBySuperTopic(Tid k, bool normalize) const override
 		{
+			std::vector<Float> ret(K2);
 			assert(k < this->K);
 			Float sum = this->globalState.numByTopic1_2.row(k).sum() + subAlphaSum[k];
-			Eigen::Matrix<Float, -1, 1> ret = (this->globalState.numByTopic1_2.row(k).array().template cast<Float>() + subAlphas.row(k).array()) / sum;
-			return { ret.data() + 1, ret.data() + K2 + 1 };
+			if (!normalize) sum = 1;
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), (Eigen::Index)K2 };
+			m = (this->globalState.numByTopic1_2.row(k).segment(1, K2).array().template cast<Float>() + subAlphas.row(k).segment(1, K2).array()) / sum;
+			return ret;
 		}
 
 		std::vector<std::pair<Tid, Float>> getSubTopicBySuperTopicSorted(Tid k, size_t topN) const override
 		{
-			return extractTopN<Tid>(getSubTopicBySuperTopic(k), topN);
+			return extractTopN<Tid>(getSubTopicBySuperTopic(k, true), topN);
 		}
 
-		std::vector<Float> _getWidsByTopic(Tid k) const
+		std::vector<Float> _getWidsByTopic(Tid k, bool normalize = true) const
 		{
 			const size_t V = this->realV;
 			std::vector<Float> ret(V);
@@ -504,6 +531,7 @@ namespace tomoto
 				}
 			}
 			Float sum = this->globalState.numByTopic[level][k] + V * this->eta;
+			if (!normalize) sum = 1;
 			auto r = this->globalState.numByTopicWord[level].row(k);
 			for (size_t v = 0; v < V; ++v)
 			{
@@ -512,10 +540,12 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(1 + this->K + K2);
 			Float sum = doc.getSumWordWeight() + this->alphas.sum();
+			if (!normalize) sum = 1;
+
 			ret[0] = (doc.numByTopic[0] + this->alphas[0]) / sum;
 			for (size_t k = 0; k < this->K; ++k)
 			{
@@ -528,7 +558,7 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc) const override
+		std::vector<Float> getSubTopicsByDoc(const DocumentBase* doc, bool normalize) const override
 		{
 			throw std::runtime_error{ "not applicable" };
 		}
@@ -540,7 +570,7 @@ namespace tomoto
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			THROW_ERROR_WITH_INFO(exception::Unimplemented, "HPAModel doesn't provide setWordPrior function.");
+			THROW_ERROR_WITH_INFO(exc::Unimplemented, "HPAModel doesn't provide setWordPrior function.");
 		}
 
 		std::vector<uint64_t> getCountBySuperTopic() const override

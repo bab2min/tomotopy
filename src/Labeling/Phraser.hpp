@@ -1,14 +1,37 @@
 #pragma once
 
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include "Labeler.h"
 #include "../Utils/Trie.hpp"
+
+#ifdef TMT_USE_BTREE
+#include "btree/map.h"
+#else
+#endif
 
 namespace tomoto
 {
 	namespace phraser
 	{
+#ifdef TMT_USE_BTREE
+		template<typename K, typename V> using map = btree::map<K, V>;
+#else
+		template<typename K, typename V> using map = std::map<K, V>;
+#endif
+
+		namespace detail
+		{
+			struct vvhash
+			{
+				size_t operator()(const std::pair<Vid, Vid>& k) const
+				{
+					return std::hash<Vid>{}(k.first) ^ std::hash<Vid>{}(k.second);
+				}
+			};
+		}
+
 		template<typename _DocIter>
 		void countUnigrams(std::vector<size_t>& unigramCf, std::vector<size_t>& unigramDf,
 			_DocIter docBegin, _DocIter docEnd
@@ -30,9 +53,9 @@ namespace tomoto
 			}
 		}
 
-		template<typename _DocIter, typename _VvHash, typename _Freqs>
-		void countBigrams(std::unordered_map<std::pair<Vid, Vid>, size_t, _VvHash>& bigramCf,
-			std::unordered_map<std::pair<Vid, Vid>, size_t, _VvHash>& bigramDf,
+		template<typename _DocIter, typename _Freqs>
+		void countBigrams(map<std::pair<Vid, Vid>, size_t>& bigramCf,
+			map<std::pair<Vid, Vid>, size_t>& bigramDf,
 			_DocIter docBegin, _DocIter docEnd,
 			_Freqs&& vocabFreqs, _Freqs&& vocabDf,
 			size_t candMinCnt, size_t candMinDf
@@ -40,7 +63,7 @@ namespace tomoto
 		{
 			for (auto docIt = docBegin; docIt != docEnd; ++docIt)
 			{
-				std::unordered_set<std::pair<Vid, Vid>, _VvHash> uniqBigram;
+				std::unordered_set<std::pair<Vid, Vid>, detail::vvhash> uniqBigram;
 				auto doc = *docIt;
 				if (!doc.size()) continue;
 				Vid prevWord = doc[0];
@@ -202,17 +225,6 @@ namespace tomoto
 			return std::move(data[0]);
 		}
 
-		namespace detail
-		{
-			struct vvhash
-			{
-				size_t operator()(const std::pair<Vid, Vid>& k) const
-				{
-					return std::hash<Vid>{}(k.first) ^ std::hash<Vid>{}(k.second);
-				}
-			};
-		}
-
 		template<typename _DocIter, typename _Freqs>
 		std::vector<label::Candidate> extractPMINgrams(_DocIter docBegin, _DocIter docEnd,
 			_Freqs&& vocabFreqs, _Freqs&& vocabDf,
@@ -221,13 +233,13 @@ namespace tomoto
 			ThreadPool* pool = nullptr)
 		{
 			// counting unigrams & bigrams
-			std::unordered_map<std::pair<Vid, Vid>, size_t, detail::vvhash> bigramCnt, bigramDf;
+			map<std::pair<Vid, Vid>, size_t> bigramCnt, bigramDf;
 
 			if (pool && pool->getNumWorkers() > 1)
 			{
 				using LocalCfDf = std::pair<
-					std::unordered_map<std::pair<Vid, Vid>, size_t, detail::vvhash>,
-					std::unordered_map<std::pair<Vid, Vid>, size_t, detail::vvhash>
+					decltype(bigramCnt),
+					decltype(bigramDf)
 				>;
 				std::vector<LocalCfDf> localdata(pool->getNumWorkers());
 				std::vector<std::future<void>> futures;
@@ -363,13 +375,13 @@ namespace tomoto
 			ThreadPool* pool = nullptr)
 		{
 			// counting unigrams & bigrams
-			std::unordered_map<std::pair<Vid, Vid>, size_t, detail::vvhash> bigramCnt, bigramDf;
+			map<std::pair<Vid, Vid>, size_t> bigramCnt, bigramDf;
 
 			if (pool && pool->getNumWorkers() > 1)
 			{
 				using LocalCfDf = std::pair<
-					std::unordered_map<std::pair<Vid, Vid>, size_t, detail::vvhash>,
-					std::unordered_map<std::pair<Vid, Vid>, size_t, detail::vvhash>
+					decltype(bigramCnt),
+					decltype(bigramDf)
 				>;
 				std::vector<LocalCfDf> localdata(pool->getNumWorkers());
 				std::vector<std::future<void>> futures;

@@ -14,6 +14,7 @@
 #endif
 
 #include "../TopicModel/TopicModel.hpp"
+#include "../Utils/serializer.hpp"
 #include "docs.h"
 
 void char2Byte(const std::string& str, std::vector<uint32_t>& startPos, std::vector<uint16_t>& length);
@@ -139,32 +140,108 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	}\
 	catch (const bad_exception&)\
 	{\
-		return nullptr;\
 	}\
 	catch (const ios_base::failure& e)\
 	{\
 		PyErr_SetString(PyExc_OSError, e.what());\
-		return nullptr;\
 	}\
 	catch (const exception& e)\
 	{\
 		PyErr_SetString(PyExc_Exception, e.what());\
-		return nullptr;\
 	}\
-}
+	return nullptr;\
+}\
+\
+PyObject* PREFIX##_loads(PyObject*, PyObject* args, PyObject *kwargs)\
+{\
+	Py_buffer data;\
+	static const char* kwlist[] = { "data", nullptr };\
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*", (char**)kwlist, &data)) return nullptr;\
+	try\
+	{\
+		tomoto::serializer::imstream str{ (const char*)data.buf, data.len };\
+		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)\
+		{\
+			str.seekg(0);\
+			py::UniqueObj args{ Py_BuildValue("(n)", i) };\
+			auto* p = PyObject_CallObject((PyObject*)&TYPE, args);\
+			try\
+			{\
+				vector<uint8_t> extra_data;\
+				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);\
+				if (!extra_data.empty())\
+				{\
+					py::UniqueObj pickle{ PyImport_ImportModule("pickle") };\
+					PyObject* pickle_dict{ PyModule_GetDict(pickle) };\
+					py::UniqueObj bytes{ PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size()) };\
+					py::UniqueObj args{ Py_BuildValue("(O)", bytes.get()) };\
+					Py_XDECREF(((TopicModelObject*)p)->initParams);\
+					((TopicModelObject*)p)->initParams = PyObject_CallObject(\
+						PyDict_GetItemString(pickle_dict, "loads"),\
+						args\
+					);\
+				}\
+			}\
+			catch (const tomoto::serializer::UnfitException&)\
+			{\
+				Py_XDECREF(p);\
+				continue;\
+			}\
+			((TopicModelObject*)p)->isPrepared = true;\
+			return p;\
+		}\
+		throw runtime_error{ "`data` is not valid model file" };\
+	}\
+	catch (const bad_exception&)\
+	{\
+	}\
+	catch (const ios_base::failure& e)\
+	{\
+		PyErr_SetString(PyExc_OSError, e.what());\
+	}\
+	catch (const exception& e)\
+	{\
+		PyErr_SetString(PyExc_Exception, e.what());\
+	}\
+	return nullptr;\
+}\
 
 
 extern PyObject* gModule;
+struct TopicModelObject;
 
 struct TopicModelTypeObject : public PyTypeObject
 {
-	using MiscConverter = tomoto::RawDoc::MiscType(const tomoto::RawDoc::MiscType&);
+	using MiscConverter = tomoto::RawDoc::MiscType(TopicModelObject*, const tomoto::RawDoc::MiscType&);
 	MiscConverter* miscConverter = nullptr;
 	TopicModelTypeObject(const PyTypeObject& _tp = {}, MiscConverter* _miscConverter = nullptr)
 		: PyTypeObject{ _tp }, miscConverter{ _miscConverter }
 	{
 	}
 };
+
+template<typename Ty, typename FailMsg>
+inline std::vector<Ty> broadcastObj(PyObject* obj, size_t k, FailMsg&& msg)
+{
+	try
+	{
+		std::vector<Ty> ret;
+		try
+		{
+			ret = py::toCpp<std::vector<Ty>>(obj);
+			if (ret.size() != k) throw py::ConversionFail{ "" };
+		}
+		catch (const py::ConversionFail&)
+		{
+			ret.emplace_back(py::toCpp<Ty>(obj));
+		}
+		return ret;
+	}
+	catch (const py::ConversionFail&)
+	{
+		throw py::ConversionFail{ std::forward<FailMsg>(msg) };
+	}
+}
 
 namespace py
 {
@@ -212,20 +289,26 @@ namespace py
 	};
 }
 
-template<typename _Ty, typename _FailMsg>
-_Ty getValueFromMisc(const char* key, const tomoto::RawDoc::MiscType& misc, _FailMsg&& failMsg)
+template<typename _Ty>
+_Ty getValueFromMisc(const char* key, const tomoto::RawDoc::MiscType& misc, const char* failMsg)
 {
 	auto it = misc.find(key);
-	if (it == misc.end()) throw std::runtime_error{ std::forward<_FailMsg>(failMsg) };
-	return py::toCpp<_Ty>((PyObject*)it->second.template get<std::shared_ptr<void>>().get(), std::forward<_FailMsg>(failMsg));
+	if (it == misc.end()) throw std::runtime_error{ failMsg + std::string{ " (the required value was not given)" } };
+	auto obj = (PyObject*)it->second.template get<std::shared_ptr<void>>().get();
+	return py::toCpp<_Ty>(obj, 
+		[=](){ return failMsg + (" (given " + py::repr(obj) + ")"); }
+	);
 }
 
-template<typename _Ty, typename _FailMsg>
-_Ty getValueFromMiscDefault(const char* key, const tomoto::RawDoc::MiscType& misc, _FailMsg&& failMsg, const _Ty& def = {})
+template<typename _Ty>
+_Ty getValueFromMiscDefault(const char* key, const tomoto::RawDoc::MiscType& misc, const char* failMsg, const _Ty& def = {})
 {
 	auto it = misc.find(key);
 	if (it == misc.end()) return def;
-	return py::toCpp<_Ty>((PyObject*)it->second.template get<std::shared_ptr<void>>().get(), std::forward<_FailMsg>(failMsg));
+	auto obj = (PyObject*)it->second.template get<std::shared_ptr<void>>().get();
+	return py::toCpp<_Ty>(obj,
+		[=]() { return failMsg + (" (given " + py::repr(obj) + ")"); }
+	);
 }
 
 extern TopicModelTypeObject LDA_type;
@@ -241,6 +324,7 @@ extern TopicModelTypeObject LLDA_type;
 extern TopicModelTypeObject PLDA_type;
 extern TopicModelTypeObject DT_type;
 extern TopicModelTypeObject GDMR_type;
+extern TopicModelTypeObject PT_type;
 
 struct TopicModelObject
 {
@@ -287,3 +371,4 @@ inline tomoto::RawDoc buildRawDoc(PyObject* words)
 #define TM_LLDA
 #define TM_PLDA
 #define TM_DT
+#define TM_PT

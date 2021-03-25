@@ -1265,14 +1265,17 @@ static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObje
 	}
 }
 
-static PyObject* Document_getTopicDist(DocumentObject* self)
+static PyObject* Document_getTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs)
 {
+	size_t normalize = 1;
+	static const char* kwlist[] = { "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
 	try
 	{
 		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
 		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
 		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
-		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDoc(self->getBoundDoc()));
+		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDoc(self->getBoundDoc(), !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -1344,10 +1347,6 @@ static PyObject* Document_metadata(DocumentObject* self, void* closure)
 	{
 		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `metadata` field!" };
 		if (!self->doc) throw runtime_error{ "doc is null!" };
-#ifdef TM_GDMR
-		ret = Document_GDMR_metadata(self, closure);
-		if (ret) return ret;
-#endif
 #ifdef TM_DMR
 		ret = Document_DMR_metadata(self, closure);
 		if (ret) return ret;
@@ -1388,7 +1387,7 @@ PyObject* Document_getLL(DocumentObject* self)
 static PyMethodDef UtilsDocument_methods[] =
 {
 	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, Document_get_topics__doc__ },
-	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_NOARGS, Document_get_topic_dist__doc__ },
+	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_VARARGS | METH_KEYWORDS, Document_get_topic_dist__doc__ },
 #ifdef TM_PA
 	{ "get_sub_topics", (PyCFunction)Document_getSubTopics, METH_VARARGS | METH_KEYWORDS, Document_get_sub_topics__doc__ },
 	{ "get_sub_topic_dist", (PyCFunction)Document_getSubTopicDist, METH_NOARGS, Document_get_sub_topic_dist__doc__ },
@@ -1416,6 +1415,9 @@ static PyGetSetDef UtilsDocument_getseters[] = {
 #ifdef TM_DMR
 	{ (char*)"metadata", (getter)Document_metadata, nullptr, Document_metadata__doc__, nullptr },
 #endif
+#ifdef TM_GDMR
+	{ (char*)"numeric_metadata", (getter)Document_numeric_metadata, nullptr, Document_numeric_metadata__doc__, nullptr },
+#endif
 #ifdef TM_PA
 	{ (char*)"subtopics", (getter)Document_Z2, nullptr, Document_subtopics__doc__, nullptr },
 #endif
@@ -1437,6 +1439,9 @@ static PyGetSetDef UtilsDocument_getseters[] = {
 #ifdef TM_DT
 	{ (char*)"eta", (getter)Document_eta, nullptr, Document_eta__doc__, nullptr },
 	{ (char*)"timepoint", (getter)Document_timepoint, nullptr, Document_timepoint__doc__, nullptr },
+#endif
+#ifdef TM_PT
+	{ (char*)"pseudo_doc_id", (getter)Document_pseudo_doc_id, nullptr, Document_pseudo_doc_id__doc__, nullptr },
 #endif
 	{ nullptr },
 };
@@ -1483,6 +1488,413 @@ PyTypeObject UtilsDocument_type = {
 	PyType_GenericNew,
 };
 
+PhraserObject* PhraserObject::_new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs)
+{
+	PhraserObject* obj = (PhraserObject*)subtype->tp_alloc(subtype, 0);
+	new (&obj->vocabs) tomoto::Dictionary;
+	new (&obj->trie_nodes) vector<TrieNode>(1);
+	new (&obj->cand_info) vector<string>;
+	return obj;
+}
+
+int PhraserObject::init(PhraserObject* self, PyObject* args, PyObject* kwargs)
+{
+	try
+	{
+		PyObject* candidates = nullptr;
+		const char* delimiter = "_";
+		static const char* kwlist[] = { "candidates", "delimiter", nullptr };
+
+		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Os", (char**)kwlist,
+			&candidates, &delimiter)) return -1;
+		if (!candidates || candidates == Py_None) return 0;
+
+		py::UniqueObj iter{ PyObject_GetIter(candidates) }, item;
+		if (!iter) throw runtime_error{ "`candidates` must be an iterable of Candidates." };
+
+		CorpusObject* base_corpus = nullptr;
+		auto alloc = [&]() { self->trie_nodes.emplace_back(); return &self->trie_nodes.back(); };
+
+		while ((item = py::UniqueObj{ PyIter_Next(iter) }))
+		{
+			if (PyObject_TypeCheck(item, &Candidate_type))
+			{
+				auto c = (CandidateObject*)item.get();
+				if (!self->vocabs.size())
+				{
+					self->vocabs = c->corpus->getVocabDict();
+					base_corpus = c->corpus;
+				}
+
+				if (self->trie_nodes.capacity() < self->trie_nodes.size() + c->cand.w.size())
+				{
+					self->trie_nodes.reserve(max(self->trie_nodes.size() + c->cand.w.size(), self->trie_nodes.size() * 2));
+				}
+
+				if (c->corpus == base_corpus)
+				{
+					self->trie_nodes[0].build(c->cand.w.begin(), c->cand.w.end(), self->cand_info.size() + 1, alloc);
+				}
+				else
+				{
+					auto new_cw = c->corpus->getVocabDict().mapToNewDictAdd(c->cand.w, self->vocabs);
+					self->trie_nodes[0].build(new_cw.begin(), new_cw.end(), self->cand_info.size() + 1, alloc);
+				}
+
+				string name = c->cand.name;
+				if (name.empty())
+				{
+					for (auto& w : *c)
+					{
+						if (!name.empty()) name += delimiter;
+						name += w;
+					}
+				}
+				self->cand_info.emplace_back(name, c->cand.w.size());
+			}
+			else if (PyTuple_Size(item) == 2)
+			{
+				auto name = py::toCpp<string>(PyTuple_GET_ITEM(item.get(), 1), "`candidates` must be an iterable of `(list of str, str)`.");
+				vector<tomoto::Vid> ws;
+				py::foreach<string>(PyTuple_GET_ITEM(item.get(), 0), [&](const string& w)
+				{
+					ws.emplace_back(self->vocabs.add(w));
+				}, "`candidates` must be an iterable of `(list of str, str)`.");
+
+				if (self->trie_nodes.capacity() < self->trie_nodes.size() + ws.size())
+				{
+					self->trie_nodes.reserve(max(self->trie_nodes.size() + ws.size(), self->trie_nodes.size() * 2));
+				}
+				self->trie_nodes[0].build(ws.begin(), ws.end(), self->cand_info.size() + 1, alloc);
+				self->cand_info.emplace_back(name, ws.size());
+			}
+			else
+			{
+				throw runtime_error{ "`candidates` must be an iterable of Candidates." };
+			}
+		}
+		if (PyErr_Occurred()) throw bad_exception{};
+		self->trie_nodes[0].fillFail();
+		self->trie_nodes.shrink_to_fit();
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+	}
+	return -1;
+}
+
+void PhraserObject::dealloc(PhraserObject* self)
+{
+	self->vocabs.~Dictionary();
+	self->trie_nodes.~vector();
+	self->cand_info.~vector();
+	Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+PyObject* PhraserObject::repr(PhraserObject* self)
+{
+	string ret = "cphraser.Phraser(... with ";
+	ret += to_string(self->cand_info.size());
+	ret += " items)";
+	return py::buildPyValue(ret);
+}
+
+PyObject* PhraserObject::call(PhraserObject* self, PyObject* args, PyObject* kwargs)
+{
+	try
+	{
+		PyObject* words = nullptr;
+		static const char* kwlist[] = { "words", nullptr };
+
+		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
+			&words)) return nullptr;
+
+		py::UniqueObj ret{ PyList_New(0) };
+		deque<tomoto::Vid> buffer;
+		size_t c_found = 0;
+		auto* node = self->trie_nodes.data();
+		py::foreachWithPy<string>(words, [&](const string& w, PyObject* pw)
+		{
+			auto wid = self->vocabs.toWid(w);
+
+			if (wid != tomoto::non_vocab_id)
+			{
+				auto* nnode = node->getNext(wid);
+				if (!nnode)
+				{
+					if (c_found)
+					{
+						auto& info = self->cand_info[c_found - 1];
+						if (buffer.size() >= info.second)
+						{
+							PyList_Append(ret, py::UniqueObj{ py::buildPyValue(info.first) });
+							buffer.erase(buffer.begin(), buffer.begin() + info.second);
+						}
+						c_found = 0;
+					}
+				}
+
+				while (!nnode)
+				{
+					size_t curDepth = node->depth;
+					node = node->getFail();
+					for (size_t d = node ? node->depth : 0; !buffer.empty() && d < curDepth; ++d)
+					{
+						PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(buffer.front())) });
+						buffer.pop_front();
+					}
+					if (node) nnode = node->getNext(wid);
+					else break;
+				}
+
+				if (nnode)
+				{
+					node = nnode;
+					if (nnode->val && nnode->val != (size_t)-1)
+					{
+						c_found = nnode->val;
+					}
+					buffer.emplace_back(wid);
+					return;
+				}
+			}
+
+			for (auto v : buffer) PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(v)) });
+			buffer.clear();
+			PyList_Append(ret, pw);
+			node = self->trie_nodes.data();
+		}, "`words` must be an iterable of `str`s.");
+		if (c_found)
+		{
+			auto& info = self->cand_info[c_found - 1];
+			if (buffer.size() >= info.second)
+			{
+				PyList_Append(ret, py::UniqueObj{ py::buildPyValue(info.first) });
+				buffer.erase(buffer.begin(), buffer.begin() + info.second);
+				c_found = 0;
+			}
+		}
+		for (auto v : buffer) PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(v)) });
+		return ret.release();
+	}
+	catch (const bad_exception&)
+	{
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+	}
+	return nullptr;
+}
+
+PyObject* PhraserObject::findall(PhraserObject* self, PyObject* args, PyObject* kwargs)
+{
+	try
+	{
+		PyObject* words = nullptr;
+		static const char* kwlist[] = { "words", nullptr };
+
+		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
+			&words)) return nullptr;
+
+		py::UniqueObj ret{ PyList_New(0) };
+		size_t c_found = 0, stack_size = 0, cur_pos = 0;
+		auto* node = self->trie_nodes.data();
+		py::foreach<string>(words, [&](const string& w)
+		{
+			auto wid = self->vocabs.toWid(w);
+
+			if (wid != tomoto::non_vocab_id)
+			{
+				auto* nnode = node->getNext(wid);
+				if (!nnode)
+				{
+					if (c_found)
+					{
+						auto& info = self->cand_info[c_found - 1];
+						if (stack_size >= info.second)
+						{
+							assert(cur_pos - stack_size < PyObject_Length(words));
+							assert(cur_pos - stack_size + info.second <= PyObject_Length(words));
+							PyList_Append(ret, py::UniqueObj{ py::buildPyTuple(info.first, py::buildPyTuple(cur_pos - stack_size, cur_pos - stack_size + info.second)) });
+							stack_size -= info.second;
+
+							size_t targetDepth = node->depth - info.second;
+							while (node->depth > targetDepth)
+							{
+								node = node->getFail();
+							}
+							nnode = node->getNext(wid);
+						}
+						c_found = 0;
+					}
+
+					while (!nnode)
+					{
+						size_t curDepth = node->depth;
+						node = node->getFail();
+						stack_size -= curDepth - (node ? node->depth : 0);
+						if (node) nnode = node->getNext(wid);
+						else break;
+					}
+				}
+
+				if (nnode)
+				{
+					node = nnode;
+					if (nnode->val && nnode->val != (size_t)-1)
+					{
+						c_found = nnode->val;
+					}
+					stack_size++;
+					cur_pos++;
+					return;
+				}
+			}
+			stack_size = 0;
+			node = self->trie_nodes.data();
+			cur_pos++;
+		}, "`words` must be an iterable of `str`s.");
+		if (c_found)
+		{
+			auto& info = self->cand_info[c_found - 1];
+			if (stack_size >= info.second)
+			{
+				PyList_Append(ret, py::UniqueObj{ py::buildPyTuple(info.first, py::buildPyTuple(cur_pos - stack_size, cur_pos - stack_size + info.second)) });
+				c_found = 0;
+			}
+		}
+		return ret.release();
+	}
+	catch (const bad_exception&)
+	{
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+	}
+	return nullptr;
+}
+
+PyObject* PhraserObject::save(PhraserObject* self, PyObject* args, PyObject* kwargs)
+{
+	const char* path = nullptr;
+	static const char* kwlist[] = { "path", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist,
+		&path)) return nullptr;
+
+	try
+	{
+		ofstream ofs{ path, ios_base::binary };
+		tomoto::serializer::writeMany(ofs, tomoto::serializer::to_keyz("tph1"),
+			self->vocabs,
+			self->cand_info,
+			self->trie_nodes
+		);
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+PyObject* PhraserObject::load(PhraserObject*, PyObject* args, PyObject* kwargs)
+{
+	const char* path = nullptr;
+	PyObject* baseCls = nullptr;
+	static const char* kwlist[] = { "path", "cls", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)kwlist,
+		&path, &baseCls)) return nullptr;
+
+	try
+	{
+		if (!baseCls) baseCls = (PyObject*)&Phraser_type;
+		else if (!PyObject_IsSubclass(baseCls, (PyObject*)&Phraser_type)) throw runtime_error{ "`cls` must be a derived class of `Phraser`." };
+
+		ifstream ifs{ path };
+		py::UniqueObj ret{ PyObject_CallObject(baseCls, nullptr) };
+		if (!ret) throw bad_exception{};
+		tomoto::serializer::readMany(ifs, tomoto::serializer::to_keyz("tph1"),
+			((PhraserObject*)ret.get())->vocabs,
+			((PhraserObject*)ret.get())->cand_info,
+			((PhraserObject*)ret.get())->trie_nodes
+		);
+		return ret.release();
+	}
+	catch (const bad_exception&)
+	{
+		return nullptr;
+	}
+	catch (const exception& e)
+	{
+		PyErr_SetString(PyExc_Exception, e.what());
+		return nullptr;
+	}
+}
+
+
+static PyMethodDef Phraser_methods[] =
+{
+	{ "save", (PyCFunction)PhraserObject::save, METH_VARARGS | METH_KEYWORDS, "" },
+	{ "load", (PyCFunction)PhraserObject::load, METH_VARARGS | METH_KEYWORDS | METH_STATIC, "" },
+	{ "findall", (PyCFunction)PhraserObject::findall, METH_VARARGS | METH_KEYWORDS, "" },
+	{ nullptr }
+};
+
+PyTypeObject Phraser_type = {
+	PyVarObject_HEAD_INIT(nullptr, 0)
+	"tomoto._Phraser",             /* tp_name */
+	sizeof(PhraserObject), /* tp_basicsize */
+	0,                         /* tp_itemsize */
+	(destructor)PhraserObject::dealloc, /* tp_dealloc */
+	0,                         /* tp_print */
+	0,                         /* tp_getattr */
+	0,                         /* tp_setattr */
+	0,                         /* tp_reserved */
+	(reprfunc)PhraserObject::repr, /* tp_repr */
+	0,                         /* tp_as_number */
+	0,                         /* tp_as_sequence */
+	0,                         /* tp_as_mapping */
+	0,                         /* tp_hash  */
+	(ternaryfunc)PhraserObject::call, /* tp_call */
+	0,                         /* tp_str */
+	0,                         /* tp_getattro */
+	0,                         /* tp_setattro */
+	0,                         /* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+	"",           /* tp_doc */
+	0,                         /* tp_traverse */
+	0,                         /* tp_clear */
+	0,                         /* tp_richcompare */
+	0,                         /* tp_weaklistoffset */
+	0,                         /* tp_iter */
+	0,                         /* tp_iternext */
+	Phraser_methods,             /* tp_methods */
+	0,						 /* tp_members */
+	0,                         /* tp_getset */
+	0,                         /* tp_base */
+	0,                         /* tp_dict */
+	0,                         /* tp_descr_get */
+	0,                         /* tp_descr_set */
+	0,                         /* tp_dictoffset */
+	(initproc)PhraserObject::init,      /* tp_init */
+	PyType_GenericAlloc,
+	(newfunc)PhraserObject::_new,
+};
+
+
 tomoto::RawDoc::MiscType transformMisc(const tomoto::RawDoc::MiscType& misc, PyObject* transform)
 {
 	if (!transform || transform == Py_None) return misc;
@@ -1499,38 +1911,80 @@ vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject*
 	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw runtime_error{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
 	auto corpus = (CorpusObject*)_corpus;
 	bool insert_into_empty = self->inst->updateVocab(corpus->getVocabDict().getRaw());
-	for (auto& rdoc : corpus->docs)
+	if (corpus->isIndependent())
 	{
-		tomoto::RawDoc doc;
-		doc.rawStr = rdoc.rawStr;
-		doc.weight = rdoc.weight;
-		doc.docUid = rdoc.docUid;
-
-		for (size_t i = 0; i < rdoc.words.size(); ++i)
+		for (auto& rdoc : corpus->docs)
 		{
-			if (rdoc.words[i] == tomoto::non_vocab_id) continue;
-			
-			if (insert_into_empty) doc.words.emplace_back(rdoc.words[i]);
-			else doc.words.emplace_back(corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict()));
-			
-			if (!doc.rawStr.empty())
+			tomoto::RawDoc doc;
+			doc.rawStr = rdoc.rawStr;
+			doc.weight = rdoc.weight;
+			doc.docUid = rdoc.docUid;
+
+			for (size_t i = 0; i < rdoc.words.size(); ++i)
 			{
-				doc.origWordPos.emplace_back(rdoc.origWordPos[i]);
-				doc.origWordLen.emplace_back(rdoc.origWordLen[i]);
+				if (rdoc.words[i] == tomoto::non_vocab_id) continue;
+
+				if (insert_into_empty) doc.words.emplace_back(rdoc.words[i]);
+				else doc.words.emplace_back(corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict()));
+
+				if (!doc.rawStr.empty())
+				{
+					doc.origWordPos.emplace_back(rdoc.origWordPos[i]);
+					doc.origWordLen.emplace_back(rdoc.origWordLen[i]);
+				}
 			}
-		}
 
-		if (doc.words.empty())
+			if (doc.words.empty())
+			{
+				fprintf(stderr, "[warn] Adding empty document was ignored.\n");
+				continue;
+			}
+
+			if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
+			auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
+			if (!miscConverter) doc.misc.clear();
+			else doc.misc = miscConverter(self, transformMisc(rdoc.misc, transform));
+			ret.emplace_back(self->inst->addDoc(doc));
+		}
+	}
+	else
+	{
+		for (Py_ssize_t i = 0; i < CorpusObject::len(corpus); ++i)
 		{
-			fprintf(stderr, "[warn] Adding empty document was ignored.\n");
-			continue;
-		}
+			auto& rdoc = (tomoto::DocumentBase&)*corpus->getDoc(i);
+			
+			tomoto::RawDoc doc;
+			doc.rawStr = rdoc.rawStr;
+			doc.weight = rdoc.weight;
+			doc.docUid = rdoc.docUid;
 
-		if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
-		auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
-		if (!miscConverter) doc.misc.clear();
-		else doc.misc = miscConverter(transformMisc(rdoc.misc, transform));
-		ret.emplace_back(self->inst->addDoc(doc));
+			for (size_t i = 0; i < rdoc.words.size(); ++i)
+			{
+				if (rdoc.words[i] == tomoto::non_vocab_id) continue;
+
+				doc.words.emplace_back(corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict()));
+
+				if (!doc.rawStr.empty())
+				{
+					doc.origWordPos.emplace_back(rdoc.origWordPos[i]);
+					doc.origWordLen.emplace_back(rdoc.origWordLen[i]);
+				}
+			}
+
+			if (doc.words.empty())
+			{
+				fprintf(stderr, "[warn] Adding empty document was ignored.\n");
+				continue;
+			}
+
+			if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
+			auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
+			if (!miscConverter) doc.misc.clear();
+			
+			else doc.misc = miscConverter(self, transformMisc(rdoc.makeMisc(corpus->tm->inst), transform));
+			ret.emplace_back(self->inst->addDoc(doc));
+		}
+		
 	}
 	return ret;
 }
@@ -1573,7 +2027,7 @@ CorpusObject* makeCorpus(TopicModelObject* self, PyObject* _corpus, PyObject* tr
 		if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
 		auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
 		if (!miscConverter) doc.misc.clear();
-		else doc.misc = miscConverter(transformMisc(rdoc.misc, transform));
+		else doc.misc = miscConverter(self, transformMisc(rdoc.misc, transform));
 		corpusMade->docsMade.emplace_back(self->inst->makeDoc(doc));
 	}
 	_corpusMade.release();
@@ -1597,4 +2051,8 @@ void addUtilsTypes(PyObject* gModule)
 	if (PyType_Ready(&UtilsVocab_type) < 0) throw runtime_error{ "UtilsVocab_type is not ready." };
 	Py_INCREF(&UtilsVocab_type);
 	PyModule_AddObject(gModule, "_UtilsVocabDict", (PyObject*)&UtilsVocab_type);
+
+	if (PyType_Ready(&Phraser_type) < 0) throw runtime_error{ "Phraser_type is not ready." };
+	Py_INCREF(&Phraser_type);
+	PyModule_AddObject(gModule, "_Phraser", (PyObject*)&Phraser_type);
 }

@@ -146,6 +146,11 @@ PyMODINIT_FUNC MODULE_NAME()
 	Py_INCREF(&GDMR_type);
 	PyModule_AddObject(gModule, "GDMRModel", (PyObject*)&GDMR_type);
 #endif
+#ifdef TM_PT
+	if (PyType_Ready(&PT_type) < 0) return nullptr;
+	Py_INCREF(&PT_type);
+	PyModule_AddObject(gModule, "PTModel", (PyObject*)&PT_type);
+#endif
 
 #ifdef __AVX2__
 	PyModule_AddStringConstant(gModule, "isa", "avx2");

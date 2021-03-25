@@ -433,7 +433,7 @@ namespace tomoto
 		template<bool _asymEta>
 		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
-			if (_asymEta) THROW_ERROR_WITH_INFO(exception::Unimplemented, "Unimplemented features");
+			if (_asymEta) THROW_ERROR_WITH_INFO(exc::Unimplemented, "Unimplemented features");
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto& zLikelihood = ld.zLikelihood;
@@ -461,7 +461,6 @@ namespace tomoto
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
 			double ll = 0;
-			auto lgammaAlpha = math::lgammaT(this->alpha);
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
@@ -472,13 +471,9 @@ namespace tomoto
 				}
 
 				// doc-level distribution
-				ll -= math::lgammaT(doc.getSumWordWeight() + this->alpha * this->K);
-				for (Tid l = 0; l < this->K; ++l)
-				{
-					ll += math::lgammaT(doc.numByTopic[l] + this->alpha) - lgammaAlpha;
-				}
+				ll -= math::lgammaSubt(this->alphas.sum(), doc.getSumWordWeight());
+				ll += math::lgammaSubt(this->alphas.array(), doc.numByTopic.template cast<Float>().array()).sum();
 			}
-			ll += math::lgammaT(this->alpha * this->K) * std::distance(_first, _last);
 			return ll;
 		}
 
@@ -597,11 +592,11 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
 
-		HLDAModel(size_t _levelDepth = 4, Float _alpha = 0.1, Float _eta = 0.01, Float _gamma = 0.1, size_t _rg = std::random_device{}())
-			: BaseClass(_levelDepth, _alpha, _eta, _rg), gamma(_gamma)
+		HLDAModel(const HLDAArgs& args)
+			: BaseClass(args), gamma(args.gamma)
 		{
-			if (_levelDepth == 0 || _levelDepth >= 0x80000000) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong levelDepth value (levelDepth = %zd)", _levelDepth));
-			if (_gamma <= 0) THROW_ERROR_WITH_INFO(std::runtime_error, text::format("wrong gamma value (gamma = %f)", _gamma));
+			if (args.k == 0 || args.k >= 0x80000000) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong levelDepth value (levelDepth = %zd)", args.k));
+			if (gamma <= 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, text::format("wrong gamma value (gamma = %f)", gamma));
 			this->globalState.nt = std::make_shared<detail::NodeTrees>();
 		}
 
@@ -661,7 +656,7 @@ namespace tomoto
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			THROW_ERROR_WITH_INFO(exception::Unimplemented, "HLDAModel doesn't provide setWordPrior function.");
+			THROW_ERROR_WITH_INFO(exc::Unimplemented, "HLDAModel doesn't provide setWordPrior function.");
 		}
 	};
 

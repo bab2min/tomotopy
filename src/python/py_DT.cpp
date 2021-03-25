@@ -5,33 +5,28 @@
 
 using namespace std;
 
-tomoto::RawDoc::MiscType DT_misc_args(const tomoto::RawDoc::MiscType& o)
+tomoto::RawDoc::MiscType DT_misc_args(TopicModelObject* self, const tomoto::RawDoc::MiscType& o)
 {
 	tomoto::RawDoc::MiscType ret;
-	ret["timepoint"] = getValueFromMiscDefault<uint32_t>("timepoint", o, "`DTModel` needs a `timepoint` value in `int` type.");
+	ret["timepoint"] = getValueFromMiscDefault<uint32_t>("timepoint", o, "`DTModel` requires a `timepoint` value in `int` type.");
 	return ret;
 }
 
 static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t K = 1, T = 1;
-	float alphaVar = 0.1f, etaVar = 0.1f, phiVar = 0.1f;
-	float lrA = 0.01f, lrB = 0.1f, lrC = 0.55f;
-	size_t seed = random_device{}();
+	tomoto::DTArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "t",
 		"alpha_var", "eta_var", "phi_var", "lr_a", "lr_b", "lr_c",
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnffffffnOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &K, &T,
-		&alphaVar, &etaVar, &phiVar, &lrA, &lrB, &lrC,
-		&seed, &objCorpus, &objTransform)) return -1;
+		&tw, &minCnt, &minDf, &rmTop, &margs.k, &margs.t,
+		&margs.alpha[0], &margs.eta, &margs.phi, &margs.shapeA, &margs.shapeB, &margs.shapeC,
+		&margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::IDTModel::create((tomoto::TermWeight)tw, K, T,
-			alphaVar, etaVar, phiVar, lrA, lrB, lrC,
-			0, seed);
+		tomoto::ITopicModel* inst = tomoto::IDTModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -39,18 +34,21 @@ static int DT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, K, T, alphaVar, etaVar, phiVar,lrA, lrB, lrC, seed
+			tw, minCnt, minDf, rmTop, margs.k, margs.t, margs.alpha[0], margs.eta, margs.phi,margs.shapeA, margs.shapeB, margs.shapeC, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 static PyObject* DT_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -64,7 +62,7 @@ static PyObject* DT_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwa
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["timepoint"] = (uint32_t)timepoint;
 		auto ret = inst->addDoc(raw);
@@ -91,7 +89,7 @@ static DocumentObject* DT_makeDoc(TopicModelObject* self, PyObject* args, PyObje
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] 'words' should be an iterable of str.");
+		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["timepoint"] = (uint32_t)timepoint;
 		auto doc = inst->makeDoc(raw);
@@ -206,9 +204,9 @@ static PyObject* DT_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 
 static PyObject* DT_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId, timepoint;
-	static const char* kwlist[] = { "topic_id", "timepoint", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "nn", (char**)kwlist, &topicId, &timepoint)) return nullptr;
+	size_t topicId, timepoint, normalize = 1;
+	static const char* kwlist[] = { "topic_id", "timepoint", "normalize", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "nn|p", (char**)kwlist, &topicId, &timepoint, &normalize)) return nullptr;
 	try
 	{
 		if (!self->inst) throw runtime_error{ "inst is null" };
@@ -220,7 +218,7 @@ static PyObject* DT_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}*/
-		return py::buildPyValue(inst->getWidsByTopic(topicId + inst->getK() * timepoint));
+		return py::buildPyValue(inst->getWidsByTopic(topicId + inst->getK() * timepoint, !!normalize));
 	}
 	catch (const bad_exception&)
 	{
@@ -277,6 +275,7 @@ static PyMethodDef DT_methods[] =
 	{ "get_topic_words", (PyCFunction)DT_getTopicWords, METH_VARARGS | METH_KEYWORDS, DT_get_topic_words__doc__ },
 	{ "get_topic_word_dist", (PyCFunction)DT_getTopicWordDist, METH_VARARGS | METH_KEYWORDS, DT_get_topic_word_dist__doc__ },
 	{ "load", (PyCFunction)DT_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)DT_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ nullptr }
 };
 

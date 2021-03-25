@@ -8,17 +8,20 @@ using namespace std;
 static int HLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 {
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
-	size_t depth = 2;
-	float alpha = 0.1f, eta = 0.01f, gamma = 0.1f;
-	size_t seed = random_device{}();
+	tomoto::HLDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	PyObject* objAlpha = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "depth", "alpha", "eta", "gamma", 
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&depth, &alpha, &eta, &gamma, &seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.k, &objAlpha, &margs.eta, &margs.gamma, &margs.seed, &objCorpus, &objTransform)) return -1;
 	try
 	{
-		tomoto::ITopicModel* inst = tomoto::IHLDAModel::create((tomoto::TermWeight)tw, depth, alpha, eta, gamma, seed);
+		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
+			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `depth` (given " + py::repr(objAlpha) + ")"; }
+		);
+
+		tomoto::ITopicModel* inst = tomoto::IHLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw runtime_error{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
@@ -26,18 +29,21 @@ static int HLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, depth, alpha, eta, gamma, seed
+			tw, minCnt, minDf, rmTop, margs.k, margs.alpha, margs.eta, margs.gamma, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
+		return 0;
+	}
+	catch (const bad_exception&)
+	{
 	}
 	catch (const exception& e)
 	{
 		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
 	}
-	return 0;
+	return -1;
 }
 
 #define DEFINE_HLDA_TOPIC_METH(NAME) \
@@ -128,6 +134,7 @@ DEFINE_HLDA_TOPIC_METH(getChildTopicId);
 static PyMethodDef HLDA_methods[] =
 {
 	{ "load", (PyCFunction)HLDA_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
+	{ "loads", (PyCFunction)HLDA_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "is_live_topic", (PyCFunction)HLDA_isLiveTopic, METH_VARARGS | METH_KEYWORDS, HLDA_is_live_topic__doc__ },
 	{ "num_docs_of_topic", (PyCFunction)HLDA_getNumDocsOfTopic, METH_VARARGS | METH_KEYWORDS, HLDA_num_docs_of_topic__doc__ },
 	{ "level", (PyCFunction)HLDA_getLevelOfTopic, METH_VARARGS | METH_KEYWORDS, HLDA_level__doc__ },

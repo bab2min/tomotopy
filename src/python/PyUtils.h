@@ -31,7 +31,7 @@ namespace py
 {
 	struct UniqueObj
 	{
-		PyObject* obj;
+		PyObject* obj = nullptr;
 		explicit UniqueObj(PyObject* _obj = nullptr) : obj(_obj) {}
 		~UniqueObj()
 		{
@@ -75,6 +75,18 @@ namespace py
 		}
 	};
 
+	class ConversionFail : public std::runtime_error
+	{
+	public:
+		using std::runtime_error::runtime_error;
+
+		template<typename _Ty, 
+			typename = typename std::enable_if<std::is_constructible<std::function<std::string()>, _Ty>::value>::type
+		>
+		ConversionFail(_Ty&& callable) : runtime_error{ callable() }
+		{
+		}
+	};
 
 	template<typename _Ty, typename = void>
 	struct ValueBuilder;
@@ -90,15 +102,21 @@ namespace py
 	template<typename _Ty, typename _FailMsg>
 	inline _Ty toCpp(PyObject* obj, _FailMsg&& fail)
 	{
-		if (!obj) throw std::runtime_error{ std::forward<_FailMsg>(fail) };
+		if (!obj) throw ConversionFail{ std::forward<_FailMsg>(fail) };
 		return ValueBuilder<_Ty>{}._toCpp(obj, std::forward<_FailMsg>(fail));
+	}
+
+	inline std::string repr(PyObject* o)
+	{
+		UniqueObj r{ PyObject_Repr(o) };
+		return toCpp<std::string>(r, "");
 	}
 
 	template<typename _Ty>
 	inline _Ty toCpp(PyObject* obj)
 	{
-		if (!obj) throw std::runtime_error{ "cannot convert null pointer into C++ type" };
-		return ValueBuilder<_Ty>{}._toCpp(obj, "cannot convert Python value into C++ type");
+		if (!obj) throw ConversionFail{ "cannot convert null pointer into appropriate C++ type" };
+		return ValueBuilder<_Ty>{}._toCpp(obj, [=](){ return "cannot convert " + repr(obj) + " into appropriate C++ type"; });
 	}
 
 	template<typename _Ty>
@@ -111,10 +129,10 @@ namespace py
 		}
 
 		template<typename _FailMsg>
-		_Ty _toCpp(PyObject* obj, _FailMsg&&)
+		_Ty _toCpp(PyObject* obj, _FailMsg&& msg)
 		{
 			long long v = PyLong_AsLongLong(obj);
-			if (v == -1 && PyErr_Occurred()) throw std::bad_exception{};
+			if (v == -1 && PyErr_Occurred()) throw ConversionFail{ std::forward<_FailMsg>(msg) };
 			return (_Ty)v;
 		}
 	};
@@ -129,10 +147,10 @@ namespace py
 		}
 
 		template<typename _FailMsg>
-		_Ty _toCpp(PyObject* obj, _FailMsg&&)
+		_Ty _toCpp(PyObject* obj, _FailMsg&& msg)
 		{
 			long long v = PyLong_AsLongLong(obj);
-			if (v == -1 && PyErr_Occurred()) throw std::bad_exception{};
+			if (v == -1 && PyErr_Occurred()) throw ConversionFail{ std::forward<_FailMsg>(msg) };
 			return (_Ty)v;
 		}
 	};
@@ -147,10 +165,10 @@ namespace py
 		}
 
 		template<typename _FailMsg>
-		_Ty _toCpp(PyObject* obj, _FailMsg&&)
+		_Ty _toCpp(PyObject* obj, _FailMsg&& msg)
 		{
 			double v = PyFloat_AsDouble(obj);
-			if (v == -1 && PyErr_Occurred()) throw std::bad_exception{};
+			if (v == -1 && PyErr_Occurred()) throw ConversionFail{ std::forward<_FailMsg>(msg) };
 			return (_Ty)v;
 		}
 	};
@@ -164,10 +182,10 @@ namespace py
 		}
 
 		template<typename _FailMsg>
-		std::string _toCpp(PyObject* obj, _FailMsg&&)
+		std::string _toCpp(PyObject* obj, _FailMsg&& msg)
 		{
 			const char* str = PyUnicode_AsUTF8(obj);
-			if (!str) throw std::bad_exception{};
+			if (!str) throw ConversionFail{ std::forward<_FailMsg>(msg) };
 			return str;
 		}
 	};
@@ -181,10 +199,10 @@ namespace py
 		}
 
 		template<typename _FailMsg>
-		const char* _toCpp(PyObject* obj, _FailMsg&&)
+		const char* _toCpp(PyObject* obj, _FailMsg&& msg)
 		{
 			const char* p = PyUnicode_AsUTF8(obj);
-			if (!p) throw std::bad_exception{};
+			if (!p) throw ConversionFail{ std::forward<_FailMsg>(msg) };
 			return p;
 		}
 	};
@@ -261,7 +279,7 @@ namespace py
 		template<typename _FailMsg>
 		std::pair<_Ty1, _Ty2> _toCpp(PyObject* obj, _FailMsg&&)
 		{
-			if (PyTuple_Size(obj) != 2) throw std::runtime_error{ "input is not tuple with len=2" };
+			if (PyTuple_Size(obj) != 2) throw ConversionFail{ "input is not tuple with len=2" };
 			return std::make_tuple(
 				toCpp<_Ty1>(PyTuple_GetItem(obj, 0)),
 				toCpp<_Ty2>(PyTuple_GetItem(obj, 1))
@@ -292,7 +310,7 @@ namespace py
 			while (PyDict_Next(obj, &pos, &key, &value)) {
 				ret.emplace(toCpp<_Ty1>(key), toCpp<_Ty2>(value));
 			}
-			if (PyErr_Occurred()) throw std::runtime_error{ failMsg };
+			if (PyErr_Occurred()) throw ConversionFail{ failMsg };
 			return ret;
 		}
 	};
@@ -437,7 +455,7 @@ namespace py
 			else
 			{
 				UniqueObj iter{ PyObject_GetIter(obj) }, item;
-				if (!iter) throw std::runtime_error{ failMsg };
+				if (!iter) throw ConversionFail{ std::forward<_FailMsg>(failMsg) };
 				std::vector<_Ty> v;
 				while ((item = UniqueObj{ PyIter_Next(iter) }))
 				{
@@ -445,7 +463,7 @@ namespace py
 				}
 				if (PyErr_Occurred())
 				{
-					throw std::bad_exception{};
+					throw ConversionFail{ std::forward<_FailMsg>(failMsg) };
 				}
 				return v;
 			}
@@ -471,7 +489,7 @@ namespace py
 		std::vector<_Ty> _toCpp(PyObject* obj, _FailMsg&& failMsg)
 		{
 			UniqueObj iter{ PyObject_GetIter(obj) }, item;
-			if (!iter) throw std::runtime_error{ failMsg };
+			if (!iter) throw ConversionFail{ std::forward<_FailMsg>(failMsg) };
 			std::vector<_Ty> v;
 			while ((item = UniqueObj{ PyIter_Next(iter) }))
 			{
@@ -479,7 +497,7 @@ namespace py
 			}
 			if (PyErr_Occurred())
 			{
-				throw std::bad_exception{};
+				throw ConversionFail{ std::forward<_FailMsg>(failMsg) };
 			}
 			return v;
 		}
@@ -488,32 +506,48 @@ namespace py
 	template<typename T, typename Out, typename Msg>
 	inline void transform(PyObject* iterable, Out out, Msg&& failMsg)
 	{
-		if (!iterable) throw std::runtime_error{ failMsg };
+		if (!iterable) throw ConversionFail{ std::forward<Msg>(failMsg) };
 		UniqueObj iter{ PyObject_GetIter(iterable) }, item;
-		if (!iter) throw std::runtime_error{ failMsg };
+		if (!iter) throw ConversionFail{ std::forward<Msg>(failMsg) };
 		while ((item = UniqueObj{ PyIter_Next(iter) }))
 		{
 			*out++ = toCpp<T>(item);
 		}
 		if (PyErr_Occurred())
 		{
-			throw std::bad_exception{};
+			throw ConversionFail{ std::forward<Msg>(failMsg) };
 		}
 	}
 
 	template<typename T, typename Fn, typename Msg>
 	inline void foreach(PyObject* iterable, Fn&& fn, Msg&& failMsg)
 	{
-		if (!iterable) throw std::runtime_error{ failMsg };
+		if (!iterable) throw ConversionFail{ std::forward<Msg>(failMsg) };
 		UniqueObj iter{ PyObject_GetIter(iterable) }, item;
-		if (!iter) throw std::runtime_error{ failMsg };
+		if (!iter) throw ConversionFail{ std::forward<Msg>(failMsg) };
 		while ((item = UniqueObj{ PyIter_Next(iter) }))
 		{
 			fn(toCpp<T>(item));
 		}
 		if (PyErr_Occurred())
 		{
-			throw std::bad_exception{};
+			throw ConversionFail{ std::forward<Msg>(failMsg) };
+		}
+	}
+
+	template<typename T, typename Fn, typename Msg>
+	inline void foreachWithPy(PyObject* iterable, Fn&& fn, Msg&& failMsg)
+	{
+		if (!iterable) throw ConversionFail{ std::forward<Msg>(failMsg) };
+		UniqueObj iter{ PyObject_GetIter(iterable) }, item;
+		if (!iter) throw ConversionFail{ std::forward<Msg>(failMsg) };
+		while ((item = UniqueObj{ PyIter_Next(iter) }))
+		{
+			fn(toCpp<T>(item), item.get());
+		}
+		if (PyErr_Occurred())
+		{
+			throw ConversionFail{ std::forward<Msg>(failMsg) };
 		}
 	}
 
@@ -735,12 +769,6 @@ namespace py
 				printed.insert(key);
 			}
 		}
-	};
-
-	class wrong_type_error : public std::runtime_error
-	{
-	public:
-		using std::runtime_error::runtime_error;
 	};
 }
 

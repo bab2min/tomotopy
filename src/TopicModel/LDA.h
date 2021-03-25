@@ -161,12 +161,19 @@ namespace tomoto
 		}
 	};
 
+	struct LDAArgs
+	{
+		size_t k = 1;
+		std::vector<Float> alpha = { 0.1 };
+		Float eta = 0.01;
+		size_t seed = std::random_device{}();
+	};
+
     class ILDAModel : public ITopicModel
 	{
 	public:
 		using DefaultDocType = DocumentLDA<TermWeight::one>;
-		static ILDAModel* create(TermWeight _weight, size_t _K = 1, 
-			Float _alpha = 0.1, Float _eta = 0.01, size_t seed = std::random_device{}(),
+		static ILDAModel* create(TermWeight _weight, const LDAArgs& args,
 			bool scalarRng = false);
 
 		virtual TermWeight getTermWeight() const = 0;
