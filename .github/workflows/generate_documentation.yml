@@ -61,8 +61,8 @@ jobs:
         popd
         cp html/tomotopy/* ../g/bab2min.github.io/tomotopy/v${TOMOTOPY_VER}/${{ matrix.language }}
         pushd ../g/bab2min.github.io
-        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/${TOMOTOPY_VER}/en/'' >" > index.html
-        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/${TOMOTOPY_VER}/kr/'' >" > index.kr.html
+        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/${TOMOTOPY_VER}/en/'' >" > tomotopy/index.html
+        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/${TOMOTOPY_VER}/kr/'' >" > tomotopy/index.kr.html
         git config user.email "bab2min@gmail.com"
         git config user.name "bab2min"
         git add .
