@@ -75,14 +75,16 @@ namespace tomoto
 
 		struct Generator
 		{
-			std::discrete_distribution<> theta;
+			Eigen::Array<Float, -1, 1> p;
+			Eigen::Rand::DiscreteGen<int32_t> theta;
 		};
 
 		Generator makeGeneratorForInit(const _DocType* doc) const
 		{
-			return Generator{ 
-				std::discrete_distribution<>{ doc->labelMask.data(), doc->labelMask.data() + doc->labelMask.size() } 
-			};
+			Generator g;
+			g.p = doc->labelMask.array().template cast<Float>() * this->alphas.array();
+			g.theta = Eigen::Rand::DiscreteGen<int32_t>{ g.p.data(), g.p.data() + this->K };
+			return g;
 		}
 
 		template<bool _Infer>
@@ -93,7 +95,7 @@ namespace tomoto
 			if (this->etaByTopicWord.size())
 			{
 				Eigen::Array<Float, -1, 1> col = this->etaByTopicWord.col(w);
-				for (size_t k = 0; k < col.size(); ++k) col[k] *= g.theta.probabilities()[k];
+				col *= g.p;
 				z = sample::sampleFromDiscrete(col.data(), col.data() + col.size(), rgs);
 			}
 			else

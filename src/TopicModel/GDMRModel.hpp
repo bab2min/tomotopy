@@ -330,6 +330,10 @@ namespace tomoto
 		{
 			BaseClass::BaseClass::initGlobalState(initDocs);
 			fCont = accumulate(degreeByF.begin(), degreeByF.end(), 1, [](size_t a, size_t b) {return a * (b + 1); });
+			if (!this->metadataDict.size())
+			{
+				this->metadataDict.add("");
+			}
 			fCat = this->metadataDict.size();
 			this->F = fCont * fCat;
 			if (initDocs) collectMinMaxMetadata();

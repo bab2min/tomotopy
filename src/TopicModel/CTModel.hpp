@@ -253,11 +253,11 @@ namespace tomoto
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
 			if (normalize)
 			{
-				m = doc.numByTopic.array().template cast<Float>() / doc.getSumWordWeight();
+				m = (doc.numByTopic.array().template cast<Float>() + this->alphas.array()) / (doc.getSumWordWeight() + this->alphas.sum());
 			}
 			else
 			{
-				m = doc.numByTopic.array().template cast<Float>();
+				m = doc.numByTopic.array().template cast<Float>() + this->alphas.array();
 			}
 			return ret;
 		}
