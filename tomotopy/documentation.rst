@@ -349,6 +349,7 @@ History
     * Serializing topic models to `bytes` in memory is supported.
     * An argument `normalize` was added to `get_topic_dist()`, `get_topic_word_dist()` and `get_sub_topic_dist()` for controlling normalization of results.
     * Now `tomotopy.DMRModel.lambdas` and `tomotopy.DMRModel.alpha` give correct values.
+    * Categorical metadata supports for `tomotopy.GDMRModel` were added (see https://github.com/bab2min/tomotopy/blob/main/examples/gdmr_both_categorical_and_numerical.py ).
     * Python3.5 support was dropped.
 
 * 0.10.2 (2021-02-16)

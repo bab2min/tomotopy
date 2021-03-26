@@ -345,6 +345,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
     * 토픽 모델 객체를 메모리 상의 `bytes`로 직렬화하는 기능이 지원됩니다.
     * `get_topic_dist()`, `get_topic_word_dist()`, `get_sub_topic_dist()`에 결과의 정규화 여부를 조절하는 `normalize` 인자가 추가되었습니다.
     * `tomotopy.DMRModel.lambdas`와 `tomotopy.DMRModel.alpha`가 잘못된 값을 제공하던 문제가 해결되었습니다.
+    * `tomotopy.GDMRModel`에 범주형 메타데이터 지원이 추가되었습니다. (https://github.com/bab2min/tomotopy/blob/main/examples/gdmr_both_categorical_and_numerical.py 참조)
     * Python3.5 지원이 종료되었습니다.
 
 * 0.10.2 (2021-02-16)
