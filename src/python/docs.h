@@ -505,9 +505,9 @@ doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpu
 
     .. versionchanged:: 0.10.0
 
-    Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
-    In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
-    return a corpus contains generated documents as the result.
+        Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
+        In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
+        return a corpus contains generated documents as the result.
 iter : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
     The higher value will generate a more accuracy result.
@@ -548,6 +548,12 @@ Parameters
 doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
     추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
     이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
+
+    .. versionchanged:: 0.10.0
+
+        0.10.0버전부터 `infer`는 `tomotopy.utils.Corpus`의 인스턴스를 직접 입력 받을 수 있습니다. 
+        이 경우 `make_doc`를 사용할 필요 없이 `infer`가 직접 모델에 맞춰진 문헌을 생성하고 이를 이용해 토픽 분포를 추정하며,
+        결과로 생성된 문헌들이 포함된 `tomotopy.utils.Corpus`를 반환합니다.
 iter : int
     `doc`의 주제 분포를 추론하기 위해 학습을 반복할 횟수입니다.
     이 값이 클 수록 더 정확한 결과를 낼 수 있습니다.
@@ -612,11 +618,7 @@ DOC_SIGNATURE_EN_KO(LDA_saves__doc__,
 Serialize the model instance into `bytes` object and return it. The arguments work the same as `tomotopy.LDAModel.save`.)"",
 u8R""(.. versionadded:: 0.11.0
 
-현재 모델을 직렬화하여 `bytes`로 만든 뒤 이를 반환합니다.
-
-`full`이 `True`일 경우, 모델의 전체 상태가 파일에 모두 저장됩니다. 저장된 모델을 다시 읽어들여 학습(`train`)을 더 진행하고자 한다면 `full` = `True`로 하여 저장하십시오.
-반면 `False`일 경우, 토픽 추론에 관련된 파라미터만 파일에 저장됩니다. 이 경우 파일의 용량은 작아지지만, 추가 학습은 불가하고 새로운 문헌에 대해 추론(`infer`)하는 것만 가능합니다.
-)"");
+현재 모델을 직렬화하여 `bytes`로 만든 뒤 이를 반환합니다. 인자는 `tomotopy.LDAModel.save`와 동일하게 작동합니다.)"");
 
 
 DOC_SIGNATURE_EN_KO(LDA_load__doc__,
@@ -706,14 +708,14 @@ This value is 0 before `train` called.
 
 .. deprecated:: 0.8.0
 
-Due to the confusion of its name, this property will be removed. Please use `len(used_vocabs)` instead.)"",
+    Due to the confusion of its name, this property will be removed. Please use `len(used_vocabs)` instead.)"",
 	u8R""(작은 빈도의 단어들을 제거한 뒤 남은 어휘의 개수 (읽기전용)
 
 `train`이 호출되기 전에는 이 값은 0입니다.
 
 .. deprecated:: 0.8.0
 
-이 프로퍼티의 이름은 혼동을 일으킬 여지가 있어 제거될 예정입니다. 대신 `len(used_vocabs)`을 사용하십시오.)"");
+    이 프로퍼티의 이름은 혼동을 일으킬 여지가 있어 제거될 예정입니다. 대신 `len(used_vocabs)`을 사용하십시오.)"");
 
 DOC_VARIABLE_EN_KO(LDA_used_vocabs__doc__,
 	u8R""(a dictionary, which contains only the vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only)
@@ -940,13 +942,13 @@ DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
 
 .. warning::
 
-Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.
+    Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.
 )"",
 	u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용)
 
 .. warning::
 
-0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
+    0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
 
 DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
     u8R""(Dirichlet prior on the per-document topic distributions for each metadata in the shape `[k, f]`. Equivalent to `np.exp(DMRModel.lambdas)` (read-only)
@@ -955,14 +957,14 @@ DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
 
 .. warning::
 
-Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.)"",
+    Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.)"",
     u8R""(각 메타데이터별 문헌-토픽 분포의 사전 분포, `[k, f]` 모양. `np.exp(DMRModel.lambdas)`와 동일 (읽기전용)
 
 .. versionadded:: 0.9.0
 
 .. warning::
 
-0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
+    0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
 
 /*
 	class GDMR
@@ -977,10 +979,10 @@ DOC_SIGNATURE_EN_KO(GDMR___init____doc__,
 
 .. warning::
 
-Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
-Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
-and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
-So `metadata` arguments in the older codes should be replaced with `numeric_metadata` to work in version 0.11.0.
+    Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
+    Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
+    and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+    So `metadata` arguments in the older codes should be replaced with `numeric_metadata` to work in version 0.11.0.
 
 Parameters
 ----------
@@ -1035,10 +1037,10 @@ u8R""(이 타입은 Generalized DMR(g-DMR) 토픽 모델의 구현체를 제공�
 
 .. warning::
 
-0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
-0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
-`metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
-따라서 이전 코드의 `metadata` 인자를 `numeric_metadata`로 바꿔주어야 0.11.0 버전에서 작동합니다.
+    0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
+    0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+    `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+    따라서 이전 코드의 `metadata` 인자를 `numeric_metadata`로 바꿔주어야 0.11.0 버전에서 작동합니다.
 
 Parameters
 ----------
@@ -1093,9 +1095,9 @@ DOC_SIGNATURE_EN_KO(GDMR_add_doc__doc__,
 
 ..versionchanged:: 0.11.0
 
-Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
-Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
-and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+    Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
+    Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
+    and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
 
 Parameters
 ----------
@@ -1110,9 +1112,9 @@ u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하�
 
 ..versionchanged:: 0.11.0
 
-0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
-0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
-`metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+    0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
+    0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+    `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
 
 Parameters
 ----------
@@ -1130,9 +1132,9 @@ DOC_SIGNATURE_EN_KO(GDMR_make_doc__doc__,
 
 ..versionchanged:: 0.11.0
 
-Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
-Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
-and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+    Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
+    Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
+    and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
 
 Parameters
 ----------
@@ -1147,9 +1149,9 @@ u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인
 
 ..versionchanged:: 0.11.0
 
-0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
-0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
-`metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+    0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
+    0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+    `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
 
 Parameters
 ----------
@@ -1217,6 +1219,8 @@ samples : ndarray
 )"",
 u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
 
+..versionchanged:: 0.11.0
+
 Parameters
 ----------
 numeric_metadata_start : Iterable[float]
@@ -1261,7 +1265,9 @@ DOC_SIGNATURE_EN_KO(HDP___init____doc__,
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 
-Since version 0.3.0, hyperparameter estimation for `alpha` and `gamma` has been added. You can turn off this estimation by setting `optim_interval` to zero.
+.. versionchanged:: 0.3.0
+
+    Since version 0.3.0, hyperparameter estimation for `alpha` and `gamma` has been added. You can turn off this estimation by setting `optim_interval` to zero.
 
 Parameters
 ----------
@@ -1307,7 +1313,9 @@ u8R""(이 타입은 Hierarchical Dirichlet Process(HDP) 토픽 모델의 구현�
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 
-0.3.0버전부터 `alpha`와 `gamma`에 대한 하이퍼파라미터 추정 기능이 추가되었습니다. `optim_interval`을 0으로 설정함으로써 이 기능을 끌 수 있습니다.
+.. versionchanged:: 0.3.0
+
+    0.3.0버전부터 `alpha`와 `gamma`에 대한 하이퍼파라미터 추정 기능이 추가되었습니다. `optim_interval`을 0으로 설정함으로써 이 기능을 끌 수 있습니다.
 
 Parameters
 ----------
@@ -1852,9 +1860,9 @@ doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpu
 
     .. versionchanged:: 0.10.0
 
-    Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
-    In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
-    return a corpus contains generated documents as the result.
+        Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
+        In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
+        return a corpus contains generated documents as the result.
 iter : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
     The higher value will generate a more accuracy result.
@@ -1897,6 +1905,12 @@ Parameters
 doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
     추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
     이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
+
+    .. versionchanged:: 0.10.0
+
+        0.10.0버전부터 `infer`는 `tomotopy.utils.Corpus`의 인스턴스를 직접 입력 받을 수 있습니다. 
+        이 경우 `make_doc`를 사용할 필요 없이 `infer`가 직접 모델에 맞춰진 문헌을 생성하고 이를 이용해 토픽 분포를 추정하며,
+        결과로 생성된 문헌들이 포함된 `tomotopy.utils.Corpus`를 반환합니다.
 iter : int
     `doc`의 주제 분포를 추론하기 위해 학습을 반복할 횟수입니다.
     이 값이 클 수록 더 정확한 결과를 낼 수 있습니다.
@@ -2405,9 +2419,9 @@ y : Iterable[float]
     response variables of this document. 
     The length of `y` must be equal to the number of response variables of the model (`tomotopy.SLDAModel.f`).
     
-    .. versionadded:: 0.5.1
+    .. versionchanged:: 0.5.1
     
-    If you have a missing value, you can set the item as `NaN`. Documents with `NaN` variables are included in modeling topics, but excluded from regression.
+        If you have a missing value, you can set the item as `NaN`. Documents with `NaN` variables are included in modeling topics, but excluded from regression.
 )"",
 u8R""(현재 모델에 응답 변수 `y`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
@@ -2418,9 +2432,9 @@ words : Iterable[str]
 y : Iterable[float]
     문헌의 응답 변수로 쓰일 `float`의 `list`. `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.SLDAModel.f`와 일치해야 합니다.
     
-    .. versionadded:: 0.5.1
+    .. versionchanged:: 0.5.1
     
-    만약 결측값이 있을 경우, 해당 항목을 `NaN`으로 설정할 수 있습니다. 이 경우 `NaN`값을 가진 문헌은 토픽을 모델링하는데에는 포함되지만, 응답 변수 회귀에서는 제외됩니다.
+        만약 결측값이 있을 경우, 해당 항목을 `NaN`으로 설정할 수 있습니다. 이 경우 `NaN`값을 가진 문헌은 토픽을 모델링하는 데에는 포함되지만, 응답 변수 회귀에서는 제외됩니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_make_doc__doc__,
@@ -2509,7 +2523,7 @@ DOC_SIGNATURE_EN_KO(LLDA___init____doc__,
 .. versionadded:: 0.3.0
 
 .. deprecated:: 0.11.0
-Use `tomotopy.PLDA()` instead.
+    Use `tomotopy.PLDAModel` instead.
 
 Parameters
 ----------
@@ -2550,7 +2564,7 @@ u8R""(이 타입은 Labeled LDA(L-LDA) 토픽 모델의 구현체를 제공합�
 .. versionadded:: 0.3.0
 
 .. deprecated:: 0.11.0
-Use `tomotopy.PLDA()` instead.
+    `tomotopy.PLDAModel`를 대신 사용하세요.
 
 Parameters
 ----------

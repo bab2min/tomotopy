@@ -708,12 +708,12 @@ namespace tomoto
 
 		struct Generator
 		{
-			std::uniform_int_distribution<Tid> theta;
+			Eigen::Rand::DiscreteGen<int32_t> theta{ { 1 } };
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
-			return Generator{ std::uniform_int_distribution<Tid>{0, (Tid)(K - 1)} };
+			return Generator{ Eigen::Rand::DiscreteGen<int32_t>{ alphas.data(), alphas.data() + alphas.size() } };
 		}
 
 		template<bool _Infer>

@@ -173,14 +173,14 @@ namespace tomoto
 		struct Generator
 		{
 			std::uniform_int_distribution<uint64_t> psi;
-			std::uniform_int_distribution<Tid> theta;
+			Eigen::Rand::DiscreteGen<int32_t> theta{ { 1 } };
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
 			return Generator{ 
 				std::uniform_int_distribution<uint64_t>{0, numPDocs - 1},
-				std::uniform_int_distribution<Tid>{0, (Tid)(this->K - 1)}
+				Eigen::Rand::DiscreteGen<int32_t>{ this->alphas.data(), this->alphas.data() + this->alphas.size() }
 			};
 		}
 
