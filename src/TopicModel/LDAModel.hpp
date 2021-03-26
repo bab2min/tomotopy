@@ -708,12 +708,14 @@ namespace tomoto
 
 		struct Generator
 		{
-			Eigen::Rand::DiscreteGen<int32_t> theta{ { 1 } };
+			Eigen::Rand::DiscreteGen<int32_t> theta;
 		};
 
 		Generator makeGeneratorForInit(const _DocType*) const
 		{
-			return Generator{ Eigen::Rand::DiscreteGen<int32_t>{ alphas.data(), alphas.data() + alphas.size() } };
+			Generator g;
+			g.theta = Eigen::Rand::DiscreteGen<int32_t>{ alphas.data(), alphas.data() + alphas.size() };
+			return g;
 		}
 
 		template<bool _Infer>

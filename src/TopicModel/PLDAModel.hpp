@@ -76,14 +76,15 @@ namespace tomoto
 		struct Generator
 		{
 			Eigen::Array<Float, -1, 1> p;
-			Eigen::Rand::DiscreteGen<int32_t> theta{ { 1 } };
+			Eigen::Rand::DiscreteGen<int32_t> theta;
 		};
 
 		Generator makeGeneratorForInit(const _DocType* doc) const
 		{
-			Eigen::Array<Float, -1, 1> p = doc->labelMask.array().template cast<Float>() * this->alphas.array();
-			Eigen::Rand::DiscreteGen<int32_t> theta{ p.data(), p.data() + this->K };
-			return Generator{ std::move(p), std::move(theta) };
+			Generator g;
+			g.p = doc->labelMask.array().template cast<Float>() * this->alphas.array();
+			g.theta = Eigen::Rand::DiscreteGen<int32_t>{ g.p.data(), g.p.data() + this->K };
+			return g;
 		}
 
 		template<bool _Infer>
