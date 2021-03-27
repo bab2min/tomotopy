@@ -233,6 +233,7 @@ inline std::vector<Ty> broadcastObj(PyObject* obj, size_t k, FailMsg&& msg)
 		}
 		catch (const py::ConversionFail&)
 		{
+			PyErr_Clear();
 			ret.emplace_back(py::toCpp<Ty>(obj));
 		}
 		return ret;

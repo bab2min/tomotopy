@@ -36,8 +36,6 @@ tomotopy 란?
 
 더 자세한 정보는 https://bab2min.github.io/tomotopy/index.kr.html 에서 확인하시길 바랍니다.
 
-tomotopy의 가장 최신버전은 0.11.0 입니다.
-
 시작하기
 ---------------
 다음과 같이 pip를 이용하면 tomotopy를 쉽게 설치할 수 있습니다.
@@ -256,6 +254,9 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.11.1 (2021-03-28)
+    * 비대칭 alpha와 관련된 치명적인 버그가 수정되었습니다. 이 버그로 인해 0.11.0 버전은 릴리즈에서 삭제되었습니다.
+
 * 0.11.0 (2021-03-26)
     * 짧은 텍스트를 위한 토픽 모델인 `tomotopy.PTModel`가 추가되었습니다.
     * `tomotopy.HDPModel.infer`가 종종 segmentation fault를 발생시키는 문제가 해결되었습니다.

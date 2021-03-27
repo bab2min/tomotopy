@@ -19,8 +19,6 @@ tomotopy 란?
 * Dynamic Topic Model (`tomotopy.DTModel`)
 * Pseudo-document based Topic Model (`tomotopy.PTModel`)
 
-tomotopy의 가장 최신버전은 0.11.0 입니다.
-
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
 시작하기
@@ -337,7 +335,10 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
-* 0.11.0 (2021-03-26)
+* 0.11.1 (2021-03-28)
+    * 비대칭 alpha와 관련된 치명적인 버그가 수정되었습니다. 이 버그로 인해 0.11.0 버전은 릴리즈에서 삭제되었습니다.
+
+* 0.11.0 (2021-03-26) (삭제됨)
     * 짧은 텍스트를 위한 토픽 모델인 `tomotopy.PTModel`가 추가되었습니다.
     * `tomotopy.HDPModel.infer`가 종종 segmentation fault를 발생시키는 문제가 해결되었습니다.
     * numpy API 버전 충돌이 해결되었습니다.

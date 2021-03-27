@@ -19,8 +19,6 @@ The current version of `tomoto` supports several major topic models including
 * Dynamic Topic Model (`tomotopy.DTModel`)
 * Pseudo-document based Topic Model (`tomotopy.PTModel`).
 
-The most recent version of tomotopy is 0.11.0.
-
 .. image:: https://badge.fury.io/py/tomotopy.svg
 
 Getting Started
@@ -341,7 +339,10 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
-* 0.11.0 (2021-03-26)
+* 0.11.1 (2021-03-28)
+    * A critical bug of asymmetric alphas was fixed. Due to this bug, version 0.11.0 has been removed from releases.
+
+* 0.11.0 (2021-03-26) (removed)
     * A new topic model `tomotopy.PTModel` for short texts was added into the package.
     * An issue was fixed where `tomotopy.HDPModel.infer` causes a segmentation fault sometimes.
     * A mismatch of numpy API version was fixed.
