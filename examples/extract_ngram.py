@@ -11,8 +11,8 @@ def extract_ngrams_example(input_file):
     corpus.process(open(input_file, encoding='utf-8'))
 
     # extract the n-gram candidates first
-    cands = corpus.extract_ngrams(min_cf=20, min_df=10, max_len=5, max_cand=1000)
-    print('==== extracted n-gram collocations ====')
+    cands = corpus.extract_ngrams(min_cf=20, min_df=10, max_len=5, max_cand=1000, normalized=False)
+    print('==== extracted n-gram collocations (using PMI) ====')
     for cand in cands:
         print(cand)
     
@@ -27,6 +27,24 @@ def extract_ngrams_example(input_file):
     # tomotopy.label.Candidate(words=["american","actor","director","producer"], name="", score=16.722300)
     # tomotopy.label.Candidate(words=["nobel","prize","laureate"], name="", score=16.635370)
     # tomotopy.label.Candidate(words=["eastern","orthodox","liturgics"], name="", score=16.540277)
+    # ...
+
+    cands = corpus.extract_ngrams(min_cf=20, min_df=10, max_len=5, max_cand=1000, normalized=True)
+    print('==== extracted n-gram collocations (using Normalized PMI) ====')
+    for cand in cands:
+        print(cand)
+    
+    # it prints like:
+    # tomotopy.label.Candidate(words=["buenos","aires"], name="", score=0.996445)
+    # tomotopy.label.Candidate(words=["los","angeles"], name="", score=0.988719)
+    # tomotopy.label.Candidate(words=["las","vegas"], name="", score=0.982273)
+    # tomotopy.label.Candidate(words=["hong","kong"], name="", score=0.978606)
+    # tomotopy.label.Candidate(words=["hip","hop"], name="", score=0.965971)
+    # tomotopy.label.Candidate(words=["nova","scotia"], name="", score=0.957440)
+    # tomotopy.label.Candidate(words=["ice","hockey"], name="", score=0.932300)
+    # tomotopy.label.Candidate(words=["nobel","prize","laureate"], name="", score=0.927281)
+    # tomotopy.label.Candidate(words=["sri","lankan"], name="", score=0.925504)
+    # tomotopy.label.Candidate(words=["ann","arbor"], name="", score=0.921129)
     # ...
 
     # before concat

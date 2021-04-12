@@ -23,7 +23,7 @@ def raw_corpus_and_labeling_example(input_file):
     mdl.summary()
     
     # extract candidates for auto topic labeling
-    extractor = tp.label.PMIExtractor(min_cf=10, min_df=5, max_len=5, max_cand=10000)
+    extractor = tp.label.PMIExtractor(min_cf=10, min_df=5, max_len=5, max_cand=10000, normalized=True)
     cands = extractor.extract(mdl)
 
     labeler = tp.label.FoRelevance(mdl, cands, min_df=5, smoothing=1e-2, mu=0.25)
@@ -35,7 +35,7 @@ def raw_corpus_and_labeling_example(input_file):
         print()
 
 
-# You can get the sample data file 'enwiki-stemmed-1000.txt'
+# You can get the sample data file 'enwiki-1000.txt'
 # at https://drive.google.com/file/d/18OpNijd4iwPyYZ2O7pQoPyeTAKEXa71J/view?usp=sharing
 
 print('Running LDA from raw corpus and Labeling')
