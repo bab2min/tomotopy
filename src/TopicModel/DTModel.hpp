@@ -477,6 +477,16 @@ namespace tomoto
 			return cnt;
 		}
 
+		void updateForCopy()
+		{
+			BaseClass::updateForCopy();
+			size_t docId = 0;
+			for (auto& doc : this->docs)
+			{
+				doc.eta.init((Float*)etaByDoc.col(docId++).data(), this->K, 1);
+			}
+		}
+
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, 
 			T, shapeA, shapeB, shapeC, alphaVar, etaVar, phiVar, alphas, etaByDoc, phi);

@@ -129,22 +129,22 @@ PyObject* Document_labels(DocumentObject* self, void* closure)
 		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `labels` field!" };
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 
-		if (auto* r = docVisit<tomoto::DocumentLLDA>(self->getBoundDoc(), [&](auto* doc)
+		if (auto* ret = docVisit<tomoto::DocumentLLDA>(self->getBoundDoc(), [&](auto* doc)
 		{
 			auto inst = dynamic_cast<tomoto::ILLDAModel*>(self->corpus->tm->inst);
 			auto dict = inst->getTopicLabelDict();
-			vector<pair<string, vector<float>>> ret;
+			vector<pair<string, vector<float>>> r;
 			auto topicDist = inst->getTopicsByDoc(doc);
 			for (size_t i = 0; i < dict.size(); ++i)
 			{
 				if (doc->labelMask[i * inst->getNumTopicsPerLabel()])
 				{
-					ret.emplace_back(inst->getTopicLabelDict().toWord(i), 
+					r.emplace_back(inst->getTopicLabelDict().toWord(i), 
 						vector<float>{ &topicDist[i * inst->getNumTopicsPerLabel()], &topicDist[(i + 1) * inst->getNumTopicsPerLabel()] });
 				}
 			}
-			return py::buildPyValue(ret);
-		})) return r;
+			return py::buildPyValue(r);
+		})) return ret;
 		
 		throw py::AttributeError{ "doc doesn't has `labels` field!" };
 	});
