@@ -77,7 +77,7 @@ namespace tomoto
 			const auto K = this->K;
 
 			Float fx = -static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
-			Eigen::Map<Matrix> xReshaped{ x.data(), K, F * mdVecSize };
+			Eigen::Map<Matrix> xReshaped{ x.data(), (Eigen::Index)K, (Eigen::Index)(F * mdVecSize) };
 
 			std::vector<std::future<Eigen::Array<Float, -1, 1>>> res;
 			const size_t chStride = pool.getNumWorkers() * 8;
@@ -88,7 +88,7 @@ namespace tomoto
 					auto& tmpK = localData[threadId].tmpK;
 					if (!tmpK.size()) tmpK.resize(this->K);
 					Eigen::Array<Float, -1, 1> val = Eigen::Array<Float, -1, 1>::Zero(K * F * mdVecSize + 1);
-					Eigen::Map<Matrix> grad{ val.data(), K, F * mdVecSize };
+					Eigen::Map<Matrix> grad{ val.data(), (Eigen::Index)K, (Eigen::Index)(F * mdVecSize) };
 					Float& fx = val[K * F * mdVecSize];
 					for (size_t docId = ch; docId < this->docs.size(); docId += chStride)
 					{
