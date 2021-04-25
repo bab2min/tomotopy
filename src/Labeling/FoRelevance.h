@@ -93,8 +93,8 @@ namespace tomoto
 				if (!numWorkers) numWorkers = std::thread::hardware_concurrency();
 				if (numWorkers > 1)
 				{
-					pool = make_unique<ThreadPool>(numWorkers);
-					mtx = make_unique<std::mutex[]>(numWorkers);
+					pool = std::make_unique<ThreadPool>(numWorkers);
+					mtx = std::make_unique<std::mutex[]>(numWorkers);
 				}
 
 				for (; candFirst != candEnd; ++candFirst)

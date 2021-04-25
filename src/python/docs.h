@@ -131,6 +131,14 @@ DOC_VARIABLE_EN_KO(Document_metadata__doc__,
 	u8R""(categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
 	u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
 
+DOC_VARIABLE_EN_KO(Document_multi_metadata__doc__,
+    u8R""(categorical multiple metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only)
+
+.. versionadded:: 0.12.0)"",
+    u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.12.0)"");
+
 DOC_VARIABLE_EN_KO(Document_numeric_metadata__doc__,
     u8R""(continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
 
@@ -631,6 +639,16 @@ DOC_SIGNATURE_EN_KO(LDA_loads__doc__,
     u8R""(Return the model instance loaded from `data` in bytes-like object.)"",
     u8R""(bytes-like object인 `data`로로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
 
+DOC_SIGNATURE_EN_KO(LDA_copy__doc__,
+    "copy(self)",
+    u8R""(.. versionadded:: 0.12.0
+
+Return a new deep-copied instance of the current instance)"",
+    u8R""(.. versionadded:: 0.12.0
+
+깊게 복사된 새 인스턴스를 반환합니다.)"");
+
+
 DOC_SIGNATURE_EN_KO(LDA_summary__doc__,
     "summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False)",
     u8R""(.. versionadded:: 0.9.0
@@ -880,8 +898,12 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(DMR_add_doc__doc__,
-	"add_doc(self, words, metadata='')",
+	"add_doc(self, words, metadata='', multi_metadata=[])",
 	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -889,8 +911,14 @@ words : Iterable[str]
     an iterable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -898,11 +926,17 @@ words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 metadata : str
     문헌의 메타데이터 (예로 저자나 제목, 작성연도 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
 )"");
 
 DOC_SIGNATURE_EN_KO(DMR_make_doc__doc__,
-	"make_doc(self, words, metadata='')",
+	"make_doc(self, words, metadata='', multi_metadata=[])",
 	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -910,8 +944,14 @@ words : Iterable[str]
     an iteratable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -919,6 +959,54 @@ words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 metadata : str
     문헌의 메타데이터 (예를 들어 저자나 제목, 작성연도 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
+)"");
+
+DOC_SIGNATURE_EN_KO(DMR_get_topic_prior__doc__,
+    "get_topic_prior(self, metadata='', multi_metadata=[], raw=False)",
+    u8R""(.. versionadded:: 0.12.0
+
+Calculate the topic prior of any document with the given `metadata` and `multi_metadata`. 
+If `raw` is true, the value without applying `exp()` is returned, otherwise, the value with applying `exp()` is returned.
+
+The topic prior is calculated as follows:
+
+`np.dot(lambda_[:, id(metadata)], np.concat([[1], multi_hot(multi_metadata)]))`
+
+where `idx(metadata)` and `multi_hot(multi_metadata)` indicates 
+an integer id of given `metadata` and multi-hot encoded binary vector for given `multi_metadata` respectively.
+
+
+Parameters
+----------
+metadata : str
+    metadata of the document (e.g., author, title or year)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
+raw : bool
+    If `raw` is true, the raw value of parameters without applying `exp()` is returned.
+)"",
+u8R""(.. versionadded:: 0.12.0
+
+주어진 `metadata`와 `multi_metadata`에 대해 토픽의 사전 분포를 계산합니다.
+`raw`가 참인 경우 `exp()`가 적용되기 전의 값이 반환되며, 그 외에는 `exp()`가 적용된 값이 반환됩니다.
+
+토픽의 사전분포는 다음과 같이 계산됩니다:
+
+`np.dot(lambda_[:, id(metadata)], np.concat([[1], multi_hot(multi_metadata)]))`
+
+여기서 `idx(metadata)`와 `multi_hot(multi_metadata)`는 각각
+주어진 `metadata`의 정수 인덱스 번호와 `multi_metadata`를 multi-hot 인코딩한, 0 혹은 1로 구성된 벡터입니다.
+
+Parameters
+----------
+metadata : str
+    문헌의 메타데이터 (예를 들어 저자나 제목, 작성연도 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
+raw : bool
+    참일 경우 파라미터에 `exp()`가 적용되지 않은 값이 반환됩니다.
 )"");
 
 DOC_VARIABLE_EN_KO(DMR_f__doc__,
@@ -937,6 +1025,20 @@ DOC_VARIABLE_EN_KO(DMR_metadata_dict__doc__,
 	u8R""(a dictionary of metadata in type `tomotopy.Dictionary` (read-only))"",
 	u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용))"");
 
+DOC_VARIABLE_EN_KO(DMR_multi_metadata_dict__doc__,
+    u8R""(a dictionary of metadata in type `tomotopy.Dictionary` (read-only)
+
+.. versionadded:: 0.12.0
+
+    This dictionary is distinct from `metadata_dict`.
+)"",
+    u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용)
+
+.. versionadded:: 0.12.0
+
+    이 사전은 `metadata_dict`와는 별개입니다.
+)"");
+
 DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
 	u8R""(parameter lambdas in the shape `[k, f]` (read-only)
 
@@ -949,6 +1051,21 @@ DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
 .. warning::
 
     0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
+
+
+DOC_VARIABLE_EN_KO(DMR_lamda___doc__,
+    u8R""(parameter lambdas in the shape `[k, len(metadata_dict), l]` where `k` is the number of topics and `l` is the size of vector for multi_metadata (read-only)
+
+See `tomotopy.DMRModel.get_topic_prior` for the relation between the lambda parameter and the topic prior.
+
+.. versionadded:: 0.12.0
+)"",
+u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, len(metadata_dict), l]` 모양의 float array (읽기전용)
+
+lambda 파라미터와 토픽 사전 분포 간의 관계에 대해서는 `tomotopy.DMRModel.get_topic_prior`를 참고하십시오.
+
+.. versionadded:: 0.12.0)"");
+
 
 DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
     u8R""(Dirichlet prior on the per-document topic distributions for each metadata in the shape `[k, f]`. Equivalent to `np.exp(DMRModel.lambdas)` (read-only)
@@ -1090,14 +1207,18 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_add_doc__doc__,
-	"add_doc(self, words, numeric_metadata=[], metadata='')",
+	"add_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[])",
 	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
     and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1107,14 +1228,20 @@ numeric_metadata : Iterable[float]
     continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
 metadata : str
     categorical metadata of the document (e.g., author, title, journal or country)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
     0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1124,17 +1251,23 @@ numeric_metadata : Iterable[float]
     문헌의 연속형 숫자 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     문헌의 범주형 메타데이터 (예를 들어 저자나 제목, 저널, 국가 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_make_doc__doc__,
-	"make_doc(self, words, numeric_metadata=[], metadata='')",
+	"make_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[])",
 	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
     and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1144,14 +1277,20 @@ numeric_metadata : Iterable[float]
     continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
 metadata : str
     categorical metadata of the document (e.g., author, title, journal or country)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
     0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1161,13 +1300,19 @@ numeric_metadata : Iterable[float]
     문헌의 연속형 숫자 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     문헌의 범주형 메타데이터 (예를 들어 저자나 제목, 저널, 국가 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_tdf__doc__,
-	"tdf(self, numeric_metadata, metadata='', normalize=True)",
-	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+	"tdf(self, numeric_metadata, metadata='', multi_metadata=[], normalize=True)",
+	u8R""(Calculate a topic distribution for given `numeric_metadata` value. It returns a list with length `k`.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1175,10 +1320,18 @@ numeric_metadata : Iterable[float]
     continuous metadata variable whose length should be equal to the length of `degrees`.
 metadata : str    
     categorical metadata variable
+multi_metadata : Iterable[str]
+    categorical metadata variables (for multiple values)
 normalize : bool
     If true, the method returns probabilities for each topic in range [0, 1]. Otherwise, it returns raw values in logit.
 )"",
 u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
+
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1186,16 +1339,22 @@ numeric_metadata : Iterable[float]
     연속형 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     범주형 메타데이터 변수
+multi_metadata : Iterable[str]
+    범주형 메타데이터 변수 (여러 개를 입력해야 하는 경우 사용하십시오)
 normalize : bool
     참인 경우, 각 값이 [0, 1] 범위에 있는 확률 분포를 반환합니다. 거짓인 경우 logit값을 그대로 반환합니다.
 )"");
 
 
 DOC_SIGNATURE_EN_KO(GDMR_tdf_linspace__doc__,
-	"tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', endpoint=True, normalize=True)",
+	"tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', multi_metadata=[], endpoint=True, normalize=True)",
 	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1207,6 +1366,8 @@ num : Iterable[int]
     the number of samples to generate for each metadata variable. Must be non-negative. Its length should be equal to the length of `degrees`.
 metadata : str
     categorical metadata variable
+multi_metadata : Iterable[str]
+    categorical metadata variables (for multiple values)
 endpoint : bool
     If True, `metadata_stop` is the last sample. Otherwise, it is not included. Default is True.
 normalize : bool
@@ -1219,7 +1380,11 @@ samples : ndarray
 )"",
 u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1231,6 +1396,8 @@ num : Iterable[int]
     각 메타데이터 변수별로 생성할 샘플의 개수(0보다 큰 정수). 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     범주형 메타데이터 변수
+multi_metadata : Iterable[str]
+    범주형 메타데이터 변수 (여러 개를 입력해야 하는 경우 사용하십시오)
 endpoint : bool
     참인 경우 `metadata_stop`이 마지막 샘플이 됩니다. 거짓인 경우 끝값이 샘플에 포함되지 않습니다. 기본값은 참입니다.
 normalize : bool

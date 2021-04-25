@@ -60,7 +60,7 @@ topic_model
 )"");
 
 DOC_SIGNATURE_EN_KO(PMIExtractor___init____doc__,
-	"PMIExtractor(min_cf=10, min_df=5, min_len=1, max_len=5, max_cand=5000)",
+	"PMIExtractor(min_cf=10, min_df=5, min_len=1, max_len=5, max_cand=5000, normalized=False)",
 	u8R""(.. versionadded:: 0.6.0
 
 `PMIExtractor` exploits multivariate pointwise mutual information to extract collocations. 

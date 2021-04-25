@@ -15,14 +15,14 @@ static int HLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &objAlpha, &margs.eta, &margs.gamma, &margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `depth` (given " + py::repr(objAlpha) + ")"; }
 		);
 
 		tomoto::ITopicModel* inst = tomoto::IHLDAModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
@@ -35,15 +35,7 @@ static int HLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 #define DEFINE_HLDA_TOPIC_METH(NAME) \
@@ -52,52 +44,35 @@ static PyObject* HLDA_##NAME(TopicModelObject* self, PyObject* args, PyObject *k
 	size_t topicId;\
 	static const char* kwlist[] = { "topic_id", nullptr };\
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;\
-	try\
+	return py::handleExc([&]()\
 	{\
-		if (!self->inst) throw runtime_error{ "inst is null" };\
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };\
 		auto* inst = static_cast<tomoto::IHLDAModel*>(self->inst);\
-		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };\
-		if (!self->isPrepared) throw runtime_error{ "train() should be called first" };\
+		if (topicId >= inst->getK()) throw py::ValueError{ "must topic_id < K" };\
+		if (!self->isPrepared) throw py::RuntimeError{ "train() should be called first" };\
 		return py::buildPyValue(inst->NAME(topicId));\
-	}\
-	catch (const bad_exception&)\
-	{\
-		return nullptr;\
-	}\
-	catch (const exception& e)\
-	{\
-		PyErr_SetString(PyExc_Exception, e.what());\
-		return nullptr;\
-	}\
+	});\
 }
 
 
 PyObject* Document_HLDA_Z(DocumentObject* self, void* closure)
 {
-	do
+	return docVisit<tomoto::DocumentHLDA>(self->getBoundDoc(), [](auto* doc)
 	{
-		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::one>*>(self->getBoundDoc());
-		if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->path[x]; });
-	} while (0);
-	do
-	{
-		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::idf>*>(self->getBoundDoc());
-		if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->path[x]; });
-	} while (0);
-	do
-	{
-		auto* doc = dynamic_cast<const tomoto::DocumentHLDA<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
-		if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->path[x]; });
-	} while (0);
-	return nullptr;
+		return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](tomoto::Tid x) -> int16_t
+		{ 
+			if (x == tomoto::non_topic_id) return -1;
+			return doc->path[x]; 
+		});
+	});
 }
 
 
 PyObject* HLDA_getAlpha(TopicModelObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHLDAModel*>(self->inst);
 		vector<float> ret;
 		for (size_t i = 0; i < inst->getLevelDepth(); ++i)
@@ -105,16 +80,7 @@ PyObject* HLDA_getAlpha(TopicModelObject* self, void* closure)
 			ret.emplace_back(inst->getAlpha(i));
 		}
 		return py::buildPyValue(ret);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 

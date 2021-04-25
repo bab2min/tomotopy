@@ -16,22 +16,24 @@ namespace tomoto
 		template<typename _WeightType>
 		struct GLMFunctor
 		{
-			Eigen::Matrix<Float, -1, 1> regressionCoef; // Dim : (K)
+			Vector regressionCoef; // Dim : (K)
 
-			GLMFunctor(size_t K = 0, Float mu = 0) : regressionCoef(Eigen::Matrix<Float, -1, 1>::Constant(K, mu))
+			GLMFunctor(size_t K = 0, Float mu = 0) : regressionCoef(Vector::Constant(K, mu))
 			{
 			}
 
 			virtual ISLDAModel::GLM getType() const = 0;
 
+			virtual std::unique_ptr<GLMFunctor> copy() const = 0;
+
 			virtual void updateZLL(
-				Eigen::Matrix<Float, -1, 1>& zLikelihood,
+				Vector& zLikelihood,
 				Float y, const Eigen::Matrix<_WeightType, -1, 1>& numByTopic, size_t docId, Float docSize) const = 0;
 
 			virtual void optimizeCoef(
-				const Eigen::Matrix<Float, -1, -1>& normZ,
+				const Matrix& normZ,
 				Float mu, Float nuSq,
-				Eigen::Block<Eigen::Matrix<Float, -1, -1>, -1, 1, true> ys
+				Eigen::Block<Matrix, -1, 1, true> ys
 			) = 0;
 
 			virtual double getLL(Float y, const Eigen::Matrix<_WeightType, -1, 1>& numByTopic,
@@ -69,8 +71,13 @@ namespace tomoto
 
 			ISLDAModel::GLM getType() const override { return ISLDAModel::GLM::linear; }
 
+			std::unique_ptr<GLMFunctor<_WeightType>> copy() const override
+			{
+				return std::make_unique<LinearFunctor>(*this);
+			}
+
 			void updateZLL(
-				Eigen::Matrix<Float, -1, 1>& zLikelihood,
+				Vector& zLikelihood,
 				Float y, const Eigen::Matrix<_WeightType, -1, 1>& numByTopic, size_t docId, Float docSize) const override
 			{
 				Float yErr = y -
@@ -81,14 +88,14 @@ namespace tomoto
 			}
 
 			void optimizeCoef(
-				const Eigen::Matrix<Float, -1, -1>& normZ,
+				const Matrix& normZ,
 				Float mu, Float nuSq,
-				Eigen::Block<Eigen::Matrix<Float, -1, -1>, -1, 1, true> ys
+				Eigen::Block<Matrix, -1, 1, true> ys
 			) override
 			{
-				Eigen::Matrix<Float, -1, -1> selectedNormZ = normZ.array().rowwise() * (!ys.array().transpose().isNaN()).template cast<Float>();
-				Eigen::Matrix<Float, -1, -1> normZZT = selectedNormZ * selectedNormZ.transpose();
-				normZZT += Eigen::Matrix<Float, -1, -1>::Identity(normZZT.cols(), normZZT.cols()) / nuSq;
+				Matrix selectedNormZ = normZ.array().rowwise() * (!ys.array().transpose().isNaN()).template cast<Float>();
+				Matrix normZZT = selectedNormZ * selectedNormZ.transpose();
+				normZZT += Matrix::Identity(normZZT.cols(), normZZT.cols()) / nuSq;
 				this->regressionCoef = normZZT.colPivHouseholderQr().solve(selectedNormZ * ys.array().isNaN().select(0, ys).matrix());
 			}
 
@@ -113,17 +120,22 @@ namespace tomoto
 		struct BinaryLogisticFunctor : public GLMFunctor<_WeightType>
 		{
 			Float b = 1;
-			Eigen::Matrix<Float, -1, 1> omega;
+			Vector omega;
 
 			BinaryLogisticFunctor(size_t K = 0, Float mu = 0, Float _b = 1, size_t numDocs = 0)
-				: GLMFunctor<_WeightType>(K, mu), b(_b), omega{ Eigen::Matrix<Float, -1, 1>::Ones(numDocs) }
+				: GLMFunctor<_WeightType>(K, mu), b(_b), omega{ Vector::Ones(numDocs) }
 			{
 			}
 
 			ISLDAModel::GLM getType() const override { return ISLDAModel::GLM::binary_logistic; }
 
+			std::unique_ptr<GLMFunctor<_WeightType>> copy() const override
+			{
+				return std::make_unique<BinaryLogisticFunctor>(*this);
+			}
+
 			void updateZLL(
-				Eigen::Matrix<Float, -1, 1>& zLikelihood,
+				Vector& zLikelihood,
 				Float y, const Eigen::Matrix<_WeightType, -1, 1>& numByTopic, size_t docId, Float docSize) const override
 			{
 				Float yErr = b * (y - 0.5f) -
@@ -134,18 +146,18 @@ namespace tomoto
 			}
 
 			void optimizeCoef(
-				const Eigen::Matrix<Float, -1, -1>& normZ,
+				const Matrix& normZ,
 				Float mu, Float nuSq,
-				Eigen::Block<Eigen::Matrix<Float, -1, -1>, -1, 1, true> ys
+				Eigen::Block<Matrix, -1, 1, true> ys
 			) override
 			{
-				Eigen::Matrix<Float, -1, -1> selectedNormZ = normZ.array().rowwise() * (!ys.array().transpose().isNaN()).template cast<Float>();
-				Eigen::Matrix<Float, -1, -1> normZZT = selectedNormZ * Eigen::DiagonalMatrix<Float, -1>{ omega } * selectedNormZ.transpose();
-				normZZT += Eigen::Matrix<Float, -1, -1>::Identity(normZZT.cols(), normZZT.cols()) / nuSq;
+				Matrix selectedNormZ = normZ.array().rowwise() * (!ys.array().transpose().isNaN()).template cast<Float>();
+				Matrix normZZT = selectedNormZ * Eigen::DiagonalMatrix<Float, -1>{ omega } * selectedNormZ.transpose();
+				normZZT += Matrix::Identity(normZZT.cols(), normZZT.cols()) / nuSq;
 
 				this->regressionCoef = normZZT
 					.colPivHouseholderQr().solve(selectedNormZ * ys.array().isNaN().select(0, b * (ys.array() - 0.5f)).matrix()
-						+ Eigen::Matrix<Float, -1, 1>::Constant(selectedNormZ.rows(), mu / nuSq));
+						+ Vector::Constant(selectedNormZ.rows(), mu / nuSq));
 
 				RandGen rng;
 				for (size_t i = 0; i < (size_t)omega.size(); ++i)
@@ -173,7 +185,19 @@ namespace tomoto
 
 			DEFINE_SERIALIZER_AFTER_BASE(GLMFunctor<_WeightType>, b, omega);
 		};
+
+		struct CopyGLMFunctor
+		{
+			template<typename Wt>
+			std::vector<std::unique_ptr<GLMFunctor<Wt>>> operator()(const std::vector<std::unique_ptr<GLMFunctor<Wt>>>& o)
+			{
+				std::vector<std::unique_ptr<GLMFunctor<Wt>>> ret;
+				for (auto& p : o) ret.emplace_back(p->copy());
+				return ret;
+			}
+		};
 	}
+
 
 	template<TermWeight _tw, typename _RandGen,
 		size_t _Flags = flags::partitioned_multisampling,
@@ -198,12 +222,12 @@ namespace tomoto
 		std::vector<ISLDAModel::GLM> varTypes;
 		std::vector<Float> glmParam;
 
-		Eigen::Matrix<Float, -1, 1> mu; // Mean of regression coefficients, Dim : (F)
-		Eigen::Matrix<Float, -1, 1> nuSq; // Variance of regression coefficients, Dim : (F)
+		Vector mu; // Mean of regression coefficients, Dim : (F)
+		Vector nuSq; // Variance of regression coefficients, Dim : (F)
 
-		std::vector<std::unique_ptr<detail::GLMFunctor<WeightType>>> responseVars;
-		Eigen::Matrix<Float, -1, -1> normZ; // topic proportions for all docs, Dim : (K, D)
-		Eigen::Matrix<Float, -1, -1> Ys; // response variables, Dim : (D, F)
+		DelegateCopy<std::vector<std::unique_ptr<detail::GLMFunctor<WeightType>>>, detail::CopyGLMFunctor> responseVars;
+		Matrix normZ; // topic proportions for all docs, Dim : (K, D)
+		Matrix Ys; // response variables, Dim : (D, F)
 
 		template<bool _asymEta>
 		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
@@ -299,11 +323,11 @@ namespace tomoto
 					switch (varTypes[f])
 					{
 					case ISLDAModel::GLM::linear:
-						v = make_unique<detail::LinearFunctor<WeightType>>(this->K, mu[f], 
+						v = std::make_unique<detail::LinearFunctor<WeightType>>(this->K, mu[f],
 							f < glmParam.size() ? glmParam[f] : 1.f);
 						break;
 					case ISLDAModel::GLM::binary_logistic:
-						v = make_unique<detail::BinaryLogisticFunctor<WeightType>>(this->K, mu[f],
+						v = std::make_unique<detail::BinaryLogisticFunctor<WeightType>>(this->K, mu[f],
 							f < glmParam.size() ? glmParam[f] : 1.f, this->docs.size());
 						break;
 					}
@@ -333,15 +357,15 @@ namespace tomoto
 
 			if (args.mu.size() == 0)
 			{
-				mu = Eigen::Matrix<Float, -1, 1>::Zero(F);
+				mu = Vector::Zero(F);
 			}
 			else if (args.mu.size() == 1)
 			{
-				mu = Eigen::Matrix<Float, -1, 1>::Constant(F, args.mu[0]);
+				mu = Vector::Constant(F, args.mu[0]);
 			}
 			else if (args.mu.size() == F)
 			{
-				mu = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.mu.data(), args.mu.size());
+				mu = Eigen::Map<const Vector>(args.mu.data(), args.mu.size());
 			}
 			else
 			{
@@ -350,15 +374,15 @@ namespace tomoto
 
 			if (args.nuSq.size() == 0)
 			{
-				nuSq = Eigen::Matrix<Float, -1, 1>::Ones(F);
+				nuSq = Vector::Ones(F);
 			}
 			else if (args.mu.size() == 1)
 			{
-				nuSq = Eigen::Matrix<Float, -1, 1>::Constant(F, args.nuSq[0]);
+				nuSq = Vector::Constant(F, args.nuSq[0]);
 			}
 			else if (args.mu.size() == F)
 			{
-				nuSq = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.nuSq.data(), args.nuSq.size());
+				nuSq = Eigen::Map<const Vector>(args.nuSq.data(), args.nuSq.size());
 			}
 			else
 			{
@@ -411,7 +435,7 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<Float>>("y")));
+			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<Float>>("y")));
 		}
 
 		size_t addDoc(const RawDoc& rawDoc) override
@@ -423,7 +447,7 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<Float>>("y")));
+			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<Float>>("y")));
 		}
 
 		std::vector<Float> estimateVars(const DocumentBase* doc) const override
@@ -450,10 +474,10 @@ namespace tomoto
 			switch ((ISLDAModel::GLM)(t - 1))
 			{
 			case ISLDAModel::GLM::linear:
-				p = make_unique<LinearFunctor<_WeightType>>();
+				p = std::make_unique<LinearFunctor<_WeightType>>();
 				break;
 			case ISLDAModel::GLM::binary_logistic:
-				p = make_unique<BinaryLogisticFunctor<_WeightType>>();
+				p = std::make_unique<BinaryLogisticFunctor<_WeightType>>();
 				break;
 			default:
 				throw std::ios_base::failure(text::format("wrong GLMFunctor type id %d", (t - 1)));

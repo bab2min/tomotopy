@@ -16,7 +16,7 @@ namespace tomoto
 		using WeightType = typename ModelStateLDA<_tw>::WeightType;
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 		Eigen::Matrix<WeightType, -1, 1> numByTopic2;
-		Eigen::Matrix<Float, -1, 1> subTmp;
+		Vector subTmp;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numByTopic1_2, numByTopic2);
 	};
@@ -41,8 +41,8 @@ namespace tomoto
 		Float epsilon = 1e-5;
 		size_t iteration = 5;
 
-		Eigen::Matrix<Float, -1, 1> subAlphaSum; // len = K
-		Eigen::Matrix<Float, -1, -1> subAlphas; // len = K * K2
+		Vector subAlphaSum; // len = K
+		Matrix subAlphas; // len = K * K2
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			const auto K = this->K;
@@ -286,7 +286,7 @@ namespace tomoto
 			BaseClass::prepareDoc(doc, docId, wordSize);
 
 			doc.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2);
-			doc.Z2s = tvector<Tid>(wordSize);
+			doc.Z2s = tvector<Tid>(wordSize, non_topic_id);
 		}
 
 		void prepareWordPriors()
@@ -299,7 +299,7 @@ namespace tomoto
 			{
 				auto id = this->dict.toWid(it.first);
 				if (id == (Vid)-1 || id >= this->realV) continue;
-				this->etaByTopicWord.col(id) = Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ it.second.data(), (Eigen::Index)it.second.size() };
+				this->etaByTopicWord.col(id) = Eigen::Map<Vector>{ it.second.data(), (Eigen::Index)it.second.size() };
 			}
 			this->etaSumByTopic = this->etaByTopicWord.rowwise().sum();
 		}
@@ -307,7 +307,7 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(this->K * K2);
+			this->globalState.zLikelihood = Vector::Zero(this->K * K2);
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K);
@@ -372,7 +372,7 @@ namespace tomoto
 
 			if (args.subalpha.size() == 1)
 			{
-				subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(args.k, args.k2, args.subalpha[0]);
+				subAlphas = Matrix::Constant(args.k, args.k2, args.subalpha[0]);
 			}
 			else if(args.subalpha.size() == args.k2)
 			{
@@ -391,7 +391,7 @@ namespace tomoto
 
 		void setDirichletEstIteration(size_t iter) override
 		{
-			if (!iter) throw std::invalid_argument("iter must > 0");
+			if (!iter) throw exc::InvalidArgument("iter must > 0");
 			iteration = iter;
 		}
 

@@ -114,8 +114,8 @@ namespace tomoto
 			static constexpr size_t blockSize = 8;
 			std::vector<NCRPNode> nodes;
 			std::vector<uint8_t> levelBlocks;
-			Eigen::Matrix<Float, -1, 1> nodeLikelihoods; // 
-			Eigen::Matrix<Float, -1, 1> nodeWLikelihoods; //
+			Vector nodeLikelihoods; // 
+			Vector nodeWLikelihoods; //
 
 			DEFINE_SERIALIZER(nodes, levelBlocks);
 
@@ -351,6 +351,8 @@ namespace tomoto
 		template<GlobalSampler _gs>
 		void samplePathes(_DocType& doc, ThreadPool* pool, _ModelState& ld, _RandGen& rgs) const
 		{
+			if (!doc.getSumWordWeight()) return;
+
 			if(_gs != GlobalSampler::inference) ld.nt->nodes[doc.path.back()].dropPathOne();
 			ld.nt->template calcNodeLikelihood<_gs == GlobalSampler::train>(gamma, this->K);
 
@@ -516,7 +518,7 @@ namespace tomoto
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
 			doc.numByTopic.init(nullptr, this->K, 1);
-			doc.Zs = tvector<Tid>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize, non_topic_id);
 			doc.path.resize(this->K);
 			for (size_t l = 0; l < this->K; ++l) doc.path[l] = l;
 			

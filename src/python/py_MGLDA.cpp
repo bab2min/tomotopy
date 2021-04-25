@@ -22,33 +22,25 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &margs.kL, &margs.t, &margs.alpha[0], &margs.alphaL[0], &margs.alphaMG, &margs.alphaML, &margs.eta, &margs.etaL, &margs.gamma,
 		&margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, 
-			margs.k, margs.kL, margs.t, margs.alpha[0], margs.alphaL[0], 
+			tw, minCnt, minDf, rmTop,
+			margs.k, margs.kL, margs.t, margs.alpha[0], margs.alphaL[0],
 			margs.alphaMG, margs.alphaML, margs.eta, margs.etaL, margs.gamma, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -57,26 +49,20 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 	const char* delimiter = ".";
 	static const char* kwlist[] = { "words", "delimiter", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &delimiter)) return nullptr;
-	try
+	return py::handleExc([&]() -> PyObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (self->isPrepared) throw py::RuntimeError{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
+		if (PyUnicode_Check(argWords))
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["delimiter"] = delimiter;
 		auto ret = inst->addDoc(raw);
 		return py::buildPyValue(ret);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static DocumentObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -85,11 +71,14 @@ static DocumentObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyO
 	const char* delimiter = ".";
 	static const char* kwlist[] = { "words", "delimiter", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &delimiter)) return nullptr;
-	try
+	return py::handleExc([&]() -> DocumentObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
+		if (PyUnicode_Check(argWords))
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["delimiter"] = delimiter;
 		auto doc = inst->makeDoc(raw);
@@ -98,16 +87,7 @@ static DocumentObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyO
 		ret->doc = doc.release();
 		ret->owner = true;
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -115,27 +95,14 @@ static PyObject* MGLDA_getTopicWords(TopicModelObject* self, PyObject* args, PyO
 	size_t topicId, topN = 10;
 	static const char* kwlist[] = { "topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId >= inst->getK() + inst->getKL()) throw py::ValueError{ "must topic_id < KG + KL" };
+
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -143,27 +110,14 @@ static PyObject* MGLDA_getTopicWordDist(TopicModelObject* self, PyObject* args, 
 	size_t topicId, normalize = 1;
 	static const char* kwlist[] = { "topic_id", "normalize", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
-	try
+	return py::handleExc([&]() -> PyObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
-		if (topicId >= inst->getK() + inst->getKL()) throw runtime_error{ "must topic_id < KG + KL" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId >= inst->getK() + inst->getKL()) throw py::ValueError{ "must topic_id < KG + KL" };
+
 		return py::buildPyValue(inst->getWidsByTopic(topicId, !!normalize));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 DEFINE_GETTER(tomoto::IMGLDAModel, MGLDA, getKL);

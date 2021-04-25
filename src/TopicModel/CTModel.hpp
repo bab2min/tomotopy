@@ -56,14 +56,14 @@ namespace tomoto
 
 		void updateBeta(_DocType& doc, _RandGen& rg) const
 		{
-			Eigen::Matrix<Float, -1, 1> pbeta, lowerBound, upperBound;
+			Vector pbeta, lowerBound, upperBound;
 			constexpr Float epsilon = 1e-8;
 			constexpr size_t burnIn = 3;
 
-			pbeta = lowerBound = upperBound = Eigen::Matrix<Float, -1, 1>::Zero(this->K);
+			pbeta = lowerBound = upperBound = Vector::Zero(this->K);
 			for (size_t i = 0; i < numBetaSample + burnIn; ++i)
 			{
-				if (i == 0) pbeta = Eigen::Matrix<Float, -1, 1>::Ones(this->K);
+				if (i == 0) pbeta = Vector::Ones(this->K);
 				else pbeta = doc.beta.col(i % numBetaSample).array().exp();
 
 				Float betaESum = pbeta.sum() + 1;
@@ -199,7 +199,7 @@ namespace tomoto
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				Eigen::Matrix<Float, -1, 1> pbeta = doc.smBeta.array().log();
+				Vector pbeta = doc.smBeta.array().log();
 				Float last = pbeta[K - 1];
 				for (Tid k = 0; k < K; ++k)
 				{
@@ -215,8 +215,8 @@ namespace tomoto
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			BaseClass::prepareDoc(doc, docId, wordSize);
-			doc.beta = Eigen::Matrix<Float, -1, -1>::Zero(this->K, numBetaSample);
-			doc.smBeta = Eigen::Matrix<Float, -1, 1>::Constant(this->K, (Float)1 / this->K);
+			doc.beta = Matrix::Zero(this->K, numBetaSample);
+			doc.smBeta = Vector::Constant(this->K, (Float)1 / this->K);
 		}
 
 		void updateDocs()
@@ -224,7 +224,7 @@ namespace tomoto
 			BaseClass::updateDocs();
 			for (auto& doc : this->docs)
 			{
-				doc.beta = Eigen::Matrix<Float, -1, -1>::Zero(this->K, numBetaSample);
+				doc.beta = Matrix::Zero(this->K, numBetaSample);
 			}
 		}
 
@@ -274,7 +274,7 @@ namespace tomoto
 
 		std::vector<Float> getCorrelationTopic(Tid k) const override
 		{
-			Eigen::Matrix<Float, -1, 1> ret = topicPrior.cov.col(k).array() / (topicPrior.cov.diagonal().array() * topicPrior.cov(k, k)).sqrt();
+			Vector ret = topicPrior.cov.col(k).array() / (topicPrior.cov.diagonal().array() * topicPrior.cov(k, k)).sqrt();
 			return { ret.data(), ret.data() + ret.size() };
 		}
 

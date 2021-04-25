@@ -38,7 +38,7 @@ print('Num docs:{}, Num Vocabs:{}, Total Words:{}'.format(
 for i in range(0, 2000, 20):
     print('Iteration: {:04} LL per word: {:.4}'.format(i, mdl.ll_per_word))
     mdl.train(20)
-print('Iteration: {:04} LL per word: {:.4}'.format(1000, mdl.ll_per_word))
+print('Iteration: {:04} LL per word: {:.4}'.format(2000, mdl.ll_per_word))
 
 mdl.summary()
 

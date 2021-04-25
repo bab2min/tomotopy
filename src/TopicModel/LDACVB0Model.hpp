@@ -85,7 +85,7 @@ namespace tomoto
 		static constexpr static constexpr char TMID[] = "LDA\0";
 
 		Float alpha;
-		Eigen::Matrix<Float, -1, 1> alphas;
+		Vector alphas;
 		Float eta;
 		Tid K;
 		size_t optimInterval = 50;
@@ -93,7 +93,7 @@ namespace tomoto
 		template<typename _List>
 		static Float calcDigammaSum(_List list, size_t len, Float alpha)
 		{
-			auto listExpr = Eigen::Matrix<Float, -1, 1>::NullaryExpr(len, list);
+			auto listExpr = Vector::NullaryExpr(len, list);
 			auto dAlpha = math::digammaT(alpha);
 			return (math::digammaApprox(listExpr.array() + alpha) - dAlpha).sum();
 		}
@@ -265,11 +265,11 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(K);
+			this->globalState.zLikelihood = Vector::Zero(K);
 			if (initDocs)
 			{
-				this->globalState.numByTopic = Eigen::Matrix<Float, -1, 1>::Zero(K);
-				this->globalState.numByTopicWord = Eigen::Matrix<Float, -1, -1>::Zero(K, V);
+				this->globalState.numByTopic = Vector::Zero(K);
+				this->globalState.numByTopicWord = Matrix::Zero(K, V);
 			}
 		}
 
@@ -335,7 +335,7 @@ namespace tomoto
 		LDACVB0Model(size_t _K = 1, Float _alpha = 0.1, Float _eta = 0.01, size_t _rg = std::random_device{}())
 			: BaseClass(_rg), K(_K), alpha(_alpha), eta(_eta)
 		{ 
-			alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);
+			alphas = Vector::Constant(K, alpha);
 		}
 		GETTER(K, size_t, K);
 		GETTER(Alpha, Float, alpha);
@@ -355,7 +355,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const std::vector<std::string>& words) const override
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeDoc<true>(words));
+			return std::make_unique<_DocType>(as_mutable(this)->template _makeDoc<true>(words));
 		}
 
 		void updateDocs()

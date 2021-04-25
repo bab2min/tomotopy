@@ -59,9 +59,16 @@ def basic_info_DMRModel(mdl, file):
     from collections import Counter
     basic_info_LDAModel(mdl, file)
     md_cnt = Counter(doc.metadata for doc in mdl.docs)
-    print('| Metadata of docs and its distribution', file=file)
-    for md in mdl.metadata_dict:
-        print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+    if len(md_cnt) > 1:
+        print('| Metadata of docs and its distribution', file=file)
+        for md in mdl.metadata_dict:
+            print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+    md_cnt = Counter()
+    [md_cnt.update(doc.multi_metadata) for doc in mdl.docs]
+    if len(md_cnt) > 0:
+        print('| Multi-Metadata of docs and its distribution', file=file)
+        for md in mdl.multi_metadata_dict:
+            print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
 
 def basic_info_GDMRModel(mdl, file):
     from collections import Counter
@@ -72,6 +79,12 @@ def basic_info_GDMRModel(mdl, file):
     if len(md_cnt) > 1:
         print('| Categorical metadata of docs and its distribution', file=file)
         for md in mdl.metadata_dict:
+            print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+    md_cnt = Counter()
+    [md_cnt.update(doc.multi_metadata) for doc in mdl.docs]
+    if len(md_cnt) > 0:
+        print('| Categorical multi-metadata of docs and its distribution', file=file)
+        for md in mdl.multi_metadata_dict:
             print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
 
     md_stack = np.stack([doc.numeric_metadata for doc in mdl.docs])
@@ -153,7 +166,7 @@ def params_info_SLDAModel(mdl, file):
 
 def params_info_DMRModel(mdl, file):
     print('| lambda (feature vector per metadata of documents)\n'
-        '|  {}'.format(_format_numpy(mdl.lambdas, '|  ')), file=file)
+        '|  {}'.format(_format_numpy(mdl.lambda_, '|  ')), file=file)
     print('| alpha (Dirichlet prior on the per-document topic distributions for each metadata)', file=file)
     for i, md in enumerate(mdl.metadata_dict):
         print('|  {}: {}'.format(md, _format_numpy(mdl.alpha[:, i], '|    ')), file=file)
@@ -162,7 +175,7 @@ def params_info_DMRModel(mdl, file):
 
 def params_info_GDMRModel(mdl, file):
     print('| lambda (feature vector per metadata of documents)\n'
-        '|  {}'.format(_format_numpy(mdl.lambdas, '|  ')), file=file)
+        '|  {}'.format(_format_numpy(mdl.lambda_, '|  ')), file=file)
     print('| eta (Dirichlet prior on the per-topic word distribution)\n'
         '|  {:.5}'.format(mdl.eta), file=file)
 

@@ -35,8 +35,8 @@ namespace tomoto
 				bitsize = o.bitsize;
 				if (msize)
 				{
-					arr = make_unique<_Precision[]>(1 << bitsize);
-					alias = make_unique<size_t[]>(1 << bitsize);
+					arr = std::make_unique<_Precision[]>(1 << bitsize);
+					alias = std::make_unique<size_t[]>(1 << bitsize);
 
 					std::copy(o.arr.get(), o.arr.get() + (1 << bitsize), arr.get());
 					std::copy(o.alias.get(), o.alias.get() + (1 << bitsize), alias.get());
@@ -78,15 +78,15 @@ namespace tomoto
 
 				if (nbsize != bitsize)
 				{
-					arr = make_unique<_Precision[]>(psize);
+					arr = std::make_unique<_Precision[]>(psize);
 					std::fill(arr.get(), arr.get() + psize, 0);
-					alias = make_unique<size_t[]>(psize);
+					alias = std::make_unique<size_t[]>(psize);
 					bitsize = nbsize;
 				}
 				
 				sum /= psize;
 
-				auto f = make_unique<double[]>(psize);
+				auto f = std::make_unique<double[]>(psize);
 				auto pf = f.get();
 				for (auto it = first; it != last; ++it, ++pf)
 				{

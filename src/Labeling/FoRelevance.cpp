@@ -6,6 +6,55 @@
 
 using namespace tomoto::label;
 
+template<bool reverse = false>
+class DocWordIterator
+{
+	const tomoto::DocumentBase* doc = nullptr;
+	size_t n = 0;
+public:
+	DocWordIterator(const tomoto::DocumentBase* _doc = nullptr, size_t _n = 0)
+		: doc{ _doc }, n{ _n }
+	{
+	}
+
+	tomoto::Vid operator[](size_t i) const
+	{
+		return doc->words[doc->wOrder.empty() ? (n + i) : doc->wOrder[n + i]];
+	}
+
+	tomoto::Vid operator*() const
+	{
+		return doc->words[doc->wOrder.empty() ? n : doc->wOrder[n]];
+	}
+
+	bool operator==(const DocWordIterator& o) const
+	{
+		return doc == o.doc && n == o.n;
+	}
+
+	bool operator!=(const DocWordIterator& o) const
+	{
+		return !operator==(o);
+	}
+
+	DocWordIterator& operator++()
+	{
+		if (reverse) --n;
+		else ++n;
+		return *this;
+	}
+
+	DocWordIterator operator+(ptrdiff_t o) const
+	{
+		return { doc, (size_t)((ptrdiff_t)n + o) };
+	}
+
+	DocWordIterator operator-(ptrdiff_t o) const
+	{
+		return { doc, (size_t)((ptrdiff_t)n - o) };
+	}
+};
+
 class DocWrapper
 {
 	const tomoto::DocumentBase* doc;
@@ -25,24 +74,24 @@ public:
 		return doc->words[doc->wOrder.empty() ? idx : doc->wOrder[idx]];
 	}
 
-	auto begin() const -> decltype(doc->words.begin())
+	DocWordIterator<> begin() const
 	{
-		return doc->words.begin();
+		return { doc, 0 };
 	}
 
-	auto end() const -> decltype(doc->words.end())
+	DocWordIterator<> end() const
 	{
-		return doc->words.end();
+		return { doc, doc->words.size() };
 	}
 
-	auto rbegin() const -> decltype(doc->words.rbegin())
+	DocWordIterator<true> rbegin() const
 	{
-		return doc->words.rbegin();
+		return { doc, doc->words.size() };
 	}
 
-	auto rend() const -> decltype(doc->words.rend())
+	DocWordIterator<true> rend() const
 	{
-		return doc->words.rend();
+		return { doc, 0 };
 	}
 };
 
@@ -98,7 +147,6 @@ std::vector<Candidate> PMIExtractor::extract(const tomoto::ITopicModel* tm) cons
 	}
 	return candidates;
 }
-
 
 std::vector<Candidate> tomoto::label::PMIBEExtractor::extract(const ITopicModel* tm) const
 {
@@ -217,11 +265,11 @@ void FoRelevance::estimateContexts()
 		}
 	}
 
-	Eigen::Matrix<Float, -1, -1> wordTopicDist{ tm->getV(), tm->getK() };
+	Matrix wordTopicDist{ tm->getV(), tm->getK() };
 	for (size_t i = 0; i < tm->getK(); ++i)
 	{
 		auto dist = tm->getWidsByTopic(i);
-		wordTopicDist.col(i) = Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ dist.data(), (Eigen::Index)dist.size() };
+		wordTopicDist.col(i) = Eigen::Map<Vector>{ dist.data(), (Eigen::Index)dist.size() };
 	}
 
 	size_t totDocCnt = 0;
@@ -256,7 +304,7 @@ void FoRelevance::estimateContexts()
 		}
 
 		size_t docCnt = 0;
-		Eigen::Matrix<Float, -1, 1> wcPMI = Eigen::Matrix<Float, -1, 1>::Zero(this->tm->getV());
+		Vector wcPMI = Vector::Zero(this->tm->getV());
 		for (auto& docId : c.docIds)
 		{
 			thread_local Eigen::VectorXi bdf(this->tm->getV());

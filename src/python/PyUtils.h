@@ -76,15 +76,311 @@ namespace py
 		}
 	};
 
-	class ConversionFail : public std::runtime_error
+	class ExcPropagation : public std::runtime_error
+	{
+	public:
+		ExcPropagation() : std::runtime_error{ "" }
+		{
+		}
+	};
+
+	class BaseException : public std::runtime_error
 	{
 	public:
 		using std::runtime_error::runtime_error;
 
+		virtual PyObject* pytype() const
+		{
+			return PyExc_BaseException;
+		}
+	};
+
+	class Exception : public BaseException
+	{
+	public:
+		using BaseException::BaseException;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_Exception;
+		}
+	};
+
+	class StopIteration : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_StopIteration;
+		}
+	};
+
+	class StopAsyncIteration : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_StopAsyncIteration;
+		}
+	};
+
+	class ArithmeticError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_ArithmeticError;
+		}
+	};
+
+	class AssertionError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_AssertionError;
+		}
+	};
+
+	class AttributeError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_AttributeError;
+		}
+	};
+
+	class BufferError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_BufferError;
+		}
+	};
+
+	class EOFError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_EOFError;
+		}
+	};
+
+	class ImportError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_ImportError;
+		}
+	};
+
+	class LookupError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_LookupError;
+		}
+	};
+
+	class IndexError : public LookupError
+	{
+	public:
+		using LookupError::LookupError;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_IndexError;
+		}
+	};
+
+	class KeyError : public LookupError
+	{
+	public:
+		using LookupError::LookupError;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_KeyError;
+		}
+	};
+
+	class MemoryError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_MemoryError;
+		}
+	};
+
+	class NameError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_NameError;
+		}
+	};
+
+	class OSError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_OSError;
+		}
+	};
+
+	class ReferenceError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_ReferenceError;
+		}
+	};
+
+	class RuntimeError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_RuntimeError;
+		}
+	};
+
+	class SyntaxError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_SyntaxError;
+		}
+	};
+
+	class SystemError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_SystemError;
+		}
+	};
+
+	class TypeError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_TypeError;
+		}
+	};
+
+	class ValueError : public Exception
+	{
+	public:
+		using Exception::Exception;
+
+		virtual PyObject* pytype() const
+		{
+			return PyExc_ValueError;
+		}
+	};
+
+	template<typename _Fn>
+	auto handleExc(_Fn&& fn) 
+		-> typename std::enable_if<std::is_pointer<decltype(fn())>::value, decltype(fn())>::type
+	{
+		try
+		{
+			return fn();
+		}
+		catch (const ExcPropagation&)
+		{
+		}
+		catch (const BaseException& e)
+		{
+			PyErr_SetString(e.pytype(), e.what());
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Uncaughted c++ exception: " << e.what() << std::endl;
+			PyErr_SetString(PyExc_RuntimeError, e.what());
+		}
+		return nullptr;
+	}
+
+	template<typename _Fn>
+	auto handleExc(_Fn&& fn)
+		-> typename std::enable_if<std::is_integral<decltype(fn())>::value, decltype(fn())>::type
+	{
+		try
+		{
+			return fn();
+		}
+		catch (const ExcPropagation&)
+		{
+		}
+		catch (const BaseException& e)
+		{
+			PyErr_SetString(e.pytype(), e.what());
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Uncaughted c++ exception: " << e.what() << std::endl;
+			PyErr_SetString(PyExc_RuntimeError, e.what());
+		}
+		return -1;
+	}
+
+	class ConversionFail : public ValueError
+	{
+	public:
+		using ValueError::ValueError;
+
 		template<typename _Ty, 
 			typename = typename std::enable_if<std::is_constructible<std::function<std::string()>, _Ty>::value>::type
 		>
-		ConversionFail(_Ty&& callable) : runtime_error{ callable() }
+		ConversionFail(_Ty&& callable) : ValueError{ callable() }
 		{
 		}
 	};
@@ -110,6 +406,14 @@ namespace py
 	inline std::string repr(PyObject* o)
 	{
 		UniqueObj r{ PyObject_Repr(o) };
+		return toCpp<std::string>(r, "");
+	}
+
+	template<typename _Ty>
+	inline std::string reprFromCpp(_Ty&& o)
+	{
+		UniqueObj p{ py::buildPyValue(std::forward<_Ty>(o)) };
+		UniqueObj r{ PyObject_Repr(p) };
 		return toCpp<std::string>(r, "");
 	}
 
@@ -631,7 +935,7 @@ namespace py
 		PyObject*
 	>::type buildPyValueTransform(_Ty first, _Ty last, _Tx tx)
 	{
-		using value_type = typename std::iterator_traits<_Ty>::value_type;
+		using value_type = decltype(tx(*first));
 		npy_intp size = std::distance(first, last);
 		PyObject* ret = PyArray_EMPTY(1, &size, detail::NpyType<value_type>::type, 0);
 		size_t id = 0;
@@ -730,48 +1034,4 @@ namespace py
 		detail::setTupleItem<0>(tuple, std::forward<_Rest>(rest)...);
 		return tuple;
 	}
-
-	class WarningLog
-	{
-		std::set<std::tuple<std::string, int, std::string>> printed;
-
-		WarningLog()
-		{
-		}
-	public:
-		static WarningLog& get()
-		{
-			thread_local WarningLog inst;
-			return inst;
-		}
-
-		void print(std::ostream& ostr, const std::string& msg)
-		{
-			auto frame = PyEval_GetFrame();
-			auto key = std::make_tuple(
-				std::string{ PyUnicode_AsUTF8(frame->f_code->co_filename) },
-				PyFrame_GetLineNumber(frame),
-				msg);
-
-			ostr << std::get<0>(key) << "(" << std::get<1>(key) << "): " << std::get<2>(key) << std::endl;
-		}
-
-		void printOnce(std::ostream& ostr, const std::string& msg)
-		{
-			auto frame = PyEval_GetFrame();
-			auto key = std::make_tuple(
-				std::string{ PyUnicode_AsUTF8(frame->f_code->co_filename) }, 
-				PyFrame_GetLineNumber(frame),
-				msg);
-
-			if (!printed.count(key))
-			{
-				ostr << std::get<0>(key) << "(" << std::get<1>(key) << "): " << std::get<2>(key) << std::endl;
-				printed.insert(key);
-			}
-		}
-	};
 }
-
-#define PRINT_WARN(msg) do{ py::WarningLog::get().print(std::cerr, msg); } while(0)
-#define PRINT_WARN_ONCE(msg) do{ py::WarningLog::get().printOnce(std::cerr, msg); } while(0)

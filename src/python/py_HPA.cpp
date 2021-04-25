@@ -15,7 +15,7 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &margs.k2, &objAlpha, &objSubAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k + 1,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k1 + 1` (given " + py::repr(objAlpha) + ")"; }
@@ -24,9 +24,9 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (objSubAlpha) margs.subalpha = broadcastObj<tomoto::Float>(objSubAlpha, margs.k2 + 1,
 			[=]() { return "`subalpha` must be an instance of `float` or `List[float]` with length `k2 + 1` (given " + py::repr(objSubAlpha) + ")"; }
 		);
-		tomoto::ITopicModel* inst = tomoto::IHPAModel::create((tomoto::TermWeight)tw, 
+		tomoto::ITopicModel* inst = tomoto::IHPAModel::create((tomoto::TermWeight)tw,
 			false, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
@@ -39,15 +39,7 @@ static int HPA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -55,27 +47,14 @@ static PyObject* HPA_getTopicWords(TopicModelObject* self, PyObject* args, PyObj
 	size_t topicId, topN = 10;
 	static const char* kwlist[] = { "topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
-		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId > inst->getK() + inst->getK2()) throw py::ValueError{ "must topic_id < 1 + K1 + K2" };
+
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -83,37 +62,25 @@ static PyObject* HPA_getTopicWordDist(TopicModelObject* self, PyObject* args, Py
 	size_t topicId, normalize = 1;
 	static const char* kwlist[] = { "topic_id", "normalize", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
-		if (topicId > inst->getK() + inst->getK2()) throw runtime_error{ "must topic_id < 1 + K1 + K2" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId > inst->getK() + inst->getK2()) throw py::ValueError{ "must topic_id < 1 + K1 + K2" };
+		
 		return py::buildPyValue(inst->getWidsByTopic(topicId, !!normalize));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
+
 DEFINE_LOADER(HPA, HPA_type);
 
 PyObject* LDA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs);
 
 static PyObject* HPA_getAlpha(TopicModelObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
 		npy_intp shapes[1] = { (npy_intp)inst->getK() + 1 };
 		PyObject* ret = PyArray_EMPTY(1, shapes, NPY_FLOAT, 0);
@@ -122,23 +89,14 @@ static PyObject* HPA_getAlpha(TopicModelObject* self, void* closure)
 			*(float*)PyArray_GETPTR1((PyArrayObject*)ret, i) = inst->getAlpha(i);
 		}
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* HPA_getSubalpha(TopicModelObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHPAModel*>(self->inst);
 		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getK2() + 1 };
 		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
@@ -148,16 +106,7 @@ static PyObject* HPA_getSubalpha(TopicModelObject* self, void* closure)
 			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
 		}
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyMethodDef HPA_methods[] =

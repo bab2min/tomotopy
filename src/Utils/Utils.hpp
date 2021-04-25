@@ -10,24 +10,109 @@
 
 namespace tomoto
 {
-	template<typename T, typename... Args, 
-		typename std::enable_if<!std::is_array<T>::value, int>::type = 0>
-	std::unique_ptr<T> make_unique(Args&&... args)
-	{
-		return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-	}
-
-	template<typename T,
-		typename std::enable_if<std::is_array<T>::value, int>::type = 0>
-	std::unique_ptr<T> make_unique(size_t size)
-	{
-		return std::unique_ptr<T>(new typename std::remove_extent<T>::type [size]);
-	}
-
 	template<typename T>
 	constexpr T * as_mutable(const T * value) noexcept {
 		return const_cast<T *>(value);
 	}
+
+	template <typename T>
+	class PreventCopy : public T
+	{
+	public:
+		template <typename... Args>
+		PreventCopy(Args&&... args) :
+			T(std::forward<Args>(args)...)
+		{
+		}
+
+		PreventCopy(const PreventCopy& from)
+		{
+		}
+
+		PreventCopy(PreventCopy&& from) :
+			T(static_cast<T&&>(from))
+		{
+		}
+
+		PreventCopy& operator=(const T& from)
+		{
+			T::operator=(from);
+			return *this;
+		}
+
+		PreventCopy& operator=(T&& from)
+		{
+			T::operator=(std::move(from));
+			return *this;
+		}
+
+		PreventCopy& operator=(const PreventCopy& from)
+		{
+			return *this;
+		}
+
+		PreventCopy& operator=(PreventCopy&& from)
+		{
+			T::operator=(static_cast<T&&>(from));
+			return *this;
+		}
+	};
+
+	template <typename T, typename Delegator>
+	class DelegateCopy : public T
+	{
+	public:
+		template <typename... Args>
+		DelegateCopy(Args&&... args) :
+			T(std::forward<Args>(args)...)
+		{
+		}
+
+		DelegateCopy(const T& from) :
+			T(Delegator{}(from))
+		{
+		}
+
+		DelegateCopy(const DelegateCopy& from) :
+			T(Delegator{}(from))
+		{
+		}
+
+		DelegateCopy(T&& from) :
+			T(static_cast<T&&>(from))
+		{
+		}
+
+		DelegateCopy(DelegateCopy&& from) :
+			T(static_cast<T&&>(from))
+		{
+		}
+
+		DelegateCopy& operator=(const T& from)
+		{
+			T::operator=(from);
+			return *this;
+		}
+
+		DelegateCopy& operator=(T&& from)
+		{
+			T::operator=(std::move(from));
+			return *this;
+		}
+
+		DelegateCopy& operator=(const DelegateCopy& from)
+		{
+			T::operator=(Delegator{}(from));
+			return *this;
+		}
+
+		DelegateCopy& operator=(DelegateCopy&& from)
+		{
+			T::operator=(static_cast<T&&>(from));
+			return *this;
+		}
+	};
+
 
 	template<bool _lock>
 	class OptionalLock : public std::lock_guard<std::mutex>

@@ -26,14 +26,10 @@ namespace tomoto
 
 		tvector() noexcept
 		{
-			_first = _Alloc{}.allocate(4);
-			_last = _first;
-			_rsvEnd = _first + 4;
 		}
 
 		tvector(std::nullptr_t) noexcept
 		{
-
 		}
 
 		// non-owning, just pointing constructor
@@ -294,7 +290,7 @@ namespace tomoto
 
 		bool isOwner() const noexcept
 		{
-			return _rsvEnd;
+			return _rsvEnd || (_rsvEnd == nullptr && _first == nullptr);
 		}
 
 		// 23.3.11.5, modifiers:
@@ -523,8 +519,11 @@ namespace tomoto
 		{
 			size_type s = size();
 			T *tarr = _Alloc{}.allocate(newSize);
-			memcpy(tarr, _first, s * sizeof(T));
-			_Alloc{}.deallocate(_first, capacity());
+			if (_first)
+			{
+				memcpy(tarr, _first, s * sizeof(T));
+				_Alloc{}.deallocate(_first, capacity());
+			}
 			_first = tarr;
 			_last = _first + s;
 			_rsvEnd = _first + newSize;

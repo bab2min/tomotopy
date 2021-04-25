@@ -41,8 +41,21 @@ namespace tomoto
 		virtual const std::vector<uint64_t>& getFs() const = 0;
 		virtual std::vector<Float> getLambdaByTopic(Tid tid) const = 0;
 
-		virtual std::vector<Float> getTDF(const Float* metadata, size_t metadataCat, bool normalize) const = 0;
-		virtual std::vector<Float> getTDFBatch(const Float* metadata, size_t metadataCat, size_t stride, size_t cnt, bool normalize) const = 0;
+		virtual std::vector<Float> getTDF(
+			const Float* metadata, 
+			const std::string& metadataCat, 
+			const std::vector<std::string>& multiMetadataCat, 
+			bool normalize
+		) const = 0;
+
+		virtual std::vector<Float> getTDFBatch(
+			const Float* metadata, 
+			const std::string& metadataCat, 
+			const std::vector<std::string>& multiMetadataCat,
+			size_t stride, 
+			size_t cnt, 
+			bool normalize
+		) const = 0;
 
 		virtual void setMdRange(const std::vector<Float>& vMin, const std::vector<Float>& vMax) = 0;
 		virtual void getMdRange(std::vector<Float>& vMin, std::vector<Float>& vMax) const = 0;

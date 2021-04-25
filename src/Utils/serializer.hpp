@@ -435,6 +435,16 @@ namespace tomoto
 		};
 
 		template<typename _Ty>
+		struct Serializer<PreventCopy<_Ty>> : public Serializer<_Ty>
+		{
+		};
+
+		template<typename _Ty, typename _Ty2>
+		struct Serializer<DelegateCopy<_Ty, _Ty2>> : public Serializer<_Ty>
+		{
+		};
+
+		template<typename _Ty>
 		struct Serializer<std::vector<_Ty>, typename std::enable_if<std::is_fundamental<_Ty>::value>::type>
 		{
 			using VTy = std::vector<_Ty>;

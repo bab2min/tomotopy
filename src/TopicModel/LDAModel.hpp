@@ -56,7 +56,7 @@ namespace tomoto
 	{
 		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
-		Eigen::Matrix<Float, -1, 1> zLikelihood;
+		Vector zLikelihood;
 		Eigen::Matrix<WeightType, -1, 1> numByTopic; // Dim: (Topic, 1)
 		//Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
 		ShareableMatrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
@@ -179,10 +179,10 @@ namespace tomoto
 		std::vector<Float> sharedWordWeights;
 		Tid K;
 		Float alpha, eta;
-		Eigen::Matrix<Float, -1, 1> alphas;
+		Vector alphas;
 		std::unordered_map<std::string, std::vector<Float>> etaByWord;
-		Eigen::Matrix<Float, -1, -1> etaByTopicWord; // (K, V)
-		Eigen::Matrix<Float, -1, 1> etaSumByTopic; // (K, )
+		Matrix etaByTopicWord; // (K, V)
+		Vector etaSumByTopic; // (K, )
 		uint32_t optimInterval = 10, burnIn = 0;
 		Eigen::Matrix<WeightType, -1, -1> numByTopicDoc;
 		
@@ -197,7 +197,7 @@ namespace tomoto
 		template<typename _List>
 		static Float calcDigammaSum(ThreadPool* pool, _List list, size_t len, Float alpha)
 		{
-			auto listExpr = Eigen::Matrix<Float, -1, 1>::NullaryExpr(len, list);
+			auto listExpr = Vector::NullaryExpr(len, list);
 			auto dAlpha = math::digammaT(alpha);
 
 			size_t suggested = (len + 127) / 128;
@@ -663,6 +663,22 @@ namespace tomoto
 					makeTransformIter(this->docs.end(), txWeights));
 			}
 		}
+
+		void updateForCopy()
+		{
+			BaseClass::updateForCopy();
+			size_t offset = 0;
+			for (auto& doc : this->docs)
+			{
+				size_t size = doc.Zs.size();
+				doc.Zs = tvector<Tid>{ sharedZs.data() + offset, size };
+				if (_tw != TermWeight::one)
+				{
+					doc.wordWeights = tvector<Float>{ sharedWordWeights.data() + offset, size };
+				}
+				offset += size;
+			}
+		}
 		
 		WeightType* getTopicDocPtr(size_t docId) const
 		{
@@ -670,11 +686,14 @@ namespace tomoto
 			return (WeightType*)numByTopicDoc.col(docId).data();
 		}
 
+		/*
+		* called only when initializing a new doc, not when loading from saved model
+		*/
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
 			doc.numByTopic.init(getTopicDocPtr(docId), K, 1);
-			doc.Zs = tvector<Tid>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize, non_topic_id);
 			if(_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
@@ -688,7 +707,7 @@ namespace tomoto
 			{
 				auto id = this->dict.toWid(it.first);
 				if (id == (Vid)-1 || id >= this->realV) continue;
-				etaByTopicWord.col(id) = Eigen::Map<Eigen::Matrix<Float, -1, 1>>{ it.second.data(), (Eigen::Index)it.second.size() };
+				etaByTopicWord.col(id) = Eigen::Map<Vector>{ it.second.data(), (Eigen::Index)it.second.size() };
 			}
 			etaSumByTopic = etaByTopicWord.rowwise().sum();
 		}
@@ -696,7 +715,7 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(K);
+			this->globalState.zLikelihood = Vector::Zero(K);
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(K);
@@ -797,7 +816,7 @@ namespace tomoto
 			return ret;
 		}
 
-		template<bool _Together, ParallelScheme _ps, typename _Iter>
+		template<bool together, ParallelScheme _ps, typename _Iter>
 		std::vector<double> _infer(_Iter docFirst, _Iter docLast, size_t maxIter, Float tolerance, size_t numWorkers) const
 		{
 			decltype(static_cast<const DerivedClass*>(this)->makeGeneratorForInit(nullptr)) generator;
@@ -806,7 +825,7 @@ namespace tomoto
 				generator = static_cast<const DerivedClass*>(this)->makeGeneratorForInit(nullptr);
 			}
 
-			if (_Together)
+			if (together)
 			{
 				numWorkers = std::min(numWorkers, this->maxThreads[(size_t)_ps]);
 				ThreadPool pool{ numWorkers };
@@ -923,11 +942,11 @@ namespace tomoto
 
 			if (args.alpha.size() == 1)
 			{
-				alphas = Eigen::Matrix<Float, -1, 1>::Constant(K, alpha);
+				alphas = Vector::Constant(K, alpha);
 			}
 			else if (args.alpha.size() == args.k)
 			{
-				alphas = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.alpha.data(), args.alpha.size());
+				alphas = Eigen::Map<const Vector>(args.alpha.data(), args.alpha.size());
 			}
 			else if (checkAlpha)
 			{
@@ -968,7 +987,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer));
+			return std::make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer));
 		}
 
 		size_t addDoc(const RawDoc& rawDoc) override
@@ -978,7 +997,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
+			return std::make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
 		}
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override

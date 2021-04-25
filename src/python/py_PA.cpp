@@ -16,7 +16,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &margs.k2, &objAlpha, &objSubAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k1` (given " + py::repr(objAlpha) + ")"; }
@@ -27,7 +27,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		);
 
 		tomoto::ITopicModel* inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
@@ -40,15 +40,7 @@ static int PA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -56,27 +48,14 @@ static PyObject* PA_getSubTopicDist(TopicModelObject* self, PyObject* args, PyOb
 	size_t topicId, normalize = 1;
 	static const char* kwlist[] = { "super_topic_id", "normalize", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId >= inst->getK()) throw py::ValueError{ "must topic_id < k1" };
+
 		return py::buildPyValue(inst->getSubTopicBySuperTopic(topicId, !!normalize));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* PA_getSubTopics(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -84,28 +63,14 @@ static PyObject* PA_getSubTopics(TopicModelObject* self, PyObject* args, PyObjec
 	size_t topicId, topN = 10;
 	static const char* kwlist[] = { "super_topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < k1" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
-		return py::buildPyValue(inst->getSubTopicBySuperTopicSorted(topicId, topN));
+		if (topicId >= inst->getK()) throw py::ValueError{ "must topic_id < k1" };
 
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+		return py::buildPyValue(inst->getSubTopicBySuperTopicSorted(topicId, topN));
+	});
 }
 
 static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -113,27 +78,14 @@ static PyObject* PA_getTopicWords(TopicModelObject* self, PyObject* args, PyObje
 	size_t topicId, topN = 10;
 	static const char* kwlist[] = { "sub_topic_id", "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId >= inst->getK2()) throw py::ValueError{ "must topic_id < k2" };
+
 		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -141,27 +93,14 @@ static PyObject* PA_getTopicWordDist(TopicModelObject* self, PyObject* args, PyO
 	size_t topicId, normalize = 1;
 	static const char* kwlist[] = { "sub_topic_id", "normalize", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|p", (char**)kwlist, &topicId, &normalize)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		if (topicId >= inst->getK2()) throw runtime_error{ "must topic_id < k2" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId >= inst->getK2()) throw py::ValueError{ "must topic_id < k2" };
+
 		return py::buildPyValue(inst->getWidsByTopic(topicId, !!normalize));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 
@@ -170,23 +109,14 @@ PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject *
 	size_t topN = 10;
 	static const char* kwlist[] = { "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->corpus->tm->inst);
-		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
 		return py::buildPyValue(inst->getSubTopicsByDocSorted(self->getBoundDoc(), topN));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* Document_getSubTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs)
@@ -194,23 +124,14 @@ PyObject* Document_getSubTopicDist(DocumentObject* self, PyObject* args, PyObjec
 	size_t normalize = 1;
 	static const char* kwlist[] = { "normalize", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->corpus->tm->inst);
-		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
 		return py::buildPyValue(inst->getSubTopicsByDoc(self->getBoundDoc(), !!normalize));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -221,10 +142,10 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 	static const char* kwlist[] = { "doc", "iter", "tolerance", "workers", "parallel", "together", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|nfnnpO", (char**)kwlist, &argDoc, &iteration, &tolerance, &workers, &ps, &together, &argTransform)) return nullptr;
 	DEBUG_LOG("infer " << self->ob_base.ob_type << ", " << self->ob_base.ob_refcnt);
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (!self->isPrepared) throw runtime_error{ "cannot infer with untrained model" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "cannot infer with untrained model" };
 		auto inst = static_cast<tomoto::IPAModel*>(self->inst);
 		py::UniqueObj iter;
 		if (PyObject_TypeCheck(argDoc, &UtilsCorpus_type))
@@ -238,7 +159,7 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 		else if (PyObject_TypeCheck(argDoc, &UtilsDocument_type))
 		{
 			auto* doc = (DocumentObject*)argDoc;
-			if (doc->corpus->tm != self) throw runtime_error{ "'doc' was from another model, not fit to this model" };
+			if (doc->corpus->tm != self) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 			if (doc->owner)
 			{
 				std::vector<tomoto::DocumentBase*> docs;
@@ -259,19 +180,19 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 			py::UniqueObj item;
 			while ((item = py::UniqueObj{ PyIter_Next(iter) }))
 			{
-				if (!PyObject_TypeCheck(item, &UtilsDocument_type)) throw runtime_error{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
+				if (!PyObject_TypeCheck(item, &UtilsDocument_type)) throw py::ValueError{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
 				auto* doc = (DocumentObject*)item.get();
-				if (doc->corpus->tm != self) throw runtime_error{ "`doc` was from another model, not fit to this model" };
+				if (doc->corpus->tm != self) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 				docs.emplace_back((tomoto::DocumentBase*)doc->getBoundDoc());
 			}
-			if (PyErr_Occurred()) throw bad_exception{};
-			if (!self->isPrepared) throw runtime_error{ "cannot infer with untrained model" };
+			if (PyErr_Occurred()) throw py::ExcPropagation{};
+			if (!self->isPrepared) throw py::RuntimeError{ "cannot infer with untrained model" };
 			auto ll = inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
 			PyObject* ret = PyList_New(docs.size());
 			size_t i = 0;
 			for (auto d : docs)
 			{
-				PyList_SetItem(ret, i++, Py_BuildValue("(NN)", 
+				PyList_SetItem(ret, i++, Py_BuildValue("(NN)",
 					py::buildPyValue(inst->getTopicsByDoc(d)),
 					py::buildPyValue(inst->getSubTopicsByDoc(d))
 				));
@@ -287,42 +208,20 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 		}
 		else
 		{
-			throw runtime_error{ "'doc' must be tomotopy.Document type or list of tomotopy.Document" };
+			throw py::ValueError{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
 		}
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* PA_getCountBySuperTopic(TopicModelObject* self)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+
 		return py::buildPyValue(inst->getCountBySuperTopic());
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 DEFINE_GETTER(tomoto::IPAModel, PA, getK2);
@@ -344,9 +243,9 @@ static PyMethodDef PA_methods[] =
 
 static PyObject* PA_getSubalpha(TopicModelObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPAModel*>(self->inst);
 		npy_intp shapes[2] = { (npy_intp)inst->getK(), (npy_intp)inst->getK2() };
 		PyObject* ret = PyArray_EMPTY(2, shapes, NPY_FLOAT, 0);
@@ -356,16 +255,7 @@ static PyObject* PA_getSubalpha(TopicModelObject* self, void* closure)
 			memcpy(PyArray_GETPTR2((PyArrayObject*)ret, i, 0), l.data(), sizeof(float) * l.size());
 		}
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyGetSetDef PA_getseters[] = {

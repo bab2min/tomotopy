@@ -71,7 +71,7 @@ PyObject* VocabObject::getstate(VocabObject* self, PyObject*)
 
 PyObject* VocabObject::setstate(VocabObject* self, PyObject* args)
 {
-	try
+	return py::handleExc([&]()
 	{
 		PyObject* dict = PyTuple_GetItem(args, 0);
 		PyObject* id2word = PyDict_GetItemString(dict, "id2word");
@@ -81,62 +81,32 @@ PyObject* VocabObject::setstate(VocabObject* self, PyObject* args)
 		self->size = -1;
 		py::foreach<const char*>(id2word, [&](const char* str)
 		{
-			if (!str) throw bad_exception{};
+			if (!str) throw py::ExcPropagation{};
 			self->vocabs->add(str);
 		}, "");
-		if (PyErr_Occurred()) throw bad_exception{};
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
-	Py_INCREF(Py_None);
-	return Py_None;
+		if (PyErr_Occurred()) throw py::ExcPropagation{};
+		Py_INCREF(Py_None);
+		return Py_None;
+	});
 }
 
 Py_ssize_t VocabObject::len(VocabObject* self)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if(self->size == -1) return self->vocabs->size();
+		if (self->size == -1) return self->vocabs->size();
 		return self->size;
-	}
-	catch (const bad_exception&)
-	{
-		return -1;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
-	}
+	});
 }
 
 PyObject* VocabObject::getitem(VocabObject* self, Py_ssize_t key)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (key >= len(self))
-		{
-			PyErr_SetString(PyExc_IndexError, "");
-			throw bad_exception{};
-		}
+		if (key >= len(self)) throw py::IndexError{ "" };
+
 		return py::buildPyValue(self->vocabs->toWord(key));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* VocabObject::repr(VocabObject* self)
@@ -311,27 +281,18 @@ void CorpusObject::dealloc(CorpusObject* self)
 
 PyObject* CorpusObject::getstate(CorpusObject* self, PyObject*)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->isIndependent()) 
-			throw runtime_error{ "Cannot pickle the corpus bound to a topic model. Try to use a topic model's `save` method." };
+		if (!self->isIndependent())
+			throw py::RuntimeError{ "Cannot pickle the corpus bound to a topic model. Try to use a topic model's `save` method." };
 		static const char* keys[] = { "_docs", "_vocab" };
 		return py::buildPyDict(keys, py::UniqueObj{ py::buildPyValue(self->docs) }, (PyObject*)self->vocab);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* CorpusObject::setstate(CorpusObject* self, PyObject* args)
 {
-	try
+	return py::handleExc([&]()
 	{
 		PyObject* dict = PyTuple_GetItem(args, 0);
 		PyObject* vocab = PyDict_GetItemString(dict, "_vocab");
@@ -339,7 +300,7 @@ PyObject* CorpusObject::setstate(CorpusObject* self, PyObject* args)
 		Py_INCREF(self->vocab);
 		PyObject* docs = PyDict_GetItemString(dict, "_docs");
 		py::UniqueObj iter{ PyObject_GetIter(docs) }, next;
-		if (!iter) throw bad_exception{};
+		if (!iter) throw py::ExcPropagation{};
 		while ((next = py::UniqueObj{ PyIter_Next(iter) }))
 		{
 			auto size = PyTuple_Size(next);
@@ -366,8 +327,8 @@ PyObject* CorpusObject::setstate(CorpusObject* self, PyObject* args)
 			if (raw) doc.rawStr = tomoto::SharedString{ PyUnicode_AsUTF8(raw) };
 			if (pos) doc.origWordPos = py::toCpp<vector<uint32_t>>(pos, "");
 			if (len) doc.origWordLen = py::toCpp<vector<uint16_t>>(len, "");
-				
-			PyObject *key, *value;
+
+			PyObject* key, * value;
 			Py_ssize_t p = 0;
 			while (PyDict_Next(kwargs, &p, &key, &value))
 			{
@@ -380,27 +341,19 @@ PyObject* CorpusObject::setstate(CorpusObject* self, PyObject* args)
 			}
 			self->docs.emplace_back(move(doc));
 		}
-		if (PyErr_Occurred()) throw bad_exception{};
+		if (PyErr_Occurred()) throw py::ExcPropagation{};
 		Py_INCREF(Py_None);
 		return Py_None;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwargs)
 {
-	try
+	return py::handleExc([&]()
 	{
 		if (!self->isIndependent())
-			throw runtime_error{ "Cannot modify the corpus bound to a topic model." };
-		if (PyTuple_Size(args) != 3) throw runtime_error{ "function takes 3 positional arguments." };
+			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
+		if (PyTuple_Size(args) != 3) throw py::ValueError{ "function takes 3 positional arguments." };
 		PyObject* words = PyTuple_GetItem(args, 0);
 		PyObject* raw = PyTuple_GetItem(args, 1);
 		PyObject* user_data = PyTuple_GetItem(args, 2);
@@ -412,11 +365,11 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 		if (PyObject_HasAttrString((PyObject*)self, "_tokenizer")
 			&& PyObject_IsTrue(py::UniqueObj{ PyObject_GetAttrString((PyObject*)self, "_tokenizer") }))
 		{
-			if (words && words != Py_None) throw runtime_error{ "only `raw` is required when `tokenizer` is provided." };
+			if (words && words != Py_None) throw py::ValueError{ "only `raw` is required when `tokenizer` is provided." };
 			if (!PyObject_IsTrue(raw)) return py::buildPyValue(-1);
 
 			py::UniqueObj tokenizer{ PyObject_GetAttrString((PyObject*)self, "_tokenizer") };
-				
+
 			py::UniqueObj args{ PyTuple_New(1) };
 			Py_INCREF(raw);
 			PyTuple_SET_ITEM(args.get(), 0, raw);
@@ -424,7 +377,7 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 			PyDict_SetItemString(kwargs, "user_data", user_data);
 
 			py::UniqueObj ret{ PyObject_Call(tokenizer, args, kwargs) };
-			if (!ret) throw bad_exception{};
+			if (!ret) throw py::ExcPropagation{};
 			py::foreach<PyObject*>(ret, [&](PyObject* t)
 			{
 				if (PyUnicode_Check(t))
@@ -436,29 +389,29 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 					PyObject* word = PyTuple_GetItem(t, 0);
 					PyObject* pos = PyTuple_GetItem(t, 1);
 					PyObject* len = PyTuple_GetItem(t, 2);
-					if(!(PyUnicode_Check(word) && PyLong_Check(pos) && PyLong_Check(len))) throw runtime_error{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+					if (!(PyUnicode_Check(word) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
 
 					py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
-					if (!stopRet) throw bad_exception{};
+					if (!stopRet) throw py::ExcPropagation{};
 					doc.words.emplace_back(PyObject_IsTrue(stopRet) ? -1 : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
 					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
 					doc.origWordLen.emplace_back(PyLong_AsLong(len));
 				}
 				else
 				{
-					throw runtime_error{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+					throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
 				}
 			}, "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`).");
 			doc.rawStr = tomoto::SharedString{ PyUnicode_AsUTF8(raw) };
 		}
 		else
 		{
-			if (raw && raw != Py_None) throw runtime_error{ "only `words` is required when `tokenizer` is not provided." };
+			if (raw && raw != Py_None) throw py::ValueError{ "only `words` is required when `tokenizer` is not provided." };
 			if (!PyObject_IsTrue(words)) return py::buildPyValue(-1);
 			py::foreach<string>(words, [&](const string& w)
 			{
 				py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(w) }) };
-				if (!stopRet) throw bad_exception{};
+				if (!stopRet) throw py::ExcPropagation{};
 				doc.words.emplace_back(PyObject_IsTrue(stopRet) ? -1 : self->vocab->vocabs->add(w));
 			}, "");
 		}
@@ -471,12 +424,12 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 			{
 				if (value == Py_None) continue;
 				const char* uid = PyUnicode_AsUTF8(value);
-				if (!uid) throw runtime_error{ "`uid` must be str type." };
+				if (!uid) throw py::ValueError{ "`uid` must be str type." };
 				string suid = uid;
-				if (suid.empty()) throw runtime_error{ "wrong `uid` value : empty str not allowed" };
+				if (suid.empty()) throw py::ValueError{ "wrong `uid` value : empty str not allowed" };
 				if (self->invmap.find(suid) != self->invmap.end())
 				{
-					throw runtime_error{ "there is a document with uid = " + py::repr(value) + " already." };
+					throw py::ValueError{ "there is a document with uid = " + py::repr(value) + " already." };
 				}
 				self->invmap.emplace(suid, self->docs.size());
 				doc.docUid = tomoto::SharedString{ uid };
@@ -491,16 +444,7 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 		}
 		self->docs.emplace_back(move(doc));
 		return py::buildPyValue(self->docs.size() - 1);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs)
@@ -511,12 +455,12 @@ PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObje
 	static const char* kwlist[] = { "min_cf", "min_df", "max_len", "max_cand", "min_score", "normalized", "workers", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfpn", (char**)kwlist,
 		&minCf, &minDf, &maxLen, &maxCand, &minScore, &normalized, &workers)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
 		if (!self->isIndependent())
-			throw runtime_error{ "Cannot modify the corpus bound to a topic model." };
+			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
 		size_t vSize = self->vocab->vocabs->size();
-		vector<size_t> cf(vSize), 
+		vector<size_t> cf(vSize),
 			df(vSize),
 			odf(vSize);
 		for (auto& d : self->docs)
@@ -527,7 +471,7 @@ PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObje
 				odf[w] = 1;
 				cf[w]++;
 			}
-				
+
 			for (size_t i = 0; i < df.size(); ++i) df[i] += odf[i];
 			fill(odf.begin(), odf.end(), 0);
 		}
@@ -553,16 +497,7 @@ PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObje
 			PyList_Append(ret, item);
 		}
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 // TODO: It loses some ngram patterns. Fix me!
@@ -574,13 +509,13 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 	static const char* kwlist[] = { "cands", "delimiter", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist,
 		&cands, &delimiter)) return nullptr;
-	try
+	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->isIndependent())
-			throw runtime_error{ "Cannot modify the corpus bound to a topic model." };
+			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
 
 		py::UniqueObj iter{ PyObject_GetIter(cands) };
-		if (!iter) throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+		if (!iter) throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 		vector<tomoto::label::Candidate> pcands;
 		vector<tomoto::Vid> pcandVids;
 		{
@@ -589,7 +524,7 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 			{
 				if (!PyObject_TypeCheck(item, &Candidate_type))
 				{
-					throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+					throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 				}
 				CandidateObject* cand = (CandidateObject*)item.get();
 				if (cand->corpus == self)
@@ -603,7 +538,9 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 					if (find(c.w.begin(), c.w.end(), tomoto::non_vocab_id) != c.w.end())
 					{
 						auto repr = py::toCpp<std::string>(py::UniqueObj{ PyObject_Repr(item.get()) });
-						PRINT_WARN("Candidate is ignored because it is not found in the corpus.\n" + repr);
+						if (PyErr_WarnEx(PyExc_RuntimeWarning, 
+							("Candidate is ignored because it is not found in the corpus.\n" + repr).c_str(), 1
+						)) return nullptr;
 						continue;
 					}
 					pcands.emplace_back(move(c));
@@ -615,7 +552,9 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 					if (find(c.w.begin(), c.w.end(), tomoto::non_vocab_id) != c.w.end())
 					{
 						auto repr = py::toCpp<std::string>(py::UniqueObj{ PyObject_Repr(item.get()) });
-						PRINT_WARN("Candidate is ignored because it is not found in the corpus.\n" + repr);
+						if (PyErr_WarnEx(PyExc_RuntimeWarning,
+							("Candidate is ignored because it is not found in the corpus.\n" + repr).c_str(), 1
+						)) return nullptr;
 						continue;
 					}
 					pcands.emplace_back(move(c));
@@ -675,16 +614,7 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 			}
 		}
 		return py::buildPyValue(totUpdated);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 Py_ssize_t CorpusObject::len(CorpusObject* self)
@@ -697,15 +627,16 @@ Py_ssize_t CorpusObject::len(CorpusObject* self)
 
 PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 {
-	try 
+	return py::handleExc([&]()
 	{
 		// indexing by int
 		Py_ssize_t v = PyLong_AsLongLong(idx);
 		if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
 		{
-			if(v >= len(self) || -v > len(self)) throw out_of_range{ "IndexError: " + to_string(v) };
+			if (v >= len(self) || -v > len(self)) throw py::IndexError{ to_string(v) };
+			if (v < 0) v += len(self);
 			auto doc = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, (PyObject*)self, nullptr);
-			if (!doc) throw bad_exception{};
+			if (!doc) throw py::ExcPropagation{};
 			doc->doc = self->getDoc(v);
 			return (PyObject*)doc;
 		}
@@ -714,9 +645,9 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 		{
 			string v = PyUnicode_AsUTF8(idx);
 			auto doc = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, (PyObject*)self, nullptr);
-			if (!doc) throw bad_exception{};
+			if (!doc) throw py::ExcPropagation{};
 			size_t iidx = self->findUid(v);
-			if (iidx == (size_t)-1) throw out_of_range{ "Cannot find a document with uid = " + py::repr(idx)  }; 
+			if (iidx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(idx)  }; 
 			doc->doc = self->getDoc(iidx);
 			return (PyObject*)doc;
 		}
@@ -726,13 +657,13 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			Py_ssize_t start, end, step, size;
 			if (PySlice_GetIndicesEx(idx, len(self), &start, &end, &step, &size))
 			{
-				throw bad_exception{};
+				throw py::ExcPropagation{};
 			}
 
 			if (self->isIndependent())
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->vocab, nullptr);
-				if (!ret) throw bad_exception{};
+				if (!ret) throw py::ExcPropagation{};
 				for (Py_ssize_t i = start; i < end; i += step)
 				{
 					ret->docs.emplace_back(self->docs[i]);
@@ -784,7 +715,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 				{
 					if (v >= len(self) || -v > len(self))
 					{
-						throw out_of_range{ "IndexError. len = " + to_string(len(self)) + ", idx = " + to_string(v) };
+						throw py::IndexError{ "len = " + to_string(len(self)) + ", idx = " + to_string(v) };
 					}
 					if (v < 0) v += len(self);
 					idcs.emplace_back((size_t)v);
@@ -793,21 +724,21 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 				{
 					string k = py::toCpp<string>(o);
 					size_t idx = self->findUid(k);
-					if (idx == (size_t)-1) throw out_of_range{ "Cannot find a document with uid = " + py::repr(o) };
+					if (idx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(o) };
 					idcs.emplace_back(idx);
 				}
 				else
 				{
 					py::UniqueObj ty{ PyObject_Type(o) };
 					py::UniqueObj repr{ PyObject_Str(ty) };
-					throw runtime_error{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
+					throw py::IndexError{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
 				}
 			}, "");
 
 			if (self->isIndependent())
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->vocab, nullptr);
-				if (!ret) throw bad_exception{};
+				if (!ret) throw py::ExcPropagation{};
 				for (auto i : idcs)
 				{
 					ret->docs.emplace_back(self->docs[i]);
@@ -817,7 +748,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else if (self->made)
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw bad_exception{};
+				if (!ret) throw py::ExcPropagation{};
 				for (auto i : ret->docIdcs)
 				{
 					ret->docsMade.emplace_back(self->docsMade[i]);
@@ -828,7 +759,7 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 			else
 			{
 				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw bad_exception{};
+				if (!ret) throw py::ExcPropagation{};
 				ret->docIdcs = move(idcs);
 				for (auto i : ret->docIdcs)
 				{
@@ -841,21 +772,9 @@ PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
 		{
 			py::UniqueObj ty{ PyObject_Type(idx) };
 			py::UniqueObj repr{ PyObject_Str(ty) };
-			throw runtime_error{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
+			throw py::IndexError{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
 		}
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const out_of_range& e)
-	{
-		PyErr_SetString(PyExc_KeyError, e.what());
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* CorpusObject::iter(CorpusObject* self)
@@ -1026,28 +945,19 @@ DocWordIterator wordEnd(const tomoto::RawDocKernel* doc, bool independent)
 
 int DocumentObject::init(DocumentObject* self, PyObject* args, PyObject* kwargs)
 {
-	try
+	PyObject* corpus = nullptr;
+	static const char* kwlist[] = { "corpus", nullptr };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist,
+		&corpus)) return -1;
+
+	return py::handleExc([&]()
 	{
-		PyObject* corpus = nullptr;
-		static const char* kwlist[] = { "corpus", nullptr };
-
-		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist,
-			&corpus)) return -1;
-
 		self->corpus = (CorpusObject*)corpus;
 		Py_INCREF(corpus);
 		self->doc = nullptr;
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-		return -1;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
-	}
+	});
 }
 
 void DocumentObject::dealloc(DocumentObject* self)
@@ -1074,9 +984,9 @@ Py_ssize_t DocumentObject::len(DocumentObject* self)
 
 PyObject* DocumentObject::getitem(DocumentObject* self, Py_ssize_t idx)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (idx >= len(self)) throw out_of_range{ "" };
+		if (idx >= len(self)) throw py::IndexError{ "" };
 		if (self->corpus->isIndependent())
 		{
 			if (self->getRawDoc()->words[idx] == tomoto::non_vocab_id)
@@ -1091,57 +1001,29 @@ PyObject* DocumentObject::getitem(DocumentObject* self, Py_ssize_t idx)
 			idx = self->getBoundDoc()->wOrder.empty() ? idx : self->getBoundDoc()->wOrder[idx];
 			return py::buildPyValue(self->corpus->getVocabDict().toWord(self->getBoundDoc()->words[idx]));
 		}
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const out_of_range& e)
-	{
-		PyErr_SetString(PyExc_IndexError, e.what());
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::getWords(DocumentObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		if (self->corpus->isIndependent()) return py::buildPyValue(self->getRawDoc()->words);
 		else return buildPyValueReorder(self->getBoundDoc()->words, self->getBoundDoc()->wOrder);
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::getRaw(DocumentObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->doc->rawStr);
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::getSpan(DocumentObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		PyObject* ret = PyList_New(self->doc->origWordPos.size());
 		for (size_t i = 0; i < self->doc->origWordPos.size(); ++i)
@@ -1150,71 +1032,39 @@ PyObject* DocumentObject::getSpan(DocumentObject* self, void* closure)
 			PyList_SET_ITEM(ret, i, py::buildPyTuple(begin, end));
 		}
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::getWeight(DocumentObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->doc->weight);
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::getUid(DocumentObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->doc->docUid);
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::getattro(DocumentObject* self, PyObject* attr)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if(!self->corpus->isIndependent()) return PyObject_GenericGetAttr((PyObject*)self, attr);
+		if (!self->corpus->isIndependent()) return PyObject_GenericGetAttr((PyObject*)self, attr);
 		const char* a = PyUnicode_AsUTF8(attr);
-		if (!a) throw runtime_error{ "invalid attribute name" };
+		if (!a) throw py::AttributeError{ "invalid attribute name" };
 		string name = a;
 		auto it = self->getRawDoc()->misc.find(name);
 		if (it == self->getRawDoc()->misc.end()) return PyObject_GenericGetAttr((PyObject*)self, attr);
 		auto ret = (PyObject*)it->second.template get<std::shared_ptr<void>>().get();
 		Py_INCREF(ret);
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* DocumentObject::repr(DocumentObject* self)
@@ -1246,22 +1096,13 @@ static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObje
 	size_t topN = 10;
 	static const char* kwlist[] = { "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
-		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
 		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDocSorted(self->getBoundDoc(), topN));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* Document_getTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs)
@@ -1269,22 +1110,13 @@ static PyObject* Document_getTopicDist(DocumentObject* self, PyObject* args, PyO
 	size_t normalize = 1;
 	static const char* kwlist[] = { "normalize", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
-		if (!self->corpus->tm->isPrepared) throw runtime_error{ "train() should be called first for calculating the topic distribution" };
+		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
 		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDoc(self->getBoundDoc(), !!normalize));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* Document_getWords(DocumentObject* self, PyObject* args, PyObject* kwargs)
@@ -1292,95 +1124,52 @@ static PyObject* Document_getWords(DocumentObject* self, PyObject* args, PyObjec
 	size_t topN = 10;
 	static const char* kwlist[] = { "top_n", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
+		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		return py::buildPyValue(self->corpus->tm->inst->getWordsByDocSorted(self->getBoundDoc(), topN));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* Document_Z(DocumentObject* self, void* closure)
 {
-	PyObject* ret;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `topics` field!" };
-		if (!self->doc) throw runtime_error{ "doc is null!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `topics` field!" };
+		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 #ifdef TM_HLDA
-		ret = Document_HLDA_Z(self, closure);
-		if (ret) return ret;
+		if (auto* ret = Document_HLDA_Z(self, closure)) return ret;
 #endif
 #ifdef TM_HDP
-		ret = Document_HDP_Z(self, closure);
-		if (ret) return ret;
+		if (auto* ret = Document_HDP_Z(self, closure)) return ret;
 #endif
-		ret = Document_LDA_Z(self, closure);
-		if (ret) return ret;
-		throw runtime_error{ "doc doesn't has `topics` field!" };
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_AttributeError, e.what());
-		return nullptr;
-	}
+		if (auto* ret = Document_LDA_Z(self, closure)) return ret;
+		throw py::AttributeError{ "doc doesn't has `topics` field!" };
+	});
 }
 
 static PyObject* Document_metadata(DocumentObject* self, void* closure)
 {
-	PyObject* ret;
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `metadata` field!" };
-		if (!self->doc) throw runtime_error{ "doc is null!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `metadata` field!" };
+		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 #ifdef TM_DMR
-		ret = Document_DMR_metadata(self, closure);
-		if (ret) return ret;
+		if (auto* ret = Document_DMR_metadata(self, closure)) return ret;
 #endif
-		throw runtime_error{ "doc doesn't has `metadata` field!" };
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_AttributeError, e.what());
-		return nullptr;
-	}
+		throw py::AttributeError{ "doc doesn't has `metadata` field!" };
+	});
 }
-
 
 PyObject* Document_getLL(DocumentObject* self)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw runtime_error{ "inst is null" };
+		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		return py::buildPyValue(self->corpus->tm->inst->getDocLL(self->getBoundDoc()));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyMethodDef UtilsDocument_methods[] =
@@ -1413,9 +1202,10 @@ static PyGetSetDef UtilsDocument_getseters[] = {
 	{ (char*)"span", (getter)DocumentObject::getSpan, nullptr, Document_span__doc__, nullptr },
 #ifdef TM_DMR
 	{ (char*)"metadata", (getter)Document_metadata, nullptr, Document_metadata__doc__, nullptr },
+	{ (char*)"multi_metadata", (getter)Document_DMR_multiMetadata, nullptr, Document_multi_metadata__doc__, nullptr },
 #endif
 #ifdef TM_GDMR
-	{ (char*)"numeric_metadata", (getter)Document_numeric_metadata, nullptr, Document_numeric_metadata__doc__, nullptr },
+	{ (char*)"numeric_metadata", (getter)Document_numericMetadata, nullptr, Document_numeric_metadata__doc__, nullptr },
 #endif
 #ifdef TM_PA
 	{ (char*)"subtopics", (getter)Document_Z2, nullptr, Document_subtopics__doc__, nullptr },
@@ -1498,7 +1288,7 @@ PhraserObject* PhraserObject::_new(PyTypeObject* subtype, PyObject* args, PyObje
 
 int PhraserObject::init(PhraserObject* self, PyObject* args, PyObject* kwargs)
 {
-	try
+	return py::handleExc([&]()
 	{
 		PyObject* candidates = nullptr;
 		const char* delimiter = "_";
@@ -1509,7 +1299,7 @@ int PhraserObject::init(PhraserObject* self, PyObject* args, PyObject* kwargs)
 		if (!candidates || candidates == Py_None) return 0;
 
 		py::UniqueObj iter{ PyObject_GetIter(candidates) }, item;
-		if (!iter) throw runtime_error{ "`candidates` must be an iterable of Candidates." };
+		if (!iter) throw py::ValueError{ "`candidates` must be an iterable of Candidates." };
 
 		CorpusObject* base_corpus = nullptr;
 		auto alloc = [&]() { self->trie_nodes.emplace_back(); return &self->trie_nodes.back(); };
@@ -1569,22 +1359,14 @@ int PhraserObject::init(PhraserObject* self, PyObject* args, PyObject* kwargs)
 			}
 			else
 			{
-				throw runtime_error{ "`candidates` must be an iterable of Candidates." };
+				throw py::ValueError{ "`candidates` must be an iterable of Candidates." };
 			}
 		}
-		if (PyErr_Occurred()) throw bad_exception{};
+		if (PyErr_Occurred()) throw py::ExcPropagation{};
 		self->trie_nodes[0].fillFail();
 		self->trie_nodes.shrink_to_fit();
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 void PhraserObject::dealloc(PhraserObject* self)
@@ -1597,7 +1379,7 @@ void PhraserObject::dealloc(PhraserObject* self)
 
 PyObject* PhraserObject::repr(PhraserObject* self)
 {
-	string ret = "cphraser.Phraser(... with ";
+	string ret = "Phraser(... with ";
 	ret += to_string(self->cand_info.size());
 	ret += " items)";
 	return py::buildPyValue(ret);
@@ -1605,14 +1387,14 @@ PyObject* PhraserObject::repr(PhraserObject* self)
 
 PyObject* PhraserObject::call(PhraserObject* self, PyObject* args, PyObject* kwargs)
 {
-	try
+	PyObject* words = nullptr;
+	static const char* kwlist[] = { "words", nullptr };
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
+		&words)) return nullptr;
+
+	return py::handleExc([&]()
 	{
-		PyObject* words = nullptr;
-		static const char* kwlist[] = { "words", nullptr };
-
-		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
-			&words)) return nullptr;
-
 		py::UniqueObj ret{ PyList_New(0) };
 		deque<tomoto::Vid> buffer;
 		size_t c_found = 0;
@@ -1680,27 +1462,18 @@ PyObject* PhraserObject::call(PhraserObject* self, PyObject* args, PyObject* kwa
 		}
 		for (auto v : buffer) PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(v)) });
 		return ret.release();
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* PhraserObject::findall(PhraserObject* self, PyObject* args, PyObject* kwargs)
 {
-	try
+	PyObject* words = nullptr;
+	static const char* kwlist[] = { "words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
+		&words)) return nullptr;
+	
+	return py::handleExc([&]()
 	{
-		PyObject* words = nullptr;
-		static const char* kwlist[] = { "words", nullptr };
-
-		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
-			&words)) return nullptr;
-
 		py::UniqueObj ret{ PyList_New(0) };
 		size_t c_found = 0, stack_size = 0, cur_pos = 0;
 		auto* node = self->trie_nodes.data();
@@ -1769,15 +1542,7 @@ PyObject* PhraserObject::findall(PhraserObject* self, PyObject* args, PyObject* 
 			}
 		}
 		return ret.release();
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
+	});
 }
 
 PyObject* PhraserObject::save(PhraserObject* self, PyObject* args, PyObject* kwargs)
@@ -1787,9 +1552,10 @@ PyObject* PhraserObject::save(PhraserObject* self, PyObject* args, PyObject* kwa
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist,
 		&path)) return nullptr;
 
-	try
+	return py::handleExc([&]()
 	{
 		ofstream ofs{ path, ios_base::binary };
+		if (!ofs) throw py::OSError{ string{"cannot write to '"} + path + "'" };
 		tomoto::serializer::writeMany(ofs, tomoto::serializer::to_keyz("tph1"),
 			self->vocabs,
 			self->cand_info,
@@ -1797,16 +1563,7 @@ PyObject* PhraserObject::save(PhraserObject* self, PyObject* args, PyObject* kwa
 		);
 		Py_INCREF(Py_None);
 		return Py_None;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* PhraserObject::load(PhraserObject*, PyObject* args, PyObject* kwargs)
@@ -1817,30 +1574,22 @@ PyObject* PhraserObject::load(PhraserObject*, PyObject* args, PyObject* kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)kwlist,
 		&path, &baseCls)) return nullptr;
 
-	try
+	return py::handleExc([&]()
 	{
 		if (!baseCls) baseCls = (PyObject*)&Phraser_type;
 		else if (!PyObject_IsSubclass(baseCls, (PyObject*)&Phraser_type)) throw runtime_error{ "`cls` must be a derived class of `Phraser`." };
 
 		ifstream ifs{ path };
+		if (!ifs) throw py::OSError{ string{"cannot read from '"} + path + "'" };
 		py::UniqueObj ret{ PyObject_CallObject(baseCls, nullptr) };
-		if (!ret) throw bad_exception{};
+		if (!ret) throw py::ExcPropagation{};
 		tomoto::serializer::readMany(ifs, tomoto::serializer::to_keyz("tph1"),
 			((PhraserObject*)ret.get())->vocabs,
 			((PhraserObject*)ret.get())->cand_info,
 			((PhraserObject*)ret.get())->trie_nodes
 		);
 		return ret.release();
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 
@@ -1907,7 +1656,7 @@ vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject*
 {
 	vector<size_t> ret;
 	if (!_corpus || _corpus == Py_None) return ret;
-	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw runtime_error{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
+	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
 	auto corpus = (CorpusObject*)_corpus;
 	bool insert_into_empty = self->inst->updateVocab(corpus->getVocabDict().getRaw());
 	if (corpus->isIndependent())
@@ -1935,7 +1684,7 @@ vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject*
 
 			if (doc.words.empty())
 			{
-				fprintf(stderr, "[warn] Adding empty document was ignored.\n");
+				fprintf(stderr, "Adding empty document was ignored.\n");
 				continue;
 			}
 
@@ -1972,7 +1721,7 @@ vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject*
 
 			if (doc.words.empty())
 			{
-				fprintf(stderr, "[warn] Adding empty document was ignored.\n");
+				fprintf(stderr, "Adding empty document was ignored.\n");
 				continue;
 			}
 
@@ -1991,7 +1740,7 @@ vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject*
 CorpusObject* makeCorpus(TopicModelObject* self, PyObject* _corpus, PyObject* transform)
 {
 	if (!_corpus || _corpus == Py_None) return nullptr;
-	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw runtime_error{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
+	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
 	auto corpus = (CorpusObject*)_corpus;
 	py::UniqueObj _corpusMade{ PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self, nullptr) };
 	CorpusObject* corpusMade = (CorpusObject*)_corpusMade.get();
@@ -2019,7 +1768,7 @@ CorpusObject* makeCorpus(TopicModelObject* self, PyObject* _corpus, PyObject* tr
 
 		if (doc.words.empty())
 		{
-			fprintf(stderr, "[warn] Adding empty document was ignored.\n");
+			fprintf(stderr, "Adding empty document was ignored.\n");
 			continue;
 		}
 

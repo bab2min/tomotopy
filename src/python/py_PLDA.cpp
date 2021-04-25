@@ -22,36 +22,28 @@ static int PLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.numLatentTopics, &margs.numTopicsPerLabel, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
 
 		tomoto::ITopicModel* inst = tomoto::IPLDAModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
 		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop, 
+			tw, minCnt, minDf, rmTop,
 			margs.numLatentTopics, margs.numTopicsPerLabel, margs.alpha, margs.eta, margs.seed
 		);
 		py::setPyDictItem(self->initParams, "version", getVersion());
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -59,31 +51,28 @@ static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 	PyObject *argWords, *argLabels = nullptr;
 	static const char* kwlist[] = { "words", "labels", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
-	try
+	return py::handleExc([&]() -> PyObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (self->isPrepared) throw py::RuntimeError{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::IPLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
+		if (PyUnicode_Check(argWords))
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 
-		if(argLabels)
+		if (argLabels)
 		{
-			if (PyUnicode_Check(argLabels)) PRINT_WARN_ONCE("[warn] `labels` should be an iterable of str.");
+			if (PyUnicode_Check(argLabels))
+			{
+				if (PyErr_WarnEx(PyExc_RuntimeWarning, "`labels` should be an iterable of str.", 1)) return nullptr;
+			}
 			raw.misc["labels"] = py::toCpp<vector<string>>(argLabels, "`labels` must be an iterable of str.");
 		}
 		auto ret = inst->addDoc(raw);
 		return py::buildPyValue(ret);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static DocumentObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -91,16 +80,22 @@ static DocumentObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	PyObject *argWords, *argLabels = nullptr;
 	static const char* kwlist[] = { "words", "labels", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
-	try
+	return py::handleExc([&]() -> DocumentObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IPLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
+		if (PyUnicode_Check(argWords))
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 
 		if (argLabels)
 		{
-			if (PyUnicode_Check(argLabels)) PRINT_WARN_ONCE("[warn] `labels` should be an iterable of str.");
+			if (PyUnicode_Check(argLabels))
+			{
+				if (PyErr_WarnEx(PyExc_RuntimeWarning, "`labels` should be an iterable of str.", 1)) return nullptr;
+			}
 			raw.misc["labels"] = py::toCpp<vector<string>>(argLabels, "`labels` must be an iterable of str.");
 		}
 		auto doc = inst->makeDoc(raw);
@@ -109,39 +104,21 @@ static DocumentObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 		ret->doc = doc.release();
 		ret->owner = true;
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static VocabObject* PLDA_getTopicLabelDict(TopicModelObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* ret = (VocabObject*)PyObject_CallObject((PyObject*)&UtilsVocab_type, nullptr);
 		ret->dep = (PyObject*)self;
 		Py_INCREF(ret->dep);
 		ret->vocabs = (tomoto::Dictionary*)&static_cast<tomoto::IPLDAModel*>(self->inst)->getTopicLabelDict();
 		ret->size = -1;
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 

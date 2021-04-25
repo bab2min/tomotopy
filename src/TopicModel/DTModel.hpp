@@ -47,10 +47,10 @@ namespace tomoto
 		Float shapeA = 0.03f, shapeB = 0.1f, shapeC = 0.55f;
 		Float alphaVar = 1.f, etaVar = 1.f, phiVar = 1.f, etaRegL2 = 0.0f;
 
-		Eigen::Matrix<Float, -1, -1> alphas; // Dim: (Topic, Time)
-		Eigen::Matrix<Float, -1, -1> etaByDoc; // Dim: (Topic, Docs) : Topic distribution by docs(and time)
+		Matrix alphas; // Dim: (Topic, Time)
+		Matrix etaByDoc; // Dim: (Topic, Docs) : Topic distribution by docs(and time)
 		std::vector<uint32_t> numDocsByTime; // Dim: (Time)
-		Eigen::Matrix<Float, -1, -1> phi; // Dim: (Word, Topic * Time)
+		Matrix phi; // Dim: (Word, Topic * Time)
 		std::vector<sample::AliasMethod<>> wordAliasTables; // Dim: (Word * Time)
 
 		template<int _inc>
@@ -84,8 +84,8 @@ namespace tomoto
 			
 			// sampling eta
 			{
-				Eigen::Matrix<Float, -1, 1> estimatedCnt = (doc.eta.array() - doc.eta.maxCoeff()).exp();
-				Eigen::Matrix<Float, -1, 1> etaTmp;
+				Vector estimatedCnt = (doc.eta.array() - doc.eta.maxCoeff()).exp();
+				Vector etaTmp;
 				estimatedCnt *= doc.getSumWordWeight() / estimatedCnt.sum();
 				auto prior = (alphas.col(doc.timepoint) - doc.eta) / std::max(etaVar, eps * 2);
 				auto grad = doc.numByTopic.template cast<Float>() - estimatedCnt;
@@ -181,20 +181,21 @@ namespace tomoto
 		template<typename _DocIter>
 		void _sampleGlobalLevel(ThreadPool* pool, _ModelState*, _RandGen* rgs, _DocIter first, _DocIter last)
 		{
+			if (!this->realV) return;
 			const auto K = this->K;
 			const Float eps = shapeA * (std::pow(shapeB + 1 + this->globalStep, -shapeC));
 
 			// sampling phi
 			for (size_t k = 0; k < K; ++k)
 			{
-				Eigen::Matrix<Float, -1, -1> phiGrad{ (Eigen::Index)this->realV, (Eigen::Index)T };
+				Matrix phiGrad{ (Eigen::Index)this->realV, (Eigen::Index)T };
 				for (size_t t = 0; t < T; ++t)
 				{
 					auto phi_tk = phi.col(k + K * t);
-					Eigen::Matrix<Float, -1, 1> estimatedCnt = (phi_tk.array() - phi_tk.maxCoeff()).exp();
+					Vector estimatedCnt = (phi_tk.array() - phi_tk.maxCoeff()).exp();
 					estimatedCnt *= this->globalState.numByTopic(k, t) / estimatedCnt.sum();
 
-					Eigen::Matrix<Float, -1, 1> grad = this->globalState.numByTopicWord.row(k + K * t).template cast<Float>();
+					Vector grad = this->globalState.numByTopicWord.row(k + K * t).template cast<Float>();
 					grad -= estimatedCnt;
 					auto epsNoise = Eigen::Rand::normal<Eigen::Array<Float, -1, 1>>(this->realV, 1, *rgs) * eps;
 					if (t == 0)
@@ -228,7 +229,7 @@ namespace tomoto
 				}
 			}
 
-			Eigen::Matrix<Float, -1, -1> newAlphas = Eigen::Matrix<Float, -1, -1>::Zero(alphas.rows(), alphas.cols());
+			Matrix newAlphas = Matrix::Zero(alphas.rows(), alphas.cols());
 			for (size_t t = 0; t < T; ++t)
 			{
 				// update alias tables for word proposal
@@ -398,9 +399,9 @@ namespace tomoto
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, T);
 				this->globalState.numByTopicWord = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K * T, V);
 
-				alphas = Eigen::Matrix<Float, -1, -1>::Zero(this->K, T);
-				etaByDoc = Eigen::Matrix<Float, -1, -1>::Zero(this->K, this->docs.size());
-				phi = Eigen::Matrix<Float, -1, -1>::Zero(this->realV, this->K * T);
+				alphas = Matrix::Zero(this->K, T);
+				etaByDoc = Matrix::Zero(this->K, this->docs.size());
+				phi = Matrix::Zero(this->realV, this->K * T);
 			}
 
 			numDocsByTime.resize(T);
@@ -508,7 +509,7 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer);
-			return make_unique<_DocType>(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
+			return std::make_unique<_DocType>(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
 		}
 
 		size_t addDoc(const RawDoc& rawDoc) override
@@ -520,7 +521,7 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc);
-			return make_unique<_DocType>(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
+			return std::make_unique<_DocType>(_updateDoc(doc, rawDoc.template getMisc<uint32_t>("timepoint")));
 		}
 
 		Float getAlpha(size_t k, size_t t) const override

@@ -25,7 +25,7 @@ namespace tomoto
 			void init(size_t windowSize)
 			{
 				pe_type = _pe;
-				pe = make_unique<ProbEstimator<_pe>>(windowSize);
+				pe = std::make_unique<ProbEstimator<_pe>>(windowSize);
 			}
 
 			template<ProbEstimation _pe, typename _TargetIter>
