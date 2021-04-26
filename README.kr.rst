@@ -46,10 +46,10 @@ tomotopy 란?
 
 지원하는 운영체제 및 Python 버전은 다음과 같습니다:
 
-* Python 3.5 이상이 설치된 Linux (x86-64)
-* Python 3.5 이상이 설치된 macOS 10.13나 그 이후 버전
-* Python 3.5 이상이 설치된 Windows 7이나 그 이후 버전 (x86, x86-64)
-* Python 3.5 이상이 설치된 다른 운영체제: 이 경우는 c++11 호환 컴파일러를 통한 소스코드 컴파일이 필요합니다.
+* Python 3.6 이상이 설치된 Linux (x86-64)
+* Python 3.6 이상이 설치된 macOS 10.13나 그 이후 버전
+* Python 3.6 이상이 설치된 Windows 7이나 그 이후 버전 (x86, x86-64)
+* Python 3.6 이상이 설치된 다른 운영체제: 이 경우는 c++14 호환 컴파일러를 통한 소스코드 컴파일이 필요합니다.
 
 설치가 끝난 뒤에는 다음과 같이 Python3에서 바로 import하여 tomotopy를 사용할 수 있습니다.
 ::
@@ -254,6 +254,14 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.12.0 (2021-04-26)
+    * 이제 `tomotopy.DMRModel`와 `tomotopy.GDMRModel`가 다중 메타데이터를 지원합니다. (https://github.com/bab2min/tomotopy/blob/main/examples/dmr_multi_label.py 참조)
+    * `tomotopy.GDMRModel`의 성능이 개선되었습니다.
+    * 깊은 복사를 수행하는 `copy()` 메소드가 모든 토픽 모델 클래스에 추가되었습니다.
+    * `min_cf`, `min_df` 등에 의해 학습에서 제외된 단어가 잘못된 토픽id값을 가지는 문제가 해결되었습니다. 이제 제외단 단어들은 토픽id로 모두 `-1` 값을 가집니다.
+    * 이제 `tomotopy`에 의해 생성되는 예외 및 경고가 모두 Python 표준 타입을 따릅니다.
+    * 컴파일러 요구사항이 C++14로 상향되었습니다.
+
 * 0.11.1 (2021-03-28)
     * 비대칭 alpha와 관련된 치명적인 버그가 수정되었습니다. 이 버그로 인해 0.11.0 버전은 릴리즈에서 삭제되었습니다.
 
