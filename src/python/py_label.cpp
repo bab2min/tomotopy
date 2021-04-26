@@ -17,18 +17,13 @@ int CandidateObject::init(CandidateObject *self, PyObject *args, PyObject *kwarg
 	static const char* kwlist[] = { "words", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist,
 		&words)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		self->tm = nullptr;
 		self->corpus = nullptr;
 		new(&self->cand) tomoto::label::Candidate{};
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
-	}
-	return 0;
+		return 0;
+	});
 }
 
 void CandidateObject::dealloc(CandidateObject* self)
@@ -60,106 +55,52 @@ PyObject* CandidateObject::repr(CandidateObject* self)
 
 static PyObject* Candidate_getWords(CandidateObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->begin(), self->end());
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* Candidate_getName(CandidateObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->cand.name);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 int Candidate_setName(CandidateObject* self, PyObject* val, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		if (!PyUnicode_Check(val)) throw runtime_error{ "`name` must be `str` type." };
 		self->cand.name = PyUnicode_AsUTF8(val);
-	}
-	catch (const bad_exception&)
-	{
-		return -1;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
-	}
-	return 0;
+		return 0;
+	});
 }
 
 static PyObject* Candidate_getScore(CandidateObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->cand.score);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* Candidate_getCf(CandidateObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->cand.cf);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* Candidate_getDf(CandidateObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
 		return py::buildPyValue(self->cand.df);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyGetSetDef Candidate_getseters[] = {
@@ -222,7 +163,7 @@ struct ExtractorObject
 		TopicModelObject* tm;
 		static const char* kwlist[] = { "topic_model", nullptr };
 		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &tm)) return nullptr;
-		try
+		return py::handleExc([&]()
 		{
 			auto cands = self->inst->extract(tm->inst);
 			PyObject* ret = PyList_New(0);
@@ -235,16 +176,7 @@ struct ExtractorObject
 				PyList_Append(ret, item);
 			}
 			return ret;
-		}
-		catch (const bad_exception&)
-		{
-			return nullptr;
-		}
-		catch (const exception& e)
-		{
-			PyErr_SetString(PyExc_Exception, e.what());
-			return nullptr;
-		}
+		});
 	}
 
 	static void dealloc(ExtractorObject* self)
@@ -271,19 +203,10 @@ struct LabelerObject
 		static const char* kwlist[] = { "k", "top_n", nullptr };
 		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, 
 			&k, &topN)) return nullptr;
-		try
+		return py::handleExc([&]()
 		{
 			return py::buildPyValue(self->inst->getLabels(k, topN));
-		}
-		catch (const bad_exception&)
-		{
-			return nullptr;
-		}
-		catch (const exception& e)
-		{
-			PyErr_SetString(PyExc_Exception, e.what());
-			return nullptr;
-		}
+		});
 	}
 
 	static void dealloc(LabelerObject* self)
@@ -305,16 +228,11 @@ static int PMIExtractor_init(ExtractorObject *self, PyObject *args, PyObject *kw
 	static const char* kwlist[] = { "min_cf", "min_df", "min_len", "max_len", "max_cand", "normalized", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnp", (char**)kwlist,
 		&minCf, &minDf, &minLen, &maxLen, &maxCand, &normalized)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		self->inst = new tomoto::label::PMIExtractor{ minCf, minDf, minLen, maxLen, maxCand, !!normalized };
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
-	}
-	return 0;
+		return 0;
+	});
 }
 
 PyTypeObject PMIExtractor_type = {
@@ -367,13 +285,13 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 	static const char* kwlist[] = { "topic_model", "cands", "min_df", "smoothing", "mu", "window_size", "workers", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|nffnn", (char**)kwlist,
 		&tm, &cands, &minDf, &smoothing, &mu, &windowSize, &numWorkers)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		self->tm = tm;
 		self->inst = nullptr;
 		Py_INCREF(tm);
 		py::UniqueObj iter{ PyObject_GetIter(cands) };
-		if (!iter) throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+		if (!iter) throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 		vector<tomoto::label::Candidate*> pcands;
 		{
 			py::UniqueObj item;
@@ -381,25 +299,20 @@ static int FoRelevance_init(LabelerObject *self, PyObject *args, PyObject *kwarg
 			{
 				if (!PyObject_TypeCheck(item, &Candidate_type))
 				{
-					throw runtime_error{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+					throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 				}
 				pcands.emplace_back(&((CandidateObject*)item.get())->cand);
 			}
 		}
 		auto deref = [](tomoto::label::Candidate* p)->tomoto::label::Candidate& { return *p; };
-		self->inst = new tomoto::label::FoRelevance{ 
-			tm->inst, 
-			tomoto::makeTransformIter(pcands.begin(), deref), 
-			tomoto::makeTransformIter(pcands.end(), deref), 
-			minDf, smoothing, 0, mu, windowSize, numWorkers 
+		self->inst = new tomoto::label::FoRelevance{
+			tm->inst,
+			tomoto::makeTransformIter(pcands.begin(), deref),
+			tomoto::makeTransformIter(pcands.end(), deref),
+			minDf, smoothing, 0, mu, windowSize, numWorkers
 		};
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return -1;
-	}
-	return 0;
+		return 0;
+	});
 }
 
 PyTypeObject FoRelevance_type = {

@@ -289,7 +289,7 @@ namespace tomoto
 
 			const size_t S = doc.numBySent.size();
 			std::fill(doc.numBySent.begin(), doc.numBySent.end(), 0);
-			doc.Zs = tvector<Tid>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize, non_topic_id);
 			doc.Vs.resize(wordSize);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 			doc.numByTopic.init(nullptr, this->K + KL, 1);
@@ -302,7 +302,7 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(T * (this->K + KL));
+			this->globalState.zLikelihood = Vector::Zero(T * (this->K + KL));
 			if (initDocs)
 			{
 				this->globalState.numByTopic = Eigen::Matrix<WeightType, -1, 1>::Zero(this->K + KL);
@@ -442,7 +442,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer, rawDoc.template getMisc<std::string>("delimiter")));
+			return std::make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer, rawDoc.template getMisc<std::string>("delimiter")));
 		}
 
 		template<bool _const = false>
@@ -513,7 +513,7 @@ namespace tomoto
 
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const
 		{
-			return make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
+			return std::make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
 		}
 
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override

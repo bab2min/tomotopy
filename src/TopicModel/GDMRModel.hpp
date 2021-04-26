@@ -8,8 +8,8 @@ namespace tomoto
 	template<TermWeight _tw>
 	struct ModelStateGDMR : public ModelStateDMR<_tw>
 	{
-		/*Eigen::Matrix<Float, -1, 1> alphas;
-		Eigen::Matrix<Float, -1, 1> terms;
+		/*Vector alphas;
+		Vector terms;
 		std::vector<std::vector<Float>> slpCache;
 		std::vector<size_t> ndimCnt;*/
 	};
@@ -37,26 +37,28 @@ namespace tomoto
 		std::vector<Float> mdCoefs, mdIntercepts, mdMax;
 		std::vector<uint64_t> degreeByF;
 		Eigen::Array<Float, -1, 1> orderDecayCached;
-		size_t fCont = 1, fCat = 1;
+		size_t fCont = 1;
 
-		Float getIntegratedLambdaSq(const Eigen::Ref<const Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>>& lambdas) const
+		Float getIntegratedLambdaSq(const Eigen::Ref<const Vector, 0, Eigen::InnerStride<>>& lambdas) const
 		{
 			Float ret = 0;
-			for (size_t i = 0; i < fCat; ++i)
+			for (size_t i = 0; i < this->F; ++i)
 			{
-				ret += pow(lambdas[fCont * i] - log(this->alpha), 2) / 2 / pow(this->sigma0, 2);
-				ret += (lambdas.segment(fCont * i + 1, fCont - 1).array().pow(2) / 2 * orderDecayCached.segment(1, fCont - 1) / pow(this->sigma, 2)).sum();
+				ret += pow(lambdas[this->mdVecSize * i] - log(this->alpha), 2) / 2 / pow(this->sigma0, 2);
+				ret += (lambdas.segment(this->mdVecSize * i + 1, fCont - 1).array().pow(2) / 2 * orderDecayCached.segment(1, fCont - 1) / pow(this->sigma, 2)).sum();
+				ret += lambdas.segment(this->mdVecSize * i + fCont, this->mdVecSize - fCont).array().pow(2).sum() / 2 / pow(this->sigma, 2);
 			}
 			return ret;
 		}
 
-		void getIntegratedLambdaSqP(const Eigen::Ref<const Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>>& lambdas, 
-			Eigen::Ref<Eigen::Matrix<Float, -1, 1>, 0, Eigen::InnerStride<>> ret) const
+		void getIntegratedLambdaSqP(const Eigen::Ref<const Vector, 0, Eigen::InnerStride<>>& lambdas, 
+			Eigen::Ref<Vector, 0, Eigen::InnerStride<>> ret) const
 		{
-			for (size_t i = 0; i < fCat; ++i)
+			for (size_t i = 0; i < this->F; ++i)
 			{
-				ret[fCont * i] = (lambdas[fCont * i] - log(this->alpha)) / pow(this->sigma0, 2);
-				ret.segment(fCont * i + 1, fCont - 1) = lambdas.segment(fCont * i + 1, fCont - 1).array() * orderDecayCached.segment(1, fCont - 1) / pow(this->sigma, 2);
+				ret[this->mdVecSize * i] = (lambdas[this->mdVecSize * i] - log(this->alpha)) / pow(this->sigma0, 2);
+				ret.segment(this->mdVecSize * i + 1, fCont - 1) = lambdas.segment(this->mdVecSize * i + 1, fCont - 1).array() * orderDecayCached.segment(1, fCont - 1) / pow(this->sigma, 2);
+				ret.segment(this->mdVecSize * i + fCont, this->mdVecSize - fCont) = lambdas.segment(this->mdVecSize * i + fCont, this->mdVecSize - fCont).array() / pow(this->sigma, 2);
 			}
 		}
 
@@ -64,22 +66,27 @@ namespace tomoto
 		{
 			this->lambda = Eigen::Rand::normalLike(this->lambda, this->rg);
 			
-			for (size_t i = 0; i < fCat; ++i)
+			for (size_t i = 0; i < this->F; ++i)
 			{
-				this->lambda.col(fCont * i).array() *= sigma0;
-				this->lambda.col(fCont * i).array() += log(this->alphas.array());
+				this->lambda.col(this->mdVecSize * i).array() *= sigma0;
+				this->lambda.col(this->mdVecSize * i).array() += log(this->alphas.array());
 
 				for (size_t j = 1; j < fCont; ++j)
 				{
-					this->lambda.col(fCont * i + j).array() *= this->sigma / std::sqrt(orderDecayCached[j]);
+					this->lambda.col(this->mdVecSize * i + j).array() *= this->sigma / std::sqrt(orderDecayCached[j]);
+				}
+
+				for (size_t j = fCont; j < this->mdVecSize; ++j)
+				{
+					this->lambda.col(this->mdVecSize * i + j).array() *= this->sigma;
 				}
 			}
 		}
 
-		Float getNegativeLambdaLL(Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g) const
+		Float getNegativeLambdaLL(Eigen::Ref<Vector> x, Vector& g) const
 		{
-			auto mappedX = Eigen::Map<Eigen::Matrix<Float, -1, -1>>(x.data(), this->K, this->F);
-			auto mappedG = Eigen::Map<Eigen::Matrix<Float, -1, -1>>(g.data(), this->K, this->F);
+			auto mappedX = Eigen::Map<Matrix>(x.data(), this->K, this->F);
+			auto mappedG = Eigen::Map<Matrix>(g.data(), this->K, this->F);
 
 			Float fx = 0;
 			for (size_t k = 0; k < this->K; ++k)
@@ -90,7 +97,7 @@ namespace tomoto
 			return fx;
 		}
 
-		Float evaluateLambdaObj(Eigen::Ref<Eigen::Matrix<Float, -1, 1>> x, Eigen::Matrix<Float, -1, 1>& g, ThreadPool& pool, _ModelState* localData) const
+		/*Float evaluateLambdaObj(Eigen::Ref<Vector> x, Vector& g, ThreadPool& pool, _ModelState* localData) const
 		{
 			// if one of x is greater than maxLambda, return +inf for preventing search more
 			if ((x.array() > this->maxLambda).any()) return INFINITY;
@@ -98,18 +105,18 @@ namespace tomoto
 			const auto K = this->K;
 			const auto KF = this->K * this->F;
 
-			auto mappedX = Eigen::Map<Eigen::Matrix<Float, -1, -1>>(x.data(), K, this->F);
+			auto mappedX = Eigen::Map<Matrix>(x.data(), K, this->F);
 			Float fx = -static_cast<const DerivedClass*>(this)->getNegativeLambdaLL(x, g);
 
-			std::vector<std::future<Eigen::Matrix<Float, -1, 1>>> res;
+			std::vector<std::future<Vector>> res;
 			const size_t chStride = pool.getNumWorkers() * 8;
 			for (size_t ch = 0; ch < chStride; ++ch)
 			{
 				res.emplace_back(pool.enqueue([&, this](size_t threadId)
 				{
 					auto& ld = localData[threadId];
-					thread_local Eigen::Matrix<Float, -1, 1> alphas{ K }, tmpK{ K }, terms{ fCont };
-					Eigen::Matrix<Float, -1, 1> ret = Eigen::Matrix<Float, -1, 1>::Zero(KF + 1);
+					thread_local Vector alphas{ K }, tmpK{ K }, terms{ fCont };
+					Vector ret = Vector::Zero(KF + 1);
 					for (size_t docId = ch; docId < this->docs.size(); docId += chStride)
 					{
 						const auto& doc = this->docs[docId];
@@ -151,7 +158,7 @@ namespace tomoto
 			// positive fx is an error from limited precision of float.
 			if (fx > 0) return INFINITY;
 			return -fx;
-		}
+		}*/
 
 		void getTermsFromMd(const Float* vx, Float* out, bool normalize = false) const
 		{
@@ -213,14 +220,14 @@ namespace tomoto
 			return ret;
 		}
 
-		template<bool _asymEta>
+		/*template<bool _asymEta>
 		Float* getZLikelihoods(_ModelState& ld, const _DocType& doc, size_t docId, size_t vid) const
 		{
 			const size_t V = this->realV;
 			assert(vid < V);
 			auto etaHelper = this->template getEtaHelper<_asymEta>();
 			auto& zLikelihood = ld.zLikelihood;
-			thread_local Eigen::Matrix<Float, -1, 1> terms{ fCont };
+			thread_local Vector terms{ fCont };
 			size_t xOffset = doc.metadata * fCont;
 			getTermsFromMd(&doc.metadataNormalized[0], terms.data());
 			zLikelihood = (doc.numByTopic.array().template cast<Float>() + (this->lambda.middleCols(xOffset, fCont) * terms).array().exp() + this->alphaEps)
@@ -229,19 +236,19 @@ namespace tomoto
 
 			sample::prefixSum(zLikelihood.data(), this->K);
 			return &zLikelihood[0];
-		}
+		}*/
 
-		template<typename _DocIter>
+		/*template<typename _DocIter>
 		double getLLDocs(_DocIter _first, _DocIter _last) const
 		{
 			const auto K = this->K;
 			double ll = 0;
 
-			Eigen::Matrix<Float, -1, 1> alphas(K);
+			Vector alphas(K);
 			for (; _first != _last; ++_first)
 			{
 				auto& doc = *_first;
-				thread_local Eigen::Matrix<Float, -1, 1> terms{ fCont };
+				thread_local Vector terms{ fCont };
 				getTermsFromMd(&doc.metadataNormalized[0], terms.data());
 				size_t xOffset = doc.metadata * fCont;
 				for (Tid k = 0; k < K; ++k)
@@ -257,7 +264,7 @@ namespace tomoto
 				ll -= math::lgammaT(doc.getSumWordWeight() + alphaSum) - math::lgammaT(alphaSum);
 			}
 			return ll;
-		}
+		}*/
 
 		double getLLRest(const _ModelState& ld) const
 		{
@@ -322,8 +329,23 @@ namespace tomoto
 
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
-			BaseClass::prepareDoc(doc, docId, wordSize);
+			BaseClass::BaseClass::prepareDoc(doc, docId, wordSize);
 			doc.metadataNormalized = normalizeMetadata(doc.metadataOrg);
+
+			doc.mdVec = Vector::Zero(this->mdVecSize);
+			getTermsFromMd(doc.metadataNormalized.data(), doc.mdVec.data());
+			for (auto x : doc.multiMetadata)
+			{
+				doc.mdVec[fCont + x] = 1;
+			}
+
+			auto p = std::make_pair(doc.metadata, doc.mdVec);
+			auto it = this->mdHashMap.find(p);
+			if (it == this->mdHashMap.end())
+			{
+				it = this->mdHashMap.emplace(p, this->mdHashMap.size()).first;
+			}
+			doc.mdHash = it->second;
 		}
 
 		void initGlobalState(bool initDocs)
@@ -334,9 +356,17 @@ namespace tomoto
 			{
 				this->metadataDict.add("");
 			}
-			fCat = this->metadataDict.size();
-			this->F = fCont * fCat;
-			if (initDocs) collectMinMaxMetadata();
+			this->F = this->metadataDict.size();
+			this->mdVecSize = fCont + this->multiMetadataDict.size();
+			if (initDocs)
+			{
+				collectMinMaxMetadata();
+				this->lambda = Matrix::Zero(this->K, this->F * this->mdVecSize);
+				for (size_t i = 0; i < this->F; ++i)
+				{
+					this->lambda.col(this->mdVecSize * i) = log(this->alphas.array());
+				}
+			}
 			else
 			{
 				// Old binary file has metadataNormalized values into `metadataOrg`
@@ -352,16 +382,27 @@ namespace tomoto
 						}
 					}
 				}
-			}
-			
-			if (initDocs)
-			{
-				this->lambda = Eigen::Matrix<Float, -1, -1>::Zero(this->K, this->F);
-				for (size_t i = 0; i < fCat; ++i)
+
+				for (auto& doc : this->docs)
 				{
-					this->lambda.col(fCont * i) = log(this->alphas.array());
+					if (doc.mdVec.size() == this->mdVecSize) continue;
+					doc.mdVec = Vector::Zero(this->mdVecSize);
+					getTermsFromMd(doc.metadataNormalized.data(), doc.mdVec.data());
+					for (auto x : doc.multiMetadata)
+					{
+						doc.mdVec[fCont + x] = 1;
+					}
+
+					auto p = std::make_pair(doc.metadata, doc.mdVec);
+					auto it = this->mdHashMap.find(p);
+					if (it == this->mdHashMap.end())
+					{
+						it = this->mdHashMap.emplace(p, this->mdHashMap.size()).first;
+					}
+					doc.mdHash = it->second;
 				}
 			}
+			
 			orderDecayCached = calcOrderDecay();
 			LBFGSpp::LBFGSParam<Float> param;
 			param.max_iterations = this->maxBFGSIteration;
@@ -388,21 +429,33 @@ namespace tomoto
 		}
 
 		template<bool _const = false>
-		_DocType& _updateDoc(_DocType& doc, const std::vector<Float>& metadata, const std::string& metadataCat = {})
+		_DocType& _updateDoc(_DocType& doc, const std::vector<Float>& metadata, const std::string& metadataCat = {}, const std::vector<std::string>& mdVec = {})
 		{
 			if (metadata.size() != degreeByF.size()) 
-				throw std::invalid_argument{ "a length of `metadata` should be equal to a length of `degrees`" };
+				throw exc::InvalidArgument{ "a length of `metadata` should be equal to a length of `degrees`" };
 			doc.metadataOrg = metadata;
 			
 			Vid xid;
 			if (_const)
 			{
 				xid = this->metadataDict.toWid(metadataCat);
-				if (xid == (Vid)-1) throw std::invalid_argument("unknown metadata");
+				if (xid == non_vocab_id) throw exc::InvalidArgument("unknown metadata '" + metadataCat + "'");
+
+				for (auto& m : mdVec)
+				{
+					Vid x = this->multiMetadataDict.toWid(m);
+					if (x == non_vocab_id) throw exc::InvalidArgument("unknown multi_metadata '" + m + "'");
+					doc.multiMetadata.emplace_back(x);
+				}
 			}
 			else
 			{
 				xid = this->metadataDict.add(metadataCat);
+
+				for (auto& m : mdVec)
+				{
+					doc.multiMetadata.emplace_back(this->multiMetadataDict.add(m));
+				}
 			}
 			doc.metadata = xid;
 			return doc;
@@ -413,16 +466,18 @@ namespace tomoto
 			auto doc = this->template _makeFromRawDoc<false>(rawDoc, tokenizer);
 			return this->_addDoc(_updateDoc(doc, 
 				rawDoc.template getMisc<std::vector<Float>>("numeric_metadata"),
-				rawDoc.template getMiscDefault<std::string>("metadata")
+				rawDoc.template getMiscDefault<std::string>("metadata"),
+				rawDoc.template getMiscDefault<std::vector<std::string>>("multi_metadata")
 			));
 		}
 
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, 
+			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc,
 				rawDoc.template getMisc<std::vector<Float>>("numeric_metadata"),
-				rawDoc.template getMiscDefault<std::string>("metadata")
+				rawDoc.template getMiscDefault<std::string>("metadata"),
+				rawDoc.template getMiscDefault<std::vector<std::string>>("multi_metadata")
 			));
 		}
 
@@ -431,49 +486,37 @@ namespace tomoto
 			auto doc = this->_makeFromRawDoc(rawDoc);
 			return this->_addDoc(_updateDoc(doc, 
 				rawDoc.template getMisc<std::vector<Float>>("numeric_metadata"),
-				rawDoc.template getMiscDefault<std::string>("metadata")
+				rawDoc.template getMiscDefault<std::string>("metadata"),
+				rawDoc.template getMiscDefault<std::vector<std::string>>("multi_metadata")
 			));
 		}
 
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, 
+			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc,
 				rawDoc.template getMisc<std::vector<Float>>("numeric_metadata"),
-				rawDoc.template getMiscDefault<std::string>("metadata")
+				rawDoc.template getMiscDefault<std::string>("metadata"),
+				rawDoc.template getMiscDefault<std::vector<std::string>>("multi_metadata")
 			));
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> getTDF(const Float* metadata, const std::string& metadataCat, const std::vector<std::string>& multiMetadataCat, bool normalize) const override
 		{
-			Eigen::Array<Float, -1, 1> alphas(this->K);
-			thread_local Eigen::Matrix<Float, -1, 1> terms{ fCont };
-			getTermsFromMd(&doc.metadataNormalized[0], terms.data());
-			for (Tid k = 0; k < this->K; ++k)
-			{
-				alphas[k] = exp(this->lambda.row(k) * terms) + this->alphaEps;
-			}
-			std::vector<Float> ret(this->K);
-			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
-			Float sum = doc.getSumWordWeight() + alphas.sum();
-			if (normalize)
-			{
-				m = (doc.numByTopic.array().template cast<Float>() + alphas) / (doc.getSumWordWeight() + alphas.sum());
-			}
-			else
-			{
-				m = doc.numByTopic.array().template cast<Float>() + alphas;
-			}
-			return ret;
-		}
-
-		std::vector<Float> getTDF(const Float* metadata, size_t metadataCat, bool normalize) const override
-		{
-			Eigen::Matrix<Float, -1, 1> terms{ fCont };
+			Vector terms = Vector::Zero(this->mdVecSize);
 			getTermsFromMd(metadata, terms.data(), true);
+			for (auto& s : multiMetadataCat)
+			{
+				Vid x = this->multiMetadataDict.toWid(s);
+				if (x == non_vocab_id) throw exc::InvalidArgument("unknown multi_metadata " + text::quote(s));
+				terms[fCont + x] = 1;
+			}
+			Vid x = this->metadataDict.toWid(metadataCat);
+			if (x == non_vocab_id) throw exc::InvalidArgument("unknown metadata " + text::quote(metadataCat));
+
 			std::vector<Float> ret(this->K);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> retMap{ ret.data(), (Eigen::Index)ret.size() };
-			retMap = (this->lambda.middleCols(metadataCat * fCont, fCont) * terms).array();
+			retMap = (this->lambda.middleCols(x * this->mdVecSize, this->mdVecSize) * terms).array();
 			if (normalize)
 			{
 				retMap = (retMap - retMap.maxCoeff()).exp();
@@ -482,16 +525,25 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> getTDFBatch(const Float* metadata, size_t metadataCat, size_t stride, size_t cnt, bool normalize) const override
+		std::vector<Float> getTDFBatch(const Float* metadata, const std::string& metadataCat, const std::vector<std::string>& multiMetadataCat, size_t stride, size_t cnt, bool normalize) const override
 		{
-			Eigen::Matrix<Float, -1, -1> terms{ fCont, (Eigen::Index)cnt };
+			Matrix terms = Matrix::Zero(this->mdVecSize, (Eigen::Index)cnt);
 			for (size_t i = 0; i < cnt; ++i)
 			{
 				getTermsFromMd(metadata + stride * i, terms.col(i).data(), true);
 			}
+			for (auto& s : multiMetadataCat)
+			{
+				Vid x = this->multiMetadataDict.toWid(s);
+				if (x == non_vocab_id) throw exc::InvalidArgument("unknown multi_metadata " + text::quote(s));
+				terms.row(fCont + x).setOnes();
+			}
+			Vid x = this->metadataDict.toWid(metadataCat);
+			if (x == non_vocab_id) throw exc::InvalidArgument("unknown metadata " + text::quote(metadataCat));
+
 			std::vector<Float> ret(this->K * cnt);
 			Eigen::Map<Eigen::Array<Float, -1, -1>> retMap{ ret.data(), (Eigen::Index)this->K, (Eigen::Index)cnt };
-			retMap = (this->lambda.middleCols(metadataCat * fCont, fCont) * terms).array();
+			retMap = (this->lambda.middleCols(x * this->mdVecSize, this->mdVecSize) * terms).array();
 			if (normalize)
 			{
 				retMap.rowwise() -= retMap.colwise().maxCoeff();
@@ -500,6 +552,7 @@ namespace tomoto
 			}
 			return ret;
 		}
+
 		void setMdRange(const std::vector<Float>& vMin, const std::vector<Float>& vMax) override
 		{
 			mdIntercepts = vMin;

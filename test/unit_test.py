@@ -58,11 +58,27 @@ model_corpus_cases = [
     (tp.PAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
     (tp.HPAModel, curpath + '/sample.txt', 0, None, {'k1':5, 'k2':10}, [tp.ParallelScheme.COPY_MERGE]),
     (tp.DMRModel, curpath + '/sample_with_md.txt', 1, lambda x:{'metadata':'_'.join(x)}, {'k':10}, None),
+    (tp.DMRModel, curpath + '/sample_with_md.txt', 1, lambda x:{'multi_metadata':x}, {'k':10}, None),
     (tp.SLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:{'y':list(map(float, x))}, {'k':10, 'vars':'b'}, None),
     (tp.DTModel, curpath + '/sample_tp.txt', 1, lambda x:{'timepoint':int(x[0])}, {'k':10, 't':13}, None),
     (tp.GDMRModel, curpath + '/sample_tp.txt', 1, lambda x:{'numeric_metadata':list(map(float, x))}, {'k':10, 'degrees':[3]}, None),
     (tp.PTModel, curpath + '/sample.txt', 0, None, {'k':10, 'p':100}, [tp.ParallelScheme.PARTITION]),
 ]
+
+def null_doc(cls, inputFile, mdFields, f, kargs, ps):
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_df=200, rm_top=200, **kargs)
+    print('Adding docs...')
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+        else: mdl.add_doc(ch)
+    mdl.train(100, workers=1, parallel=ps)
+
+    print(mdl.docs[0].words)
+    print(mdl.docs[0].topics)
 
 def train1(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
@@ -138,6 +154,24 @@ def save_and_load(cls, inputFile, mdFields, f, kargs, ps):
     bytearr = mdl.saves()
     mdl = cls.loads(bytearr)
     mdl.train(20, parallel=ps)
+
+def copy_train(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test copy & train')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+        else: mdl.add_doc(ch)
+    mdl.train(200, parallel=ps)
+    mdl.summary(file=sys.stderr)
+    new_mdl = mdl.copy()
+    del mdl
+    new_mdl.summary(file=sys.stderr)
+    new_mdl.train(200, parallel=ps)
 
 def infer(cls, inputFile, mdFields, f, kargs, ps):
     print('Test infer')
@@ -453,9 +487,10 @@ for model_case in model_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
-        for func in [train1, train4, train0, 
-            save_and_load, infer, infer_together
-            ]:
+        for func in [null_doc, train1, train4, train0, 
+            save_and_load, infer, infer_together,
+            copy_train,
+        ]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 for model_case in model_asym_cases:
@@ -463,7 +498,7 @@ for model_case in model_asym_cases:
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
         for func in [train1, train4, train0_without_optim, 
-        ][-1:]:
+        ]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 for model_case in model_corpus_cases:

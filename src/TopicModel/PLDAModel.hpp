@@ -163,7 +163,7 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc, tokenizer);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
+			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
 		}
 
 		size_t addDoc(const RawDoc& rawDoc) override
@@ -175,7 +175,7 @@ namespace tomoto
 		std::unique_ptr<DocumentBase> makeDoc(const RawDoc& rawDoc) const override
 		{
 			auto doc = as_mutable(this)->template _makeFromRawDoc<true>(rawDoc);
-			return make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
+			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
 		}
 
 		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const

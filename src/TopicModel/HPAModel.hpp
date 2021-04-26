@@ -16,7 +16,7 @@ namespace tomoto
 
 		std::array<Eigen::Matrix<WeightType, -1, -1>, 3> numByTopicWord;
 		std::array<Eigen::Matrix<WeightType, -1, 1>, 3> numByTopic;
-		std::array<Eigen::Matrix<Float, -1, 1>, 2> subTmp;
+		std::array<Vector, 2> subTmp;
 
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 
@@ -45,10 +45,10 @@ namespace tomoto
 		Float epsilon = 0.00001;
 		size_t iteration = 5;
 
-		//Eigen::Matrix<Float, -1, 1> alphas; // len = (K + 1)
+		//Vector alphas; // len = (K + 1)
 
-		Eigen::Matrix<Float, -1, 1> subAlphaSum; // len = K
-		Eigen::Matrix<Float, -1, -1> subAlphas; // len = K * (K2 + 1)
+		Vector subAlphaSum; // len = K
+		Matrix subAlphas; // len = K * (K2 + 1)
 
 		void optimizeParameters(ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
@@ -379,7 +379,7 @@ namespace tomoto
 		void initGlobalState(bool initDocs)
 		{
 			const size_t V = this->realV;
-			this->globalState.zLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(1 + this->K + this->K * K2);
+			this->globalState.zLikelihood = Vector::Zero(1 + this->K + this->K * K2);
 			if (initDocs)
 			{
 				this->globalState.numByTopic1_2 = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, K2 + 1);
@@ -447,11 +447,11 @@ namespace tomoto
 
 			if (args.alpha.size() == 1)
 			{
-				this->alphas = Eigen::Matrix<Float, -1, 1>::Constant(args.k + 1, args.alpha[0]);
+				this->alphas = Vector::Constant(args.k + 1, args.alpha[0]);
 			}
 			else if (args.alpha.size() == args.k + 1)
 			{
-				this->alphas = Eigen::Map<const Eigen::Matrix<Float, -1, 1>>(args.alpha.data(), (Eigen::Index)args.alpha.size());
+				this->alphas = Eigen::Map<const Vector>(args.alpha.data(), (Eigen::Index)args.alpha.size());
 			}
 			else
 			{
@@ -460,7 +460,7 @@ namespace tomoto
 
 			if (args.subalpha.size() == 1)
 			{
-				subAlphas = Eigen::Matrix<Float, -1, -1>::Constant(args.k, args.k2 + 1, args.subalpha[0]);
+				subAlphas = Matrix::Constant(args.k, args.k2 + 1, args.subalpha[0]);
 			}
 			else if (args.subalpha.size() == args.k2 + 1)
 			{
@@ -479,7 +479,7 @@ namespace tomoto
 
 		void setDirichletEstIteration(size_t iter) override
 		{
-			if (!iter) throw std::invalid_argument("iter must > 0");
+			if (!iter) throw exc::InvalidArgument("iter must > 0");
 			iteration = iter;
 		}
 

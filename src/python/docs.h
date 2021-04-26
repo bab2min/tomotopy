@@ -12,23 +12,23 @@
 #endif
 
 /*
-	class Document
+    class Document
 */
 DOC_SIGNATURE_EN_KO(Document___init____doc__,
-	"Document()",
-	u8R""(This type provides abstract model to access documents to be used Topic Model.
+    "Document()",
+    u8R""(This type provides abstract model to access documents to be used Topic Model.
 
 An instance of this type can be acquired from `tomotopy.LDAModel.make_doc` method or `tomotopy.LDAModel.docs` member of each Topic Model instance.)"",
-	u8R""(이 타입은 토픽 모델에 사용되는 문헌들에 접근할 수 있는 추상 인터페이스을 제공합니다.)"");
+u8R""(이 타입은 토픽 모델에 사용되는 문헌들에 접근할 수 있는 추상 인터페이스을 제공합니다.)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_topics__doc__,
-	"get_topics(self, top_n=10)",
-	u8R""(Return the `top_n` topics with its probability of the document.)"",
-	u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
+    "get_topics(self, top_n=10)",
+    u8R""(Return the `top_n` topics with its probability of the document.)"",
+    u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_topic_dist__doc__,
-	"get_topic_dist(self, normalize=True)",
-	u8R""(Return a distribution of the topics in the document.
+    "get_topic_dist(self, normalize=True)",
+    u8R""(Return a distribution of the topics in the document.
 
 Parameters
 ----------
@@ -37,7 +37,7 @@ normalize : bool
 
     If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 )"",
-	u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.
+u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.
 
 Parameters
 ----------
@@ -48,17 +48,17 @@ normalize : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(Document_get_sub_topics__doc__,
-	"get_sub_topics(self, top_n=10)",
-	u8R""(.. versionadded:: 0.5.0
+    "get_sub_topics(self, top_n=10)",
+    u8R""(.. versionadded:: 0.5.0
 
 Return the `top_n` sub topics with its probability of the document. (for only `tomotopy.PAModel`))"",
-	u8R""(.. versionadded:: 0.5.0
+u8R""(.. versionadded:: 0.5.0
 
 현재 문헌의 상위 `top_n`개의 하위 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용))"");
 
 DOC_SIGNATURE_EN_KO(Document_get_sub_topic_dist__doc__,
-	"get_sub_topic_dist(self, normalize=True)",
-	u8R""(.. versionadded:: 0.5.0
+    "get_sub_topic_dist(self, normalize=True)",
+    u8R""(.. versionadded:: 0.5.0
 
 Return a distribution of the sub topics in the document. (for only `tomotopy.PAModel`)
 
@@ -68,7 +68,7 @@ normalize : bool
     .. versionadded:: 0.11.0
 
     If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.)"",
-	u8R""(.. versionadded:: 0.5.0
+    u8R""(.. versionadded:: 0.5.0
 
 현재 문헌의 하위 토픽 확률 분포를 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용)
 
@@ -81,17 +81,17 @@ normalize : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(Document_get_words__doc__,
-	"get_words(self, top_n=10)",
-	u8R""(.. versionadded:: 0.4.2
+    "get_words(self, top_n=10)",
+    u8R""(.. versionadded:: 0.4.2
 
 Return the `top_n` words with its probability of the document.)"",
-	u8R""(.. versionadded:: 0.4.2
+u8R""(.. versionadded:: 0.4.2
 
 현재 문헌의 상위 `top_n`개의 단어와 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_count_vector__doc__,
-	"get_count_vector(self)",
-	u8R""(.. versionadded:: 0.7.0
+    "get_count_vector(self)",
+    u8R""(.. versionadded:: 0.7.0
 
 Return a count vector for the current document.)"",
 u8R""(.. versionadded:: 0.7.0
@@ -108,15 +108,15 @@ u8R""(.. versionadded:: 0.10.0
 현재 문헌의 로그가능도 총합을 반환합니다.)"");
 
 DOC_VARIABLE_EN_KO(Document_words__doc__,
-	u8R""(a `list` of IDs for each word (read-only))"",
-	u8R""(문헌 내 단어들의 ID가 담긴 `list` (읽기전용))"");
+    u8R""(a `list` of IDs for each word (read-only))"",
+    u8R""(문헌 내 단어들의 ID가 담긴 `list` (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_weight__doc__,
-	u8R""(a weight of the document (read-only))"",
-	u8R""(문헌의 가중치 (읽기전용))"");
+    u8R""(a weight of the document (read-only))"",
+    u8R""(문헌의 가중치 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_topics__doc__,
-	u8R""(a `list` of topics for each word (read-only)
+    u8R""(a `list` of topics for each word (read-only)
 
 This represents super topics in `tomotopy.PAModel` and `tomotopy.HPAModel` model.)"",
 u8R""(문헌의 단어들이 각각 할당된 토픽을 보여주는 `list` (읽기 전용)
@@ -128,51 +128,59 @@ DOC_VARIABLE_EN_KO(Document_uid__doc__,
     u8R""(문헌의 고유 ID (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_metadata__doc__,
-	u8R""(categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
-	u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
+    u8R""(categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only))"",
+    u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용))"");
+
+DOC_VARIABLE_EN_KO(Document_multi_metadata__doc__,
+    u8R""(categorical multiple metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only)
+
+.. versionadded:: 0.12.0)"",
+u8R""(문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
+
+.. versionadded:: 0.12.0)"");
 
 DOC_VARIABLE_EN_KO(Document_numeric_metadata__doc__,
     u8R""(continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
 
 .. versionadded:: 0.11.0)"",
-    u8R""(문헌의 연속형 숫자 메타데이터 (`tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
+u8R""(문헌의 연속형 숫자 메타데이터 (`tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.11.0)"");
 
 DOC_VARIABLE_EN_KO(Document_subtopics__doc__,
-	u8R""(a `list` of sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model, read-only))"",
-	u8R""(문헌의 단어들이 각각 할당된 하위 토픽을 보여주는 `list` (`tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서만 사용됨, 읽기전용))"");
+    u8R""(a `list` of sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model, read-only))"",
+    u8R""(문헌의 단어들이 각각 할당된 하위 토픽을 보여주는 `list` (`tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서만 사용됨, 읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_windows__doc__,
-	u8R""(a `list` of window IDs for each word (for only `tomotopy.MGLDAModel` model, read-only))"",
-	u8R""(문헌의 단어들이 할당된 윈도우의 ID를 보여주는 `list` (`tomotopy.MGLDAModel` 모형에서만 사용됨, 읽기전용))"");
+    u8R""(a `list` of window IDs for each word (for only `tomotopy.MGLDAModel` model, read-only))"",
+    u8R""(문헌의 단어들이 할당된 윈도우의 ID를 보여주는 `list` (`tomotopy.MGLDAModel` 모형에서만 사용됨, 읽기전용))"");
 
 DOC_VARIABLE_EN_KO(Document_path__doc__,
-	u8R""(a `list` of topic ids by depth for a given document (for only `tomotopy.HLDAModel` model, read-only)
+    u8R""(a `list` of topic ids by depth for a given document (for only `tomotopy.HLDAModel` model, read-only)
 
 .. versionadded:: 0.7.1)"",
 u8R""(주어진 문헌에 대한 깊이별 토픽 번호의 `list` (`tomotopy.HLDAModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.7.1)"");
 
-DOC_VARIABLE_EN_KO(Document_beta__doc__, 
-	u8R""(a `list` of beta parameters for each topic (for only `tomotopy.CTModel` model, read-only)
+DOC_VARIABLE_EN_KO(Document_beta__doc__,
+    u8R""(a `list` of beta parameters for each topic (for only `tomotopy.CTModel` model, read-only)
 
 .. versionadded:: 0.2.0)"",
-	u8R""(문헌의 각 토픽별 beta 파라미터를 보여주는 `list` (`tomotopy.CTModel` 모형에서만 사용됨, 읽기전용)
+u8R""(문헌의 각 토픽별 beta 파라미터를 보여주는 `list` (`tomotopy.CTModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.2.0)"");
 
 DOC_VARIABLE_EN_KO(Document_vars__doc__,
-	u8R""(a `list` of response variables (for only `tomotopy.SLDAModel` model, read-only)
+    u8R""(a `list` of response variables (for only `tomotopy.SLDAModel` model, read-only)
 
 .. versionadded:: 0.2.0)"",
-	u8R""(문헌의 응답 변수를 보여주는 `list` (`tomotopy.SLDAModel` 모형에서만 사용됨 , 읽기전용)
+u8R""(문헌의 응답 변수를 보여주는 `list` (`tomotopy.SLDAModel` 모형에서만 사용됨 , 읽기전용)
 
 .. versionadded:: 0.2.0)"");
 
 DOC_VARIABLE_EN_KO(Document_labels__doc__,
-	u8R""(a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.LLDAModel` and `tomotopy.PLDAModel` models, read-only)
+    u8R""(a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.LLDAModel` and `tomotopy.PLDAModel` models, read-only)
 
 .. versionadded:: 0.3.0)"",
 u8R""(문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확률들)의 `list` (`tomotopy.LLDAModel`, `tomotopy.PLDAModel` 모형에서만 사용됨 , 읽기전용)
@@ -180,7 +188,7 @@ u8R""(문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확�
 .. versionadded:: 0.3.0)"");
 
 DOC_VARIABLE_EN_KO(Document_eta__doc__,
-	u8R""(a `list` of eta parameters(topic distribution) for the current document (for only `tomotopy.DTModel` model, read-only)
+    u8R""(a `list` of eta parameters(topic distribution) for the current document (for only `tomotopy.DTModel` model, read-only)
 
 .. versionadded:: 0.7.0)"",
 u8R""(문헌의 eta 파라미터(토픽 분포)를 나타내는 `list` (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
@@ -188,7 +196,7 @@ u8R""(문헌의 eta 파라미터(토픽 분포)를 나타내는 `list` (`tomotop
 .. versionadded:: 0.7.0)"");
 
 DOC_VARIABLE_EN_KO(Document_timepoint__doc__,
-	u8R""(a timepoint of the document (for only `tomotopy.DTModel` model, read-only)
+    u8R""(a timepoint of the document (for only `tomotopy.DTModel` model, read-only)
 
 .. versionadded:: 0.7.0)"",
 u8R""(문헌의 시점 (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
@@ -212,11 +220,11 @@ u8R""(문헌이 할당된 가상 문헌의 id (`tomotopy.PTModel` 모형에서�
 .. versionadded:: 0.11.0)"");
 
 /*
-	class LDA
+    class LDA
 */
 DOC_SIGNATURE_EN_KO(LDA___init____doc__,
-	"LDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on following papers:
+    "LDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on following papers:
 	
 > * Blei, D.M., Ng, A.Y., &Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.
 > * Newman, D., Asuncion, A., Smyth, P., &Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.
@@ -297,8 +305,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_add_doc__doc__,
-	"add_doc(self, words)",
-	u8R""(Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.LDAModel.train`.
+    "add_doc(self, words)",
+    u8R""(Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.LDAModel.train`.
 
 Parameters
 ----------
@@ -339,8 +347,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_make_doc__doc__,
-	"make_doc(self, words)",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words)",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -356,8 +364,8 @@ words : Iterable[str]
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_set_word_prior__doc__,
-	"set_word_prior(self, word, prior)",
-	u8R""(.. versionadded:: 0.6.0
+    "set_word_prior(self, word, prior)",
+    u8R""(.. versionadded:: 0.6.0
 
 Set word-topic prior. This method should be called before calling the `tomotopy.LDAModel.train`.
 
@@ -381,8 +389,8 @@ prior : Iterable[float]
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_word_prior__doc__,
-	"get_word_prior(self, word)",
-	u8R""(.. versionadded:: 0.6.0
+    "get_word_prior(self, word)",
+    u8R""(.. versionadded:: 0.6.0
 
 Return word-topic prior for `word`. If there is no set prior for `word`, an empty list is returned.
 
@@ -402,8 +410,8 @@ word : str
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_train__doc__,
-	"train(self, iter=10, workers=0, parallel=0, freeze_topics=False)",
-	u8R""(Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
+    "train(self, iter=10, workers=0, parallel=0, freeze_topics=False)",
+    u8R""(Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
 After calling this method, you cannot `tomotopy.LDAModel.add_doc` or `tomotopy.LDAModel.set_word_prior` more.
 
 Parameters
@@ -443,8 +451,8 @@ freeze_topics : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_words__doc__,
-	"get_topic_words(self, topic_id, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+    "get_topic_words(self, topic_id, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -462,8 +470,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id, normalize=True)",
-	u8R""(Return the word distribution of the topic `topic_id`.
+    "get_topic_word_dist(self, topic_id, normalize=True)",
+    u8R""(Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
 Parameters
@@ -489,13 +497,13 @@ normalize : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_count_by_topics__doc__,
-	"get_count_by_topics(self)",
-	u8R""(Return the number of words allocated to each topic.)"",
-	u8R""(각각의 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.)"");
+    "get_count_by_topics(self)",
+    u8R""(Return the number of words allocated to each topic.)"",
+    u8R""(각각의 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(LDA_infer__doc__,
-	"infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None)",
-	u8R""(Return the inferred topic distribution from unseen `doc`s.
+    "infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None)",
+    u8R""(Return the inferred topic distribution from unseen `doc`s.
 
 Parameters
 ----------
@@ -589,8 +597,8 @@ log_ll : float
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_save__doc__,
-	"save(self, filename, full=True)",
-	u8R""(Save the model instance to file `filename`. Return `None`.
+    "save(self, filename, full=True)",
+    u8R""(Save the model instance to file `filename`. Return `None`.
 
 If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model.
 If `False`, only topic parameters of the model will be saved. This model can be only used for inference of an unseen document.
@@ -622,14 +630,24 @@ u8R""(.. versionadded:: 0.11.0
 
 
 DOC_SIGNATURE_EN_KO(LDA_load__doc__,
-	"load(filename)",
-	u8R""(Return the model instance loaded from file `filename`.)"",
-	u8R""(`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
+    "load(filename)",
+    u8R""(Return the model instance loaded from file `filename`.)"",
+    u8R""(`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
 
 DOC_SIGNATURE_EN_KO(LDA_loads__doc__,
     "loads(data)",
     u8R""(Return the model instance loaded from `data` in bytes-like object.)"",
     u8R""(bytes-like object인 `data`로로부터 모델 인스턴스를 읽어들여 반환합니다.)"");
+
+DOC_SIGNATURE_EN_KO(LDA_copy__doc__,
+    "copy(self)",
+    u8R""(.. versionadded:: 0.12.0
+
+Return a new deep-copied instance of the current instance)"",
+u8R""(.. versionadded:: 0.12.0
+
+깊게 복사된 새 인스턴스를 반환합니다.)"");
+
 
 DOC_SIGNATURE_EN_KO(LDA_summary__doc__,
     "summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False)",
@@ -670,46 +688,46 @@ flush : bool
 
 
 DOC_VARIABLE_EN_KO(LDA_tw__doc__,
-	u8R""(the term weighting scheme (read-only))"",
-	u8R""(현재 모델의 용어 가중치 계획 (읽기전용))"");
+    u8R""(the term weighting scheme (read-only))"",
+    u8R""(현재 모델의 용어 가중치 계획 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_perplexity__doc__,
-	u8R""(a perplexity of the model (read-only))"",
-	u8R""(현재 모델의 Perplexity (읽기전용))"");
+    u8R""(a perplexity of the model (read-only))"",
+    u8R""(현재 모델의 Perplexity (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_ll_per_word__doc__,
-	u8R""(a log likelihood per-word of the model (read-only))"",
-	u8R""(현재 모델의 단어당 로그 가능도 (읽기전용))"");
+    u8R""(a log likelihood per-word of the model (read-only))"",
+    u8R""(현재 모델의 단어당 로그 가능도 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_k__doc__,
-	u8R""(K, the number of topics (read-only))"",
-	u8R""(토픽의 개수 (읽기전용))"");
+    u8R""(K, the number of topics (read-only))"",
+    u8R""(토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_alpha__doc__,
-	u8R""(Dirichlet prior on the per-document topic distributions (read-only))"",
-	u8R""(문헌의 토픽 분포에 대한 디리클레 분포 파라미터 (읽기전용))"");
+    u8R""(Dirichlet prior on the per-document topic distributions (read-only))"",
+    u8R""(문헌의 토픽 분포에 대한 디리클레 분포 파라미터 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_eta__doc__,
-	u8R""(the hyperparameter eta (read-only))"",
-	u8R""(하이퍼 파라미터 eta (읽기전용))"");
+    u8R""(the hyperparameter eta (read-only))"",
+    u8R""(하이퍼 파라미터 eta (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_docs__doc__,
-	u8R""(a `list`-like interface of `tomotopy.Document` in the model instance (read-only))"",
-	u8R""(현재 모델에 포함된 `tomotopy.Document`에 접근할 수 있는 `list`형 인터페이스 (읽기전용))"");
+    u8R""(a `list`-like interface of `tomotopy.Document` in the model instance (read-only))"",
+    u8R""(현재 모델에 포함된 `tomotopy.Document`에 접근할 수 있는 `list`형 인터페이스 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_vocabs__doc__,
-	u8R""(a dictionary, which contains both vocabularies filtered by frequency and vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only))"",
-	u8R""(빈도수로 필터링된 어휘와 모델에 포함된 어휘 전체를 포함하는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용))"");
+    u8R""(a dictionary, which contains both vocabularies filtered by frequency and vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only))"",
+    u8R""(빈도수로 필터링된 어휘와 모델에 포함된 어휘 전체를 포함하는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_num_vocabs__doc__,
-	u8R""(the number of vocabuluaries after words with a smaller frequency were removed (read-only)
+    u8R""(the number of vocabuluaries after words with a smaller frequency were removed (read-only)
 
 This value is 0 before `train` called.
 
 .. deprecated:: 0.8.0
 
     Due to the confusion of its name, this property will be removed. Please use `len(used_vocabs)` instead.)"",
-	u8R""(작은 빈도의 단어들을 제거한 뒤 남은 어휘의 개수 (읽기전용)
+    u8R""(작은 빈도의 단어들을 제거한 뒤 남은 어휘의 개수 (읽기전용)
 
 `train`이 호출되기 전에는 이 값은 0입니다.
 
@@ -718,45 +736,45 @@ This value is 0 before `train` called.
     이 프로퍼티의 이름은 혼동을 일으킬 여지가 있어 제거될 예정입니다. 대신 `len(used_vocabs)`을 사용하십시오.)"");
 
 DOC_VARIABLE_EN_KO(LDA_used_vocabs__doc__,
-	u8R""(a dictionary, which contains only the vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only)
+    u8R""(a dictionary, which contains only the vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only)
 
 .. versionadded:: 0.8.0)"",
-	u8R""(모델에 실제로 사용된 어휘만을 포함하는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용)
+u8R""(모델에 실제로 사용된 어휘만을 포함하는 `tomotopy.Dictionary` 타입의 어휘 사전 (읽기전용)
 
 .. versionadded:: 0.8.0)"");
 
 DOC_VARIABLE_EN_KO(LDA_vocab_freq__doc__,
-	u8R""(a `list` of vocabulary frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only))"",
-	u8R""(빈도수로 필터링된 어휘와 현재 모델에 포함된 어휘 전체의 빈도를 보여주는 `list` (읽기전용))"");
+    u8R""(a `list` of vocabulary frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only))"",
+    u8R""(빈도수로 필터링된 어휘와 현재 모델에 포함된 어휘 전체의 빈도를 보여주는 `list` (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_used_vocab_freq__doc__,
-	u8R""(a `list` of vocabulary frequencies which contains only vocabularies actually used in modeling (read-only)
+    u8R""(a `list` of vocabulary frequencies which contains only vocabularies actually used in modeling (read-only)
 
 .. versionadded:: 0.8.0)"",
-	u8R""(모델에 실제로 사용된 어휘들의 빈도를 보여주는 `list` (읽기전용))"");
+u8R""(모델에 실제로 사용된 어휘들의 빈도를 보여주는 `list` (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(LDA_vocab_df__doc__,
-	u8R""(a `list` of vocabulary document-frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only)
+    u8R""(a `list` of vocabulary document-frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only)
 
 .. versionadded:: 0.8.0)"",
-	u8R""(빈도수로 필터링된 어휘와 현재 모델에 포함된 어휘 전체의 문헌빈도를 보여주는 `list` (읽기전용)
+u8R""(빈도수로 필터링된 어휘와 현재 모델에 포함된 어휘 전체의 문헌빈도를 보여주는 `list` (읽기전용)
 
 .. versionadded:: 0.8.0)"");
 
 DOC_VARIABLE_EN_KO(LDA_used_vocab_df__doc__,
-	u8R""(a `list` of vocabulary document-frequencies which contains only vocabularies actually used in modeling (read-only)
+    u8R""(a `list` of vocabulary document-frequencies which contains only vocabularies actually used in modeling (read-only)
 
 .. versionadded:: 0.8.0)"",
-	u8R""(모델에 실제로 사용된 어휘들의 문헌빈도를 보여주는 `list` (읽기전용)
+u8R""(모델에 실제로 사용된 어휘들의 문헌빈도를 보여주는 `list` (읽기전용)
 
 .. versionadded:: 0.8.0)"");
 
 
 DOC_VARIABLE_EN_KO(LDA_num_words__doc__,
-	u8R""(the number of total words (read-only)
+    u8R""(the number of total words (read-only)
 
 This value is 0 before `train` called.)"",
-	u8R""(현재 모델에 포함된 문헌들 전체의 단어 개수 (읽기전용)
+u8R""(현재 모델에 포함된 문헌들 전체의 단어 개수 (읽기전용)
 
 `train`이 호출되기 전에는 이 값은 0입니다.)"");
 
@@ -769,31 +787,31 @@ u8R""(현재까지 수행된 학습의 총 반복 횟수 (읽기전용)
 .. versionadded:: 0.9.0)"");
 
 DOC_VARIABLE_EN_KO(LDA_optim_interval__doc__,
-	u8R""(get or set the interval for optimizing parameters
+    u8R""(get or set the interval for optimizing parameters
 
 Its default value is 10. If it is set to 0, the parameter optimization is turned off.)"",
-	u8R""(파라미터 최적화의 주기를 얻거나 설정합니다.
+u8R""(파라미터 최적화의 주기를 얻거나 설정합니다.
 
 기본값은 10이며, 0으로 설정할 경우 학습 과정에서 파라미터 최적화를 수행하지 않습니다.)"");
 
 DOC_VARIABLE_EN_KO(LDA_burn_in__doc__,
-	u8R""(get or set the burn-in iterations for optimizing parameters
+    u8R""(get or set the burn-in iterations for optimizing parameters
 
 Its default value is 0.)"",
-	u8R""(파라미터 학습 초기의 Burn-in 단계의 반복 횟수를 얻거나 설정합니다.
+u8R""(파라미터 학습 초기의 Burn-in 단계의 반복 횟수를 얻거나 설정합니다.
 
 기본값은 0입니다.)"");
 
 DOC_VARIABLE_EN_KO(LDA_removed_top_words__doc__,
-	u8R""(a `list` of `str` which is a word removed from the model if you set `rm_top` greater than 0 at initializing the model (read-only))"",
-u8R""(모델 생성시 `rm_top` 파라미터를 1 이상으로 설정한 경우, 빈도수가 높아서 모델에서 제외된 단어의 목록을 보여줍니다. (읽기전용))"");
+    u8R""(a `list` of `str` which is a word removed from the model if you set `rm_top` greater than 0 at initializing the model (read-only))"",
+    u8R""(모델 생성시 `rm_top` 파라미터를 1 이상으로 설정한 경우, 빈도수가 높아서 모델에서 제외된 단어의 목록을 보여줍니다. (읽기전용))"");
 
 /*
-	class DMR
+    class DMR
 */
 DOC_SIGNATURE_EN_KO(DMR___init____doc__,
-	"DMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=0.0000000001, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on following papers:
+    "DMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=0.0000000001, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on following papers:
 
 > * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.
 
@@ -880,8 +898,12 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(DMR_add_doc__doc__,
-	"add_doc(self, words, metadata='')",
-	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+    "add_doc(self, words, metadata='', multi_metadata=[])",
+    u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -889,8 +911,14 @@ words : Iterable[str]
     an iterable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -898,11 +926,17 @@ words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 metadata : str
     문헌의 메타데이터 (예로 저자나 제목, 작성연도 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
 )"");
 
 DOC_SIGNATURE_EN_KO(DMR_make_doc__doc__,
-	"make_doc(self, words, metadata='')",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words, metadata='', multi_metadata=[])",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -910,8 +944,14 @@ words : Iterable[str]
     an iteratable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -919,36 +959,113 @@ words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 metadata : str
     문헌의 메타데이터 (예를 들어 저자나 제목, 작성연도 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
+)"");
+
+DOC_SIGNATURE_EN_KO(DMR_get_topic_prior__doc__,
+    "get_topic_prior(self, metadata='', multi_metadata=[], raw=False)",
+    u8R""(.. versionadded:: 0.12.0
+
+Calculate the topic prior of any document with the given `metadata` and `multi_metadata`. 
+If `raw` is true, the value without applying `exp()` is returned, otherwise, the value with applying `exp()` is returned.
+
+The topic prior is calculated as follows:
+
+`np.dot(lambda_[:, id(metadata)], np.concat([[1], multi_hot(multi_metadata)]))`
+
+where `idx(metadata)` and `multi_hot(multi_metadata)` indicates 
+an integer id of given `metadata` and multi-hot encoded binary vector for given `multi_metadata` respectively.
+
+
+Parameters
+----------
+metadata : str
+    metadata of the document (e.g., author, title or year)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
+raw : bool
+    If `raw` is true, the raw value of parameters without applying `exp()` is returned.
+)"",
+u8R""(.. versionadded:: 0.12.0
+
+주어진 `metadata`와 `multi_metadata`에 대해 토픽의 사전 분포를 계산합니다.
+`raw`가 참인 경우 `exp()`가 적용되기 전의 값이 반환되며, 그 외에는 `exp()`가 적용된 값이 반환됩니다.
+
+토픽의 사전분포는 다음과 같이 계산됩니다:
+
+`np.dot(lambda_[:, id(metadata)], np.concat([[1], multi_hot(multi_metadata)]))`
+
+여기서 `idx(metadata)`와 `multi_hot(multi_metadata)`는 각각
+주어진 `metadata`의 정수 인덱스 번호와 `multi_metadata`를 multi-hot 인코딩한, 0 혹은 1로 구성된 벡터입니다.
+
+Parameters
+----------
+metadata : str
+    문헌의 메타데이터 (예를 들어 저자나 제목, 작성연도 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
+raw : bool
+    참일 경우 파라미터에 `exp()`가 적용되지 않은 값이 반환됩니다.
 )"");
 
 DOC_VARIABLE_EN_KO(DMR_f__doc__,
-	u8R""(the number of metadata features (read-only))"",
-	u8R""(메타데이터 자질 종류의 개수 (읽기전용))"");
+    u8R""(the number of metadata features (read-only))"",
+    u8R""(메타데이터 자질 종류의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_sigma__doc__,
-	u8R""(the hyperparameter sigma (read-only))"",
-	u8R""(하이퍼 파라미터 sigma (읽기전용))"");
+    u8R""(the hyperparameter sigma (read-only))"",
+    u8R""(하이퍼 파라미터 sigma (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_alpha_epsilon__doc__,
-	u8R""(the smooting value alpha-epsilon (read-only))"",
-	u8R""(평탄화 계수 alpha-epsilon (읽기전용))"");
+    u8R""(the smooting value alpha-epsilon (read-only))"",
+    u8R""(평탄화 계수 alpha-epsilon (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(DMR_metadata_dict__doc__,
-	u8R""(a dictionary of metadata in type `tomotopy.Dictionary` (read-only))"",
-	u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용))"");
+    u8R""(a dictionary of metadata in type `tomotopy.Dictionary` (read-only))"",
+    u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용))"");
+
+DOC_VARIABLE_EN_KO(DMR_multi_metadata_dict__doc__,
+    u8R""(a dictionary of metadata in type `tomotopy.Dictionary` (read-only)
+
+.. versionadded:: 0.12.0
+
+    This dictionary is distinct from `metadata_dict`.
+)"",
+u8R""(`tomotopy.Dictionary` 타입의 메타데이터 사전 (읽기전용)
+
+.. versionadded:: 0.12.0
+
+    이 사전은 `metadata_dict`와는 별개입니다.
+)"");
 
 DOC_VARIABLE_EN_KO(DMR_lamdas__doc__,
-	u8R""(parameter lambdas in the shape `[k, f]` (read-only)
+    u8R""(parameter lambdas in the shape `[k, f]` (read-only)
 
 .. warning::
 
     Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.
 )"",
-	u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용)
+u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용)
 
 .. warning::
 
     0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
+
+
+DOC_VARIABLE_EN_KO(DMR_lamda___doc__,
+    u8R""(parameter lambdas in the shape `[k, len(metadata_dict), l]` where `k` is the number of topics and `l` is the size of vector for multi_metadata (read-only)
+
+See `tomotopy.DMRModel.get_topic_prior` for the relation between the lambda parameter and the topic prior.
+
+.. versionadded:: 0.12.0
+)"",
+u8R""(현재 모형의 lambda 파라미터을 보여주는 `[k, len(metadata_dict), l]` 모양의 float array (읽기전용)
+
+lambda 파라미터와 토픽 사전 분포 간의 관계에 대해서는 `tomotopy.DMRModel.get_topic_prior`를 참고하십시오.
+
+.. versionadded:: 0.12.0)"");
+
 
 DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
     u8R""(Dirichlet prior on the per-document topic distributions for each metadata in the shape `[k, f]`. Equivalent to `np.exp(DMRModel.lambdas)` (read-only)
@@ -967,11 +1084,11 @@ DOC_VARIABLE_EN_KO(DMR_alpha__doc__,
     0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.)"");
 
 /*
-	class GDMR
+    class GDMR
 */
 DOC_SIGNATURE_EN_KO(GDMR___init____doc__,
-	"GDMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Generalized DMR(g-DMR) topic model and its implementation is based on following papers:
+    "GDMRModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Generalized DMR(g-DMR) topic model and its implementation is based on following papers:
 
 > * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
 
@@ -1090,14 +1207,18 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_add_doc__doc__,
-	"add_doc(self, words, numeric_metadata=[], metadata='')",
-	u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
+    "add_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[])",
+    u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
     and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1107,14 +1228,20 @@ numeric_metadata : Iterable[float]
     continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
 metadata : str
     categorical metadata of the document (e.g., author, title, journal or country)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
     0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1124,17 +1251,23 @@ numeric_metadata : Iterable[float]
     문헌의 연속형 숫자 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     문헌의 범주형 메타데이터 (예를 들어 저자나 제목, 저널, 국가 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_make_doc__doc__,
-	"make_doc(self, words, numeric_metadata=[], metadata='')",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[])",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
     and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1144,14 +1277,20 @@ numeric_metadata : Iterable[float]
     continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
 metadata : str
     categorical metadata of the document (e.g., author, title, journal or country)
+multi_metadata : Iterable[str]
+    metadata of the document (for multiple values)
 )"",
 u8R""(`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
     0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1161,13 +1300,19 @@ numeric_metadata : Iterable[float]
     문헌의 연속형 숫자 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     문헌의 범주형 메타데이터 (예를 들어 저자나 제목, 저널, 국가 등)
+multi_metadata : Iterable[str]
+    문헌의 메타데이터 (다중 값이 필요한 경우 사용하십시오)
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_tdf__doc__,
-	"tdf(self, numeric_metadata, metadata='', normalize=True)",
-	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+    "tdf(self, numeric_metadata, metadata='', multi_metadata=[], normalize=True)",
+    u8R""(Calculate a topic distribution for given `numeric_metadata` value. It returns a list with length `k`.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1175,10 +1320,18 @@ numeric_metadata : Iterable[float]
     continuous metadata variable whose length should be equal to the length of `degrees`.
 metadata : str    
     categorical metadata variable
+multi_metadata : Iterable[str]
+    categorical metadata variables (for multiple values)
 normalize : bool
     If true, the method returns probabilities for each topic in range [0, 1]. Otherwise, it returns raw values in logit.
 )"",
 u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
+
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1186,16 +1339,22 @@ numeric_metadata : Iterable[float]
     연속형 메타데이터 변수. 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     범주형 메타데이터 변수
+multi_metadata : Iterable[str]
+    범주형 메타데이터 변수 (여러 개를 입력해야 하는 경우 사용하십시오)
 normalize : bool
     참인 경우, 각 값이 [0, 1] 범위에 있는 확률 분포를 반환합니다. 거짓인 경우 logit값을 그대로 반환합니다.
 )"");
 
 
 DOC_SIGNATURE_EN_KO(GDMR_tdf_linspace__doc__,
-	"tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', endpoint=True, normalize=True)",
-	u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+    "tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', multi_metadata=[], endpoint=True, normalize=True)",
+    u8R""(Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    A new argument `multi_metadata` for multiple values of metadata was added.
 
 Parameters
 ----------
@@ -1207,6 +1366,8 @@ num : Iterable[int]
     the number of samples to generate for each metadata variable. Must be non-negative. Its length should be equal to the length of `degrees`.
 metadata : str
     categorical metadata variable
+multi_metadata : Iterable[str]
+    categorical metadata variables (for multiple values)
 endpoint : bool
     If True, `metadata_stop` is the last sample. Otherwise, it is not included. Default is True.
 normalize : bool
@@ -1219,7 +1380,11 @@ samples : ndarray
 )"",
 u8R""(주어진 `metadata`에 대해 토픽 분포를 계산하여, `k` 길이의 list로 반환합니다.
 
-..versionchanged:: 0.11.0
+.. versionchanged:: 0.11.0
+
+.. versionchanged:: 0.12.0
+
+    여러 개의 메타데이터를 입력하는데 쓰이는 `multi_metadata`가 추가되었습니다.
 
 Parameters
 ----------
@@ -1231,6 +1396,8 @@ num : Iterable[int]
     각 메타데이터 변수별로 생성할 샘플의 개수(0보다 큰 정수). 길이는 `degrees`의 길이와 동일해야 합니다.
 metadata : str
     범주형 메타데이터 변수
+multi_metadata : Iterable[str]
+    범주형 메타데이터 변수 (여러 개를 입력해야 하는 경우 사용하십시오)
 endpoint : bool
     참인 경우 `metadata_stop`이 마지막 샘플이 됩니다. 거짓인 경우 끝값이 샘플에 포함되지 않습니다. 기본값은 참입니다.
 normalize : bool
@@ -1239,28 +1406,28 @@ normalize : bool
 
 
 DOC_VARIABLE_EN_KO(GDMR_degrees__doc__,
-	u8R""(the degrees of Legendre polynomials (read-only))"",
-	u8R""(르장드르 다항식의 차수 (읽기전용))"");
+    u8R""(the degrees of Legendre polynomials (read-only))"",
+    u8R""(르장드르 다항식의 차수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(GDMR_sigma0__doc__,
-	u8R""(the hyperparameter sigma0 (read-only))"",
-	u8R""(하이퍼 파라미터 sigma0 (읽기전용))"");
+    u8R""(the hyperparameter sigma0 (read-only))"",
+    u8R""(하이퍼 파라미터 sigma0 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(GDMR_decay__doc__,
     u8R""(the hyperparameter decay (read-only))"",
     u8R""(하이퍼 파라미터 decay (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(GDMR_metadata_range__doc__,
-	u8R""(the ranges of each metadata variable (read-only))"",
-	u8R""(각 메타데이터 변수의 범위를 나타내는 `list` (읽기전용))"");
+    u8R""(the ranges of each metadata variable (read-only))"",
+    u8R""(각 메타데이터 변수의 범위를 나타내는 `list` (읽기전용))"");
 
 
 /*
-	class HDP
+    class HDP
 */
 DOC_SIGNATURE_EN_KO(HDP___init____doc__,
-	"HDPModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on following papers:
+    "HDPModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on following papers:
 
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
@@ -1358,8 +1525,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(HDP_is_live_topic__doc__,
-	"is_live_topic(self, topic_id)",
-	u8R""(Return `True` if the topic `topic_id` is valid, otherwise return `False`.
+    "is_live_topic(self, topic_id)",
+    u8R""(Return `True` if the topic `topic_id` is valid, otherwise return `False`.
 
 Parameters
 ----------
@@ -1375,8 +1542,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HDP_convert_to_lda__doc__,
-	"convert_to_lda(self, topic_threshold=0.0)",
-	u8R""(.. versionadded:: 0.8.0
+    "convert_to_lda(self, topic_threshold=0.0)",
+    u8R""(.. versionadded:: 0.8.0
 
 Convert the current HDP model to equivalent LDA model and return `(new_lda_model, new_topic_id)`.
 Topics with proportion less than `topic_threshold` are removed in `new_lda_model`.
@@ -1406,23 +1573,23 @@ topic_threshold : float
 )"");
 
 DOC_VARIABLE_EN_KO(HDP_gamma__doc__,
-	u8R""(the hyperparameter gamma (read-only))"",
-	u8R""(하이퍼 파라미터 gamma (읽기전용))"");
+    u8R""(the hyperparameter gamma (read-only))"",
+    u8R""(하이퍼 파라미터 gamma (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(HDP_live_k__doc__,
-	u8R""(the number of alive topics (read-only))"",
-	u8R""(현재 모델 내의 유효한 토픽의 개수 (읽기전용))"");
+    u8R""(the number of alive topics (read-only))"",
+    u8R""(현재 모델 내의 유효한 토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(HDP_num_tables__doc__,
-	u8R""(the number of total tables (read-only))"",
-	u8R""(현재 모델 내의 총 테이블 개수 (읽기전용))"");
+    u8R""(the number of total tables (read-only))"",
+    u8R""(현재 모델 내의 총 테이블 개수 (읽기전용))"");
 
 /*
-	class MGLDA
+    class MGLDA
 */
 DOC_SIGNATURE_EN_KO(MGLDA___init____doc__,
-	"MGLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on following papers:
+    "MGLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on following papers:
 
 > * Titov, I., & McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.
 
@@ -1529,8 +1696,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_add_doc__doc__,
-	"add_doc(self, words, delimiter='.')",
-	u8R""(Add a new document into the model instance and return an index of the inserted document.
+    "add_doc(self, words, delimiter='.')",
+    u8R""(Add a new document into the model instance and return an index of the inserted document.
 
 Parameters
 ----------
@@ -1550,8 +1717,8 @@ delimiter : str
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_make_doc__doc__,
-	"make_doc(self, words, delimiter='.')",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words, delimiter='.')",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -1571,8 +1738,8 @@ delimiter : str
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_get_topic_words__doc__,
-	"get_topic_words(self, topic_id, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+    "get_topic_words(self, topic_id, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -1591,8 +1758,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id, normalize=True)",
-	u8R""(Return the word distribution of the topic `topic_id`.
+    "get_topic_word_dist(self, topic_id, normalize=True)",
+    u8R""(Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
 Parameters
@@ -1619,52 +1786,52 @@ normalize : bool
 )"");
 
 DOC_VARIABLE_EN_KO(MGLDA_k_g__doc__,
-	u8R""(the hyperparameter k_g (read-only))"",
-	u8R""(하이퍼 파라미터 k_g (읽기전용))"");
+    u8R""(the hyperparameter k_g (read-only))"",
+    u8R""(하이퍼 파라미터 k_g (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_k_l__doc__,
-	u8R""(the hyperparameter k_l (read-only))"",
-	u8R""(하이퍼 파라미터 k_l (읽기전용))"");
+    u8R""(the hyperparameter k_l (read-only))"",
+    u8R""(하이퍼 파라미터 k_l (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_gamma__doc__,
-	u8R""(the hyperparameter gamma (read-only))"",
-	u8R""(하이퍼 파라미터 gamma (읽기전용))"");
+    u8R""(the hyperparameter gamma (read-only))"",
+    u8R""(하이퍼 파라미터 gamma (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_t__doc__,
-	u8R""(the hyperparameter t (read-only))"",
-	u8R""(하이퍼 파라미터 t (읽기전용))"");
+    u8R""(the hyperparameter t (read-only))"",
+    u8R""(하이퍼 파라미터 t (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_g__doc__,
-	u8R""(the hyperparameter alpha_g (read-only))"",
-	u8R""(하이퍼 파라미터 alpha_g (읽기전용))"");
+    u8R""(the hyperparameter alpha_g (read-only))"",
+    u8R""(하이퍼 파라미터 alpha_g (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_l__doc__,
-	u8R""(the hyperparameter alpha_l (read-only))"",
-	u8R""(하이퍼 파라미터 alpha_l (읽기전용))"");
+    u8R""(the hyperparameter alpha_l (read-only))"",
+    u8R""(하이퍼 파라미터 alpha_l (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_mg__doc__,
-	u8R""(the hyperparameter alpha_mg (read-only))"",
-	u8R""(하이퍼 파라미터 alpha_mg (읽기전용))"");
+    u8R""(the hyperparameter alpha_mg (read-only))"",
+    u8R""(하이퍼 파라미터 alpha_mg (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_alpha_ml__doc__,
-	u8R""(the hyperparameter alpha_ml (read-only))"",
-	u8R""(하이퍼 파라미터 alpha_ml (읽기전용))"");
+    u8R""(the hyperparameter alpha_ml (read-only))"",
+    u8R""(하이퍼 파라미터 alpha_ml (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_eta_g__doc__,
-	u8R""(the hyperparameter eta_g (read-only))"",
-	u8R""(하이퍼 파라미터 eta_g (읽기전용))"");
+    u8R""(the hyperparameter eta_g (read-only))"",
+    u8R""(하이퍼 파라미터 eta_g (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(MGLDA_eta_l__doc__,
-	u8R""(the hyperparameter eta_l (read-only))"",
-	u8R""(하이퍼 파라미터 eta_l (읽기전용))"");
+    u8R""(the hyperparameter eta_l (read-only))"",
+    u8R""(하이퍼 파라미터 eta_l (읽기전용))"");
 
 
 /*
-	class PA
+    class PA
 */
 DOC_SIGNATURE_EN_KO(PA___init____doc__,
-	"PAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Pachinko Allocation(PA) topic model and its implementation is based on following papers:
+    "PAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Pachinko Allocation(PA) topic model and its implementation is based on following papers:
 
 > * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.
 
@@ -1755,8 +1922,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_topic_words__doc__,
-	"get_topic_words(self, sub_topic_id, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the sub topic `sub_topic_id`. 
+    "get_topic_words(self, sub_topic_id, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the sub topic `sub_topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -1774,8 +1941,8 @@ sub_topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, sub_topic_id, normalize=True)",
-	u8R""(Return the word distribution of the sub topic `sub_topic_id`.
+    "get_topic_word_dist(self, sub_topic_id, normalize=True)",
+    u8R""(Return the word distribution of the sub topic `sub_topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current sub topic.
 
 Parameters
@@ -1801,8 +1968,8 @@ normalize : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_sub_topics__doc__,
-	"get_sub_topics(self, super_topic_id, top_n=10)",
-	u8R""(.. versionadded:: 0.1.4
+    "get_sub_topics(self, super_topic_id, top_n=10)",
+    u8R""(.. versionadded:: 0.1.4
 
 Return the `top_n` sub topics and its probability in a super topic `super_topic_id`.
 The return type is a `list` of (subtopic:`int`, probability:`float`).
@@ -1824,8 +1991,8 @@ super_topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_get_sub_topic_dist__doc__,
-	"get_sub_topic_dist(self, super_topic_id, normalize=True)",
-	u8R""(Return a distribution of the sub topics in a super topic `super_topic_id`.
+    "get_sub_topic_dist(self, super_topic_id, normalize=True)",
+    u8R""(Return a distribution of the sub topics in a super topic `super_topic_id`.
 The returned value is a `list` that has `k2` fraction numbers indicating probabilities for each sub topic in the current super topic.
 
 Parameters
@@ -1847,8 +2014,8 @@ normalize : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(PA_infer__doc__,
-	"infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False)",
-	u8R""(.. versionadded:: 0.5.0
+    "infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False)",
+    u8R""(.. versionadded:: 0.5.0
 
 Return the inferred topic distribution and sub-topic distribution from unseen `doc`s.
 
@@ -1950,23 +2117,23 @@ DOC_SIGNATURE_EN_KO(PA_get_count_by_super_topic__doc__,
     u8R""(Return the number of words allocated to each super-topic.
 
 .. versionadded:: 0.9.0)"",
-    u8R""(각각의 상위 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.
+u8R""(각각의 상위 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.
 
 .. versionadded:: 0.9.0)"");
 
 DOC_VARIABLE_EN_KO(PA_k1__doc__,
-	u8R""(k1, the number of super topics (read-only))"",
-	u8R""(k1, 상위 토픽의 개수 (읽기전용))"");
+    u8R""(k1, the number of super topics (read-only))"",
+    u8R""(k1, 상위 토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(PA_k2__doc__,
-	u8R""(k2, the number of sub topics (read-only))"",
-	u8R""(k2, 하위 토픽의 개수 (읽기전용))"");
+    u8R""(k2, the number of sub topics (read-only))"",
+    u8R""(k2, 하위 토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(PA_alpha__doc__,
     u8R""(Dirichlet prior on the per-document super topic distributions in shape `[k1]` (read-only)
 
 .. versionadded:: 0.9.0)"",
-    u8R""(문헌의 상위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1]` 모양 (읽기전용)
+u8R""(문헌의 상위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1]` 모양 (읽기전용)
 
 .. versionadded:: 0.9.0)"");
 
@@ -1974,17 +2141,17 @@ DOC_VARIABLE_EN_KO(PA_subalpha__doc__,
     u8R""(Dirichlet prior on the sub topic distributions for each super topic in shape `[k1, k2]` (read-only)
 
 .. versionadded:: 0.9.0)"",
-    u8R""(상위 토픽의 하위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1, k2]` 모양 (읽기전용)
+u8R""(상위 토픽의 하위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1, k2]` 모양 (읽기전용)
 
 .. versionadded:: 0.9.0)"");
 
 
 /*
-	class HPA
+    class HPA
 */
 DOC_SIGNATURE_EN_KO(HPA___init____doc__,
-	"HPAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on following papers:
+    "HPAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on following papers:
 
 > * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
 
@@ -2075,8 +2242,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(HPA_get_topic_words__doc__,
-	"get_topic_words(self, topic_id, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+    "get_topic_words(self, topic_id, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -2098,8 +2265,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HPA_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id, normalize=True)",
-	u8R""(Return the word distribution of the topic `topic_id`.
+    "get_topic_word_dist(self, topic_id, normalize=True)",
+    u8R""(Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.
 
 Parameters
@@ -2133,7 +2300,7 @@ DOC_VARIABLE_EN_KO(HPA_alpha__doc__,
 Its element 0 indicates the prior to the top topic and elements 1 ~ k1 indicates ones to the super topics. (read-only)
 
 .. versionadded:: 0.9.0)"",
-    u8R""(문헌의 상위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1 + 1]` 모양.
+u8R""(문헌의 상위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1 + 1]` 모양.
 0번째 요소는 최상위 토픽을 가리키며, 1 ~ k1번째가 상위 토픽을 가리킨다. (읽기전용)
 
 .. versionadded:: 0.9.0)"");
@@ -2144,19 +2311,19 @@ Its `[x, 0]` element indicates the prior to the super topic `x`
 and `[x, 1 ~ k2]` elements indicate ones to the sub topics in the super topic `x`. (read-only)
 
 .. versionadded:: 0.9.0)"",
-    u8R""(상위 토픽의 하위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1, k2 + 1]` 모양.
+u8R""(상위 토픽의 하위 토픽 분포에 대한 디리클레 분포 파라미터, `[k1, k2 + 1]` 모양.
 `[x, 0]` 요소는 상위 토픽 `x`를 가리키며, `[x, 1 ~ k2]` 요소는 상위 토픽 `x` 내의 하위 토픽들을 가리킨다. (읽기전용)
 
 .. versionadded:: 0.9.0)"");
 
 
 /*
-	class CT
+    class CT
 */
 
 DOC_SIGNATURE_EN_KO(CT___init____doc__,
-	"CTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
-	u8R""(.. versionadded:: 0.2.0
+    "CTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(.. versionadded:: 0.2.0
 This type provides Correlated Topic Model (CTM) and its implementation is based on following papers:
 	
 > * Blei, D., & Lafferty, J. (2006). Correlated topic models. Advances in neural information processing systems, 18, 147.
@@ -2235,8 +2402,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(CT_get_correlations__doc__,
-	"get_correlations(self, topic_id=None)",
-	u8R""(Return correlations between the topic `topic_id` and other topics.
+    "get_correlations(self, topic_id=None)",
+    u8R""(Return correlations between the topic `topic_id` and other topics.
 The returned value is a `list` of `float`s of size `tomotopy.LDAModel.k`.
 
 Parameters
@@ -2246,7 +2413,7 @@ topic_id : Union[int, None]
     
     If omitted, the whole correlation matrix is returned.
 )"",
-	u8R""(토픽 `topic_id`와 나머지 토픽들 간의 상관관계를 반환합니다.
+u8R""(토픽 `topic_id`와 나머지 토픽들 간의 상관관계를 반환합니다.
 반환값은 `tomotopy.LDAModel.k` 길이의 `float`의 `list`입니다.
 
 Parameters
@@ -2257,14 +2424,14 @@ topic_id : Union[int, None]
     생략 시 상관계수 행렬 전체가 반환됩니다.
 )"");
 
-DOC_VARIABLE_EN_KO(CT_num_beta_sample__doc__, 
-	u8R""(the number of times to sample beta parameters, default value is 10.
+DOC_VARIABLE_EN_KO(CT_num_beta_sample__doc__,
+    u8R""(the number of times to sample beta parameters, default value is 10.
 
 CTModel samples `num_beta_sample` beta parameters for each document. 
 The more beta it samples, the more accurate the distribution will be, but the longer time it takes to learn. 
 If you have a small number of documents in your model, keeping this value larger will help you get better result.
-)"", 
-	u8R""(beta 파라미터를 표집하는 횟수, 기본값은 10.
+)"",
+u8R""(beta 파라미터를 표집하는 횟수, 기본값은 10.
 
 CTModel은 각 문헌마다 총 `num_beta_sample` 개수의 beta 파라미터를 표집합니다.
 beta 파라미터를 더 많이 표집할 수록, 전체 분포는 정교해지지만 학습 시간이 더 많이 걸립니다.
@@ -2272,36 +2439,36 @@ beta 파라미터를 더 많이 표집할 수록, 전체 분포는 정교해지�
 )"");
 
 DOC_VARIABLE_EN_KO(CT_num_tmn_sample__doc__,
-	u8R""(the number of iterations for sampling Truncated Multivariate Normal distribution, default value is 5.
+    u8R""(the number of iterations for sampling Truncated Multivariate Normal distribution, default value is 5.
 
 If your model shows biased topic correlations, increasing this value may be helpful.)"",
-	u8R""(절단된 다변수 정규분포에서 표본을 추출하기 위한 반복 횟수, 기본값은 5.
+u8R""(절단된 다변수 정규분포에서 표본을 추출하기 위한 반복 횟수, 기본값은 5.
 
 만약 결과에서 토픽 간 상관관계가 편향되게 나올 경우 이 값을 키우면 편향을 해소하는 데에 도움이 될 수 있습니다.
 )"");
 
 DOC_VARIABLE_EN_KO(CT_prior_mean__doc__,
-	u8R""(the mean of prior logistic-normal distribution for the topic distribution (read-only))"",
-	u8R""(토픽의 사전 분포인 로지스틱 정규 분포의 평균 벡터 (읽기전용))"");
+    u8R""(the mean of prior logistic-normal distribution for the topic distribution (read-only))"",
+    u8R""(토픽의 사전 분포인 로지스틱 정규 분포의 평균 벡터 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(CT_prior_cov__doc__,
-	u8R""(the covariance matrix of prior logistic-normal distribution the for topic distribution (read-only))"",
-	u8R""(토픽의 사전 분포인 로지스틱 정규 분포의 공분산 행렬 (읽기전용))"");
+    u8R""(the covariance matrix of prior logistic-normal distribution the for topic distribution (read-only))"",
+    u8R""(토픽의 사전 분포인 로지스틱 정규 분포의 공분산 행렬 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(CT_alpha__doc__,
     u8R""(This property is not available in `CTModel`. Use `CTModel.prior_mean` and `CTModel.prior_cov` instead.
 
 .. versionadded:: 0.9.1)"",
-    u8R""(이 프로퍼티는 `CTModel`에서 사용불가합니다. 대신 `CTModel.prior_mean`와 `CTModel.prior_cov`를 사용하십시오.
+u8R""(이 프로퍼티는 `CTModel`에서 사용불가합니다. 대신 `CTModel.prior_mean`와 `CTModel.prior_cov`를 사용하십시오.
 
 .. versionadded:: 0.9.1)"");
 
 /*
-	class SLDA
+    class SLDA
 */
 DOC_SIGNATURE_EN_KO(SLDA___init____doc__,
-	"SLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None)",
-	u8R""(This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on following papers:
+    "SLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None)",
+    u8R""(This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on following papers:
 	
 > * Mcauliffe, J. D., & Blei, D. M. (2008). Supervised topic models. In Advances in neural information processing systems (pp. 121-128).
 > * Python version implementation using Gibbs sampling : https://github.com/Savvysherpa/slda
@@ -2408,8 +2575,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_add_doc__doc__,
-	"add_doc(self, words, y=[])",
-	u8R""(Add a new document into the model instance with response variables `y` and return an index of the inserted document.
+    "add_doc(self, words, y=[])",
+    u8R""(Add a new document into the model instance with response variables `y` and return an index of the inserted document.
 
 Parameters
 ----------
@@ -2438,8 +2605,8 @@ y : Iterable[float]
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_make_doc__doc__,
-	"make_doc(self, words, y=[])",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and response variables `y` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words, y=[])",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and response variables `y` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -2463,8 +2630,8 @@ y : Iterable[float]
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_get_regression_coef__doc__,
-	"get_regression_coef(self, var_id=None)",
-	u8R""(Return the regression coefficient of the response variable `var_id`.
+    "get_regression_coef(self, var_id=None)",
+    u8R""(Return the regression coefficient of the response variable `var_id`.
 
 Parameters
 ----------
@@ -2473,7 +2640,7 @@ var_id : int
 
     If omitted, the whole regression coefficients with shape `[f, k]` are returned.
 )"",
-	u8R""(응답 변수 `var_id`의 회귀 계수를 반환합니다.
+u8R""(응답 변수 `var_id`의 회귀 계수를 반환합니다.
 
 Parameters
 ----------
@@ -2484,13 +2651,13 @@ var_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_get_var_type__doc__,
-	"get_var_type(self, var_id)",
-	u8R""(Return the type of the response variable `var_id`. 'l' means linear variable, 'b' means binary variable.)"",
-	u8R""(응답 변수 `var_id`의 종류를 반환합니다. 'l'은 선형 변수, 'b'는 이진 변수를 뜻합니다.)"");
+    "get_var_type(self, var_id)",
+    u8R""(Return the type of the response variable `var_id`. 'l' means linear variable, 'b' means binary variable.)"",
+    u8R""(응답 변수 `var_id`의 종류를 반환합니다. 'l'은 선형 변수, 'b'는 이진 변수를 뜻합니다.)"");
 
 DOC_SIGNATURE_EN_KO(SLDA_estimate__doc__,
-	"estimate(self, doc)",
-	u8R""(Return the estimated response variable for `doc`.
+    "estimate(self, doc)",
+    u8R""(Return the estimated response variable for `doc`.
 If `doc` is an unseen document instance which is generated by `tomotopy.SLDAModel.make_doc` method, it should be inferred by `tomotopy.LDAModel.infer` method first.
 
 Parameters
@@ -2498,7 +2665,7 @@ Parameters
 doc : tomotopy.Document
     an instance of document or a list of them to be used for estimating response variables
 )"",
-	u8R""(`doc`의 추정된 응답 변수를 반환합니다.
+u8R""(`doc`의 추정된 응답 변수를 반환합니다.
 만약 `doc`이 `tomotopy.SLDAModel.make_doc`에 의해 생성된 인스턴스라면, 먼저 `tomotopy.LDAModel.infer`를 통해 토픽 추론을 실시한 다음 이 메소드를 사용해야 합니다.
 
 Parameters
@@ -2508,15 +2675,15 @@ doc : tomotopy.Document
 )"");
 
 DOC_VARIABLE_EN_KO(SLDA_f__doc__,
-	u8R""(the number of response variables (read-only))"",
-	u8R""(응답 변수의 개수 (읽기전용))"");
+    u8R""(the number of response variables (read-only))"",
+    u8R""(응답 변수의 개수 (읽기전용))"");
 
 /*
-	class LLDA
+    class LLDA
 */
 DOC_SIGNATURE_EN_KO(LLDA___init____doc__,
-	"LLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
+    "LLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
 
@@ -2601,8 +2768,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(LLDA_add_doc__doc__,
-	"add_doc(self, words, labels=[])",
-	u8R""(Add a new document into the model instance with `labels` and return an index of the inserted document.
+    "add_doc(self, words, labels=[])",
+    u8R""(Add a new document into the model instance with `labels` and return an index of the inserted document.
 
 Parameters
 ----------
@@ -2622,8 +2789,8 @@ labels : Iterable[str]
 )"");
 
 DOC_SIGNATURE_EN_KO(LLDA_make_doc__doc__,
-	"make_doc(self, words, labels=[])",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words, labels=[])",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -2643,8 +2810,8 @@ labels : Iterable[str]
 )"");
 
 DOC_SIGNATURE_EN_KO(LLDA_get_topic_words__doc__,
-	"get_topic_words(self, topic_id, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+    "get_topic_words(self, topic_id, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -2668,15 +2835,15 @@ topic_id : int
 
 
 DOC_VARIABLE_EN_KO(LLDA_topic_label_dict__doc__,
-	u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
-	u8R""(`tomotopy.Dictionary` 타입의 토픽 레이블 사전 (읽기전용))"");
+    u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
+    u8R""(`tomotopy.Dictionary` 타입의 토픽 레이블 사전 (읽기전용))"");
 
 /*
-	class PLDA
+    class PLDA
 */
 DOC_SIGNATURE_EN_KO(PLDA___init____doc__,
-	"PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
+    "PLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
@@ -2760,8 +2927,8 @@ transform : Callable[dict, dict]
 
 
 DOC_SIGNATURE_EN_KO(PLDA_get_topic_words__doc__,
-	"get_topic_words(self, topic_id, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
+    "get_topic_words(self, topic_id, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -2785,23 +2952,23 @@ topic_id : int
 
 
 DOC_VARIABLE_EN_KO(PLDA_topic_label_dict__doc__,
-	u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
-	u8R""(`tomotopy.Dictionary` 타입의 토픽 레이블 사전 (읽기전용))"");
+    u8R""(a dictionary of topic labels in type `tomotopy.Dictionary` (read-only))"",
+    u8R""(`tomotopy.Dictionary` 타입의 토픽 레이블 사전 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(PLDA_latent_topics__doc__,
-	u8R""(the number of latent topics (read-only))"",
-	u8R""(잠재 토픽의 개수 (읽기전용))"");
+    u8R""(the number of latent topics (read-only))"",
+    u8R""(잠재 토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(PLDA_topics_per_label__doc__,
-	u8R""(the number of topics per label (read-only))"",
-	u8R""(레이블별 토픽의 개수 (읽기전용))"");
+    u8R""(the number of topics per label (read-only))"",
+    u8R""(레이블별 토픽의 개수 (읽기전용))"");
 
 /*
-	class HLDA
+    class HLDA
 */
 DOC_SIGNATURE_EN_KO(HLDA___init____doc__,
-	"HLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Hierarchical LDA topic model and its implementation is based on following papers:
+    "HLDAModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Hierarchical LDA topic model and its implementation is based on following papers:
 
 > * Griffiths, T. L., Jordan, M. I., Tenenbaum, J. B., & Blei, D. M. (2004). Hierarchical topic models and the nested Chinese restaurant process. In Advances in neural information processing systems (pp. 17-24).
 
@@ -2886,8 +3053,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(HLDA_is_live_topic__doc__,
-	"is_live_topic(self, topic_id)",
-	u8R""(Return `True` if the topic `topic_id` is alive, otherwise return `False`.
+    "is_live_topic(self, topic_id)",
+    u8R""(Return `True` if the topic `topic_id` is alive, otherwise return `False`.
 
 Parameters
 ----------
@@ -2903,8 +3070,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HLDA_num_docs_of_topic__doc__,
-	"num_docs_of_topic(self, topic_id)",
-	u8R""(Return the number of documents belonging to a topic `topic_id`.
+    "num_docs_of_topic(self, topic_id)",
+    u8R""(Return the number of documents belonging to a topic `topic_id`.
 
 Parameters
 ----------
@@ -2920,8 +3087,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HLDA_level__doc__,
-	"level(self, topic_id)",
-	u8R""(Return the level of a topic `topic_id`.
+    "level(self, topic_id)",
+    u8R""(Return the level of a topic `topic_id`.
 
 Parameters
 ----------
@@ -2937,8 +3104,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HLDA_parent_topic__doc__,
-	"parent_topic(self, topic_id)",
-	u8R""(Return the topic ID of parent of a topic `topic_id`.
+    "parent_topic(self, topic_id)",
+    u8R""(Return the topic ID of parent of a topic `topic_id`.
 
 Parameters
 ----------
@@ -2954,8 +3121,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(HLDA_children_topics__doc__,
-	"children_topics(self, topic_id)",
-	u8R""(Return a list of topic IDs with children of a topic `topic_id`.
+    "children_topics(self, topic_id)",
+    u8R""(Return a list of topic IDs with children of a topic `topic_id`.
 
 Parameters
 ----------
@@ -2971,23 +3138,23 @@ topic_id : int
 )"");
 
 DOC_VARIABLE_EN_KO(HLDA_gamma__doc__,
-	u8R""(the hyperparameter gamma (read-only))"",
-	u8R""(하이퍼 파라미터 gamma (읽기전용))"");
+    u8R""(the hyperparameter gamma (read-only))"",
+    u8R""(하이퍼 파라미터 gamma (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(HLDA_live_k__doc__,
-	u8R""(the number of alive topics (read-only))"",
-	u8R""(현재 모델 내의 유효한 토픽의 개수 (읽기전용))"");
+    u8R""(the number of alive topics (read-only))"",
+    u8R""(현재 모델 내의 유효한 토픽의 개수 (읽기전용))"");
 
 DOC_VARIABLE_EN_KO(HLDA_depth__doc__,
-	u8R""(the number of depth (read-only))"",
-	u8R""(현재 모델의 총 깊이 (읽기전용))"");
+    u8R""(the number of depth (read-only))"",
+    u8R""(현재 모델의 총 깊이 (읽기전용))"");
 
 /*
-	class DT
+    class DT
 */
 DOC_SIGNATURE_EN_KO(DT___init____doc__,
-	"DTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None)",
-	u8R""(This type provides Dynamic Topic model and its implementation is based on following papers:
+    "DTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None)",
+    u8R""(This type provides Dynamic Topic model and its implementation is based on following papers:
 
 > * Blei, D. M., & Lafferty, J. D. (2006, June). Dynamic topic models. In Proceedings of the 23rd international conference on Machine learning (pp. 113-120).
 > * Bhadury, A., Chen, J., Zhu, J., & Liu, S. (2016, April). Scaling up dynamic topic models. In Proceedings of the 25th International Conference on World Wide Web (pp. 381-390).
@@ -3078,8 +3245,8 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_add_doc__doc__,
-	"add_doc(self, words, timepoint=0)",
-	u8R""(Add a new document into the model instance with `timepoint` and return an index of the inserted document.
+    "add_doc(self, words, timepoint=0)",
+    u8R""(Add a new document into the model instance with `timepoint` and return an index of the inserted document.
 
 Parameters
 ----------
@@ -3099,8 +3266,8 @@ timepoint : int
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_make_doc__doc__,
-	"make_doc(self, words, timepoint=0)",
-	u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `timepoint` that can be used for `tomotopy.LDAModel.infer` method.
+    "make_doc(self, words, timepoint=0)",
+    u8R""(Return a new `tomotopy.Document` instance for an unseen document with `words` and `timepoint` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -3120,8 +3287,8 @@ timepoint : int
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_get_alpha__doc__,
-	"get_alpha(self, timepoint)",
-	u8R""(Return a `list` of alpha parameters for `timepoint`.
+    "get_alpha(self, timepoint)",
+    u8R""(Return a `list` of alpha parameters for `timepoint`.
 
 Parameters
 ----------
@@ -3137,8 +3304,8 @@ timepoint : int
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_get_phi__doc__,
-	"get_phi(self, timepoint, topic_id)",
-	u8R""(Return a `list` of phi parameters for `timepoint` and `topic_id`.
+    "get_phi(self, timepoint, topic_id)",
+    u8R""(Return a `list` of phi parameters for `timepoint` and `topic_id`.
 
 Parameters
 ----------
@@ -3158,8 +3325,8 @@ topic_id : int
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_get_topic_words__doc__,
-	"get_topic_words(self, topic_id, timepoint, top_n=10)",
-	u8R""(Return the `top_n` words and its probability in the topic `topic_id` with `timepoint`. 
+    "get_topic_words(self, topic_id, timepoint, top_n=10)",
+    u8R""(Return the `top_n` words and its probability in the topic `topic_id` with `timepoint`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -3181,8 +3348,8 @@ timepoint : int
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_get_topic_word_dist__doc__,
-	"get_topic_word_dist(self, topic_id, timepoint, normalize=True)",
-	u8R""(Return the word distribution of the topic `topic_id` with `timepoint`.
+    "get_topic_word_dist(self, topic_id, timepoint, normalize=True)",
+    u8R""(Return the word distribution of the topic `topic_id` with `timepoint`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
 Parameters
@@ -3216,21 +3383,21 @@ DOC_SIGNATURE_EN_KO(DT_get_count_by_topics__doc__,
     u8R""(Return the number of words allocated to each timepoint and topic in the shape `[num_timepoints, k]`.
 
 .. versionadded:: 0.9.0)"",
-    u8R""(각각의 시점과 토픽에 할당된 단어의 개수를 `[num_timepoints, k]` 모양으로 반환합니다.
+u8R""(각각의 시점과 토픽에 할당된 단어의 개수를 `[num_timepoints, k]` 모양으로 반환합니다.
 
 .. versionadded:: 0.9.0)"");
 
 DOC_VARIABLE_EN_KO(DT_lr_a__doc__,
-	u8R""(parameter `a` greater than zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
-	u8R""(SGLD의 스텝 크기를 결정하는 0보다 큰 파라미터 `a` (e_i = a * (b + i) ^ -c))"");
+    u8R""(parameter `a` greater than zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
+    u8R""(SGLD의 스텝 크기를 결정하는 0보다 큰 파라미터 `a` (e_i = a * (b + i) ^ -c))"");
 
 DOC_VARIABLE_EN_KO(DT_lr_b__doc__,
-	u8R""(parameter `b` greater than zero or equal to zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
-	u8R""(SGLD의 스텝 크기를 결정하는 0 이상의 파라미터 `b` (e_i = a * (b + i) ^ -c))"");
+    u8R""(parameter `b` greater than zero or equal to zero for SGLD step size (e_i = a * (b + i) ^ -c))"",
+    u8R""(SGLD의 스텝 크기를 결정하는 0 이상의 파라미터 `b` (e_i = a * (b + i) ^ -c))"");
 
 DOC_VARIABLE_EN_KO(DT_lr_c__doc__,
-	u8R""(parameter `c` with range (0.5, 1] for SGLD step size (e_i = a * (b + i) ^ -c))"",
-	u8R""(SGLD의 스텝 크기를 결정하는 (0.5, 1] 범위의 파라미터 `c` (e_i = a * (b + i) ^ -c))"");
+    u8R""(parameter `c` with range (0.5, 1] for SGLD step size (e_i = a * (b + i) ^ -c))"",
+    u8R""(SGLD의 스텝 크기를 결정하는 (0.5, 1] 범위의 파라미터 `c` (e_i = a * (b + i) ^ -c))"");
 
 DOC_VARIABLE_EN_KO(DT_num_timepoints__doc__,
     u8R""(the number of timepoints of the model (read-only))"",
@@ -3244,7 +3411,7 @@ DOC_VARIABLE_EN_KO(DT_alpha__doc__,
     u8R""(per-document topic distribution in the shape `[num_timepoints, k]` (read-only)
 
 .. versionadded:: 0.9.0)"",
-    u8R""(문헌별 토픽 분포, `[num_timepoints, k]` 모양 (읽기전용)
+u8R""(문헌별 토픽 분포, `[num_timepoints, k]` 모양 (읽기전용)
 
 .. versionadded:: 0.9.0)"");
 
@@ -3252,7 +3419,7 @@ DOC_VARIABLE_EN_KO(DT_eta__doc__,
     u8R""(This property is not available in `DTModel`. Use `DTModel.docs[x].eta` instead.
 
 .. versionadded:: 0.9.0)"",
-    u8R""(이 프로퍼티는 `DTModel`에서 사용불가합니다. 대신 `DTModel.docs[x].eta`를 사용하십시오.
+u8R""(이 프로퍼티는 `DTModel`에서 사용불가합니다. 대신 `DTModel.docs[x].eta`를 사용하십시오.
 
 .. versionadded:: 0.9.0)"");
 

@@ -158,13 +158,13 @@ namespace tomoto
 		{
 			sortAndWriteOrder(doc.words, doc.wOrder);
 			doc.numByTopic.init((WeightType*)this->globalState.numByTopicPDoc.col(0).data(), this->K, 1);
-			doc.Zs = tvector<Tid>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize, non_topic_id);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
 		void initGlobalState(bool initDocs)
 		{
-			this->globalState.pLikelihood = Eigen::Matrix<Float, -1, 1>::Zero(numPDocs);
+			this->globalState.pLikelihood = Vector::Zero(numPDocs);
 			this->globalState.numDocsByPDoc = Eigen::ArrayXi::Zero(numPDocs);
 			this->globalState.numByTopicPDoc = Eigen::Matrix<WeightType, -1, -1>::Zero(this->K, numPDocs);
 			BaseClass::initGlobalState(initDocs);

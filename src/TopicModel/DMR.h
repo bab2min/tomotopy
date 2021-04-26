@@ -11,11 +11,15 @@ namespace tomoto
 		using BaseDocument = DocumentLDA<_tw>;
 		using DocumentLDA<_tw>::DocumentLDA;
 		uint64_t metadata = 0;
+		std::vector<uint64_t> multiMetadata;
+		Vector mdVec;
+		size_t mdHash = (size_t)-1;
+		mutable Matrix cachedAlpha;
 
 		RawDoc::MiscType makeMisc(const ITopicModel* tm) const override;
 
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, metadata);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, metadata);
+		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, metadata, multiMetadata);
 	};
 
 	struct DMRArgs : public LDAArgs
@@ -36,10 +40,18 @@ namespace tomoto
 		virtual void setOptimRepeat(size_t repeat) = 0;
 		virtual size_t getOptimRepeat() const = 0;
 		virtual size_t getF() const = 0;
+		virtual size_t getMdVecSize() const = 0;
 		virtual Float getSigma() const = 0;
 		virtual const Dictionary& getMetadataDict() const = 0;
+		virtual const Dictionary& getMultiMetadataDict() const = 0;
 		virtual std::vector<Float> getLambdaByMetadata(size_t metadataId) const = 0;
 		virtual std::vector<Float> getLambdaByTopic(Tid tid) const = 0;
+		
+		virtual std::vector<Float> getTopicPrior(
+			const std::string& metadata, 
+			const std::vector<std::string>& multiMetadata, 
+			bool raw = false
+		) const = 0;
 	};
 
 	template<TermWeight _tw>

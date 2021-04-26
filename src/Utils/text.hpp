@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <iterator>
+#include <iomanip>
 #include <algorithm>
 #include <cstdio>
 
@@ -29,6 +30,13 @@ namespace tomoto
 			std::string s = stream.str();
 			s.erase(s.end() - delimiter.size(), s.end());
 			return s;
+		}
+
+		inline std::string quote(const std::string& s)
+		{
+			std::ostringstream stream;
+			stream << std::quoted(s);
+			return stream.str();
 		}
 
 		inline std::vector<std::string> split(const std::string& str, const std::string& delim)

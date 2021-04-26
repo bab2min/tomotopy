@@ -22,14 +22,17 @@ static int LLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+
+	if (PyErr_WarnEx(PyExc_DeprecationWarning, "`tomotopy.LLDAModel` is deprecated. Please use `tomotopy.PLDAModel` instead.", 1)) return -1;
+
+	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
 
 		tomoto::ITopicModel* inst = tomoto::ILLDAModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
@@ -42,15 +45,7 @@ static int LLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -58,30 +53,27 @@ static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 	PyObject *argWords, *argLabels = nullptr;
 	static const char* kwlist[] = { "words", "labels", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
-	try
+	return py::handleExc([&]() -> PyObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
-		if (self->isPrepared) throw runtime_error{ "cannot add_doc() after train()" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (self->isPrepared) throw py::RuntimeError{ "cannot add_doc() after train()" };
 		auto* inst = static_cast<tomoto::ILLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
-		tomoto::RawDoc raw = buildRawDoc(argWords);
-		if(argLabels)
+		if (PyUnicode_Check(argWords))
 		{
-			if (PyUnicode_Check(argLabels)) PRINT_WARN_ONCE("[warn] `labels` should be an iterable of str.");
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+		}
+		tomoto::RawDoc raw = buildRawDoc(argWords);
+		if (argLabels)
+		{
+			if (PyUnicode_Check(argLabels))
+			{
+				if (PyErr_WarnEx(PyExc_RuntimeWarning, "`labels` should be an iterable of str.", 1)) return nullptr;
+			}
 			raw.misc["labels"] = py::toCpp<vector<string>>(argLabels, "`labels` must be an iterable of str.");
 		}
 		auto ret = inst->addDoc(raw);
 		return py::buildPyValue(ret);
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static DocumentObject* LLDA_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -89,16 +81,22 @@ static DocumentObject* LLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	PyObject *argWords, *argLabels = nullptr;
 	static const char* kwlist[] = { "words", "labels", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
-	try
+	return py::handleExc([&]() -> DocumentObject*
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILLDAModel*>(self->inst);
-		if (PyUnicode_Check(argWords)) PRINT_WARN_ONCE("[warn] `words` should be an iterable of str.");
+		if (PyUnicode_Check(argWords))
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 
 		if (argLabels)
 		{
-			if (PyUnicode_Check(argLabels)) PRINT_WARN_ONCE("[warn] `labels` should be an iterable of str.");
+			if (PyUnicode_Check(argLabels))
+			{
+				if (PyErr_WarnEx(PyExc_RuntimeWarning, "`labels` should be an iterable of str.", 1)) return nullptr;
+			}
 			raw.misc["labels"] = py::toCpp<vector<string>>(argLabels, "`labels` must be an iterable of str.");
 		}
 		auto doc = inst->makeDoc(raw);
@@ -107,90 +105,49 @@ static DocumentObject* LLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 		ret->doc = doc.release();
 		ret->owner = true;
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static VocabObject* LLDA_getTopicLabelDict(TopicModelObject* self, void* closure)
 {
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* ret = (VocabObject*)PyObject_CallObject((PyObject*)&UtilsVocab_type, nullptr);
 		ret->dep = (PyObject*)self;
 		Py_INCREF(ret->dep);
 		ret->vocabs = (tomoto::Dictionary*)&static_cast<tomoto::ILLDAModel*>(self->inst)->getTopicLabelDict();
 		ret->size = -1;
 		return ret;
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* Document_labels(DocumentObject* self, void* closure)
 {
-	auto makeReturn = [&](const tomoto::DocumentBase* doc, const Eigen::Matrix<int8_t, -1, 1>& labelMask)
+	return py::handleExc([&]()
 	{
-		auto inst = dynamic_cast<tomoto::ILLDAModel*>(self->corpus->tm->inst);
-		auto dict = inst->getTopicLabelDict();
-		vector<pair<string, vector<float>>> ret;
-		auto topicDist = inst->getTopicsByDoc(doc);
-		for (size_t i = 0; i < dict.size(); ++i)
-		{
-			if (labelMask[i * inst->getNumTopicsPerLabel()])
-			{
-				ret.emplace_back(inst->getTopicLabelDict().toWord(i), 
-					vector<float>{ &topicDist[i * inst->getNumTopicsPerLabel()], &topicDist[(i + 1) * inst->getNumTopicsPerLabel()] });
-			}
-		}
-		return py::buildPyValue(ret);
-	};
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `labels` field!" };
+		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 
-	try
-	{
-		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `labels` field!" };
-		if (!self->doc) throw runtime_error{ "doc is null!" };
-		do
+		if (auto* ret = docVisit<tomoto::DocumentLLDA>(self->getBoundDoc(), [&](auto* doc)
 		{
-			auto* doc = dynamic_cast<const tomoto::DocumentLLDA<tomoto::TermWeight::one>*>(self->getBoundDoc());
-			if (doc) return makeReturn(doc, doc->labelMask);
-		} while (0);
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentLLDA<tomoto::TermWeight::idf>*>(self->getBoundDoc());
-			if (doc) return makeReturn(doc, doc->labelMask);
-		} while (0);
-		do
-		{
-			auto* doc = dynamic_cast<const tomoto::DocumentLLDA<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
-			if (doc) return makeReturn(doc, doc->labelMask);
-		} while (0);
-		throw runtime_error{ "doc doesn't has `labels` field!" };
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_AttributeError, e.what());
-		return nullptr;
-	}
+			auto inst = dynamic_cast<tomoto::ILLDAModel*>(self->corpus->tm->inst);
+			auto dict = inst->getTopicLabelDict();
+			vector<pair<string, vector<float>>> r;
+			auto topicDist = inst->getTopicsByDoc(doc);
+			for (size_t i = 0; i < dict.size(); ++i)
+			{
+				if (doc->labelMask[i * inst->getNumTopicsPerLabel()])
+				{
+					r.emplace_back(inst->getTopicLabelDict().toWord(i), 
+						vector<float>{ &topicDist[i * inst->getNumTopicsPerLabel()], &topicDist[(i + 1) * inst->getNumTopicsPerLabel()] });
+				}
+			}
+			return py::buildPyValue(r);
+		})) return ret;
+		
+		throw py::AttributeError{ "doc doesn't has `labels` field!" };
+	});
 }
 
 DEFINE_LOADER(LLDA, LLDA_type);

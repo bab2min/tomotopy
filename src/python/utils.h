@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../TopicModel/LDA.h"
 #include "../Utils/Dictionary.h"
 #include "module.h"
 #include "../Labeling/Phraser.hpp"
@@ -197,112 +198,99 @@ struct PhraserObject
 
 void addUtilsTypes(PyObject* gModule);
 
+template<
+	template<tomoto::TermWeight tw> class DocTy, 
+	typename Fn
+>
+PyObject* docVisit(tomoto::DocumentBase* doc, Fn&& visitor)
+{
+	if (auto* d = dynamic_cast<DocTy<tomoto::TermWeight::one>*>(doc))
+	{
+		return visitor(d);
+	}
+
+	if (auto* d = dynamic_cast<DocTy<tomoto::TermWeight::idf>*>(doc))
+	{
+		return visitor(d);
+	}
+
+	if (auto* d = dynamic_cast<DocTy<tomoto::TermWeight::pmi>*>(doc))
+	{
+		return visitor(d);
+	}
+
+	return nullptr;
+}
+
+template<
+	template<tomoto::TermWeight tw> class DocTy,
+	typename Fn
+>
+PyObject* docVisit(const tomoto::DocumentBase* doc, Fn&& visitor)
+{
+	if (auto* d = dynamic_cast<const DocTy<tomoto::TermWeight::one>*>(doc))
+	{
+		return visitor(d);
+	}
+
+	if (auto* d = dynamic_cast<const DocTy<tomoto::TermWeight::idf>*>(doc))
+	{
+		return visitor(d);
+	}
+
+	if (auto* d = dynamic_cast<const DocTy<tomoto::TermWeight::pmi>*>(doc))
+	{
+		return visitor(d);
+	}
+
+	return nullptr;
+}
+
 #define DEFINE_DOCUMENT_GETTER_PROTOTYPE(NAME) \
 PyObject* Document_##NAME(DocumentObject* self, void* closure);
 
 #define DEFINE_DOCUMENT_GETTER(DOCTYPE, NAME, FIELD) \
 PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 {\
-	try\
+	return py::handleExc([&]()\
 	{\
-		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-		if (!self->doc) throw runtime_error{ "doc is null!" };\
-		do\
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
+		if (auto* ret = docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
 		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->getBoundDoc());\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->getBoundDoc());\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->getBoundDoc());\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-	}\
-	catch (const bad_exception&)\
-	{\
-		return nullptr;\
-	}\
-	catch (const exception& e)\
-	{\
-		PyErr_SetString(PyExc_AttributeError, e.what());\
-		return nullptr;\
-	}\
+			return py::buildPyValue(doc->FIELD);\
+		})) return ret;\
+		throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+	});\
 }
 
 #define DEFINE_DOCUMENT_GETTER_WITHOUT_EXC(DOCTYPE, NAME, FIELD) \
 PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 {\
-	try\
+	return py::handleExc([&]()\
 	{\
-		if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-		if (!self->doc) throw runtime_error{ "doc is null!" };\
-		do\
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
+		return docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
 		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->getBoundDoc());\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->getBoundDoc());\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->getBoundDoc());\
-			if (doc) return py::buildPyValue(doc->FIELD);\
-		} while (0);\
-		return nullptr;\
-	}\
-	catch (const bad_exception&)\
-	{\
-		return nullptr;\
-	}\
-	catch (const exception& e)\
-	{\
-		PyErr_SetString(PyExc_AttributeError, e.what());\
-		return nullptr;\
-	}\
+			return py::buildPyValue(doc->FIELD);\
+		});\
+	});\
 }
 
 #define DEFINE_DOCUMENT_GETTER_REORDER(DOCTYPE, NAME, FIELD) \
 PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 {\
-	try\
+	return py::handleExc([&]()\
 	{\
-	if (self->corpus->isIndependent()) throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-		if (!self->doc) throw runtime_error{ "doc is null!" };\
-		do\
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
+		if (auto* ret = docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
 		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::one>*>(self->getBoundDoc());\
-			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::idf>*>(self->getBoundDoc());\
-			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		} while (0);\
-		do\
-		{\
-			auto* doc = dynamic_cast<const DOCTYPE<tomoto::TermWeight::pmi>*>(self->getBoundDoc());\
-			if (doc) return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		} while (0);\
-		throw runtime_error{ "doc doesn't has `" #FIELD "` field!" };\
-	}\
-	catch (const bad_exception&)\
-	{\
-		return nullptr;\
-	}\
-	catch (const exception& e)\
-	{\
-		PyErr_SetString(PyExc_AttributeError, e.what());\
-		return nullptr;\
-	}\
+			return buildPyValueReorder(doc->FIELD, doc->wOrder);\
+		})) return ret;\
+		throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" }; \
+	});\
 }
 
 namespace py
@@ -327,8 +315,9 @@ PyObject* Document_HDP_Z(DocumentObject* self, void* closure);
 PyObject* Document_HLDA_Z(DocumentObject* self, void* closure);
 
 PyObject* Document_DMR_metadata(DocumentObject* self, void* closure);
+PyObject* Document_DMR_multiMetadata(DocumentObject* self, void* closure);
 
-PyObject* Document_numeric_metadata(DocumentObject* self, void* closure);
+PyObject* Document_numericMetadata(DocumentObject* self, void* closure);
 
 DEFINE_DOCUMENT_GETTER_PROTOTYPE(windows);
 

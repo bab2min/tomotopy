@@ -14,10 +14,10 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		"seed", "corpus", "transform", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &margs.alpha[0], &margs.eta, &margs.gamma, &margs.seed, &objCorpus, &objTransform)) return -1;
-	try
+	return py::handleExc([&]()
 	{
 		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw runtime_error{ "unknown tw value" };
+		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
 		self->minWordCnt = minCnt;
@@ -30,15 +30,7 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 
 		insertCorpus(self, objCorpus, objTransform);
 		return 0;
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return -1;
+	});
 }
 
 static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -46,27 +38,14 @@ static PyObject* HDP_isLiveTopic(TopicModelObject* self, PyObject* args, PyObjec
 	size_t topicId;
 	static const char* kwlist[] = { "topic_id", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n", (char**)kwlist, &topicId)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::IHDPModel*>(self->inst);
-		if (topicId >= inst->getK()) throw runtime_error{ "must topic_id < K" };
-		/*if (!self->isPrepared)
-		{
-			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
-			self->isPrepared = true;
-		}*/
+		if (topicId >= inst->getK()) throw py::ValueError{ "must topic_id < K" };
+
 		return py::buildPyValue(inst->isLiveTopic(topicId));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObject *kwargs)
@@ -74,9 +53,9 @@ static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObje
 	float topicThreshold = 0;
 	static const char* kwlist[] = { "topic_threshold", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|f", (char**)kwlist, &topicThreshold)) return nullptr;
-	try
+	return py::handleExc([&]()
 	{
-		if (!self->inst) throw runtime_error{ "inst is null" };
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto inst = static_cast<tomoto::IHDPModel*>(self->inst);
 		std::vector<tomoto::Tid> newK;
 		auto lda = inst->convertToLDA(topicThreshold, newK);
@@ -89,36 +68,19 @@ static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObje
 		ret->minWordDf = self->minWordDf;
 		ret->removeTopWord = self->removeTopWord;
 		return Py_BuildValue("(NN)", r.release(), py::buildPyValue(newK, py::cast_to_signed));
-	}
-	catch (const bad_exception&)
-	{
-		return nullptr;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-		return nullptr;
-	}
+	});
 }
 
 PyObject* Document_HDP_Z(DocumentObject* self, void* closure)
 {
-    do
-    {
-        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::one>*>(self->getBoundDoc());
-        if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
-    } while (0);
-    do
-    {
-        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::idf>*>(self->getBoundDoc());
-        if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
-    } while (0);
-    do
-    {
-        auto* doc = dynamic_cast<const tomoto::DocumentHDP<tomoto::TermWeight::pmi>*>(self->getBoundDoc());
-        if (doc) return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](size_t x) { return doc->numTopicByTable[x].topic; });
-    } while (0);
-    return nullptr;
+	return docVisit<tomoto::DocumentHDP>(self->getBoundDoc(), [](auto* doc)
+	{
+		return buildPyValueReorder(doc->Zs, doc->wOrder, [doc](tomoto::Tid x) -> int16_t
+		{ 
+			if (x == tomoto::non_topic_id) return -1;
+			return doc->numTopicByTable[x].topic; 
+		});
+	});
 }
 
 

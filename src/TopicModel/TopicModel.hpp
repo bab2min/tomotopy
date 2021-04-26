@@ -16,6 +16,9 @@ namespace tomoto
 	using RandGen = Eigen::Rand::P8_mt19937_64<uint32_t>;
 	using ScalarRandGen = Eigen::Rand::UniversalRandomEngine<uint32_t, std::mt19937_64>;
 
+	using Vector = Eigen::Matrix<Float, -1, 1>;
+	using Matrix = Eigen::Matrix<Float, -1, -1>;
+
 	struct RawDocKernel
 	{
 		Float weight = 1;
@@ -59,8 +62,8 @@ namespace tomoto
 		const _Ty& getMisc(const std::string& name) const
 		{
 			auto it = misc.find(name);
-			if (it == misc.end()) throw std::invalid_argument{ "There is no value named `" + name + "` in misc data" };
-			if (!it->second.template is<_Ty>()) throw std::invalid_argument{ "Value named `" + name + "` is not in right type." };
+			if (it == misc.end()) throw exc::InvalidArgument{ "There is no value named `" + name + "` in misc data" };
+			if (!it->second.template is<_Ty>()) throw exc::InvalidArgument{ "Value named `" + name + "` is not in right type." };
 			return it->second.template get<_Ty>();
 		}
 
@@ -69,7 +72,7 @@ namespace tomoto
 		{
 			auto it = misc.find(name);
 			if (it == misc.end()) return {};
-			if (!it->second.template is<_Ty>()) throw std::invalid_argument{ "Value named `" + name + "` is not in right type." };
+			if (!it->second.template is<_Ty>()) throw exc::InvalidArgument{ "Value named `" + name + "` is not in right type." };
 			return it->second.template get<_Ty>();
 		}
 	};
@@ -220,6 +223,9 @@ namespace tomoto
 			const std::vector<uint8_t>* extra_data = nullptr) const = 0;
 		virtual void loadModel(std::istream& reader, 
 			std::vector<uint8_t>* extra_data = nullptr) = 0;
+
+		virtual std::unique_ptr<ITopicModel> copy() const = 0;
+
 		virtual const DocumentBase* getDoc(size_t docId) const = 0;
 		virtual size_t getDocIdByUid(const std::string& docUid) const = 0;
 
@@ -316,7 +322,7 @@ namespace tomoto
 		size_t maxThreads[(size_t)ParallelScheme::size] = { 0, };
 		size_t minWordCf = 0, minWordDf = 0, removeTopN = 0;
 
-		std::unique_ptr<ThreadPool> cachedPool;
+		PreventCopy<std::unique_ptr<ThreadPool>> cachedPool;
 
 		void _saveModel(std::ostream& writer, bool fullModel, const std::vector<uint8_t>* extra_data) const
 		{
@@ -423,7 +429,7 @@ namespace tomoto
 			}
 			else
 			{
-				throw std::invalid_argument{ "Either `words` or `rawWords` must be filled." };
+				throw exc::InvalidArgument{ "Either `words` or `rawWords` must be filled." };
 			}
 			return doc;
 		}
@@ -469,7 +475,19 @@ namespace tomoto
 			auto tx = [](_DocType& doc) { return &doc.words; };
 			tvector<Vid>::trade(words, 
 				makeTransformIter(docs.begin(), tx),
-				makeTransformIter(docs.end(), tx));
+				makeTransformIter(docs.end(), tx)
+			);
+		}
+
+		void updateForCopy()
+		{
+			size_t offset = 0;
+			for (auto& doc : docs)
+			{
+				size_t size = doc.words.size();
+				doc.words = tvector<Vid>{ words.data() + offset, size };
+				offset += size;
+			}
 		}
 
 		size_t countRealN() const
@@ -547,6 +565,15 @@ namespace tomoto
 		{
 		}
 
+		TopicModel(const TopicModel&) = default;
+
+		std::unique_ptr<ITopicModel> copy() const override
+		{
+			auto ret = std::make_unique<_Derived>(*static_cast<const _Derived*>(this));
+			ret->updateForCopy();
+			return ret;
+		}
+
 		size_t getNumDocs() const override
 		{ 
 			return docs.size(); 
@@ -605,7 +632,7 @@ namespace tomoto
 			if (numWorkers == 1 || (_Flags & flags::shared_state)) ps = ParallelScheme::none;
 			if (!cachedPool || cachedPool->getNumWorkers() != numWorkers)
 			{
-				cachedPool = make_unique<ThreadPool>(numWorkers);
+				cachedPool = std::make_unique<ThreadPool>(numWorkers);
 			}
 
 			std::vector<_ModelState> localData;
@@ -724,7 +751,7 @@ namespace tomoto
 		double getDocLL(const DocumentBase* doc) const override
 		{
 			auto* p = dynamic_cast<const DocType*>(doc);
-			if (!p) throw std::invalid_argument{ "wrong `doc` type." };
+			if (!p) throw exc::InvalidArgument{ "wrong `doc` type." };
 			return static_cast<const _Derived*>(this)->getLLDocs(p, p + 1);
 		}
 

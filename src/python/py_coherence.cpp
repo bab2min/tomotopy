@@ -21,11 +21,11 @@ int CoherenceObject::init(CoherenceObject* self, PyObject* args, PyObject* kwarg
 	static const char* kwlist[] = { "corpus", "pe", "seg", "cm", "im", "window_size", "eps", "gamma", "targets", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iiiinddO", (char**)kwlist,
 		&corpus, &pe, &seg, &cm, &im, &windowSize, &eps, &gamma, &targets)) return -1;
-	try
+	return py::handleExc([&]()
 	{
-		if(!PyObject_TypeCheck(corpus, &UtilsCorpus_type))
+		if (!PyObject_TypeCheck(corpus, &UtilsCorpus_type))
 		{
-			throw runtime_error{ "`corpus` must be an instance of `tomotopy.utils.Corpus`." };
+			throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`." };
 		}
 		self->model.~CoherenceModel();
 		new (&self->model) tomoto::coherence::CoherenceModel{ pe, windowSize };
@@ -37,16 +37,16 @@ int CoherenceObject::init(CoherenceObject* self, PyObject* args, PyObject* kwarg
 		py::foreach<string>(targets, [&](const string& w)
 		{
 			auto wid = corpus->getVocabDict().toWid(w);
-			if(wid != tomoto::non_vocab_id) targetIds.emplace_back(wid);
+			if (wid != tomoto::non_vocab_id) targetIds.emplace_back(wid);
 		}, "`targets` must be an iterable of `str`.");
-		
+
 		self->model.insertTargets(targetIds.begin(), targetIds.end());
-		
+
 		for (size_t i = 0; i < CorpusObject::len(corpus); ++i)
 		{
 			auto* doc = corpus->getDoc(i);
 			self->model.insertDoc(
-				wordBegin(doc, corpus->isIndependent()), 
+				wordBegin(doc, corpus->isIndependent()),
 				wordEnd(doc, corpus->isIndependent())
 			);
 		}
@@ -54,12 +54,7 @@ int CoherenceObject::init(CoherenceObject* self, PyObject* args, PyObject* kwarg
 		self->seg = seg;
 		self->cm = tomoto::coherence::AnyConfirmMeasurer::getInstance(cm, im, targetIds.begin(), targetIds.end(), eps, gamma);
 		return 0;
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_ValueError, e.what());
-	}
-	return -1;
+	});
 }
 
 PyObject* CoherenceObject::repr(CoherenceObject* self)
@@ -82,7 +77,7 @@ PyObject* CoherenceObject::getScore(CoherenceObject* self, PyObject* args, PyObj
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
 		&words)) return nullptr;
 	
-	try
+	return py::handleExc([&]()
 	{
 		vector<tomoto::Vid> wordIds;
 		py::foreach<string>(words, [&](const string& w)
@@ -104,19 +99,9 @@ PyObject* CoherenceObject::getScore(CoherenceObject* self, PyObject* args, PyObj
 		case Segmentation::one_set:
 			return py::buildPyValue(self->model.template getScore<Segmentation::one_set>(self->cm, wordIds.begin(), wordIds.end()));
 		default:
-			throw invalid_argument{ "invalid Segmentation `seg`" };
+			throw py::ValueError{ "invalid Segmentation `seg`" };
 		}
-		
-	}
-	catch (const bad_exception&)
-	{
-
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_ValueError, e.what());
-	}
-	return nullptr;
+	});
 }
 
 static PyMethodDef Coherence_methods[] =

@@ -14,7 +14,7 @@ namespace tomoto
 	template<TermWeight _tw>
 	struct ModelStateHDP : public ModelStateLDA<_tw>
 	{
-		Eigen::Matrix<Float, -1, 1> tableLikelihood, topicLikelihood;
+		Vector tableLikelihood, topicLikelihood;
 		Eigen::Matrix<int32_t, -1, 1> numTableByTopic;
 		size_t totalTable = 0;
 
@@ -397,9 +397,10 @@ namespace tomoto
 
 		void prepareDoc(_DocType& doc, size_t docId, size_t wordSize) const
 		{
+			sortAndWriteOrder(doc.words, doc.wOrder);
 			doc.numByTopic.init(nullptr, this->K, 1);
 			doc.numTopicByTable.clear();
-			doc.Zs = tvector<Tid>(wordSize);
+			doc.Zs = tvector<Tid>(wordSize, non_topic_id);
 			if (_tw != TermWeight::one) doc.wordWeights.resize(wordSize);
 		}
 
@@ -529,7 +530,7 @@ namespace tomoto
 			args.k = liveK;
 			args.alpha[0] = 0.1f;
 			args.eta = this->eta;
-			auto lda = make_unique<LDAModel<_tw, _RandGen>>(args);
+			auto lda = std::make_unique<LDAModel<_tw, _RandGen>>(args);
 			lda->dict = this->dict;
 			
 			for (auto& doc : this->docs)
@@ -552,6 +553,11 @@ namespace tomoto
 			{
 				for (size_t j = 0; j < this->docs[i].Zs.size(); ++j)
 				{
+					if (this->docs[i].Zs[j] == non_topic_id)
+					{
+						lda->docs[i].Zs[j] = non_topic_id;
+						continue;
+					}
 					size_t newTopic = newK[this->docs[i].numTopicByTable[this->docs[i].Zs[j]].topic];
 					while (newTopic == (Tid)-1) newTopic = newK[randomTopic(rng)];
 					lda->docs[i].Zs[j] = newTopic;
