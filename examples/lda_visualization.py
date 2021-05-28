@@ -59,6 +59,8 @@ prepared_data = pyLDAvis.prepare(
     doc_topic_dists, 
     doc_lengths, 
     vocab, 
-    term_frequency
+    term_frequency,
+    start_index=0, # tomotopy starts topic ids with 0, pyLDAvis with 1
+    sort_topics=False # IMPORTANT: otherwise the topic_ids between pyLDAvis and tomotopy are not matching!
 )
 pyLDAvis.save_html(prepared_data, 'ldavis.html')
