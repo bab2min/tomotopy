@@ -46,13 +46,19 @@ def basic_info_LDAModel(mdl, file):
     import tomotopy as tp
     import numpy as np
 
-    p = mdl.used_vocab_freq / mdl.used_vocab_freq.sum()
-    entropy = (p * np.log(p)).sum()
+    p = mdl.used_vocab_freq
+    p = p / p.sum()
+    entropy = -(p * np.log(p + 1e-20)).sum()
+
+    p = mdl.used_vocab_weighted_freq
+    p /= p.sum()
+    w_entropy = -(p * np.log(p + 1e-20)).sum()
 
     print('| {} (current version: {})'.format(type(mdl).__name__, tp.__version__), file=file)
     print('| {} docs, {} words'.format(len(mdl.docs), mdl.num_words), file=file)
     print('| Total Vocabs: {}, Used Vocabs: {}'.format(len(mdl.vocabs), len(mdl.used_vocabs)), file=file)
     print('| Entropy of words: {:.5f}'.format(entropy), file=file)
+    print('| Entropy of term-weighted words: {:.5f}'.format(w_entropy), file=file)
     print('| Removed Vocabs: {}'.format(' '.join(mdl.removed_top_words) if mdl.removed_top_words else '<NA>'), file=file)
 
 def basic_info_DMRModel(mdl, file):

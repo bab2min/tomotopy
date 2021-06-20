@@ -620,7 +620,7 @@ namespace tomoto
 					for (Vid v = 0; v < V; ++v)
 					{
 						if (!ld.numByTopicWord(k, v)) continue;
-						ll += math::lgammaT(ld.numByTopicWord(k, v) + etaByTopicWord(v, k)) - math::lgammaT(etaByTopicWord(v, k));
+						ll += math::lgammaT(ld.numByTopicWord(k, v) + etaByTopicWord(k, v)) - math::lgammaT(etaByTopicWord(k, v));
 						assert(std::isfinite(ll));
 					}
 				}
@@ -1008,6 +1008,11 @@ namespace tomoto
 				if (p < 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors must not be less than 0.");
 			}
 			this->dict.add(word);
+			if (this->dict.size() > this->vocabCf.size())
+			{
+				this->vocabCf.resize(this->dict.size());
+				this->vocabDf.resize(this->dict.size());
+			}
 			etaByWord.emplace(word, priors);
 		}
 

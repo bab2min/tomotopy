@@ -753,6 +753,13 @@ DOC_VARIABLE_EN_KO(LDA_used_vocab_freq__doc__,
 .. versionadded:: 0.8.0)"",
 u8R""(모델에 실제로 사용된 어휘들의 빈도를 보여주는 `list` (읽기전용))"");
 
+DOC_VARIABLE_EN_KO(LDA_used_vocab_weighted_freq__doc__,
+    u8R""(a `list` of term-weighted vocabulary frequencies which contains only vocabularies actually used in modeling (read-only)
+
+.. versionadded:: 0.12.1)"",
+u8R""(모델에 실제로 사용된 어휘들의 빈도(용어 가중치 적용됨)를 보여주는 `list` (읽기전용))"");
+
+
 DOC_VARIABLE_EN_KO(LDA_vocab_df__doc__,
     u8R""(a `list` of vocabulary document-frequencies which contains both vocabularies filtered by frequency and vocabularies actually used in modeling (read-only)
 
