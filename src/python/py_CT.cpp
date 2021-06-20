@@ -158,7 +158,7 @@ PyObject* Document_beta(DocumentObject* self, void* closure)
 {
 	return py::handleExc([&]() -> PyObject*
 	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `beta` field!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `beta` field!" };
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 
 		if (auto ret = docVisit<tomoto::DocumentCTM>(self->getBoundDoc(), [](auto* doc)
@@ -168,6 +168,6 @@ PyObject* Document_beta(DocumentObject* self, void* closure)
 				logf
 			);
 		})) return ret;
-		throw py::AttributeError{ "doc doesn't has `beta` field!" };
+		throw py::AttributeError{ "doc has no `beta` field!" };
 	});
 }

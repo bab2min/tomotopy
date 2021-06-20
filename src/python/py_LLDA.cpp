@@ -126,7 +126,7 @@ PyObject* Document_labels(DocumentObject* self, void* closure)
 {
 	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `labels` field!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `labels` field!" };
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 
 		if (auto* ret = docVisit<tomoto::DocumentLLDA>(self->getBoundDoc(), [&](auto* doc)
@@ -146,7 +146,7 @@ PyObject* Document_labels(DocumentObject* self, void* closure)
 			return py::buildPyValue(r);
 		})) return ret;
 		
-		throw py::AttributeError{ "doc doesn't has `labels` field!" };
+		throw py::AttributeError{ "doc has no `labels` field!" };
 	});
 }
 

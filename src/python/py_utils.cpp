@@ -1136,7 +1136,7 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 {
 	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `topics` field!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `topics` field!" };
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 #ifdef TM_HLDA
 		if (auto* ret = Document_HLDA_Z(self, closure)) return ret;
@@ -1145,7 +1145,7 @@ static PyObject* Document_Z(DocumentObject* self, void* closure)
 		if (auto* ret = Document_HDP_Z(self, closure)) return ret;
 #endif
 		if (auto* ret = Document_LDA_Z(self, closure)) return ret;
-		throw py::AttributeError{ "doc doesn't has `topics` field!" };
+		throw py::AttributeError{ "doc has no `topics` field!" };
 	});
 }
 
@@ -1153,12 +1153,12 @@ static PyObject* Document_metadata(DocumentObject* self, void* closure)
 {
 	return py::handleExc([&]()
 	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `metadata` field!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `metadata` field!" };
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 #ifdef TM_DMR
 		if (auto* ret = Document_DMR_metadata(self, closure)) return ret;
 #endif
-		throw py::AttributeError{ "doc doesn't has `metadata` field!" };
+		throw py::AttributeError{ "doc has no `metadata` field!" };
 	});
 }
 

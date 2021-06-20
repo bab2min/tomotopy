@@ -277,7 +277,7 @@ PyObject* Document_eta(DocumentObject* self, void* closure)
 {
 	return py::handleExc([&]() -> PyObject*
 	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `eta` field!" };
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `eta` field!" };
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
 
 		if (auto* ret = docVisit<tomoto::DocumentDTM>(self->getBoundDoc(), [](auto* doc)
@@ -285,7 +285,7 @@ PyObject* Document_eta(DocumentObject* self, void* closure)
 			return py::buildPyValue(doc->eta.array().data(), doc->eta.array().data() + doc->eta.array().size());
 		})) return ret;
 
-		throw py::AttributeError{ "doc doesn't has `eta` field!" };
+		throw py::AttributeError{ "doc has no `eta` field!" };
 	});
 }
 

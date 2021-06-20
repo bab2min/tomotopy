@@ -262,7 +262,7 @@ PyObject* Document_DMR_multiMetadata(DocumentObject* self, void* closure)
 				return inst->getMultiMetadataDict().toWord(x);
 			});
 		})) return ret;
-		throw py::AttributeError{ "doc doesn't has `multi_metadata` field!" };
+		throw py::AttributeError{ "doc has no `multi_metadata` field!" };
 	});
 }
 

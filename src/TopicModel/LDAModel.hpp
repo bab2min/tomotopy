@@ -1069,7 +1069,7 @@ namespace tomoto
 							++df[w];
 						}
 					}
-					totCf = accumulate(this->vocabCf.begin(), this->vocabCf.end(), 0);
+					totCf = std::accumulate(this->vocabCf.begin(), this->vocabCf.end(), 0);
 				}
 				if (_tw == TermWeight::idf)
 				{

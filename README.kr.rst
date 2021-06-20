@@ -254,6 +254,12 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.12.1 (2021-06-20)
+    * `tomotopy.LDAModel.set_word_prior()`가 크래시를 발생시키던 문제를 해결했습니다.
+    * 이제 `tomotopy.LDAModel.perplexity`와 `tomotopy.LDAModel.ll_per_word`가 TermWeight가 ONE이 아닌 경우에도 정확한 값을 반환합니다.
+    * 용어가중치가 적용된 빈도수를 반환하는 `tomotopy.LDAModel.used_vocab_weighted_freq`가 추가되었습니다.
+    * 이제 `tomotopy.LDAModel.summary()`가 단어의 엔트로피뿐만 아니라, 용어 가중치가 적용된 단어의 엔트로피도 함께 보여줍니다.
+
 * 0.12.0 (2021-04-26)
     * 이제 `tomotopy.DMRModel`와 `tomotopy.GDMRModel`가 다중 메타데이터를 지원합니다. (https://github.com/bab2min/tomotopy/blob/main/examples/dmr_multi_label.py 참조)
     * `tomotopy.GDMRModel`의 성능이 개선되었습니다.

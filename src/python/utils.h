@@ -254,13 +254,13 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 {\
 	return py::handleExc([&]()\
 	{\
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
 		if (auto* ret = docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
 		{\
 			return py::buildPyValue(doc->FIELD);\
 		})) return ret;\
-		throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
 	});\
 }
 
@@ -269,7 +269,7 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 {\
 	return py::handleExc([&]()\
 	{\
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
 		return docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
 		{\
@@ -283,13 +283,13 @@ PyObject* Document_##NAME(DocumentObject* self, void* closure)\
 {\
 	return py::handleExc([&]()\
 	{\
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" };\
+		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
 		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
 		if (auto* ret = docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
 		{\
 			return buildPyValueReorder(doc->FIELD, doc->wOrder);\
 		})) return ret;\
-		throw py::AttributeError{ "doc doesn't has `" #FIELD "` field!" }; \
+		throw py::AttributeError{ "doc has no `" #FIELD "` field!" }; \
 	});\
 }
 

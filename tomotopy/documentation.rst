@@ -339,6 +339,12 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.12.1 (2021-06-20)
+    * An issue where `tomotopy.LDAModel.set_word_prior()` causes a crash has been fixed.
+    * Now `tomotopy.LDAModel.perplexity` and `tomotopy.LDAModel.ll_per_word` return the accurate value when `TermWeight` is not `ONE`.
+    * `tomotopy.LDAModel.used_vocab_weighted_freq` was added, which returns term-weighted frequencies of words.
+    * Now `tomotopy.LDAModel.summary()` shows not only the entropy of words, but also the entropy of term-weighted words.
+
 * 0.12.0 (2021-04-26)
     * Now `tomotopy.DMRModel` and `tomotopy.GDMRModel` support multiple values of metadata (see https://github.com/bab2min/tomotopy/blob/main/examples/dmr_multi_label.py )
     * The performance of `tomotopy.GDMRModel` was improved.
