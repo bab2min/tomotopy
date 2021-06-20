@@ -249,6 +249,7 @@ namespace tomoto
 		virtual size_t getNumDocs() const = 0;
 		virtual const Dictionary& getVocabDict() const = 0;
 		virtual const std::vector<uint64_t>& getVocabCf() const = 0;
+		virtual std::vector<double> getVocabWeightedCf() const = 0;
 		virtual const std::vector<uint64_t>& getVocabDf() const = 0;
 
 		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_, bool freeze_topics = false) = 0;
@@ -319,6 +320,7 @@ namespace tomoto
 		Dictionary dict;
 		uint64_t realV = 0; // vocab size after removing stopwords
 		uint64_t realN = 0; // total word size after removing stopwords
+		double weightedN = 0;
 		size_t maxThreads[(size_t)ParallelScheme::size] = { 0, };
 		size_t minWordCf = 0, minWordDf = 0, removeTopN = 0;
 
@@ -377,7 +379,9 @@ namespace tomoto
 			serializer::readMany(reader, *static_cast<_Derived*>(this));
 			globalState.serializerRead(reader);
 			serializer::readMany(reader, docs);
-			realN = countRealN();
+			auto p = countRealN();
+			realN = p.first;
+			weightedN = p.second;
 		}
 
 		template<typename _DocTy>
@@ -490,17 +494,23 @@ namespace tomoto
 			}
 		}
 
-		size_t countRealN() const
+		std::pair<size_t, double> countRealN() const
 		{
 			size_t n = 0;
+			double weighted = 0;
 			for (auto& doc : docs)
 			{
-				for (auto& w : doc.words)
+				for (size_t i = 0; i < doc.words.size(); ++i)
 				{
-					if (w < realV) ++n;
+					auto w = doc.words[i];
+					if (w < realV)
+					{
+						++n;
+						weighted += doc.wordWeights.empty() ? 1 : doc.wordWeights[i];
+					}
 				}
 			}
-			return n;
+			return std::make_pair(n, weighted);
 		}
 
 		void removeStopwords(size_t minWordCnt, size_t minWordDf, size_t removeTopN)
@@ -544,14 +554,9 @@ namespace tomoto
 			}
 
 			dict.reorder(order);
-			realN = 0;
 			for (auto& doc : docs)
 			{
-				for (auto& w : doc.words)
-				{
-					w = order[w];
-					if (w < realV) ++realN;
-				}
+				for (auto& w : doc.words) w = order[w];
 			}
 		}
 
@@ -598,6 +603,10 @@ namespace tomoto
 
 		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) override
 		{
+			auto p = countRealN();
+			realN = p.first;
+			weightedN = p.second;
+
 			maxThreads[(size_t)ParallelScheme::default_] = -1;
 			maxThreads[(size_t)ParallelScheme::none] = -1;
 			maxThreads[(size_t)ParallelScheme::copy_merge] = static_cast<_Derived*>(this)->template estimateMaxThreads<ParallelScheme::copy_merge>();
@@ -697,7 +706,7 @@ namespace tomoto
 
 		double getLLPerWord() const override
 		{
-			return words.empty() ? 0 : static_cast<const _Derived*>(this)->getLL() / realN;
+			return words.empty() ? 0 : static_cast<const _Derived*>(this)->getLL() / weightedN;
 		}
 
 		double getPerplexity() const override
@@ -830,6 +839,20 @@ namespace tomoto
 		const std::vector<uint64_t>& getVocabCf() const override
 		{
 			return vocabCf;
+		}
+
+		std::vector<double> getVocabWeightedCf() const override
+		{
+			std::vector<double> ret(realV);
+			for (auto& doc : docs)
+			{
+				for (size_t i = 0; i < doc.words.size(); ++i)
+				{
+					if (doc.words[i] >= realV) continue;
+					ret[doc.words[i]] += doc.wordWeights.empty() ? 1 : doc.wordWeights[i];
+				}
+			}
+			return ret;
 		}
 
 		const std::vector<uint64_t>& getVocabDf() const override

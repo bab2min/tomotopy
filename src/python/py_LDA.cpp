@@ -384,6 +384,15 @@ static PyObject* LDA_getUsedVocabCf(TopicModelObject* self, void* closure)
 	});
 }
 
+static PyObject* LDA_getUsedVocabWeightedCf(TopicModelObject* self, void* closure)
+{
+	return py::handleExc([&]()
+	{
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		return py::buildPyValue(self->inst->getVocabWeightedCf());
+	});
+}
+
 static PyObject* LDA_getUsedVocabDf(TopicModelObject* self, void* closure)
 {
 	return py::handleExc([&]()
@@ -685,6 +694,7 @@ static PyGetSetDef LDA_getseters[] = {
 	{ (char*)"removed_top_words", (getter)LDA_getRemovedTopWords, nullptr, LDA_removed_top_words__doc__, nullptr },
 	{ (char*)"used_vocabs", (getter)LDA_getUsedVocabs, nullptr, LDA_used_vocabs__doc__, nullptr },
 	{ (char*)"used_vocab_freq", (getter)LDA_getUsedVocabCf, nullptr, LDA_used_vocab_freq__doc__, nullptr },
+	{ (char*)"used_vocab_weighted_freq", (getter)LDA_getUsedVocabWeightedCf, nullptr, LDA_used_vocab_weighted_freq__doc__, nullptr },
 	{ (char*)"vocab_df", (getter)LDA_getVocabDf, nullptr, LDA_vocab_df__doc__, nullptr },
 	{ (char*)"used_vocab_df", (getter)LDA_getUsedVocabDf, nullptr, LDA_used_vocab_df__doc__, nullptr },
 	{ (char*)"global_step", (getter)LDA_getGlobalStep, nullptr, LDA_global_step__doc__, nullptr },
