@@ -202,6 +202,55 @@ Inference for unseen document should be performed using `tomotopy.LDAModel.infer
 The `infer` method can infer only one instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document`. 
 See more at `tomotopy.LDAModel.infer`.
 
+Corpus and transform
+--------------------
+Every topic model in `tomotopy` has its own internal document type.
+A document can be created and added into suitable for each model through each model's `add_doc` method. 
+However, trying to add the same list of documents to different models becomes quite inconvenient, 
+because `add_doc` should be called for the same list of documents to each different model.
+Thus, `tomotopy` provides `tomotopy.utils.Corpus` class that holds a list of documents. 
+`tomotopy.utils.Corpus` can be inserted into any model by passing as argument `corpus` to `__init__` or `add_corpus` method of each model. 
+So, inserting `tomotopy.utils.Corpus` just has the same effect to inserting documents the corpus holds.
+
+Some topic models requires different data for its documents. 
+For example, `tomotopy.DMRModel` requires argument `metadata` in `str` type, 
+but `tomotopy.PLDAModel` requires argument `labels` in `List[str]` type. 
+Since `tomotopy.utils.Corpus` holds an independent set of documents rather than being tied to a specific topic model, 
+data types required by a topic model may be inconsistent when a corpus is added into that topic model. 
+In this case, miscellaneous data can be transformed to be fitted target topic model using argument `transform`. 
+See more details in the following code:
+
+::
+
+    from tomotopy import DMRModel
+    from tomotopy.utils import Corpus
+
+    corpus = Corpus()
+    corpus.add_doc("a b c d e".split(), a_data=1)
+    corpus.add_doc("e f g h i".split(), a_data=2)
+    corpus.add_doc("i j k l m".split(), a_data=3)
+
+    model = DMRModel(k=10)
+    model.add_corpus(corpus) 
+    # You lose `a_data` field in `corpus`, 
+    # and `metadata` that `DMRModel` requires is filled with the default value, empty str.
+
+    assert model.docs[0].metadata == ''
+    assert model.docs[1].metadata == ''
+    assert model.docs[2].metadata == ''
+
+    def transform_a_data_to_metadata(misc: dict):
+        return {'metadata': str(misc['a_data'])}
+    # this function transforms `a_data` to `metadata`
+
+    model = DMRModel(k=10)
+    model.add_corpus(corpus, transform=transform_a_data_to_metadata)
+    # Now docs in `model` has non-default `metadata`, that generated from `a_data` field.
+
+    assert model.docs[0].metadata == '1'
+    assert model.docs[1].metadata == '2'
+    assert model.docs[2].metadata == '3'
+
 Parallel Sampling Algorithms
 ----------------------------
 Since version 0.5.0, `tomotopy` allows you to choose a parallelism algorithm. 
