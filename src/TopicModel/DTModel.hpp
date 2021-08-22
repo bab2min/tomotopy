@@ -41,7 +41,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "DTM\0";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("DTM\0");
+		}
 
 		uint64_t T;
 		Float shapeA = 0.03f, shapeB = 0.1f, shapeC = 0.55f;

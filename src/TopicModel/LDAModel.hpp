@@ -117,19 +117,28 @@ namespace tomoto
 	template<>
 	struct TwId<TermWeight::one>
 	{
-		static constexpr char TWID[] = "one\0";
+		static constexpr auto twid()
+		{
+			return serializer::to_key("one\0");
+		}
 	};
 
 	template<>
 	struct TwId<TermWeight::idf>
 	{
-		static constexpr char TWID[] = "idf\0";
+		static constexpr auto twid()
+		{
+			return serializer::to_key("idf\0");
+		}
 	};
 
 	template<>
 	struct TwId<TermWeight::pmi>
 	{
-		static constexpr char TWID[] = "pmi\0";
+		static constexpr auto twid()
+		{
+			return serializer::to_key("pmi\0");
+		}
 	};
 
 	// to make HDP friend of LDA for HDPModel::converToLDA
@@ -169,7 +178,11 @@ namespace tomoto
 			typename>
 		friend class HDPModel;
 
-		static constexpr char TMID[] = "LDA\0";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("LDA\0");
+		}
+
 		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
 		enum { m_flags = _Flags };

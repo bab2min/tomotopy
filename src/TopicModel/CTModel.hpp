@@ -33,7 +33,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "CTM\0";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("CTM\0");
+		}
 
 		uint64_t numBetaSample = 10;
 		uint64_t numTMNSample = 5;

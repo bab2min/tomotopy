@@ -89,7 +89,7 @@ namespace tomoto
 			template<> struct gen_seq<1> : seq<0> {};
 
 			template <size_t _n, size_t ... _is>
-			std::array<char, _n - 1> to_array(const char(&a)[_n], seq<_is...>)
+			constexpr std::array<char, sizeof... (_is)> to_array(const char(&a)[_n], seq<_is...>)
 			{
 				return { {a[_is]...} };
 			}
@@ -101,7 +101,13 @@ namespace tomoto
 			}
 
 			template <size_t _n, size_t ... _is>
-			std::array<char, _n> to_arrayz(const char(&a)[_n], seq<_is...>)
+			constexpr std::array<char, sizeof... (_is) + 1> to_arrayz(const char(&a)[_n], seq<_is...>)
+			{
+				return { {a[_is]..., 0} };
+			}
+
+			template <size_t _n, size_t ... _is>
+			constexpr std::array<char, sizeof... (_is) + 1> to_arrayz(const std::array<char, _n>& a, seq<_is...>)
 			{
 				return { {a[_is]..., 0} };
 			}
@@ -132,17 +138,24 @@ namespace tomoto
 				return std::string{ m.begin(), m.end() };
 			}
 
-			Key(const std::array<char, _len>& _m) : m(_m)
+			constexpr Key(const std::array<char, _len>& _m) : m(_m)
 			{
 			}
 
-			Key(std::array<char, _len>&& _m) : m(_m)
+			constexpr Key(std::array<char, _len>&& _m) : m(_m)
 			{
 			}
 
-			Key(const char(&a)[_len + 1]) : Key{ detail::to_array(a) }
+			constexpr Key(const char(&a)[_len + 1]) : Key{ detail::to_array(a) }
 			{
 			}
+
+			constexpr char operator[](size_t n) const
+			{
+				return n < _len ? m[n] : throw std::out_of_range("");
+			}
+
+			constexpr size_t size() const { return _len; }
 		};
 
 		template<typename _Ty>
@@ -162,9 +175,21 @@ namespace tomoto
 		}
 
 		template<size_t _n>
+		constexpr Key<_n> to_key(const Key<_n>& key)
+		{
+			return key;
+		}
+
+		template<size_t _n>
 		constexpr Key<_n> to_keyz(const char(&a)[_n])
 		{
 			return Key<_n>{detail::to_arrayz(a)};
+		}
+
+		template<size_t _n>
+		constexpr Key<_n + 1> to_keyz(const Key<_n>& key)
+		{
+			return Key<_n + 1>{detail::to_arrayz(key.m, detail::GenSeq<_n>{})};
 		}
 
 		template<typename _Ty, typename = void>
