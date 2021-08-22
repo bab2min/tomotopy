@@ -57,7 +57,7 @@ namespace tomoto
 		std::vector<sample::AliasMethod<>> wordAliasTables; // Dim: (Word * Time)
 
 		template<int _inc>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid tid) const
 		{
 			assert(tid < this->K);
 			assert(vid < this->realV);

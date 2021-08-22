@@ -452,7 +452,7 @@ namespace tomoto
 			optimRepeat = _optimRepeat;
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			auto alphaDoc = getCachedAlpha(doc);

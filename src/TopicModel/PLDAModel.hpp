@@ -181,7 +181,7 @@ namespace tomoto
 			return std::make_unique<_DocType>(as_mutable(this)->template _updateDoc<true>(doc, rawDoc.template getMiscDefault<std::vector<std::string>>("labels")));
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			auto maskedAlphas = this->alphas.array() * doc.labelMask.template cast<Float>().array();

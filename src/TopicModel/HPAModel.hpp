@@ -143,7 +143,7 @@ namespace tomoto
 		}
 
 		template<int _inc>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
 			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
@@ -540,7 +540,7 @@ namespace tomoto
 			return ret;
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(1 + this->K + K2);
 			Float sum = doc.getSumWordWeight() + this->alphas.sum();

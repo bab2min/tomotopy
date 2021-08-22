@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <numeric>
 #include <unordered_set>
 #include "../Utils/Utils.hpp"
@@ -810,7 +810,7 @@ namespace tomoto
 
 		std::vector<Float> getTopicsByDoc(const DocumentBase* doc, bool normalize) const override
 		{
-			return static_cast<const _Derived*>(this)->getTopicsByDoc(*static_cast<const DocType*>(doc), normalize);
+			return static_cast<const _Derived*>(this)->_getTopicsByDoc(*static_cast<const DocType*>(doc), normalize);
 		}
 
 		std::vector<std::pair<Tid, Float>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override

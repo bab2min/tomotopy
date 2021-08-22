@@ -316,7 +316,7 @@ namespace tomoto
 				}
 			}
 
-			float totN = std::accumulate(vocabFreqs.begin(), vocabFreqs.end(), (size_t)0);
+			float totN = (float)std::accumulate(vocabFreqs.begin(), vocabFreqs.end(), (size_t)0);
 			const float logTotN = std::log(totN);
 
 			// calculating PMIs
@@ -489,7 +489,7 @@ namespace tomoto
 
 				float rbe = branchingEntropy(trieNodes[0].getNext(bigram.first)->getNext(bigram.second), candMinCnt);
 				float lbe = branchingEntropy(trieNodesBw[0].getNext(bigram.second)->getNext(bigram.first), candMinCnt);
-				float nbe = std::sqrt(rbe * lbe) / std::log(p.second);
+				float nbe = std::sqrt(rbe * lbe) / (float)std::log(p.second);
 				if (nbe < minNBE) continue;
 				candidates.emplace_back(npmi * nbe, bigram.first, bigram.second);
 				candidates.back().cf = p.second;
@@ -512,7 +512,7 @@ namespace tomoto
 
 					float rbe = branchingEntropy(node, candMinCnt);
 					float lbe = branchingEntropy(trieNodesBw[0].findNode(rkeys.rbegin(), rkeys.rend()), candMinCnt);
-					float nbe = std::sqrt(rbe * lbe) / std::log(node->val);
+					float nbe = std::sqrt(rbe * lbe) / (float)std::log(node->val);
 					if (nbe < minNBE) return;
 					candidates.emplace_back(npmi * nbe, rkeys);
 					candidates.back().cf = node->val;

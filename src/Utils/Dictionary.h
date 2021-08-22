@@ -32,7 +32,7 @@ namespace tomoto
 			auto it = dict.find(word);
 			if (it == dict.end())
 			{
-				dict.emplace(std::make_pair(word, dict.size()));
+				dict.emplace(word, (Vid)dict.size());
 				id2word.emplace_back(word);
 				return (Vid)(dict.size() - 1);
 			}
@@ -64,7 +64,7 @@ namespace tomoto
 			serializer::readMany(reader, serializer::to_key("Dict"), id2word);
 			for (size_t i = 0; i < id2word.size(); ++i)
 			{
-				dict.emplace(id2word[i], i);
+				dict.emplace(id2word[i], (Vid)i);
 			}
 		}
 
