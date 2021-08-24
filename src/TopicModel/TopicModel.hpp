@@ -329,15 +329,17 @@ namespace tomoto
 		void _saveModel(std::ostream& writer, bool fullModel, const std::vector<uint8_t>* extra_data) const
 		{
 			serializer::writeMany(writer,
-				serializer::to_keyz(static_cast<const _Derived*>(this)->TMID),
-				serializer::to_keyz(static_cast<const _Derived*>(this)->TWID));
+				serializer::to_keyz(static_cast<const _Derived*>(this)->tmid()),
+				serializer::to_keyz(static_cast<const _Derived*>(this)->twid())
+			);
 			serializer::writeTaggedMany(writer, 0x00010001,
 				serializer::to_keyz("dict"), dict, 
 				serializer::to_keyz("vocabCf"), vocabCf,
 				serializer::to_keyz("vocabDf"), vocabDf,
 				serializer::to_keyz("realV"), realV,
 				serializer::to_keyz("globalStep"), globalStep,
-				serializer::to_keyz("extra"), extra_data ? *extra_data : std::vector<uint8_t>(0));
+				serializer::to_keyz("extra"), extra_data ? *extra_data : std::vector<uint8_t>(0)
+			);
 			serializer::writeMany(writer, *static_cast<const _Derived*>(this));
 			globalState.serializerWrite(writer);
 			if (fullModel)
@@ -357,8 +359,9 @@ namespace tomoto
 			{
 				std::vector<uint8_t> extra;
 				serializer::readMany(reader, 
-					serializer::to_keyz(static_cast<_Derived*>(this)->TMID),
-					serializer::to_keyz(static_cast<_Derived*>(this)->TWID));
+					serializer::to_keyz(static_cast<_Derived*>(this)->tmid()),
+					serializer::to_keyz(static_cast<_Derived*>(this)->twid())
+				);
 				serializer::readTaggedMany(reader, 0x00010001, 
 					serializer::to_keyz("dict"), dict,
 					serializer::to_keyz("vocabCf"), vocabCf,
@@ -372,9 +375,10 @@ namespace tomoto
 			{
 				reader.seekg(start_pos);
 				serializer::readMany(reader,
-					serializer::to_key(static_cast<_Derived*>(this)->TMID),
-					serializer::to_key(static_cast<_Derived*>(this)->TWID),
-					dict, vocabCf, realV);
+					serializer::to_key(static_cast<_Derived*>(this)->tmid()),
+					serializer::to_key(static_cast<_Derived*>(this)->twid()),
+					dict, vocabCf, realV
+				);
 			}
 			serializer::readMany(reader, *static_cast<_Derived*>(this));
 			globalState.serializerRead(reader);
@@ -806,7 +810,7 @@ namespace tomoto
 
 		std::vector<Float> getTopicsByDoc(const DocumentBase* doc, bool normalize) const override
 		{
-			return static_cast<const _Derived*>(this)->getTopicsByDoc(*static_cast<const DocType*>(doc), normalize);
+			return static_cast<const _Derived*>(this)->_getTopicsByDoc(*static_cast<const DocType*>(doc), normalize);
 		}
 
 		std::vector<std::pair<Tid, Float>> getTopicsByDocSorted(const DocumentBase* doc, size_t topN) const override

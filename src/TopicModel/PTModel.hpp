@@ -38,7 +38,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "PTM";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("PTM");
+		}
 
 		uint64_t numPDocs;
 		Float lambda;
@@ -261,7 +264,7 @@ namespace tomoto
 		{
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };

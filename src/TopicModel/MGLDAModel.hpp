@@ -63,7 +63,7 @@ namespace tomoto
 		}
 
 		template<int _inc> 
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid, uint16_t s, uint8_t w, uint8_t r) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid tid, uint16_t s, uint8_t w, uint8_t r) const
 		{
 			const auto K = this->K;
 
@@ -527,7 +527,7 @@ namespace tomoto
 			this->etaByWord.emplace(word, priors);
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K + KL);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K + KL };

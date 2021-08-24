@@ -90,7 +90,7 @@ namespace tomoto
 		}
 
 		template<int _inc> 
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid z1, Tid z2) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid z1, Tid z2) const
 		{
 			assert(vid < this->realV);
 			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;

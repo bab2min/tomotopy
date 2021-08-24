@@ -141,9 +141,9 @@ namespace tomoto
 				float forSmall(float x) 
 				{
 					if (x == 0) return -INFINITY;
-					return log(x + 2) - 0.5f / (x + 2) - 1 / 12.f / pow(x + 2, 2) - 1 / (x + 1) - 1 / x; 
+					return logf(x + 2) - 0.5f / (x + 2) - 1 / 12.f / powf(x + 2, 2) - 1 / (x + 1) - 1 / x; 
 				}
-				float forLarge(float x) { return log(x) - 0.5f / x - 1 / 12.f / pow(x, 2); }
+				float forLarge(float x) { return logf(x) - 0.5f / x - 1 / 12.f / powf(x, 2); }
 				float forNonFinite(float x) { if (std::isnan(x) || x < 0) return NAN; return INFINITY;}
 			};
 

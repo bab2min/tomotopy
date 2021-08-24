@@ -117,19 +117,28 @@ namespace tomoto
 	template<>
 	struct TwId<TermWeight::one>
 	{
-		static constexpr char TWID[] = "one\0";
+		static constexpr auto twid()
+		{
+			return serializer::to_key("one\0");
+		}
 	};
 
 	template<>
 	struct TwId<TermWeight::idf>
 	{
-		static constexpr char TWID[] = "idf\0";
+		static constexpr auto twid()
+		{
+			return serializer::to_key("idf\0");
+		}
 	};
 
 	template<>
 	struct TwId<TermWeight::pmi>
 	{
-		static constexpr char TWID[] = "pmi\0";
+		static constexpr auto twid()
+		{
+			return serializer::to_key("pmi\0");
+		}
 	};
 
 	// to make HDP friend of LDA for HDPModel::converToLDA
@@ -169,7 +178,11 @@ namespace tomoto
 			typename>
 		friend class HDPModel;
 
-		static constexpr char TMID[] = "LDA\0";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("LDA\0");
+		}
+
 		using WeightType = typename std::conditional<_tw == TermWeight::one, int32_t, float>::type;
 
 		enum { m_flags = _Flags };
@@ -189,7 +202,7 @@ namespace tomoto
 		struct ExtraDocData
 		{
 			std::vector<Vid> vChunkOffset;
-			Eigen::Matrix<uint32_t, -1, -1> chunkOffsetByDoc;
+			Eigen::Matrix<size_t, -1, -1> chunkOffsetByDoc;
 		};
 
 		ExtraDocData eddTrain;
@@ -261,7 +274,7 @@ namespace tomoto
 		}
 
 		template<int _inc>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid tid) const
 		{
 			assert(tid < K);
 			assert(vid < this->realV);
@@ -972,12 +985,14 @@ namespace tomoto
 
 		void setOptimInterval(size_t _optimInterval) override
 		{
-			optimInterval = _optimInterval;
+			if (_optimInterval > 0x7FFFFFFF) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "wrong value");
+			optimInterval = (uint32_t)_optimInterval;
 		}
 
 		void setBurnInIteration(size_t iteration) override
 		{
-			burnIn = iteration;
+			if (iteration > 0x7FFFFFFF) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "wrong value");
+			burnIn = (uint32_t)iteration;
 		}
 
 		size_t addDoc(const RawDoc& rawDoc, const RawDocTokenizer::Factory& tokenizer) override
@@ -1054,7 +1069,7 @@ namespace tomoto
 			if (initDocs)
 			{
 				std::vector<uint32_t> df, cf, tf;
-				uint32_t totCf;
+				size_t totCf;
 
 				// calculate weighting
 				if (_tw != TermWeight::one)
@@ -1076,7 +1091,7 @@ namespace tomoto
 					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
 					{
-						vocabWeights[i] = log(this->docs.size() / (Float)df[i]);
+						vocabWeights[i] = (Float)log(this->docs.size() / (double)df[i]);
 					}
 				}
 				else if (_tw == TermWeight::pmi)
@@ -1084,7 +1099,7 @@ namespace tomoto
 					vocabWeights.resize(V);
 					for (size_t i = 0; i < V; ++i)
 					{
-						vocabWeights[i] = this->vocabCf[i] / (float)totCf;
+						vocabWeights[i] = (Float)(this->vocabCf[i] / (double)totCf);
 					}
 				}
 
@@ -1109,7 +1124,7 @@ namespace tomoto
 			return static_cast<const DerivedClass*>(this)->_getTopicsCount();
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(K);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), K };

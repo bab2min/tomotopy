@@ -121,7 +121,7 @@ namespace tomoto
 
 		void updateSumWordWeight(size_t realV)
 		{
-			sumWordWeight = std::count_if(static_cast<_Base*>(this)->words.begin(), static_cast<_Base*>(this)->words.end(), [realV](Vid w)
+			sumWordWeight = (int32_t)std::count_if(static_cast<_Base*>(this)->words.begin(), static_cast<_Base*>(this)->words.end(), [realV](Vid w)
 			{
 				return w < realV;
 			});
@@ -164,8 +164,8 @@ namespace tomoto
 	struct LDAArgs
 	{
 		size_t k = 1;
-		std::vector<Float> alpha = { 0.1 };
-		Float eta = 0.01;
+		std::vector<Float> alpha = { (Float)0.1 };
+		Float eta = (Float)0.01;
 		size_t seed = std::random_device{}();
 	};
 

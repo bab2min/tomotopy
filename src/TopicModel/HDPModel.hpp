@@ -168,7 +168,7 @@ namespace tomoto
 		}
 
 		template<int _inc> 
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, size_t tableId, Tid tid) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, size_t tableId, Tid tid) const
 		{
 			addOnlyWordTo<_inc>(ld, doc, pid, vid, tid);
 			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;
@@ -490,7 +490,7 @@ namespace tomoto
 			THROW_ERROR_WITH_INFO(exc::Unimplemented, "HDPModel doesn't provide setWordPrior function.");
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
@@ -522,7 +522,7 @@ namespace tomoto
 			for (size_t i = 0; i < cntIdx.size(); ++i)
 			{
 				if (i && cntIdx[i].first / sum <= topicThreshold) break;
-				newK[cntIdx[i].second] = i;
+				newK[cntIdx[i].second] = (Tid)i;
 				liveK++;
 			}
 
@@ -558,7 +558,7 @@ namespace tomoto
 						lda->docs[i].Zs[j] = non_topic_id;
 						continue;
 					}
-					size_t newTopic = newK[this->docs[i].numTopicByTable[this->docs[i].Zs[j]].topic];
+					Tid newTopic = newK[this->docs[i].numTopicByTable[this->docs[i].Zs[j]].topic];
 					while (newTopic == (Tid)-1) newTopic = newK[randomTopic(rng)];
 					lda->docs[i].Zs[j] = newTopic;
 				}

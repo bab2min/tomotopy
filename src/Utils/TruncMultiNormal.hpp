@@ -58,7 +58,7 @@ namespace tomoto
 					}
 					else
 					{
-						z[j] = rtnorm::rtnorm(rng, lower_pos, upper_pos);
+						z[j] = (_Ty)rtnorm::rtnorm(rng, lower_pos, upper_pos);
 					}
 				}
 			}

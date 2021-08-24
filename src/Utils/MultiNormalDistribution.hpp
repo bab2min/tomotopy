@@ -10,7 +10,7 @@ namespace tomoto
 		template<typename _Ty = float>
 		struct MultiNormalDistribution
 		{
-			static constexpr _Ty log2pi = 1.83787706641;
+			static constexpr _Ty log2pi = (_Ty)1.83787706641;
 			Eigen::Matrix<_Ty, -1, 1> mean;
 			Eigen::Matrix<_Ty, -1, -1> cov, l;
 			_Ty logDet = 0;

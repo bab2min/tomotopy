@@ -82,7 +82,7 @@ namespace tomoto
 		friend BaseClass;
 
 		static constexpr const char TWID[] = "one\0";
-		static constexpr static constexpr char TMID[] = "LDA\0";
+		static constexpr const char TMID[] = "LDA\0";
 
 		Float alpha;
 		Vector alphas;
@@ -125,7 +125,7 @@ namespace tomoto
 		}
 
 		template<int _Inc, typename _Vec>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, _Vec tDist) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, _Vec tDist) const
 		{
 			assert(vid < this->realV);
 			constexpr bool _dec = _Inc < 0;
@@ -392,7 +392,7 @@ namespace tomoto
 			return static_cast<const DerivedClass*>(this)->_getTopicsCount();
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc) const
 		{
 			std::vector<Float> ret(K);
 			Float sum = doc.getSumWordWeight() + K * alpha;

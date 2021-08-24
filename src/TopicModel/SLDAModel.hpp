@@ -216,7 +216,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "SLDA";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("SLDA");
+		}
 
 		uint64_t F; // number of response variables
 		std::vector<ISLDAModel::GLM> varTypes;

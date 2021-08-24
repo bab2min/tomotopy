@@ -47,7 +47,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "DMR\0";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("DMR\0");
+		}
 
 		Matrix lambda;
 		mutable std::unordered_map<std::pair<uint64_t, Vector>, size_t, MdHash> mdHashMap;
@@ -449,7 +452,7 @@ namespace tomoto
 			optimRepeat = _optimRepeat;
 		}
 
-		std::vector<Float> getTopicsByDoc(const _DocType& doc, bool normalize) const
+		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
 			std::vector<Float> ret(this->K);
 			auto alphaDoc = getCachedAlpha(doc);

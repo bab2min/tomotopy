@@ -335,7 +335,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "hLDA";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("hLDA");
+		}
 
 		Float gamma;
 
@@ -422,7 +425,7 @@ namespace tomoto
 		}
 
 		template<int _inc>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid level) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid level) const
 		{
 			assert(vid < this->realV);
 			constexpr bool _dec = _inc < 0 && _tw != TermWeight::one;

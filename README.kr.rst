@@ -198,6 +198,57 @@ add_doc은 `tomotopy.LDAModel.train`을 시작하기 전까지만 사용할 수 
 infer 메소드는 `tomotopy.Document` 인스턴스 하나를 추론하거나 `tomotopy.Document` 인스턴스의 `list`를 추론하는데 사용할 수 있습니다. 
 자세한 것은 `tomotopy.LDAModel.infer`을 참조하길 바랍니다.
 
+Corpus와 transform
+--------------------
+`tomotopy`의 모든 토픽 모델들은 각자 별도의 내부적인 문헌 타입을 가지고 있습니다.
+그리고 이 문헌 타입들에 맞는 문헌들은 각 모델의 `add_doc` 메소드를 통해 생성될 수 있습니다.
+하지만 이 때문에 동일한 목록의 문헌들을 서로 다른 토픽 모델에 입력해야 하는 경우
+매 모델에 각 문헌을 추가할때마다 `add_doc`을 호출해야하기 때문에 비효율이 발생합니다.
+따라서 `tomotopy`에서는 여러 문헌을 묶어서 관리해주는 `tomotopy.utils.Corpus` 클래스를 제공합니다.
+토픽 모델 객체를 생성할때 `tomotopy.utils.Corpus`를 `__init__` 메소드의 `corpus` 인자로 넘겨줌으로써 
+어떤 모델에든 쉽게 문헌들을 삽입할 수 있게 해줍니다.
+`tomotopy.utils.Corpus`를 토픽 모델에 삽입하면 corpus 객체가 가지고 있는 문헌들 전부가 모델에 자동으로 삽입됩니다.
+
+그런데 일부 토픽 모델의 경우 문헌을 생성하기 위해 서로 다른 데이터를 요구합니다.
+예를 들어 `tomotopy.DMRModel`는 `metadata`라는 `str` 타입의 데이터를 요구하고, 
+`tomotopy.PLDAModel`는 `labels`라는 `List[str]` 타입의 데이터를 요구합니다. 
+그러나 `tomotopy.utils.Corpus`는 토픽 모델에 종속되지 않은 독립적인 문헌 데이터를 보관하기 때문에,
+corpus가 가지고 있는 문헌 데이터가 실제 토픽 모델이 요구하는 데이터와 일치하지 않을 가능성이 있습니다.
+이 경우 `transform`라는 인자를 통해 corpus 내의 데이터를 변형시켜 토픽 모델이 요구하는 실제 데이터와 일치시킬 수 있습니다.
+자세한 내용은 아래의 코드를 확인해주세요:
+
+::
+
+    from tomotopy import DMRModel
+    from tomotopy.utils import Corpus
+
+    corpus = Corpus()
+    corpus.add_doc("a b c d e".split(), a_data=1)
+    corpus.add_doc("e f g h i".split(), a_data=2)
+    corpus.add_doc("i j k l m".split(), a_data=3)
+
+    model = DMRModel(k=10)
+    model.add_corpus(corpus) 
+    # `corpus`에 있던 `a_data`는 사라지고
+    # `DMRModel`이 요구하는 `metadata`에는 기본값인 빈 문자열이 채워집니다.
+
+    assert model.docs[0].metadata == ''
+    assert model.docs[1].metadata == ''
+    assert model.docs[2].metadata == ''
+
+    def transform_a_data_to_metadata(misc: dict):
+        return {'metadata': str(misc['a_data'])}
+    # 이 함수는 `a_data`를 `metadata`로 변환합니다.
+
+    model = DMRModel(k=10)
+    model.add_corpus(corpus, transform=transform_a_data_to_metadata)
+    # 이제 `model`에는 기본값이 아닌 `metadata`가 입력됩니다. 이들은 `transform`에 의해 `a_data`로부터 생성됩니다.
+
+    assert model.docs[0].metadata == '1'
+    assert model.docs[1].metadata == '2'
+    assert model.docs[2].metadata == '3'
+
+
 병렬 샘플링 알고리즘
 ----------------------------
 `tomotopy`는 0.5.0버전부터 병렬 알고리즘을 고를 수 있는 선택지를 제공합니다.

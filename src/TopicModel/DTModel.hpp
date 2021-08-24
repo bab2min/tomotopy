@@ -41,7 +41,10 @@ namespace tomoto
 		friend typename BaseClass::BaseClass;
 		using WeightType = typename BaseClass::WeightType;
 
-		static constexpr char TMID[] = "DTM\0";
+		static constexpr auto tmid()
+		{
+			return serializer::to_key("DTM\0");
+		}
 
 		uint64_t T;
 		Float shapeA = 0.03f, shapeB = 0.1f, shapeC = 0.55f;
@@ -54,7 +57,7 @@ namespace tomoto
 		std::vector<sample::AliasMethod<>> wordAliasTables; // Dim: (Word * Time)
 
 		template<int _inc>
-		inline void addWordTo(_ModelState& ld, _DocType& doc, uint32_t pid, Vid vid, Tid tid) const
+		inline void addWordTo(_ModelState& ld, _DocType& doc, size_t pid, Vid vid, Tid tid) const
 		{
 			assert(tid < this->K);
 			assert(vid < this->realV);
