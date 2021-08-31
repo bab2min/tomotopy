@@ -483,6 +483,16 @@ def test_corpus_save_load():
 
     corpus = tp.utils.Corpus.load('test.cps')
 
+def test_issue140():
+	mdl = tp.HLDAModel()
+	mdl.add_doc("a b c d".split())
+	mdl.add_doc("b c d e".split())
+	mdl.add_doc("c d e f g".split())
+	mdl.train(10)
+	doc = mdl.make_doc("a b c d".split())
+	doc.get_topics()
+	doc.get_topic_dist()
+
 for model_case in model_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
