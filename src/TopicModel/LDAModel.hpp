@@ -1057,9 +1057,9 @@ namespace tomoto
 			}
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) override
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0, bool updateStopwords = true) override
 		{
-			if (initDocs) this->removeStopwords(minWordCnt, minWordDf, removeTopN);
+			if (initDocs && updateStopwords) this->removeStopwords(minWordCnt, minWordDf, removeTopN);
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
 			static_cast<DerivedClass*>(this)->prepareWordPriors();
@@ -1116,7 +1116,7 @@ namespace tomoto
 				for (auto& doc : this->docs) doc.updateSumWordWeight(this->realV);
 			}
 			static_cast<DerivedClass*>(this)->prepareShared();
-			BaseClass::prepare(initDocs, minWordCnt, minWordDf, removeTopN);
+			BaseClass::prepare(initDocs, minWordCnt, minWordDf, removeTopN, updateStopwords);
 		}
 
 		std::vector<uint64_t> getCountByTopic() const override

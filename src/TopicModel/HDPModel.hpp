@@ -538,8 +538,11 @@ namespace tomoto
 				auto d = lda->_makeFromRawDoc(doc);
 				lda->_addDoc(d);
 			}
-			
-			lda->prepare(true, this->minWordCf, this->minWordDf, this->removeTopN);
+
+			lda->realV = this->realV;
+			lda->realN = this->realN;
+			lda->weightedN = this->weightedN;
+			lda->prepare(true, 0, 0, 0, false);
 
 			auto selectFirst = [&](const std::pair<size_t, size_t>& p) { return std::max(p.first / sum - topicThreshold, 0.f); };
 			std::discrete_distribution<size_t> randomTopic{
