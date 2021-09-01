@@ -22,6 +22,8 @@ static int PT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
 
+		if (margs.p == 0) margs.p = margs.k * 10;
+
 		tomoto::ITopicModel* inst = tomoto::IPTModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
