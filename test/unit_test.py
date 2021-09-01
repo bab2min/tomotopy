@@ -295,6 +295,32 @@ def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print('Corpus2')
     for d in tcorpus2[:10]: print(d.get_ll())
 
+def uninit_doc(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test uninitialized doc')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    unseen_docs = []
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if n < 20: unseen_docs.append(line)
+        else:
+            if mdFields:
+                mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+            else:
+                mdl.add_doc(ch)
+    mdl.train(20, parallel=ps)
+    for n, line in enumerate(unseen_docs):
+        ch = line.strip().split()
+        if mdFields:
+            unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
+        else:
+            unseen_docs[n] = mdl.make_doc(ch)
+        unseen_docs[n].get_topics()
+        unseen_docs[n].get_topic_dist()
+
 def test_empty_uid():
     cps = tp.utils.Corpus()
     cps.add_doc("test text".split())
@@ -483,23 +509,13 @@ def test_corpus_save_load():
 
     corpus = tp.utils.Corpus.load('test.cps')
 
-def test_issue140():
-	mdl = tp.HLDAModel()
-	mdl.add_doc("a b c d".split())
-	mdl.add_doc("b c d e".split())
-	mdl.add_doc("c d e f g".split())
-	mdl.train(10)
-	doc = mdl.make_doc("a b c d".split())
-	doc.get_topics()
-	doc.get_topic_dist()
-
 for model_case in model_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
         for func in [null_doc, train1, train4, train0, 
             save_and_load, infer, infer_together,
-            copy_train,
+            copy_train, uninit_doc,
         ]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
