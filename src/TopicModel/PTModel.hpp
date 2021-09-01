@@ -266,6 +266,7 @@ namespace tomoto
 
 		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
+			if (doc.Zs.empty()) return {};
 			std::vector<Float> ret(this->K);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
 			m = this->alphas.array();

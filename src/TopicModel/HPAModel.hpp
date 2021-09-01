@@ -542,6 +542,7 @@ namespace tomoto
 
 		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
+			if (!doc.numByTopic.size()) return {};
 			std::vector<Float> ret(1 + this->K + K2);
 			Float sum = doc.getSumWordWeight() + this->alphas.sum();
 			if (!normalize) sum = 1;
