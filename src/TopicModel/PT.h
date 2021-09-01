@@ -18,7 +18,7 @@ namespace tomoto
 
 	struct PTArgs : public LDAArgs
 	{
-		size_t p = 100;
+		size_t p = 0;
 		Float lambda = 0.01;
 	};
 
@@ -30,5 +30,7 @@ namespace tomoto
 			bool scalarRng = false);
 
 		virtual size_t getP() const = 0;
+		virtual std::vector<Float> getTopicsFromPseudoDoc(const DocumentBase* doc, bool normalize = true) const = 0;
+		virtual std::vector<std::pair<Tid, Float>> getTopicsFromPseudoDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 	};
 }

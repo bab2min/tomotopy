@@ -1094,13 +1094,17 @@ PyObject* DocumentObject::repr(DocumentObject* self)
 static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObject* kwargs)
 {
 	size_t topN = 10;
-	static const char* kwlist[] = { "top_n", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
+	size_t fromPseudoDoc = 0;
+	static const char* kwlist[] = { "top_n", "from_pseudo_doc", nullptr};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|np", (char**)kwlist, &topN, &fromPseudoDoc)) return nullptr;
 	return py::handleExc([&]()
 	{
 		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
 		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
+#ifdef TM_PT
+		if (fromPseudoDoc) return Document_getTopicsFromPseudoDoc(self, topN);
+#endif
 		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDocSorted(self->getBoundDoc(), topN));
 	});
 }
@@ -1108,13 +1112,17 @@ static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObje
 static PyObject* Document_getTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs)
 {
 	size_t normalize = 1;
-	static const char* kwlist[] = { "normalize", nullptr };
+	size_t fromPseudoDoc = 0;
+	static const char* kwlist[] = { "normalize", "from_pseudo_doc", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
 	return py::handleExc([&]()
 	{
 		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
 		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
+#ifdef TM_PT
+		if (fromPseudoDoc) return Document_getTopicDistFromPseudoDoc(self, !!normalize);
+#endif
 		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDoc(self->getBoundDoc(), !!normalize));
 	});
 }

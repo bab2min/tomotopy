@@ -281,6 +281,25 @@ namespace tomoto
 			return ret;
 		}
 
+		std::vector<Float> getTopicsFromPseudoDoc(const DocumentBase* _doc, bool normalize) const override
+		{
+			auto& doc = *static_cast<const _DocType*>(_doc);
+			if (!doc.numByTopic.size()) return {};
+			std::vector<Float> ret(this->K);
+			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
+			m = doc.numByTopic.array().template cast<Float>() + this->alphas.array();
+			if (normalize)
+			{
+				m /= m.sum();
+			}
+			return ret;
+		}
+
+		std::vector<std::pair<Tid, Float>> getTopicsFromPseudoDocSorted(const DocumentBase* doc, size_t topN) const override
+		{
+			return extractTopN<Tid>(getTopicsFromPseudoDoc(doc, true), topN);
+		}
+
 		void updateDocs()
 		{
 			for (auto& doc : this->docs)

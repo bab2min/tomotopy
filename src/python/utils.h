@@ -342,6 +342,10 @@ PyObject* Document_getSubTopicDist(DocumentObject* self, PyObject* args, PyObjec
 
 PyObject* Document_getCountVector(DocumentObject* self);
 
+PyObject* Document_getTopicsFromPseudoDoc(DocumentObject* self, size_t topN);
+PyObject* Document_getTopicDistFromPseudoDoc(DocumentObject* self, bool normalize);
+
+
 template<typename _Target, typename _Order>
 PyObject* buildPyValueReorder(const _Target& target, const _Order& order)
 {
