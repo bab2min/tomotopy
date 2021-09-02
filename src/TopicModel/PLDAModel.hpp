@@ -183,6 +183,7 @@ namespace tomoto
 
 		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
+			if (!doc.numByTopic.size()) return {};
 			std::vector<Float> ret(this->K);
 			auto maskedAlphas = this->alphas.array() * doc.labelMask.template cast<Float>().array();
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };

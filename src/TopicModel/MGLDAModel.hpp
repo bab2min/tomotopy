@@ -529,6 +529,7 @@ namespace tomoto
 
 		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
+			if (!doc.numByTopic.size()) return {};
 			std::vector<Float> ret(this->K + KL);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K + KL };
 			if (normalize)

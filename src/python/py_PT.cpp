@@ -22,6 +22,8 @@ static int PT_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
 
+		if (margs.p == 0) margs.p = margs.k * 10;
+
 		tomoto::ITopicModel* inst = tomoto::IPTModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
@@ -99,3 +101,18 @@ TopicModelTypeObject PT_type = { {
 	PyType_GenericAlloc,
 	PyType_GenericNew,
 }};
+
+
+PyObject* Document_getTopicsFromPseudoDoc(DocumentObject* self, size_t topN)
+{
+	tomoto::IPTModel* mdl = dynamic_cast<tomoto::IPTModel*>(self->corpus->tm->inst);
+	if (!mdl) throw py::ValueError{ "`from_pseudo_doc` is valid for only `tomotopy.PTModel`." };
+	return py::buildPyValue(self->corpus->tm->inst->getTopicsByDocSorted(self->getBoundDoc(), topN));
+}
+
+PyObject* Document_getTopicDistFromPseudoDoc(DocumentObject* self, bool normalize)
+{
+	tomoto::IPTModel* mdl = dynamic_cast<tomoto::IPTModel*>(self->corpus->tm->inst);
+	if (!mdl) throw py::ValueError{ "`from_pseudo_doc` is valid for only `tomotopy.PTModel`." };
+	return py::buildPyValue(self->corpus->tm->inst->getTopicsByDoc(self->getBoundDoc(), !!normalize));
+}

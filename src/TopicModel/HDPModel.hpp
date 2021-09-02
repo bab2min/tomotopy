@@ -492,6 +492,7 @@ namespace tomoto
 
 		std::vector<Float> _getTopicsByDoc(const _DocType& doc, bool normalize) const
 		{
+			if (!doc.numByTopic.size()) return {};
 			std::vector<Float> ret(this->K);
 			Eigen::Map<Eigen::Array<Float, -1, 1>> m{ ret.data(), this->K };
 			if (normalize)
@@ -538,8 +539,11 @@ namespace tomoto
 				auto d = lda->_makeFromRawDoc(doc);
 				lda->_addDoc(d);
 			}
-			
-			lda->prepare(true, this->minWordCf, this->minWordDf, this->removeTopN);
+
+			lda->realV = this->realV;
+			lda->realN = this->realN;
+			lda->weightedN = this->weightedN;
+			lda->prepare(true, 0, 0, 0, false);
 
 			auto selectFirst = [&](const std::pair<size_t, size_t>& p) { return std::max(p.first / sum - topicThreshold, 0.f); };
 			std::discrete_distribution<size_t> randomTopic{

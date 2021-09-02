@@ -254,7 +254,7 @@ namespace tomoto
 
 		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_, bool freeze_topics = false) = 0;
 		virtual size_t getGlobalStep() const = 0;
-		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) = 0;
+		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0, bool updateStopwords = true) = 0;
 		
 		virtual size_t getK() const = 0;
 		virtual std::vector<Float> getWidsByTopic(size_t tid, bool normalize = true) const = 0;
@@ -605,7 +605,7 @@ namespace tomoto
 			return empty;
 		}
 
-		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0) override
+		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0, bool updateStopwords = true) override
 		{
 			auto p = countRealN();
 			realN = p.first;
