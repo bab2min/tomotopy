@@ -1097,11 +1097,17 @@ static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObje
 	size_t fromPseudoDoc = 0;
 	static const char* kwlist[] = { "top_n", "from_pseudo_doc", nullptr};
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|np", (char**)kwlist, &topN, &fromPseudoDoc)) return nullptr;
-	return py::handleExc([&]()
+	return py::handleExc([&]() -> PyObject*
 	{
 		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
 		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
+
+		if (self->owner && !self->initialized)
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "This document has no topic information. Call `infer()` method passing this document as an argument first!", 1)) return nullptr;
+		}
+
 #ifdef TM_PT
 		if (fromPseudoDoc) return Document_getTopicsFromPseudoDoc(self, topN);
 #endif
@@ -1115,11 +1121,16 @@ static PyObject* Document_getTopicDist(DocumentObject* self, PyObject* args, PyO
 	size_t fromPseudoDoc = 0;
 	static const char* kwlist[] = { "normalize", "from_pseudo_doc", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
-	return py::handleExc([&]()
+	return py::handleExc([&]() -> PyObject*
 	{
 		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
 		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
 		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
+
+		if (self->owner && !self->initialized)
+		{
+			if (PyErr_WarnEx(PyExc_RuntimeWarning, "This document has no topic information. Call `infer()` method passing this document as an argument first!", 1)) return nullptr;
+		}
 #ifdef TM_PT
 		if (fromPseudoDoc) return Document_getTopicDistFromPseudoDoc(self, !!normalize);
 #endif
