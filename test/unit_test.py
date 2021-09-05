@@ -296,30 +296,53 @@ def train_multi_corpus(cls, inputFile, mdFields, f, kargs, ps):
     for d in tcorpus2[:10]: print(d.get_ll())
 
 def uninit_doc(cls, inputFile, mdFields, f, kargs, ps):
+    import warnings
+
     print('Test uninitialized doc')
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
     mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
     print('Adding docs...')
-    unseen_docs = []
+    unseen_doc = None
     for n, line in enumerate(open(inputFile, encoding='utf-8')):
         ch = line.strip().split()
         if len(ch) < mdFields + 1: continue
-        if n < 20: unseen_docs.append(line)
+        if n < 1: unseen_doc = line
         else:
             if mdFields:
                 mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
             else:
                 mdl.add_doc(ch)
+    
     mdl.train(20, parallel=ps)
-    for n, line in enumerate(unseen_docs):
-        ch = line.strip().split()
-        if mdFields:
-            unseen_docs[n] = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
-        else:
-            unseen_docs[n] = mdl.make_doc(ch)
-        unseen_docs[n].get_topics()
-        unseen_docs[n].get_topic_dist()
+    ch = unseen_doc.strip().split()
+    if mdFields:
+        unseen_doc = mdl.make_doc(ch[mdFields:], f(ch[:mdFields]))
+    else:
+        unseen_doc = mdl.make_doc(ch)
+    
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        raised_warning = False
+        try:
+            unseen_doc.get_topics()
+            unseen_doc.get_topic_dist()
+        except Warning:
+            raised_warning = True
+        assert raised_warning
+    
+    mdl.infer(unseen_doc)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        raised_warning = False
+        try:
+            unseen_doc.get_topics()
+            unseen_doc.get_topic_dist()
+        except Warning:
+            raised_warning = True
+        assert not raised_warning
+
 
 def test_empty_uid():
     cps = tp.utils.Corpus()
