@@ -10,55 +10,64 @@
 #include <functional>
 #include <iostream>
 #include <cstring>
+#include <deque>
+#include <future>
 
 #ifdef _DEBUG
-#undef _DEBUG
-#include <Python.h>
-#define _DEBUG
+	#undef _DEBUG
+	#include <Python.h>
+	#define _DEBUG
 #else
-#include <Python.h>
+	#include <Python.h>
 #endif
 
 #include <frameobject.h>
+
+#define USE_NUMPY
+
 #ifdef MAIN_MODULE
 #else
-#define NO_IMPORT_ARRAY
+	#define NO_IMPORT_ARRAY
 #endif
-#define PY_ARRAY_UNIQUE_SYMBOL TOMOTOPY_ARRAY_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
+
+#ifdef USE_NUMPY
+	#define PY_ARRAY_UNIQUE_SYMBOL TOMOTOPY_ARRAY_API
+	#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+	#include <numpy/arrayobject.h>
+#endif
 
 namespace py
 {
-	struct UniqueObj
+	template<class Ty = PyObject>
+	struct UniqueCObj
 	{
-		PyObject* obj = nullptr;
-		explicit UniqueObj(PyObject* _obj = nullptr) : obj(_obj) {}
-		~UniqueObj()
+		Ty* obj = nullptr;
+		explicit UniqueCObj(Ty* _obj = nullptr) : obj(_obj) {}
+		~UniqueCObj()
 		{
 			Py_XDECREF(obj);
 		}
 
-		UniqueObj(const UniqueObj&) = delete;
-		UniqueObj& operator=(const UniqueObj&) = delete;
+		UniqueCObj(const UniqueCObj&) = delete;
+		UniqueCObj& operator=(const UniqueCObj&) = delete;
 
-		UniqueObj(UniqueObj&& o) noexcept
+		UniqueCObj(UniqueCObj&& o) noexcept
 		{
 			std::swap(obj, o.obj);
 		}
 
-		UniqueObj& operator=(UniqueObj&& o) noexcept
+		UniqueCObj& operator=(UniqueCObj&& o) noexcept
 		{
 			std::swap(obj, o.obj);
 			return *this;
 		}
 
-		PyObject* get() const
+		Ty* get() const
 		{
 			return obj;
 		}
 
-		PyObject* release()
+		Ty* release()
 		{
 			auto o = obj;
 			obj = nullptr;
@@ -70,11 +79,84 @@ namespace py
 			return !!obj;
 		}
 
-		operator PyObject*() const
+		operator Ty* () const
+		{
+			return obj;
+		}
+
+		Ty* operator->()
+		{
+			return obj;
+		}
+
+		const Ty* operator->() const
 		{
 			return obj;
 		}
 	};
+
+	template<class Ty = PyObject>
+	struct SharedCObj
+	{
+		Ty* obj = nullptr;
+		explicit SharedCObj(Ty* _obj = nullptr) : obj(_obj) {}
+		~SharedCObj()
+		{
+			Py_XDECREF(obj);
+		}
+
+		SharedCObj(const SharedCObj& o)
+			: obj(o.obj)
+		{
+			Py_INCREF(obj);
+		}
+		SharedCObj& operator=(const SharedCObj& o)
+		{
+			Py_XDECREF(obj);
+			obj = o.obj;
+			Py_INCREF(obj);
+			return *this;
+		}
+
+		SharedCObj(SharedCObj&& o) noexcept
+		{
+			std::swap(obj, o.obj);
+		}
+
+		SharedCObj& operator=(SharedCObj&& o) noexcept
+		{
+			std::swap(obj, o.obj);
+			return *this;
+		}
+
+		Ty* get() const
+		{
+			return obj;
+		}
+
+		operator bool() const
+		{
+			return !!obj;
+		}
+
+		operator Ty* () const
+		{
+			return obj;
+		}
+
+		Ty* operator->()
+		{
+			return obj;
+		}
+
+		const Ty* operator->() const
+		{
+			return obj;
+		}
+	};
+
+	using UniqueObj = UniqueCObj<>;
+	using SharedObj = SharedCObj<>;
 
 	class ExcPropagation : public std::runtime_error
 	{
@@ -327,60 +409,22 @@ namespace py
 	};
 
 	template<typename _Fn>
-	auto handleExc(_Fn&& fn) 
-		-> typename std::enable_if<std::is_pointer<decltype(fn())>::value, decltype(fn())>::type
-	{
-		try
-		{
-			return fn();
-		}
-		catch (const ExcPropagation&)
-		{
-		}
-		catch (const BaseException& e)
-		{
-			PyErr_SetString(e.pytype(), e.what());
-		}
-		catch (const std::exception& e)
-		{
-			std::cerr << "Uncaughted c++ exception: " << e.what() << std::endl;
-			PyErr_SetString(PyExc_RuntimeError, e.what());
-		}
-		return nullptr;
-	}
+	auto handleExc(_Fn&& fn)
+		-> typename std::enable_if<std::is_pointer<decltype(fn())>::value, decltype(fn())>::type;
 
 	template<typename _Fn>
 	auto handleExc(_Fn&& fn)
-		-> typename std::enable_if<std::is_integral<decltype(fn())>::value, decltype(fn())>::type
-	{
-		try
-		{
-			return fn();
-		}
-		catch (const ExcPropagation&)
-		{
-		}
-		catch (const BaseException& e)
-		{
-			PyErr_SetString(e.pytype(), e.what());
-		}
-		catch (const std::exception& e)
-		{
-			std::cerr << "Uncaughted c++ exception: " << e.what() << std::endl;
-			PyErr_SetString(PyExc_RuntimeError, e.what());
-		}
-		return -1;
-	}
+		-> typename std::enable_if<std::is_integral<decltype(fn())>::value, decltype(fn())>::type;
 
 	class ConversionFail : public ValueError
 	{
 	public:
 		using ValueError::ValueError;
 
-		template<typename _Ty, 
+		template<typename _Ty,
 			typename = typename std::enable_if<std::is_constructible<std::function<std::string()>, _Ty>::value>::type
 		>
-		ConversionFail(_Ty&& callable) : ValueError{ callable() }
+			ConversionFail(_Ty&& callable) : ValueError{ callable() }
 		{
 		}
 	};
@@ -421,11 +465,11 @@ namespace py
 	inline _Ty toCpp(PyObject* obj)
 	{
 		if (!obj) throw ConversionFail{ "cannot convert null pointer into appropriate C++ type" };
-		return ValueBuilder<_Ty>{}._toCpp(obj, [=](){ return "cannot convert " + repr(obj) + " into appropriate C++ type"; });
+		return ValueBuilder<_Ty>{}._toCpp(obj, [=]() { return "cannot convert " + repr(obj) + " into appropriate C++ type"; });
 	}
 
 	template<typename _Ty>
-	struct ValueBuilder<_Ty, 
+	struct ValueBuilder<_Ty,
 		typename std::enable_if<std::is_integral<_Ty>::value>::type>
 	{
 		PyObject* operator()(_Ty v)
@@ -496,6 +540,63 @@ namespace py
 	};
 
 	template<>
+	struct ValueBuilder<std::u16string>
+	{
+		PyObject* operator()(const std::u16string& v)
+		{
+			return PyUnicode_DecodeUTF16((const char*)v.data(), v.size() * 2, nullptr, nullptr);
+		}
+
+		template<typename _FailMsg>
+		std::u16string _toCpp(PyObject* obj, _FailMsg&& msg)
+		{
+			UniqueObj uobj{ PyUnicode_FromObject(obj) };
+			if (!uobj) throw ConversionFail{ std::forward<_FailMsg>(msg) };
+			size_t len = PyUnicode_GET_LENGTH(uobj.get());
+			std::u16string ret;
+			switch (PyUnicode_KIND(uobj.get()))
+			{
+			case PyUnicode_1BYTE_KIND:
+			{
+				auto* p = PyUnicode_1BYTE_DATA(uobj.get());
+				ret.resize(len);
+				std::copy(p, p + len, &ret[0]);
+				break;
+			}
+			case PyUnicode_2BYTE_KIND:
+			{
+				auto* p = PyUnicode_2BYTE_DATA(uobj.get());
+				ret.resize(len);
+				std::copy(p, p + len, &ret[0]);
+				break;
+			}
+			case PyUnicode_4BYTE_KIND:
+			{
+				auto* p = PyUnicode_4BYTE_DATA(uobj.get());
+				for (size_t i = 0; i < len; ++i)
+				{
+					auto c = p[i];
+					ret.reserve(len);
+					if (c < 0x10000)
+					{
+						ret.push_back(c);
+					}
+					else
+					{
+						ret.push_back(0xD800 - (0x10000 >> 10) + (c >> 10));
+						ret.push_back(0xDC00 + (c & 0x3FF));
+					}
+				}
+				break;
+			}
+			default:
+				throw ConversionFail{ std::forward<_FailMsg>(msg) };
+			}
+			return ret;
+		}
+	};
+
+	template<>
 	struct ValueBuilder<const char*>
 	{
 		PyObject* operator()(const char* v)
@@ -509,6 +610,15 @@ namespace py
 			const char* p = PyUnicode_AsUTF8(obj);
 			if (!p) throw ConversionFail{ std::forward<_FailMsg>(msg) };
 			return p;
+		}
+	};
+
+	template<size_t len>
+	struct ValueBuilder<char[len]>
+	{
+		PyObject* operator()(const char(&v)[len])
+		{
+			return PyUnicode_FromStringAndSize(v, len - 1);
 		}
 	};
 
@@ -551,15 +661,61 @@ namespace py
 		}
 	};
 
-	template<>
-	struct ValueBuilder<UniqueObj>
+	template<typename Ty>
+	struct ValueBuilder<UniqueCObj<Ty>>
 	{
-		PyObject* operator()(UniqueObj&& v)
+		PyObject* operator()(UniqueCObj<Ty>&& v)
 		{
 			if (v)
 			{
 				Py_INCREF(v);
-				return v;
+				return (PyObject*)v.get();
+			}
+			else
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+		}
+
+		PyObject* operator()(const UniqueCObj<Ty>& v)
+		{
+			if (v)
+			{
+				Py_INCREF(v);
+				return (PyObject*)v.get();
+			}
+			else
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+		}
+	};
+
+	template<typename Ty>
+	struct ValueBuilder<SharedCObj<Ty>>
+	{
+		PyObject* operator()(SharedCObj<Ty>&& v)
+		{
+			if (v)
+			{
+				Py_INCREF(v);
+				return (PyObject*)v.get();
+			}
+			else
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+		}
+
+		PyObject* operator()(const SharedCObj<Ty>& v)
+		{
+			if (v)
+			{
+				Py_INCREF(v);
+				return (PyObject*)v.get();
 			}
 			else
 			{
@@ -601,7 +757,7 @@ namespace py
 			for (auto& p : v)
 			{
 				py::UniqueObj key{ buildPyValue(p.first) }, val{ buildPyValue(p.second) };
-				if(PyDict_SetItem(ret, key, val)) return nullptr;
+				if (PyDict_SetItem(ret, key, val)) return nullptr;
 			}
 			return ret;
 		}
@@ -620,6 +776,7 @@ namespace py
 		}
 	};
 
+#ifdef USE_NUMPY
 	namespace detail
 	{
 		template<typename _Ty>
@@ -633,7 +790,7 @@ namespace py
 		template<>
 		struct NpyType<int8_t>
 		{
-			enum { 
+			enum {
 				type = NPY_INT8,
 				signed_type = type,
 				npy_type = type,
@@ -643,7 +800,7 @@ namespace py
 		template<>
 		struct NpyType<uint8_t>
 		{
-			enum { 
+			enum {
 				type = NPY_UINT8,
 				signed_type = NPY_INT8,
 				npy_type = type,
@@ -653,7 +810,7 @@ namespace py
 		template<>
 		struct NpyType<int16_t>
 		{
-			enum { 
+			enum {
 				type = NPY_INT16,
 				signed_type = type,
 				npy_type = type,
@@ -663,7 +820,7 @@ namespace py
 		template<>
 		struct NpyType<uint16_t>
 		{
-			enum { 
+			enum {
 				type = NPY_UINT16,
 				signed_type = NPY_INT16,
 				npy_type = type,
@@ -673,7 +830,7 @@ namespace py
 		template<>
 		struct NpyType<int32_t>
 		{
-			enum { 
+			enum {
 				type = NPY_INT32,
 				signed_type = type,
 				npy_type = type,
@@ -683,7 +840,7 @@ namespace py
 		template<>
 		struct NpyType<uint32_t>
 		{
-			enum { 
+			enum {
 				type = NPY_UINT32,
 				signed_type = NPY_INT32,
 				npy_type = type,
@@ -693,7 +850,7 @@ namespace py
 		template<>
 		struct NpyType<int64_t>
 		{
-			enum { 
+			enum {
 				type = NPY_INT64,
 				signed_type = type,
 				npy_type = type,
@@ -703,8 +860,8 @@ namespace py
 		template<>
 		struct NpyType<uint64_t>
 		{
-			enum { 
-				type = NPY_UINT64, 
+			enum {
+				type = NPY_UINT64,
 				signed_type = NPY_INT64,
 				npy_type = type,
 			};
@@ -713,8 +870,8 @@ namespace py
 		template<>
 		struct NpyType<float>
 		{
-			enum { 
-				type = NPY_FLOAT, 
+			enum {
+				type = NPY_FLOAT,
 				signed_type = type,
 				npy_type = type,
 			};
@@ -723,8 +880,8 @@ namespace py
 		template<>
 		struct NpyType<double>
 		{
-			enum { 
-				type = NPY_DOUBLE, 
+			enum {
+				type = NPY_DOUBLE,
 				signed_type = type,
 				npy_type = type,
 			};
@@ -734,12 +891,20 @@ namespace py
 	struct cast_to_signed_t {};
 	static constexpr cast_to_signed_t cast_to_signed{};
 
+	template<typename _Ty>
+	struct numpy_able : std::integral_constant<bool, std::is_arithmetic<_Ty>::value> {};
+
+#else
+	template<typename _Ty>
+	struct numpy_able : std::false_type {};
+#endif
 	struct force_list_t {};
 	static constexpr force_list_t force_list{};
 
+#ifdef USE_NUMPY
 	template<typename _Ty>
-	struct ValueBuilder<std::vector<_Ty>, 
-		typename std::enable_if<std::is_arithmetic<_Ty>::value>::type>
+	struct ValueBuilder<std::vector<_Ty>,
+		typename std::enable_if<numpy_able<_Ty>::value>::type>
 	{
 		PyObject* operator()(const std::vector<_Ty>& v)
 		{
@@ -774,10 +939,11 @@ namespace py
 			}
 		}
 	};
+#endif
 
 	template<typename _Ty>
 	struct ValueBuilder<std::vector<_Ty>,
-		typename std::enable_if<!std::is_arithmetic<_Ty>::value>::type>
+		typename std::enable_if<!numpy_able<_Ty>::value>::type>
 	{
 		PyObject* operator()(const std::vector<_Ty>& v)
 		{
@@ -856,8 +1022,9 @@ namespace py
 		}
 	}
 
+#ifdef USE_NUMPY
 	template<typename _Ty>
-	inline typename std::enable_if<std::is_arithmetic<_Ty>::value, PyObject*>::type
+	inline typename std::enable_if<numpy_able<_Ty>::value, PyObject*>::type
 		buildPyValue(const std::vector<_Ty>& v, cast_to_signed_t)
 	{
 		npy_intp size = v.size();
@@ -865,10 +1032,11 @@ namespace py
 		std::memcpy(PyArray_DATA((PyArrayObject*)obj), v.data(), sizeof(_Ty) * size);
 		return obj;
 	}
+#endif
 
 	template<typename _Ty>
 	inline typename std::enable_if<
-		!std::is_arithmetic<typename std::iterator_traits<_Ty>::value_type>::value,
+		!numpy_able<typename std::iterator_traits<_Ty>::value_type>::value,
 		PyObject*
 	>::type buildPyValue(_Ty first, _Ty last)
 	{
@@ -894,7 +1062,7 @@ namespace py
 
 	template<typename _Ty, typename _Tx>
 	inline typename std::enable_if<
-		!std::is_arithmetic<
+		!numpy_able<
 			typename std::result_of<_Tx(typename std::iterator_traits<_Ty>::value_type)>::type
 		>::value,
 		PyObject*
@@ -909,10 +1077,10 @@ namespace py
 		return ret;
 	}
 
-
+#ifdef USE_NUMPY
 	template<typename _Ty>
 	inline typename std::enable_if<
-		std::is_arithmetic<typename std::iterator_traits<_Ty>::value_type>::value,
+		numpy_able<typename std::iterator_traits<_Ty>::value_type>::value,
 		PyObject*
 	>::type buildPyValue(_Ty first, _Ty last)
 	{
@@ -929,7 +1097,7 @@ namespace py
 
 	template<typename _Ty, typename _Tx>
 	inline typename std::enable_if<
-		std::is_arithmetic<
+		numpy_able<
 			typename std::result_of<_Tx(typename std::iterator_traits<_Ty>::value_type)>::type
 		>::value,
 		PyObject*
@@ -945,6 +1113,7 @@ namespace py
 		}
 		return ret;
 	}
+#endif
 
 	namespace detail
 	{
@@ -983,7 +1152,7 @@ namespace py
 		template<typename _Ty, typename... _Rest>
 		inline void setDictItemSkipNull(PyObject* dict, const char** keys, _Ty&& value, _Rest&& ... rest)
 		{
-			if(!isNull(value))
+			if (!isNull(value))
 			{
 				UniqueObj v{ buildPyValue(value) };
 				PyDict_SetItemString(dict, keys[0], v);
@@ -1033,5 +1202,181 @@ namespace py
 		PyObject* tuple = PyTuple_New(sizeof...(_Rest));
 		detail::setTupleItem<0>(tuple, std::forward<_Rest>(rest)...);
 		return tuple;
+	}
+
+	template<class Derived>
+	struct CObject
+	{
+		PyObject_HEAD;
+
+		static PyObject* _new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs)
+		{
+			return handleExc([&]()
+			{
+				py::UniqueObj ret{ subtype->tp_alloc(subtype, 0) };
+				new ((Derived*)ret.get()) Derived;
+				return ret.release();
+			});
+		}
+
+		static void dealloc(Derived* self)
+		{
+			self->~Derived();
+			Py_TYPE(self)->tp_free((PyObject*)self);
+		}
+	};
+
+	template<class Derived, class RetTy>
+	struct ResultIter : public CObject<Derived>
+	{
+		UniqueObj inputIter;
+		std::deque<std::future<RetTy>> futures;
+		std::deque<SharedObj> inputItems;
+		bool echo = false;
+
+		~ResultIter()
+		{
+			for (auto& p : futures)
+			{
+				p.get();
+			}
+		}
+
+		static int init(Derived* self, PyObject*, PyObject*)
+		{
+			return 0;
+		}
+
+		static Derived* iter(Derived* self)
+		{
+			Py_INCREF(self);
+			return self;
+		}
+
+		static PyObject* iternext(Derived* self)
+		{
+			return handleExc([&]() -> PyObject* {
+				if (!self->feed() && self->futures.empty()) return nullptr;
+				auto f = std::move(self->futures.front());
+				self->futures.pop_front();
+				if (self->echo)
+				{
+					auto input = std::move(self->inputItems.front());
+					self->inputItems.pop_front();
+					return buildPyTuple(UniqueObj{ self->buildPy(f.get()) }, input);
+				}
+				else
+				{
+					return self->buildPy(f.get());
+				}
+			});
+		}
+
+		bool feed()
+		{
+			SharedObj item{ PyIter_Next(inputIter) };
+			if (!item)
+			{
+				if (PyErr_Occurred()) throw ExcPropagation{};
+				return false;
+			}
+			if (echo) inputItems.emplace_back(item);
+			futures.emplace_back(static_cast<Derived*>(this)->feedNext(std::move(item)));
+			return true;
+		}
+
+		std::future<RetTy> feedNext(py::SharedObj&& next)
+		{
+			return {};
+		}
+
+		PyObject* buildPy(RetTy&& v)
+		{
+			return py::buildPyValue(std::move(v));
+		}
+	};
+
+	template<typename _Fn>
+	auto handleExc(_Fn&& fn)
+		-> typename std::enable_if<std::is_pointer<decltype(fn())>::value, decltype(fn())>::type
+	{
+		try
+		{
+			return fn();
+		}
+		catch (const ExcPropagation&)
+		{
+		}
+		catch (const BaseException& e)
+		{
+			if (PyErr_Occurred())
+			{
+				PyObject* exc, * val, * tb, * val2;
+				PyErr_Fetch(&exc, &val, &tb);
+				if (tb)
+				{
+					PyException_SetTraceback(val, tb);
+					Py_DECREF(tb);
+				}
+				Py_DECREF(exc);
+				PyObject* et = e.pytype();
+				val2 = PyObject_CallFunctionObjArgs(et, py::UniqueObj{ buildPyValue(e.what()) }.get(), nullptr);
+				PyException_SetCause(val2, val);
+				PyErr_SetObject(et, val2);
+				Py_DECREF(val2);
+			}
+			else
+			{
+				PyErr_SetString(e.pytype(), e.what());
+			}
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Uncaughted c++ exception: " << e.what() << std::endl;
+			PyErr_SetString(PyExc_RuntimeError, e.what());
+		}
+		return nullptr;
+	}
+
+	template<typename _Fn>
+	auto handleExc(_Fn&& fn)
+		-> typename std::enable_if<std::is_integral<decltype(fn())>::value, decltype(fn())>::type
+	{
+		try
+		{
+			return fn();
+		}
+		catch (const ExcPropagation&)
+		{
+		}
+		catch (const BaseException& e)
+		{
+			if (PyErr_Occurred())
+			{
+				PyObject* exc, * val, * tb, * val2;
+				PyErr_Fetch(&exc, &val, &tb);
+				if (tb)
+				{
+					PyException_SetTraceback(val, tb);
+					Py_DECREF(tb);
+				}
+				Py_DECREF(exc);
+				PyObject* et = e.pytype();
+				val2 = PyObject_CallFunctionObjArgs(et, py::UniqueObj{ buildPyValue(e.what()) }.get(), nullptr);
+				PyException_SetCause(val2, val);
+				PyErr_SetObject(et, val2);
+				Py_DECREF(val2);
+			}
+			else
+			{
+				PyErr_SetString(e.pytype(), e.what());
+			}
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Uncaughted c++ exception: " << e.what() << std::endl;
+			PyErr_SetString(PyExc_RuntimeError, e.what());
+		}
+		return -1;
 	}
 }
