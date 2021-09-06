@@ -308,7 +308,7 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 * 0.12.2 (2021-09-06)
     * `min_cf > 0`, `min_df > 0`나 `rm_top > 0`로 설정된 `tomotopy.HDPModel`에서 `convert_to_lda`를 호출할때 크래시가 발생하는 문제를 해결했습니다.
     * `tomotopy.Document.get_topics`와 `tomotopy.Document.get_topic_dist`에 `from_pseudo_doc` 인자가 추가되었습니다. 
-      이 인자는 `PTModel`에 대해서만 유효하며, 이를 통해 토픽 분포를 구할 때 Pseudo Document를 사용할지 여부를 선택할 수 있습니다.
+      이 인자는 `PTModel`에 대해서만 유효하며, 이를 통해 토픽 분포를 구할 때 가상 문헌을 사용할지 여부를 선택할 수 있습니다.
     * `tomotopy.PTModel` 생성시 기본 인자값이 변경되었습니다. `p`를 생략시 `k * 10`으로 설정됩니다.
     * `make_doc`으로 생성한 문헌을 `infer` 없이 사용할 경우 발생하는 크래시를 해결하고 경고 메세지를 추가했습니다.
     * 내부 C++코드가 clang c++17 환경에서 컴파일에 실패하는 문제를 해결했습니다.
