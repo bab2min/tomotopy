@@ -165,6 +165,7 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 				std::vector<tomoto::DocumentBase*> docs;
 				docs.emplace_back((tomoto::DocumentBase*)doc->doc);
 				double ll = self->inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together)[0];
+				doc->initialized = true;
 				return Py_BuildValue("((NN)f)", py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())),
 					py::buildPyValue(inst->getSubTopicsByDoc(doc->getBoundDoc())), ll);
 			}
@@ -177,6 +178,7 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 		else if ((iter = py::UniqueObj{ PyObject_GetIter(argDoc) }) != nullptr)
 		{
 			std::vector<tomoto::DocumentBase*> docs;
+			std::vector<DocumentObject*> docObjs;
 			py::UniqueObj item;
 			while ((item = py::UniqueObj{ PyIter_Next(iter) }))
 			{
@@ -184,10 +186,14 @@ static PyObject* PA_infer(TopicModelObject* self, PyObject* args, PyObject *kwar
 				auto* doc = (DocumentObject*)item.get();
 				if (doc->corpus->tm != self) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 				docs.emplace_back((tomoto::DocumentBase*)doc->getBoundDoc());
+				docObjs.emplace_back(doc);
 			}
 			if (PyErr_Occurred()) throw py::ExcPropagation{};
 			if (!self->isPrepared) throw py::RuntimeError{ "cannot infer with untrained model" };
 			auto ll = inst->infer(docs, iteration, tolerance, workers, (tomoto::ParallelScheme)ps, !!together);
+
+			for (auto doc : docObjs) doc->initialized = true;
+
 			PyObject* ret = PyList_New(docs.size());
 			size_t i = 0;
 			for (auto d : docs)

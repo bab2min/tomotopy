@@ -22,12 +22,32 @@ An instance of this type can be acquired from `tomotopy.LDAModel.make_doc` metho
 u8R""(이 타입은 토픽 모델에 사용되는 문헌들에 접근할 수 있는 추상 인터페이스을 제공합니다.)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_topics__doc__,
-    "get_topics(self, top_n=10)",
-    u8R""(Return the `top_n` topics with its probability of the document.)"",
-    u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.)"");
+    "get_topics(self, top_n=10, from_pseudo_doc=False)",
+    u8R""(Return the `top_n` topics with its probability of the document.
+
+Parameters
+----------
+top_n : int
+    the `n` in "top-n"
+from_pseudo_doc : bool
+    .. versionadded:: 0.12.2
+
+    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.
+)"",
+    u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.
+    
+Parameters
+----------
+top_n : int
+    "상위-n"에서 n의 값
+from_pseudo_doc : bool
+    .. versionadded:: 0.12.2
+
+    참일 경우 가상 문헌의 토픽 분포를 반환합니다. `tomotopy.PTModel`에서만 유효합니다.
+)"");
 
 DOC_SIGNATURE_EN_KO(Document_get_topic_dist__doc__,
-    "get_topic_dist(self, normalize=True)",
+    "get_topic_dist(self, normalize=True, from_pseudo_doc=False)",
     u8R""(Return a distribution of the topics in the document.
 
 Parameters
@@ -36,6 +56,10 @@ normalize : bool
     .. versionadded:: 0.11.0
 
     If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
+from_pseudo_doc : bool
+    .. versionadded:: 0.12.2
+
+    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.
 )"",
 u8R""(현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.
 
@@ -45,6 +69,10 @@ normalize : bool
     .. versionadded:: 0.11.0
 
     참일 경우 총합이 1이 되는 확률 분포를 반환하고, 거짓일 경우 정규화되지 않는 값을 그대로 반환합니다.
+from_pseudo_doc : bool
+    .. versionadded:: 0.12.2
+
+    참일 경우 가상 문헌의 토픽 분포를 반환합니다. `tomotopy.PTModel`에서만 유효합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(Document_get_sub_topics__doc__,
@@ -3436,7 +3464,7 @@ u8R""(이 프로퍼티는 `DTModel`에서 사용불가합니다. 대신 `DTModel
 */
 
 DOC_SIGNATURE_EN_KO(PT___init____doc__,
-    "PTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, p=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
+    "PTModel(tw=TermWeight.ONE, min_cf=0, min_df=0, rm_top=0, k=1, p=None, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None)",
     u8R""(.. versionadded:: 0.11.0
 This type provides Pseudo-document based Topic Model (PTM) and its implementation is based on following papers:
 	
@@ -3459,6 +3487,8 @@ k : int
     the number of topics between 1 ~ 32767
 p : int
     the number of pseudo documents
+    ..versionchanged:: 0.12.2
+        The default value is changed to `10 * k`.
 alpha : Union[float, Iterable[float]]
     hyperparameter of Dirichlet distribution for document-topic, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
@@ -3492,6 +3522,8 @@ k : int
     토픽의 개수, 1 ~ 32767 사이의 정수
 p : int
     가상 문헌의 개수
+    ..versionchanged:: 0.12.2
+        기본값이 `10 * k`로 변경되었습니다.
 alpha : Union[float, Iterable[float]]
     문헌-토픽 디리클레 분포의 하이퍼 파라미터, 대칭일 경우 `float`값 하나로, 비대칭일 경우 `k` 길이의 `float` 리스트로 입력할 수 있습니다.
 eta : float

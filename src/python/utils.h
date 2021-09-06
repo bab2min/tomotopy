@@ -158,6 +158,7 @@ struct DocumentObject
 	const tomoto::RawDocKernel* doc;
 	CorpusObject* corpus;
 	bool owner;
+	bool initialized;
 
 	inline const tomoto::RawDoc* getRawDoc() const { return (const tomoto::RawDoc*)doc; }
 	inline const tomoto::DocumentBase* getBoundDoc() const { return (const tomoto::DocumentBase*)doc; }
