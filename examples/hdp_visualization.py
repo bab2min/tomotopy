@@ -1,5 +1,5 @@
 '''
-This example shows how to perform a Latent Dirichlet Allocation using tomotopy 
+This example shows how to perform a Hierarchical Dirichlet Process using tomotopy 
 and visualize the result.
 
 
