@@ -379,11 +379,11 @@ namespace tomoto
 			{
 				nuSq = Vector::Ones(F);
 			}
-			else if (args.mu.size() == 1)
+			else if (args.nuSq.size() == 1)
 			{
 				nuSq = Vector::Constant(F, args.nuSq[0]);
 			}
-			else if (args.mu.size() == F)
+			else if (args.nuSq.size() == F)
 			{
 				nuSq = Eigen::Map<const Vector>(args.nuSq.data(), args.nuSq.size());
 			}
