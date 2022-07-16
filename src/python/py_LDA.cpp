@@ -45,8 +45,9 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argWords;
-	static const char* kwlist[] = { "words", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &argWords)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "ignore_empty_words", nullptr};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|p", (char**)kwlist, &argWords, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -56,9 +57,25 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		{
 			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
 		}
+		
 		tomoto::RawDoc raw = buildRawDoc(argWords);
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -150,7 +167,10 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
-		inst->train(iteration, workers, (tomoto::ParallelScheme)ps, !!fixed);
+		if (inst->train(iteration, workers, (tomoto::ParallelScheme)ps, !!fixed) < 0) 
+		{
+			throw py::RuntimeError{ "Train failed" };
+		}
 		Py_INCREF(Py_None);
 		return Py_None;
 	});
@@ -286,7 +306,7 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 				args
 			) };
 			char* buf;
-			ssize_t bufsize;
+			std::ptrdiff_t bufsize;
 			PyBytes_AsStringAndSize(pickled_bytes, &buf, &bufsize);
 			extra_data.resize(bufsize);
 			memcpy(extra_data.data(), buf, bufsize);
@@ -318,7 +338,7 @@ static PyObject* LDA_saves(TopicModelObject* self, PyObject* args, PyObject* kwa
 				args
 			) };
 			char* buf;
-			ssize_t bufsize;
+			std::ptrdiff_t bufsize;
 			PyBytes_AsStringAndSize(pickled_bytes, &buf, &bufsize);
 			extra_data.resize(bufsize);
 			memcpy(extra_data.data(), buf, bufsize);

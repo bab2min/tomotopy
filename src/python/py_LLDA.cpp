@@ -51,8 +51,9 @@ static int LLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argWords, *argLabels = nullptr;
-	static const char* kwlist[] = { "words", "labels", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "labels", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Op", (char**)kwlist, &argWords, &argLabels, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -71,8 +72,23 @@ static PyObject* LLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			}
 			raw.misc["labels"] = py::toCpp<vector<string>>(argLabels, "`labels` must be an iterable of str.");
 		}
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 

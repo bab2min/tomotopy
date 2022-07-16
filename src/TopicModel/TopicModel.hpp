@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <numeric>
 #include <unordered_set>
 #include "../Utils/Utils.hpp"
@@ -437,7 +437,7 @@ namespace tomoto
 			}
 			else
 			{
-				throw exc::InvalidArgument{ "Either `words` or `rawWords` must be filled." };
+				throw exc::EmptyWordArgument{ "Either `words` or `rawWords` must be filled." };
 			}
 			return doc;
 		}

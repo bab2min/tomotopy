@@ -51,9 +51,10 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 	PyObject* argWords;
 	PyObject* multiMetadata = nullptr;
 	const char* metadata = nullptr;
-	static const char* kwlist[] = { "words", "metadata", "multi_metadata", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|zO", (char**)kwlist, 
-		&argWords, &metadata, &multiMetadata)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "metadata", "multi_metadata", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|zOp", (char**)kwlist, 
+		&argWords, &metadata, &multiMetadata, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -76,8 +77,23 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 				[=]() { return "`multi_metadata` must be an instance of `List[str]` (but given " + py::repr(multiMetadata) + ")"; }
 			);
 		}
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 

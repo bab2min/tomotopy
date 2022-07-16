@@ -47,8 +47,9 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 {
 	PyObject *argWords;
 	const char* delimiter = ".";
-	static const char* kwlist[] = { "words", "delimiter", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &delimiter)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "delimiter", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sp", (char**)kwlist, &argWords, &delimiter, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -60,8 +61,23 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["delimiter"] = delimiter;
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 

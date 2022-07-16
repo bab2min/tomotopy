@@ -22,6 +22,12 @@ namespace tomoto
 		public:
 			using std::invalid_argument::invalid_argument;
 		};
+
+		class EmptyWordArgument : public InvalidArgument
+		{
+		public:
+			using InvalidArgument::InvalidArgument;
+		};
 	}
 }
 
