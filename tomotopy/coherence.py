@@ -102,7 +102,12 @@ gamma : float
         import tomotopy as tp
         import itertools
         self._top_n = top_n
-        if isinstance(corpus, tp.LDAModel):
+        if isinstance(corpus, tp.DTModel):
+            self._topic_model = corpus
+            if targets is None:
+                targets = itertools.chain(*((w for w, _ in corpus.get_topic_words(k, t, top_n=top_n)) for k in range(corpus.k) for t in range(corpus.num_timepoints)))
+            corpus = corpus.docs
+        elif isinstance(corpus, tp.LDAModel):
             self._topic_model = corpus
             if targets is None:
                 targets = itertools.chain(*((w for w, _ in corpus.get_topic_words(k, top_n=top_n)) for k in range(corpus.k)))
@@ -131,7 +136,7 @@ gamma : float
 
         super().__init__(corpus, pe=pe, seg=seg, cm=cm, im=im, window_size=window_size or w, targets=targets, eps=eps, gamma=gamma)
     
-    def get_score(self, words=None, topic_id=None):
+    def get_score(self, words=None, topic_id=None, timepoint=None):
         '''Calculate the coherence score for given `words` or `topic_id`
 
 Parameters
@@ -144,18 +149,37 @@ topic_id : int
     An id of the topic from which words are extracted. 
     This parameter is valid when `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.LDAModel` or its descendants.
     If this is omitted, the average score of all topics is returned.
+timepoint : int
+    A timepoint of the topic from which words are extracted. (Only for `DTModel`)
         '''
+        import tomotopy as tp
         if words is None and self._topic_model is None:
             raise ValueError("`words` must be provided if `Coherence` is not bound to an instance of topic model.")
-        if words is None and topic_id is None:
-            c = []
-            for k in range(self._topic_model.k):
-                c.append(super().get_score((w for w, _ in self._topic_model.get_topic_words(k, top_n=self._top_n))))
-            return sum(c) / len(c)
-        
-        if words is None:
-            words = (w for w, _ in self._topic_model.get_topic_words(topic_id, top_n=self._top_n))
-        return super().get_score(words)
+        if isinstance(self._topic_model, tp.DTModel):
+            if int(topic_id is None) + int(timepoint is None) == 1:
+                raise ValueError("Both `topic_id` and `timepoint` should be given.")
+            if words is None and topic_id is None:
+                c = []
+                for k in range(self._topic_model.k):
+                    for t in range(self._topic_model.num_timepoints):
+                        c.append(super().get_score((w for w, _ in self._topic_model.get_topic_words(k, timepoint=t, top_n=self._top_n))))
+                return sum(c) / len(c)
+            
+            if words is None:
+                words = (w for w, _ in self._topic_model.get_topic_words(topic_id, timepoint=timepoint, top_n=self._top_n))
+            return super().get_score(words)
+        else:
+            if timepoint is not None:
+                raise ValueError("`timepoint` is valid for only `DTModel`.")
+            if words is None and topic_id is None:
+                c = []
+                for k in range(self._topic_model.k):
+                    c.append(super().get_score((w for w, _ in self._topic_model.get_topic_words(k, top_n=self._top_n))))
+                return sum(c) / len(c)
+            
+            if words is None:
+                words = (w for w, _ in self._topic_model.get_topic_words(topic_id, top_n=self._top_n))
+            return super().get_score(words)
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

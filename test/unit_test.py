@@ -521,6 +521,19 @@ def test_coherence():
         coherence = tp.coherence.Coherence(corpus=mdl, coherence=coh)
         print(coherence.get_score())
 
+def test_coherence_dtm():
+    mdl = tp.DTModel(k=10, t=13)
+    for n, line in enumerate(open(curpath + '/sample_tp.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < 2: continue
+        mdl.add_doc(ch[1:], timepoint=int(ch[0]))
+    mdl.train(100)
+    coh = tp.coherence.Coherence(mdl)
+
+    print(coh.get_score(topic_id=0, timepoint=0))
+
+    print(coh.get_score())
+
 def test_corpus_save_load():
     corpus = tp.utils.Corpus()
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
