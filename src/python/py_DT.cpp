@@ -90,6 +90,7 @@ static DocumentObject* DT_makeDoc(TopicModelObject* self, PyObject* args, PyObje
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::IDTModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{

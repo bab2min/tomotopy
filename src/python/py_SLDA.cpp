@@ -154,6 +154,7 @@ static DocumentObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{
