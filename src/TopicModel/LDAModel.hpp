@@ -141,6 +141,12 @@ namespace tomoto
 		}
 	};
 
+	inline Float floorBit(Float x, int bitsUnderPoint = 8)
+	{
+		Float s = (1 << bitsUnderPoint);
+		return floor(x * s) / s;
+	}
+
 	// to make HDP friend of LDA for HDPModel::converToLDA
 	template<TermWeight _tw,
 		typename _RandGen,

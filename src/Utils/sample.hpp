@@ -1,10 +1,8 @@
 #pragma once
 
 #include <random>
-#ifdef __AVX__
+#if defined(__AVX__) || defined(__SSE2__)
 #include <immintrin.h>
-#elif defined(__SSE2__) || defined(_WIN64)
-#include <xmmintrin.h>
 #else
 
 #endif
@@ -23,17 +21,21 @@ namespace tomoto
 			return __popcnt(i);
 		}
 
-#ifdef _WIN64
+	#ifdef _WIN64
 		inline uint64_t log2_ceil(uint64_t i)
 		{
-			return 64 - __lzcnt64(i) - ((i & (i - 1)) == 0 ? 1 : 0);
+			unsigned long idx;
+			if (!_BitScanReverse64(&idx, i)) return 0;
+			return idx + 1 - ((i & (i - 1)) == 0 ? 1 : 0);
 		}
-#else
+	#else
 		inline uint32_t log2_ceil(uint32_t i)
 		{
-			return 32 - __lzcnt(i) - ((i & (i - 1)) == 0 ? 1 : 0);
+			unsigned long idx;
+			if (!_BitScanReverse(&idx, i)) return 0;
+			return idx + 1 - ((i & (i - 1)) == 0 ? 1 : 0);
 		}
-#endif
+	#endif
 
 #else
 		inline uint32_t popcnt(uint32_t i)
@@ -41,22 +43,22 @@ namespace tomoto
 			return __builtin_popcount(i);
 		}
 
-#ifdef __x86_64
+	#ifdef __x86_64
 		inline uint64_t log2_ceil(uint64_t i)
 		{
 			return 64 - __builtin_clzll(i) - ((i & (i - 1)) == 0 ? 1 : 0);
 		}
-#else
+	#else
 		inline uint32_t log2_ceil(uint32_t i)
 		{
 			return 32 - __builtin_clz(i) - ((i & (i - 1)) == 0 ? 1 : 0);
 		}
-#endif
+	#endif
 
 #endif
 
 
-#if defined(__SSE2__) || defined(_WIN64)
+#if defined(__SSE2__)
 		inline __m128 scan_SSE(__m128 x)
 		{
 			x = _mm_add_ps(x, _mm_castsi128_ps(_mm_slli_si128(_mm_castps_si128(x), 4)));
