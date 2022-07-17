@@ -343,7 +343,6 @@ def uninit_doc(cls, inputFile, mdFields, f, kargs, ps):
             raised_warning = True
         assert not raised_warning
 
-
 def test_empty_uid():
     cps = tp.utils.Corpus()
     cps.add_doc("test text".split())
@@ -531,6 +530,56 @@ def test_corpus_save_load():
     corpus.save('test.cps')
 
     corpus = tp.utils.Corpus.load('test.cps')
+
+def test_issue166():
+    mdl = tp.PLDAModel(tw=tp.TermWeight.ONE, latent_topics=5)    
+    d = ['a','b']
+    l = ['c','d']
+    mdl.add_doc(d,l)
+    try:
+        raised = False
+        mdl.make_doc(d,l)
+    except RuntimeError:
+        raised = True
+    finally:
+        assert raised, "RuntimeError is expected."
+
+def test_purge_dead_topics():
+    mdl = tp.HDPModel(tw=tp.TermWeight.ONE, min_df=5, rm_top=5, alpha=0.5, gamma=1, initial_k=30)
+    for n, line in enumerate(open(curpath + '/sample.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        mdl.add_doc(ch)
+    mdl.burn_in = 100
+    mdl.train(0)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Removed top words:', mdl.removed_top_words)
+    for i in range(0, 1000, 100):
+        mdl.train(100)
+        print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
+
+    ref = []
+    for k in range(mdl.k):
+        print('Topic #{} ({})'.format(k, mdl.get_count_by_topics()[k]))
+        if not mdl.is_live_topic(k): continue
+        ref.append(mdl.get_topic_words(k))
+        for word, prob in mdl.get_topic_words(k):
+            print('\t', word, prob, sep='\t')
+
+    print(mdl.purge_dead_topics())
+
+    purged = []
+    for k in range(mdl.k):
+        print('Topic #{} ({})'.format(k, mdl.get_count_by_topics()[k]))
+        purged.append(mdl.get_topic_words(k))
+        for word, prob in mdl.get_topic_words(k):
+            print('\t', word, prob, sep='\t')
+
+    assert ref == purged
+    assert mdl.k == mdl.live_k
+
+    for i in range(0, 200, 100):
+        mdl.train(100)
+        print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
 
 for model_case in model_cases:
     pss = model_case[5]
