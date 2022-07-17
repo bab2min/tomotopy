@@ -1,8 +1,15 @@
 from setuptools import setup, Extension
+from setuptools.command.install import install
 from codecs import open
 import os, os.path, struct, re, platform
-from setuptools.command.install import install
+
 import numpy
+
+try:
+    from setuptools._distutils import _msvccompiler
+    _msvccompiler.PLAT_TO_VCVARS['win-amd64'] = 'amd64'
+except:
+    pass
 
 exec(open('tomotopy/_version.py').read())
 
