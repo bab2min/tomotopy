@@ -23,7 +23,7 @@ jobs:
         cat /proc/cpuinfo
     - name: Install dependencies
       run: |
-        git clone https://https://gitlab.com/libeigen/eigen
+        git clone https://gitlab.com/libeigen/eigen
         cd eigen
         git checkout tags/3.4.0
         cd ..
