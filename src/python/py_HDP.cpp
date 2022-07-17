@@ -71,6 +71,21 @@ static PyObject* HDP_convertToLDA(TopicModelObject* self, PyObject* args, PyObje
 	});
 }
 
+static PyObject* HDP_purgeDeadTopics(TopicModelObject* self, PyObject*)
+{
+	return py::handleExc([&]()
+	{
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		auto inst = static_cast<tomoto::IHDPModel*>(self->inst);
+		std::vector<int32_t> ret;
+		for (auto t : inst->purgeDeadTopics())
+		{
+			ret.emplace_back((int16_t)t);
+		}
+		return py::buildPyValue(ret);
+	});
+}
+
 PyObject* Document_HDP_Z(DocumentObject* self, void* closure)
 {
 	return docVisit<tomoto::DocumentHDP>(self->getBoundDoc(), [](auto* doc)
@@ -97,6 +112,7 @@ static PyMethodDef HDP_methods[] =
 	{ "loads", (PyCFunction)HDP_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, HDP_is_live_topic__doc__ },
 	{ "convert_to_lda", (PyCFunction)HDP_convertToLDA, METH_VARARGS | METH_KEYWORDS, HDP_convert_to_lda__doc__ },
+	{ "purge_dead_topics", (PyCFunction)HDP_purgeDeadTopics, METH_NOARGS, HDP_convert_to_lda__doc__ },
 	{ nullptr }
 };
 
