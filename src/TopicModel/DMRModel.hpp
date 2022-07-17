@@ -86,7 +86,7 @@ namespace tomoto
 			const size_t chStride = pool.getNumWorkers() * 8;
 			for (size_t ch = 0; ch < chStride; ++ch)
 			{
-				res.emplace_back(pool.enqueue([&](size_t threadId)
+				res.emplace_back(pool.enqueue([&, ch](size_t threadId)
 				{
 					auto& tmpK = localData[threadId].tmpK;
 					if (!tmpK.size()) tmpK.resize(this->K);
