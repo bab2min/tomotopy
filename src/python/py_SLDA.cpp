@@ -18,19 +18,20 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	tomoto::SLDAArgs margs;
 	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k",
 		"vars", "alpha", "eta",
 		"mu", "nu_sq", "glm_param", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfOOOnOO", (char**)kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfOOOOOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &margs.k,
 		&vars, &objAlpha, &margs.eta,
-		&mu, &nuSq, &glmCoef, &margs.seed, &objCorpus, &objTransform)) return -1;
+		&mu, &nuSq, &glmCoef, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		vector<string> varTypeStrs;
 		if (vars)
@@ -90,6 +91,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;

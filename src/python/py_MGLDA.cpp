@@ -17,17 +17,21 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::MGLDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	PyObject* objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml",
 		"eta_g", "eta_l", "gamma", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffOOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &margs.kL, &margs.t, &margs.alpha[0], &margs.alphaL[0], &margs.alphaMG, &margs.alphaML, &margs.eta, &margs.etaL, &margs.gamma,
-		&margs.seed, &objCorpus, &objTransform)) return -1;
+		&objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
+
 		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;

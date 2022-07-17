@@ -14,21 +14,23 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::LDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "seed",
 		"corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfnOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &margs.k, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfOOO", (char**)kwlist, 
+		&tw, &minCnt, &minDf, &rmTop, &margs.k, &objAlpha, &margs.eta, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -159,6 +161,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 	size_t iteration = 10, workers = 0, ps = 0, fixed = 0;
 	static const char* kwlist[] = { "iter", "workers", "parallel", "freeze_topics", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnp", (char**)kwlist, &iteration, &workers, &ps, &fixed)) return nullptr;
+	if (self->seedGiven && workers != 1 && PyErr_WarnEx(PyExc_RuntimeWarning, "The training result may differ even with fixed seed if `workers` != 1.", 1)) return nullptr;
 	return py::handleExc([&]()
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };

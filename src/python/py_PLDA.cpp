@@ -17,21 +17,23 @@ static int PLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::PLDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "latent_topics", "topics_per_label", "alpha", "eta",
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&margs.numLatentTopics, &margs.numTopicsPerLabel, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOfOOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.numLatentTopics, &margs.numTopicsPerLabel, &objAlpha, &margs.eta, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		tomoto::ITopicModel* inst = tomoto::IPLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;

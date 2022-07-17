@@ -23,19 +23,20 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	tomoto::GDMRArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr, 
 		*objDegrees = nullptr, *objRange = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", 
 		"degrees", "alpha", "eta", "sigma", "sigma0", "alpha_epsilon", 
 		"decay", "metadata_range", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfffffOnOO", (char**)kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfffffOOOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &margs.k, 
 		&objDegrees, &objAlpha, &margs.eta, &margs.sigma, &margs.sigma0, &margs.alphaEps, 
-		&margs.orderDecay, &objRange, &margs.seed, &objCorpus, &objTransform)) return -1;
+		&margs.orderDecay, &objRange, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		if (objDegrees)
 		{
@@ -46,6 +47,7 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;

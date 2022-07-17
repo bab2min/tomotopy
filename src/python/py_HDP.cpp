@@ -10,16 +10,20 @@ static int HDP_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::HDPArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	PyObject* objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "initial_k", "alpha", "eta", "gamma", 
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&margs.k, &margs.alpha[0], &margs.eta, &margs.gamma, &margs.seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnfffOOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.k, &margs.alpha[0], &margs.eta, &margs.gamma, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
+
 		tomoto::ITopicModel* inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
