@@ -18,3 +18,7 @@ examples/*
 !examples/*.py
 enwiki-16000.txt
 *.cps
+vsproj/x64
+vsproj/Debug
+vsproj/Release*
+.vs/
