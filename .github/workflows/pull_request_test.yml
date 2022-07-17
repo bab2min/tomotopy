@@ -23,11 +23,11 @@ jobs:
         cat /proc/cpuinfo
     - name: Install dependencies
       run: |
-        git clone https://github.com/eigenteam/eigen-git-mirror
-        cd eigen-git-mirror
+        git clone https://https://gitlab.com/libeigen/eigen
+        cd eigen
         git checkout tags/3.4.0
         cd ..
-        mv eigen-git-mirror include
+        mv eigen include
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
         git checkout tags/v0.4.0alpha
@@ -65,9 +65,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.4.0.tar.gz
-        tar -zxvf 3.4.0.tar.gz
-        mv eigen-git-mirror-3.4.0 include
+        wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -zxvf eigen-3.4.0.tar.gz
+        mv eigen-3.4.0 include
         wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
         tar -zxvf v0.4.0alpha.tar.gz
         mv EigenRand-0.4.0alpha/EigenRand include/
@@ -101,9 +101,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.4.0.tar.gz
-        tar -zxvf 3.4.0.tar.gz
-        mv eigen-git-mirror-3.4.0 include
+        wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -zxvf eigen-3.4.0.tar.gz
+        mv eigen-3.4.0 include
         wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
         tar -zxvf v0.4.0alpha.tar.gz
         mv EigenRand-0.4.0alpha/EigenRand include/
@@ -141,9 +141,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools
         python -m pip install -r requirements.txt
-        Invoke-WebRequest -OutFile 3.4.0.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.4.0.tar.gz
-        tar -zxvf 3.4.0.tar.gz
-        mv eigen-git-mirror-3.4.0 include
+        Invoke-WebRequest -OutFile eigen-3.4.0.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -zxvf eigen-3.4.0.tar.gz
+        mv eigen-3.4.0 include
         Invoke-WebRequest -OutFile v0.4.0alpha.tar.gz https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
         tar -zxvf v0.4.0alpha.tar.gz
         mv EigenRand-0.4.0alpha/EigenRand include/
