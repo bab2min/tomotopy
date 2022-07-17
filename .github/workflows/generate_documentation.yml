@@ -24,12 +24,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
-        tar -zxvf 3.3.7.tar.gz
-        mv eigen-git-mirror-3.3.7 include
+        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.4.0.tar.gz
+        tar -zxvf 3.4.0.tar.gz
+        mv eigen-git-mirror-3.4.0 include
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
-        git checkout tags/v0.3.5
+        git checkout tags/v0.4.0alpha
         cd ..
         mv EigenRand/EigenRand include/
         git clone https://github.com/mapbox/variant
