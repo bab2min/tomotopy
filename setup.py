@@ -30,7 +30,7 @@ for f in os.listdir(os.path.join(here, 'src/Labeling')):
 largs = []
 arch_levels = {'':'', 'sse2':'-msse2', 'avx':'-mavx', 'avx2':'-mavx2 -mfma'}
 if platform.system() == 'Windows': 
-    cargs = ['/O2', '/MT', '/Gy']
+    cargs = ['/O2', '/MT', '/Gy', '/D__SSE2__']
     arch_levels = {'':'', 'sse2':'/arch:SSE2', 'avx':'/arch:AVX', 'avx2':'/arch:AVX2'}
 elif platform.system() == 'Darwin': 
     cargs = ['-std=c++1y', '-O3', '-fpermissive', '-stdlib=libc++', '-Wno-unused-variable', '-Wno-switch']
