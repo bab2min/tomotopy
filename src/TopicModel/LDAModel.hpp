@@ -488,11 +488,11 @@ namespace tomoto
 		{
 			if (_ps == ParallelScheme::partition)
 			{
-				return (this->realV + 3) / 4;
+				return std::max(((size_t)this->realV + 3) / 4, (size_t)1);
 			}
 			if (_ps == ParallelScheme::copy_merge)
 			{
-				return (this->docs.size() + 1) / 2;
+				return std::max((this->docs.size() + 1) / 2, (size_t)1);
 			}
 			return (size_t)-1;
 		}
@@ -1071,6 +1071,10 @@ namespace tomoto
 			static_cast<DerivedClass*>(this)->prepareWordPriors();
 
 			const size_t V = this->realV;
+			if (V == 0) 
+			{
+				std::cerr << "[warn] No valid vocabs in the model!" << std::endl;
+			}
 
 			if (initDocs)
 			{
