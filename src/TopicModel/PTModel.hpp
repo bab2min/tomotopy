@@ -75,7 +75,7 @@ namespace tomoto
 			}
 			--ld.numDocsByPDoc[doc.pseudoDoc];
 			
-			if (pool)
+			if (pool && pool->getNumWorkers() > 1)
 			{
 				std::vector<std::future<void>> futures;
 				for (size_t w = 0; w < pool->getNumWorkers(); ++w)

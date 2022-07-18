@@ -238,7 +238,7 @@ void FoRelevance::estimateContexts()
 
 	Eigen::ArrayXi df = Eigen::ArrayXi::Zero(tm->getV());
 
-	if (pool)
+	if (pool && pool->getNumWorkers() > 1)
 	{
 		const size_t groups = pool->getNumWorkers() * 4;
 		std::vector<std::future<Eigen::ArrayXi>> futures;
@@ -379,7 +379,7 @@ void FoRelevance::estimateContexts()
 			((wcPMI.array() + smoothing) * totDocCnt / docCnt / df.cast<Float>()).log().matrix();
 	};
 
-	if (pool)
+	if (pool && pool->getNumWorkers() > 1)
 	{
 		const size_t groups = pool->getNumWorkers() * 4;
 		std::vector<std::future<void>> futures;

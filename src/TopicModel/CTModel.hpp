@@ -131,7 +131,7 @@ namespace tomoto
 		{
 			if (this->globalStep < this->burnIn || !this->optimInterval || (this->globalStep + 1) % this->optimInterval != 0) return;
 
-			if (pool)
+			if (pool && pool->getNumWorkers() > 1)
 			{
 				std::vector<std::future<void>> res;
 				const size_t chStride = pool->getNumWorkers() * 8;
