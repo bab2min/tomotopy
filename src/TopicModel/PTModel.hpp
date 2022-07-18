@@ -253,6 +253,16 @@ namespace tomoto
 			}
 		}
 
+		void updateForCopy()
+		{
+			BaseClass::updateForCopy();
+			size_t offset = 0;
+			for (auto& doc : this->docs)
+			{
+				doc.template update<>(this->globalState.numByTopicPDoc.col(doc.pseudoDoc).data(), *static_cast<DerivedClass*>(this));
+			}
+		}
+
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, numPDocs, lambda);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, numPDocs, lambda);
