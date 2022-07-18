@@ -18,21 +18,23 @@ static int DMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::DMRArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "sigma", "alpha_epsilon", 
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&margs.k, &objAlpha, &margs.eta, &margs.sigma, &margs.alphaEps, &margs.seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfffOOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.k, &objAlpha, &margs.eta, &margs.sigma, &margs.alphaEps, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		tomoto::ITopicModel* inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -51,9 +53,10 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 	PyObject* argWords;
 	PyObject* multiMetadata = nullptr;
 	const char* metadata = nullptr;
-	static const char* kwlist[] = { "words", "metadata", "multi_metadata", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|zO", (char**)kwlist, 
-		&argWords, &metadata, &multiMetadata)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "metadata", "multi_metadata", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|zOp", (char**)kwlist, 
+		&argWords, &metadata, &multiMetadata, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -76,8 +79,23 @@ static PyObject* DMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 				[=]() { return "`multi_metadata` must be an instance of `List[str]` (but given " + py::repr(multiMetadata) + ")"; }
 			);
 		}
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -92,6 +110,7 @@ static DocumentObject* DMR_makeDoc(TopicModelObject* self, PyObject* args, PyObj
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{

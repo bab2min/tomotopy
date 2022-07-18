@@ -13,7 +13,7 @@
 
 namespace tomoto
 {
-	using RandGen = Eigen::Rand::P8_mt19937_64<uint32_t>;
+	using RandGen = Eigen::Rand::P8_mt19937_64_32;
 	using ScalarRandGen = Eigen::Rand::UniversalRandomEngine<uint32_t, std::mt19937_64>;
 
 	using Vector = Eigen::Matrix<Float, -1, 1>;
@@ -437,7 +437,7 @@ namespace tomoto
 			}
 			else
 			{
-				throw exc::InvalidArgument{ "Either `words` or `rawWords` must be filled." };
+				throw exc::EmptyWordArgument{ "Either `words` or `rawWords` must be filled." };
 			}
 			return doc;
 		}
@@ -674,7 +674,8 @@ namespace tomoto
 			auto state = ps == ParallelScheme::none ? &globalState : localData.data();
 			for (size_t i = 0; i < iteration; ++i)
 			{
-				while (1)
+				size_t retry;
+				for (retry = 0; retry < 10; ++retry)
 				{
 					try
 					{
@@ -703,6 +704,7 @@ namespace tomoto
 						if(ret < 0) return ret;
 					}
 				}
+				if (retry >= 10) return -1;
 				++globalStep;
 			}
 			return 0;

@@ -204,11 +204,11 @@ def params_info_HPAModel(mdl, file):
         '|  {:.5}'.format(mdl.eta), file=file)
 
 def params_info_HDPModel(mdl, file):
-    print('| alpha (concentration coeficient of Dirichlet Process for document-table)\n'
+    print('| alpha (concentration coefficient of Dirichlet Process for document-table)\n'
         '|  {:.5}'.format(mdl.alpha), file=file)
     print('| eta (Dirichlet prior on the per-topic word distribution)\n'
         '|  {:.5}'.format(mdl.eta), file=file)
-    print('| gamma (concentration coeficient of Dirichlet Process for table-topic)\n'
+    print('| gamma (concentration coefficient of Dirichlet Process for table-topic)\n'
         '|  {:.5}'.format(mdl.gamma), file=file)
     print('| Number of Topics: {}'.format(mdl.live_k), file=file)
     print('| Number of Tables: {}'.format(mdl.num_tables), file=file)
@@ -218,7 +218,7 @@ def params_info_HLDAModel(mdl, file):
         '|  {}'.format(_format_numpy(mdl.alpha, '|  ')), file=file)
     print('| eta (Dirichlet prior on the per-topic word distribution)\n'
         '|  {:.5}'.format(mdl.eta), file=file)
-    print('| gamma (concentration coeficient of Dirichlet Process)\n'
+    print('| gamma (concentration coefficient of Dirichlet Process)\n'
         '|  {:.5}'.format(mdl.gamma), file=file)
     print('| Number of Topics: {}'.format(mdl.live_k), file=file)
 

@@ -75,7 +75,7 @@ namespace tomoto
 			}
 			--ld.numDocsByPDoc[doc.pseudoDoc];
 			
-			if (pool)
+			if (pool && pool->getNumWorkers() > 1)
 			{
 				std::vector<std::future<void>> futures;
 				for (size_t w = 0; w < pool->getNumWorkers(); ++w)
@@ -250,6 +250,16 @@ namespace tomoto
 			else
 			{
 				throw std::runtime_error{ "Unsupported ParallelScheme" };
+			}
+		}
+
+		void updateForCopy()
+		{
+			BaseClass::updateForCopy();
+			size_t offset = 0;
+			for (auto& doc : this->docs)
+			{
+				doc.template update<>(this->globalState.numByTopicPDoc.col(doc.pseudoDoc).data(), *static_cast<DerivedClass*>(this));
 			}
 		}
 

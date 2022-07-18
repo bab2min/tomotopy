@@ -17,21 +17,23 @@ static int PLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::PLDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "latent_topics", "topics_per_label", "alpha", "eta",
 		"seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOfnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
-		&margs.numLatentTopics, &margs.numTopicsPerLabel, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnOfOOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+		&margs.numLatentTopics, &margs.numTopicsPerLabel, &objAlpha, &margs.eta, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		tomoto::ITopicModel* inst = tomoto::IPLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -49,8 +51,9 @@ static int PLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argWords, *argLabels = nullptr;
-	static const char* kwlist[] = { "words", "labels", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argLabels)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "labels", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Op", (char**)kwlist, &argWords, &argLabels, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -70,8 +73,23 @@ static PyObject* PLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			}
 			raw.misc["labels"] = py::toCpp<vector<string>>(argLabels, "`labels` must be an iterable of str.");
 		}
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -83,6 +101,7 @@ static DocumentObject* PLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::IPLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{

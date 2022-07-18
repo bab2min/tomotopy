@@ -1,7 +1,4 @@
 #pragma once
-#if _WIN64 || __x86_64__
-#define __SSE2__
-#endif
 #include "sse_mathfun.h"
 
 // approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))

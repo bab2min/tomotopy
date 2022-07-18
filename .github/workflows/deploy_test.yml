@@ -16,16 +16,17 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: |
-        git clone https://github.com/eigenteam/eigen-git-mirror
-        cd eigen-git-mirror
-        git checkout tags/3.3.7
+        yum install libffi-devel -y
+        git clone https://gitlab.com/libeigen/eigen
+        cd eigen
+        git checkout tags/3.4.0
         cd ..
         mkdir include
-        mv eigen-git-mirror/Eigen/ include/
+        mv eigen/Eigen/ include/
         rm -rf eigen-git-mirror/
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
-        git checkout tags/v0.3.5
+        git checkout tags/v0.4.0alpha
         cd ..
         mv EigenRand/EigenRand include/
         git clone https://github.com/mapbox/variant
@@ -42,7 +43,7 @@ jobs:
         /opt/python/cp38-cp38/bin/python -m pip install twine wheel numpy==`/opt/python/cp38-cp38/bin/python test/numpy_version.py`
         /opt/python/cp38-cp38/bin/python setup.py sdist
         /opt/python/cp38-cp38/bin/python -m twine upload --repository testpypi dist/*.tar.gz
-        for cp in cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+        for cp in cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310
         do
           /opt/python/${cp}/bin/python -m pip install twine wheel numpy==`/opt/python/${cp}/bin/python test/numpy_version.py`
           /opt/python/${cp}/bin/python setup.py build bdist_wheel
@@ -50,13 +51,13 @@ jobs:
         done
         /opt/python/cp38-cp38/bin/python -m twine upload --repository testpypi wheelhouse/*.whl
 
-  build_macos:
-    name: Build for macOS
-    runs-on: macOS-latest
+  build_macos_10_15:
+    name: Build for macOS 10.15
+    runs-on: macOS-10.15
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v1
@@ -67,12 +68,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        wget https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
-        tar -zxvf 3.3.7.tar.gz
-        mv eigen-git-mirror-3.3.7 include
-        wget https://github.com/bab2min/EigenRand/archive/v0.3.5.tar.gz
-        tar -zxvf v0.3.5.tar.gz
-        mv EigenRand-0.3.5/EigenRand include/
+        wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -zxvf eigen-3.4.0.tar.gz
+        mv eigen-3.4.0 include
+        wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
+        tar -zxvf v0.4.0alpha.tar.gz
+        mv EigenRand-0.4.0alpha/EigenRand include/
         wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
         tar -zxvf v1.1.3.tar.gz
         mv variant-1.1.3/include/mapbox include/
@@ -87,13 +88,50 @@ jobs:
         python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
 
+  # build_macos_11:
+  #   name: Build for macOS 11
+  #   runs-on: macOS-11
+  #   strategy:
+  #     max-parallel: 4
+  #     matrix:
+  #       python-version: ["3.10"]
+
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v1
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       python -m pip install --upgrade pip
+  #       wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+  #       tar -zxvf eigen-3.4.0.tar.gz
+  #       mv eigen-3.4.0 include
+  #       wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
+  #       tar -zxvf v0.4.0alpha.tar.gz
+  #       mv EigenRand-0.4.0alpha/EigenRand include/
+  #       wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
+  #       tar -zxvf v1.1.3.tar.gz
+  #       mv variant-1.1.3/include/mapbox include/
+  #   - name: Deploy
+  #     continue-on-error: True
+  #     env:
+  #       TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+  #       TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+  #     run: |
+  #       export AUDITWHEEL_PLAT=many
+  #       python -m pip install twine wheel numpy==`python test/numpy_version.py`
+  #       python setup.py bdist_wheel
+  #       twine upload --repository testpypi dist/*
+
   build_windows:
     name: Build for Windows
     runs-on: windows-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         architecture: [x86, x64]
 
     steps:
@@ -106,12 +144,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools
-        Invoke-WebRequest -OutFile 3.3.7.tar.gz https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz
-        tar -zxvf 3.3.7.tar.gz
-        mv eigen-git-mirror-3.3.7 include
-        Invoke-WebRequest -OutFile v0.3.5.tar.gz https://github.com/bab2min/EigenRand/archive/v0.3.5.tar.gz
-        tar -zxvf v0.3.5.tar.gz
-        mv EigenRand-0.3.5/EigenRand include/
+        Invoke-WebRequest -OutFile eigen-3.4.0.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -zxvf eigen-3.4.0.tar.gz
+        mv eigen-3.4.0 include
+        Invoke-WebRequest -OutFile v0.4.0alpha.tar.gz https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
+        tar -zxvf v0.4.0alpha.tar.gz
+        mv EigenRand-0.4.0alpha/EigenRand include/
         Invoke-WebRequest -OutFile v1.1.3.tar.gz https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
         tar -zxvf v1.1.3.tar.gz
         mv variant-1.1.3/include/mapbox include/

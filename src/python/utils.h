@@ -34,7 +34,7 @@ Two modes of CorpusObject
 	- std::vector<tomoto::RawDoc> docs;
 	- std::unordered_map<std::string, size_t> invmap;
     - VocabObject* vocab;
-- Bound Model: used for tomotopy.*Model.docs
+- Bound Model: used for tomotopy.***Model.docs
     - std::vector<size_t> docIdcs;
 	- std::unordered_map<std::string, size_t> invmap;
     - TopicModelObject* tm;
@@ -143,9 +143,9 @@ public:
 		return !operator==(o);
 	}
 
-	ssize_t operator-(const DocWordIterator& o) const
+	std::ptrdiff_t operator-(const DocWordIterator& o) const
 	{
-		return (ssize_t)idx - (ssize_t)o.idx;
+		return (std::ptrdiff_t)idx - (std::ptrdiff_t)o.idx;
 	}
 };
 

@@ -34,7 +34,7 @@ from_pseudo_doc : bool
 
     If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.
 )"",
-    u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.
+u8R""(현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.
     
 Parameters
 ----------
@@ -333,13 +333,19 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_add_doc__doc__,
-    "add_doc(self, words)",
+    "add_doc(self, words, ignore_empty_words=True)",
     u8R""(Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.LDAModel.train`.
+
+.. versionchanged:: 0.12.3
+
+    A new argument `ignore_empty_words` was added.
 
 Parameters
 ----------
 words : Iterable[str]
     an iterable of `str`
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다. 이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
 
@@ -933,7 +939,7 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(DMR_add_doc__doc__,
-    "add_doc(self, words, metadata='', multi_metadata=[])",
+    "add_doc(self, words, metadata='', multi_metadata=[], ignore_empty_words=True)",
     u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
 
 .. versionchanged:: 0.12.0
@@ -948,6 +954,8 @@ metadata : str
     metadata of the document (e.g., author, title or year)
 multi_metadata : Iterable[str]
     metadata of the document (for multiple values)
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
@@ -1242,7 +1250,7 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(GDMR_add_doc__doc__,
-    "add_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[])",
+    "add_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[], ignore_empty_words=True)",
     u8R""(Add a new document into the model instance with `metadata` and return an index of the inserted document.
 
 .. versionchanged:: 0.11.0
@@ -1265,6 +1273,8 @@ metadata : str
     categorical metadata of the document (e.g., author, title, journal or country)
 multi_metadata : Iterable[str]
     metadata of the document (for multiple values)
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
@@ -1731,7 +1741,7 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(MGLDA_add_doc__doc__,
-    "add_doc(self, words, delimiter='.')",
+    "add_doc(self, words, delimiter='.', ignore_empty_words=True)",
     u8R""(Add a new document into the model instance and return an index of the inserted document.
 
 Parameters
@@ -1740,6 +1750,8 @@ words : Iterable[str]
     an iterable of `str`
 delimiter : str
     a sentence separator. `words` will be separated by this value into sentences.
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 `metadata`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
@@ -2610,7 +2622,7 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(SLDA_add_doc__doc__,
-    "add_doc(self, words, y=[])",
+    "add_doc(self, words, y=[], ignore_empty_words=True)",
     u8R""(Add a new document into the model instance with response variables `y` and return an index of the inserted document.
 
 Parameters
@@ -2624,6 +2636,8 @@ y : Iterable[float]
     .. versionchanged:: 0.5.1
     
         If you have a missing value, you can set the item as `NaN`. Documents with `NaN` variables are included in modeling topics, but excluded from regression.
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 응답 변수 `y`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
@@ -2803,7 +2817,7 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(LLDA_add_doc__doc__,
-    "add_doc(self, words, labels=[])",
+    "add_doc(self, words, labels=[], ignore_empty_words=True)",
     u8R""(Add a new document into the model instance with `labels` and return an index of the inserted document.
 
 Parameters
@@ -2812,6 +2826,8 @@ words : Iterable[str]
     an iterable of `str`
 labels : Iterable[str]
     labels of the document
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 `labels`를 포함하는 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 
@@ -3280,7 +3296,7 @@ transform : Callable[dict, dict]
 )"");
 
 DOC_SIGNATURE_EN_KO(DT_add_doc__doc__,
-    "add_doc(self, words, timepoint=0)",
+    "add_doc(self, words, timepoint=0, ignore_empty_words=True)",
     u8R""(Add a new document into the model instance with `timepoint` and return an index of the inserted document.
 
 Parameters
@@ -3289,6 +3305,8 @@ words : Iterable[str]
     an iterable of `str`
 timepoint : int
     an integer with range [0, `t`)
+ignore_empty_words : bool
+    If `True`, empty `words` doesn't raise exception and makes the method return None.
 )"",
 u8R""(현재 모델에 `timepoint` 시점의 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다.
 

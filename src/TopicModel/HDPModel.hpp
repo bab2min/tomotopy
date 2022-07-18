@@ -573,6 +573,53 @@ namespace tomoto
 
 			return lda;
 		}
+
+		std::vector<Tid> purgeDeadTopics() override
+		{
+			std::vector<Tid> relocation(this->K, -1);
+			Tid numLiveTopics = 0;
+			for (size_t i = 0; i < this->K; ++i)
+			{
+				if (this->globalState.numTableByTopic[i])
+				{
+					relocation[i] = numLiveTopics++;
+				}
+			}
+
+			for (auto& doc : this->docs)
+			{
+				for (auto& nt : doc.numTopicByTable)
+				{
+					nt.topic = (relocation[nt.topic] == (Tid)-1) ? 0 : relocation[nt.topic];
+				}
+
+				for (size_t i = 0; i < relocation.size(); ++i)
+				{
+					if (relocation[i] == (Tid)-1) continue;
+					doc.numByTopic[relocation[i]] = doc.numByTopic[i];
+				}
+				doc.numByTopic.conservativeResize(numLiveTopics, 1);
+			}
+
+			for (auto tt : { &this->globalState, &this->tState })
+			{
+				auto& numTableByTopic = tt->numTableByTopic;
+				auto& numByTopic = tt->numByTopic;
+				auto& numByTopicWord = tt->numByTopicWord;
+				for (size_t i = 0; i < relocation.size(); ++i)
+				{
+					if (relocation[i] == (Tid)-1) continue;
+					numTableByTopic[relocation[i]] = numTableByTopic[i];
+					numByTopic[relocation[i]] = numByTopic[i];
+					numByTopicWord.row(relocation[i]) = numByTopicWord.row(i);
+				}
+				numTableByTopic.conservativeResize(numLiveTopics);
+				numByTopic.conservativeResize(numLiveTopics);
+				numByTopicWord.conservativeResize(numLiveTopics, numByTopicWord.cols());
+			}
+			this->K = numLiveTopics;
+			return relocation;
+		}
 	};
 
 	template<TermWeight _tw>

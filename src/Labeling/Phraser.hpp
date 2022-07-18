@@ -197,7 +197,7 @@ namespace tomoto
 		template<typename _LocalData, typename _ReduceFn>
 		_LocalData parallelReduce(std::vector<_LocalData>&& data, _ReduceFn&& fn, ThreadPool* pool = nullptr)
 		{
-			if (pool)
+			if (pool && pool->getNumWorkers() > 1)
 			{
 				for (size_t s = data.size(); s > 1; s = (s + 1) / 2)
 				{

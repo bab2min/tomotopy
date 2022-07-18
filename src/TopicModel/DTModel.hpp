@@ -236,7 +236,7 @@ namespace tomoto
 			for (size_t t = 0; t < T; ++t)
 			{
 				// update alias tables for word proposal
-				if (pool)
+				if (pool && pool->getNumWorkers() > 1)
 				{
 					const size_t chStride = pool->getNumWorkers() * 8;
 					std::vector<std::future<void>> futures;

@@ -50,9 +50,9 @@ public:
 		return co != o.co || idx != o.idx;
 	}
 
-	ssize_t operator-(const CandWordIterator& o) const
+	std::ptrdiff_t operator-(const CandWordIterator& o) const
 	{
-		return (ssize_t)idx - (ssize_t)o.idx;
+		return (std::ptrdiff_t)idx - (std::ptrdiff_t)o.idx;
 	}
 };
 

@@ -56,7 +56,7 @@ namespace Eigen
 	}
 }
 #endif
-#if defined(EIGEN_VECTORIZE_SSE2)
+#ifdef EIGEN_VECTORIZE_SSE2
 #include <xmmintrin.h>
 #include "sse_gamma.h"
 
@@ -87,6 +87,41 @@ namespace Eigen
 		EIGEN_STRONG_INLINE Packet4f p_bool2float(const Packet4i& a)
 		{
 			return p_bool2float(_mm_castsi128_ps(a));
+		}
+	}
+}
+#endif
+#ifdef EIGEN_VECTORIZE_NEON
+#include <arm_neon.h>
+
+
+namespace Eigen
+{
+	namespace internal
+	{
+		template<> struct to_int_packet<Packet4f>
+		{
+			typedef Packet4i type;
+		};
+
+		template<> struct to_float_packet<Packet4i>
+		{
+			typedef Packet4f type;
+		};
+
+		EIGEN_STRONG_INLINE Packet4f p_to_f32(const Packet4i& a)
+		{
+			return vcvtq_f32_s32(a);
+		}
+
+		EIGEN_STRONG_INLINE Packet4f p_bool2float(const Packet4f& a)
+		{
+			return vcvtq_f32_s32(vandq_s32(a, vdupq_n_s32(1)));
+		}
+
+		EIGEN_STRONG_INLINE Packet4f p_bool2float(const Packet4i& a)
+		{
+			return p_bool2float((Packet4f)vreinterpretq_f32_s32((int32x4_t)a));
 		}
 	}
 }

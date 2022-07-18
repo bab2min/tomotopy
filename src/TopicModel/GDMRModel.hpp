@@ -85,8 +85,8 @@ namespace tomoto
 
 		Float getNegativeLambdaLL(Eigen::Ref<Vector> x, Vector& g) const
 		{
-			auto mappedX = Eigen::Map<Matrix>(x.data(), this->K, this->F);
-			auto mappedG = Eigen::Map<Matrix>(g.data(), this->K, this->F);
+			auto mappedX = Eigen::Map<Matrix>(x.data(), this->K, this->F * this->fCont);
+			auto mappedG = Eigen::Map<Matrix>(g.data(), this->K, this->F * this->fCont);
 
 			Float fx = 0;
 			for (size_t k = 0; k < this->K; ++k)

@@ -229,7 +229,7 @@ namespace tomoto
 				};
 
 				// we elide the likelihood for root node because its weight applied to all path and can be seen as constant.
-				if (pool)
+				if (pool && pool->getNumWorkers() > 1)
 				{
 					const size_t chStride = pool->getNumWorkers() * 8;
 					for (size_t ch = 0; ch < chStride; ++ch)

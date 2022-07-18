@@ -17,17 +17,21 @@ static int MGLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::MGLDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
+	PyObject* objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k_g", "k_l", "t", "alpha_g", "alpha_l", "alpha_mg", "alpha_ml",
 		"eta_g", "eta_l", "gamma", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffnOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnnnfffffffOOO", (char**)kwlist, &tw, &minCnt, &minDf, &rmTop,
 		&margs.k, &margs.kL, &margs.t, &margs.alpha[0], &margs.alphaL[0], &margs.alphaMG, &margs.alphaML, &margs.eta, &margs.etaL, &margs.gamma,
-		&margs.seed, &objCorpus, &objTransform)) return -1;
+		&objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
+
 		tomoto::ITopicModel* inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -47,8 +51,9 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 {
 	PyObject *argWords;
 	const char* delimiter = ".";
-	static const char* kwlist[] = { "words", "delimiter", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist, &argWords, &delimiter)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "delimiter", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sp", (char**)kwlist, &argWords, &delimiter, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -60,8 +65,23 @@ static PyObject* MGLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *
 		}
 		tomoto::RawDoc raw = buildRawDoc(argWords);
 		raw.misc["delimiter"] = delimiter;
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -74,6 +94,7 @@ static DocumentObject* MGLDA_makeDoc(TopicModelObject* self, PyObject* args, PyO
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::IMGLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{

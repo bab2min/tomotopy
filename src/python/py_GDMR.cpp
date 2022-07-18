@@ -23,19 +23,20 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	tomoto::GDMRArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr, 
 		*objDegrees = nullptr, *objRange = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", 
 		"degrees", "alpha", "eta", "sigma", "sigma0", "alpha_epsilon", 
 		"decay", "metadata_range", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfffffOnOO", (char**)kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfffffOOOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &margs.k, 
 		&objDegrees, &objAlpha, &margs.eta, &margs.sigma, &margs.sigma0, &margs.alphaEps, 
-		&margs.orderDecay, &objRange, &margs.seed, &objCorpus, &objTransform)) return -1;
+		&margs.orderDecay, &objRange, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		if (objDegrees)
 		{
@@ -46,6 +47,7 @@ static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -82,8 +84,9 @@ static PyObject* GDMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 {
 	PyObject* argWords, *argNumMetadata = nullptr;
 	const char* metadata = nullptr;
-	static const char* kwlist[] = { "words", "numeric_metadata", "metadata", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Oz", (char**)kwlist, &argWords, &argNumMetadata, &metadata)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "numeric_metadata", "metadata", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Ozp", (char**)kwlist, &argWords, &argNumMetadata, &metadata, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -105,9 +108,23 @@ static PyObject* GDMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 			if (!isfinite(x)) throw py::ValueError{ "`numeric_metadata` has non-finite value (" + py::reprFromCpp(nmd) + ")." };
 		}
 		raw.misc["numeric_metadata"] = move(nmd);
-
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -120,6 +137,7 @@ static DocumentObject* GDMR_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{
@@ -196,7 +214,7 @@ static PyObject* GDMR_tdfLinspace(TopicModelObject* self, PyObject* args, PyObje
 		auto num = py::toCpp<vector<npy_intp>>(argNum, "`num` must be an iterable of float.");
 		if (num.size() != inst->getFs().size()) throw py::ValueError{ "`len(num)` must be equal to `len(degree).`" };
 
-		ssize_t tot = 1;
+		std::ptrdiff_t tot = 1;
 		for (auto& v : num)
 		{
 			if (v <= 0) v = 1;

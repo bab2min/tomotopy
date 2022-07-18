@@ -103,7 +103,7 @@ PyObject* VocabObject::getitem(VocabObject* self, Py_ssize_t key)
 {
 	return py::handleExc([&]()
 	{
-		if (key >= len(self)) throw py::IndexError{ "" };
+		if (key >= len(self)) throw py::IndexError{ std::to_string(key) };
 
 		return py::buildPyValue(self->vocabs->toWord(key));
 	});
@@ -284,7 +284,7 @@ PyObject* CorpusObject::getstate(CorpusObject* self, PyObject*)
 	return py::handleExc([&]()
 	{
 		if (!self->isIndependent())
-			throw py::RuntimeError{ "Cannot pickle the corpus bound to a topic model. Try to use a topic model's `save` method." };
+			throw py::RuntimeError{ "Cannot pickle the corpus bound to a topic model. Try to use a topic model's `save()` method." };
 		static const char* keys[] = { "_docs", "_vocab" };
 		return py::buildPyDict(keys, py::UniqueObj{ py::buildPyValue(self->docs) }, (PyObject*)self->vocab);
 	});

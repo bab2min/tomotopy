@@ -14,21 +14,23 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::LDAArgs margs;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", "alpha", "eta", "seed",
 		"corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfnOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &margs.k, &objAlpha, &margs.eta, &margs.seed, &objCorpus, &objTransform)) return -1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOfOOO", (char**)kwlist, 
+		&tw, &minCnt, &minDf, &rmTop, &margs.k, &objAlpha, &margs.eta, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		tomoto::ITopicModel* inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, margs);
 		if (!inst) throw py::ValueError{ "unknown tw value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -45,8 +47,9 @@ static int LDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argWords;
-	static const char* kwlist[] = { "words", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist, &argWords)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "ignore_empty_words", nullptr};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|p", (char**)kwlist, &argWords, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -56,9 +59,25 @@ static PyObject* LDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kw
 		{
 			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
 		}
+		
 		tomoto::RawDoc raw = buildRawDoc(argWords);
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -91,6 +110,7 @@ static DocumentObject* LDA_makeDoc(TopicModelObject* self, PyObject* args, PyObj
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{
@@ -141,6 +161,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 	size_t iteration = 10, workers = 0, ps = 0, fixed = 0;
 	static const char* kwlist[] = { "iter", "workers", "parallel", "freeze_topics", nullptr };
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnp", (char**)kwlist, &iteration, &workers, &ps, &fixed)) return nullptr;
+	if (self->seedGiven && workers != 1 && PyErr_WarnEx(PyExc_RuntimeWarning, "The training result may differ even with fixed seed if `workers` != 1.", 1)) return nullptr;
 	return py::handleExc([&]()
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -150,7 +171,10 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
-		inst->train(iteration, workers, (tomoto::ParallelScheme)ps, !!fixed);
+		if (inst->train(iteration, workers, (tomoto::ParallelScheme)ps, !!fixed) < 0) 
+		{
+			throw py::RuntimeError{ "Train failed" };
+		}
 		Py_INCREF(Py_None);
 		return Py_None;
 	});
@@ -286,7 +310,7 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 				args
 			) };
 			char* buf;
-			ssize_t bufsize;
+			std::ptrdiff_t bufsize;
 			PyBytes_AsStringAndSize(pickled_bytes, &buf, &bufsize);
 			extra_data.resize(bufsize);
 			memcpy(extra_data.data(), buf, bufsize);
@@ -318,7 +342,7 @@ static PyObject* LDA_saves(TopicModelObject* self, PyObject* args, PyObject* kwa
 				args
 			) };
 			char* buf;
-			ssize_t bufsize;
+			std::ptrdiff_t bufsize;
 			PyBytes_AsStringAndSize(pickled_bytes, &buf, &bufsize);
 			extra_data.resize(bufsize);
 			memcpy(extra_data.data(), buf, bufsize);

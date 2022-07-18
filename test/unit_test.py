@@ -135,6 +135,28 @@ def train0_without_optim(cls, inputFile, mdFields, f, kargs, ps):
     mdl.train(2000, parallel=ps)
     mdl.summary(file=sys.stderr)
 
+def reproducibility(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test reproducibility')
+    tw = 0
+    results = []
+    for _ in range(3):
+        print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+        mdl = cls(tw=tw, min_df=2, rm_top=2, seed=42, **kargs)
+        print('Adding docs...')
+        for n, line in enumerate(open(inputFile, encoding='utf-8')):
+            ch = line.strip().split()
+            if len(ch) < mdFields + 1: continue
+            if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+            else: mdl.add_doc(ch)
+        mdl.train(1000, workers=1)
+        if isinstance(mdl, tp.DTModel):
+            results.append([mdl.get_topic_words(k, timepoint=0) for k in range(mdl.k)])
+        else:
+            results.append([mdl.get_topic_words(k) for k in range(mdl.k)])
+    
+    assert results[0] == results[1]
+    assert results[0] == results[2]
+
 def save_and_load(cls, inputFile, mdFields, f, kargs, ps):
     print('Test save & load')
     tw = 0
@@ -343,7 +365,6 @@ def uninit_doc(cls, inputFile, mdFields, f, kargs, ps):
             raised_warning = True
         assert not raised_warning
 
-
 def test_empty_uid():
     cps = tp.utils.Corpus()
     cps.add_doc("test text".split())
@@ -522,6 +543,19 @@ def test_coherence():
         coherence = tp.coherence.Coherence(corpus=mdl, coherence=coh)
         print(coherence.get_score())
 
+def test_coherence_dtm():
+    mdl = tp.DTModel(k=10, t=13)
+    for n, line in enumerate(open(curpath + '/sample_tp.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < 2: continue
+        mdl.add_doc(ch[1:], timepoint=int(ch[0]))
+    mdl.train(100)
+    coh = tp.coherence.Coherence(mdl)
+
+    print(coh.get_score(topic_id=0, timepoint=0))
+
+    print(coh.get_score())
+
 def test_corpus_save_load():
     corpus = tp.utils.Corpus()
     # data_feeder yields a tuple of (raw string, user data) or a str (raw string)
@@ -532,6 +566,56 @@ def test_corpus_save_load():
 
     corpus = tp.utils.Corpus.load('test.cps')
 
+def test_issue166():
+    mdl = tp.PLDAModel(tw=tp.TermWeight.ONE, latent_topics=5)    
+    d = ['a','b']
+    l = ['c','d']
+    mdl.add_doc(d,l)
+    try:
+        raised = False
+        mdl.make_doc(d,l)
+    except RuntimeError:
+        raised = True
+    finally:
+        assert raised, "RuntimeError is expected."
+
+def test_purge_dead_topics():
+    mdl = tp.HDPModel(tw=tp.TermWeight.ONE, min_df=5, rm_top=5, alpha=0.5, gamma=1, initial_k=30)
+    for n, line in enumerate(open(curpath + '/sample.txt', encoding='utf-8')):
+        ch = line.strip().split()
+        mdl.add_doc(ch)
+    mdl.burn_in = 100
+    mdl.train(0)
+    print('Num docs:', len(mdl.docs), ', Vocab size:', mdl.num_vocabs, ', Num words:', mdl.num_words)
+    print('Removed top words:', mdl.removed_top_words)
+    for i in range(0, 1000, 100):
+        mdl.train(100)
+        print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
+
+    ref = []
+    for k in range(mdl.k):
+        print('Topic #{} ({})'.format(k, mdl.get_count_by_topics()[k]))
+        if not mdl.is_live_topic(k): continue
+        ref.append(mdl.get_topic_words(k))
+        for word, prob in mdl.get_topic_words(k):
+            print('\t', word, prob, sep='\t')
+
+    print(mdl.purge_dead_topics())
+
+    purged = []
+    for k in range(mdl.k):
+        print('Topic #{} ({})'.format(k, mdl.get_count_by_topics()[k]))
+        purged.append(mdl.get_topic_words(k))
+        for word, prob in mdl.get_topic_words(k):
+            print('\t', word, prob, sep='\t')
+
+    assert ref == purged
+    assert mdl.k == mdl.live_k
+
+    for i in range(0, 200, 100):
+        mdl.train(100)
+        print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
+
 for model_case in model_cases:
     pss = model_case[5]
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
@@ -541,6 +625,10 @@ for model_case in model_cases:
             copy_train, uninit_doc,
         ]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+    
+    func = reproducibility
+    ps = tp.ParallelScheme.NONE
+    locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 for model_case in model_asym_cases:
     pss = model_case[5]

@@ -331,7 +331,7 @@ struct TopicModelObject
 {
 	PyObject_HEAD;
 	tomoto::ITopicModel* inst;
-	bool isPrepared;
+	bool isPrepared, seedGiven;
 	size_t minWordCnt, minWordDf;
 	size_t removeTopWord;
 	PyObject* initParams;

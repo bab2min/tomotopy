@@ -18,19 +18,20 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 	tomoto::SLDAArgs margs;
 	PyObject *vars = nullptr, *mu = nullptr, *nuSq = nullptr, *glmCoef = nullptr;
 	PyObject* objCorpus = nullptr, *objTransform = nullptr;
-	PyObject* objAlpha = nullptr;
+	PyObject* objAlpha = nullptr, *objSeed = nullptr;
 	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k",
 		"vars", "alpha", "eta",
 		"mu", "nu_sq", "glm_param", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfOOOnOO", (char**)kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfOOOOOO", (char**)kwlist, 
 		&tw, &minCnt, &minDf, &rmTop, &margs.k,
 		&vars, &objAlpha, &margs.eta,
-		&mu, &nuSq, &glmCoef, &margs.seed, &objCorpus, &objTransform)) return -1;
+		&mu, &nuSq, &glmCoef, &objSeed, &objCorpus, &objTransform)) return -1;
 	return py::handleExc([&]()
 	{
 		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
 			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
 		);
+		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
 
 		vector<string> varTypeStrs;
 		if (vars)
@@ -90,6 +91,7 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 		if (!inst) throw py::ValueError{ "unknown `tw` value" };
 		self->inst = inst;
 		self->isPrepared = false;
+		self->seedGiven = !!objSeed;
 		self->minWordCnt = minCnt;
 		self->minWordDf = minDf;
 		self->removeTopWord = rmTop;
@@ -108,8 +110,9 @@ static int SLDA_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
 static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
 	PyObject *argWords, *argY = nullptr;
-	static const char* kwlist[] = { "words", "y", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", (char**)kwlist, &argWords, &argY)) return nullptr;
+	size_t ignoreEmptyWords = 1;
+	static const char* kwlist[] = { "words", "y", "ignore_empty_words", nullptr };
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Op", (char**)kwlist, &argWords, &argY, &ignoreEmptyWords)) return nullptr;
 	return py::handleExc([&]() -> PyObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
@@ -125,8 +128,23 @@ static PyObject* SLDA_addDoc(TopicModelObject* self, PyObject* args, PyObject *k
 		{
 			raw.misc["y"] = py::toCpp<vector<tomoto::Float>>(argY, "`y` must be an iterable of float.");
 		}
-		auto ret = inst->addDoc(raw);
-		return py::buildPyValue(ret);
+		try
+		{
+			auto ret = inst->addDoc(raw);
+			return py::buildPyValue(ret);
+		}
+		catch (const tomoto::exc::EmptyWordArgument&)
+		{
+			if (ignoreEmptyWords)
+			{
+				Py_INCREF(Py_None);
+				return Py_None;
+			}
+			else
+			{
+				throw;
+			}
+		}
 	});
 }
 
@@ -138,6 +156,7 @@ static DocumentObject* SLDA_makeDoc(TopicModelObject* self, PyObject* args, PyOb
 	return py::handleExc([&]() -> DocumentObject*
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 		auto* inst = static_cast<tomoto::ISLDAModel*>(self->inst);
 		if (PyUnicode_Check(argWords))
 		{
