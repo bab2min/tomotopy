@@ -84,41 +84,41 @@ jobs:
         python -m nltk.downloader stopwords
         python -m pytest --verbose -s test/unit_test.py
 
-  build_macos_11:
-    name: Build for macOS 11
-    runs-on: macOS-11
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ["3.10"]
+  # build_macos_11:
+  #   name: Build for macOS 11
+  #   runs-on: macOS-11
+  #   strategy:
+  #     max-parallel: 4
+  #     matrix:
+  #       python-version: ["3.10"]
 
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-        tar -zxvf eigen-3.4.0.tar.gz
-        mv eigen-3.4.0 include
-        wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
-        tar -zxvf v0.4.0alpha.tar.gz
-        mv EigenRand-0.4.0alpha/EigenRand include/
-        wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
-        tar -zxvf v1.1.3.tar.gz
-        mv variant-1.1.3/include/mapbox include/
-    - name: Build
-      run: |
-        python -m pip install numpy==`python test/numpy_version.py`
-        python setup.py build install
-    - name: Test
-      run: |
-        python -m pip install pytest nltk
-        python -m nltk.downloader stopwords
-        python -m pytest --verbose -s test/unit_test.py
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v1
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       python -m pip install --upgrade pip
+  #       wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+  #       tar -zxvf eigen-3.4.0.tar.gz
+  #       mv eigen-3.4.0 include
+  #       wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
+  #       tar -zxvf v0.4.0alpha.tar.gz
+  #       mv EigenRand-0.4.0alpha/EigenRand include/
+  #       wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
+  #       tar -zxvf v1.1.3.tar.gz
+  #       mv variant-1.1.3/include/mapbox include/
+  #   - name: Build
+  #     run: |
+  #       python -m pip install numpy==`python test/numpy_version.py`
+  #       python setup.py build install
+  #   - name: Test
+  #     run: |
+  #       python -m pip install pytest nltk
+  #       python -m nltk.downloader stopwords
+  #       python -m pytest --verbose -s test/unit_test.py
 
 
   build_windows:
