@@ -514,3 +514,18 @@ Bundled Libraries and Their License
 
 * Mapbox Variant: `BSD License
   <licenses_bundled/MapboxVariant>`_
+
+Citation
+---------
+::
+
+    @software{minchul_lee_2022_6868418,
+      author       = {Minchul Lee},
+      title        = {bab2min/tomotopy: 0.12.3},
+      month        = jul,
+      year         = 2022,
+      publisher    = {Zenodo},
+      version      = {v0.12.3},
+      doi          = {10.5281/zenodo.6868418},
+      url          = {https://doi.org/10.5281/zenodo.6868418}
+    }
