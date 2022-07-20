@@ -116,7 +116,7 @@ static PyMethodDef HDP_methods[] =
 	{ "loads", (PyCFunction)HDP_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
 	{ "is_live_topic", (PyCFunction)HDP_isLiveTopic, METH_VARARGS | METH_KEYWORDS, HDP_is_live_topic__doc__ },
 	{ "convert_to_lda", (PyCFunction)HDP_convertToLDA, METH_VARARGS | METH_KEYWORDS, HDP_convert_to_lda__doc__ },
-	{ "purge_dead_topics", (PyCFunction)HDP_purgeDeadTopics, METH_NOARGS, HDP_convert_to_lda__doc__ },
+	{ "purge_dead_topics", (PyCFunction)HDP_purgeDeadTopics, METH_NOARGS, HDP_purge_dead_topics__doc__ },
 	{ nullptr }
 };
 

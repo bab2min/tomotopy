@@ -305,6 +305,19 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.12.3 (2022-07-19)
+    * 기능 개선
+        * 이제 `tomotopy.LDAModel.add_doc()`로 빈 문서를 삽입할 경우 예외를 발생시키는 대신 그냥 무시합니다. 새로 추가된 인자인 `ignore_empty_words`를 False로 설정할 경우 이전처럼 예외를 발생시킵니다.
+        * 유효하지 않은 토픽들을 모델에서 제거하는 `tomotopy.HDPModel.purge_dead_topics()` 메소드가 추가되었습니다.
+    * 버그 수정
+        * `tomotopy.SLDAModel`에서 `nuSq` 값을 지정할 때 발생하는 문제를 해결했습니다. (by @jucendrero)
+        * `tomotopy.utils.Coherence`가 `tomotopy.DTModel`에 대해서 작동하지 않는 문제를 해결했습니다.
+        * `train()` 호출 전에 `make_dic()`을 호출할 때 종종 크래시가 발생하는 문제를 해결했습니다.
+        * seed가 고정된 상태에서도 `tomotopy.DMRModel`, `tomotopy.GDMRModel`의 결과가 다르게 나오는 문제를 해결했습니다.
+        * `tomotopy.DMRModel`, `tomotopy.GDMRModel`의 파라미터 최적화 과정이 부정확하던 문제를 해결했습니다.
+        * `tomotopy.PTModel.copy()` 호출 시 종종 크래시가 발생하는 문제를 해결했습니다.
+        * 싱글스레드에서의 작동 효율을 개선했습니다.
+
 * 0.12.2 (2021-09-06)
     * `min_cf > 0`, `min_df > 0`나 `rm_top > 0`로 설정된 `tomotopy.HDPModel`에서 `convert_to_lda`를 호출할때 크래시가 발생하는 문제를 해결했습니다.
     * `tomotopy.Document.get_topics`와 `tomotopy.Document.get_topic_dist`에 `from_pseudo_doc` 인자가 추가되었습니다. 

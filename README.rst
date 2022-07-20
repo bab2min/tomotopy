@@ -309,6 +309,18 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.12.3 (2022-07-19)
+    * New features
+        * Now, inserting an empty document using `tomotopy.LDAModel.add_doc()` just ignores it instead of raising an exception. If the newly added argument `ignore_empty_words` is set to False, an exception is raised as before.
+        * `tomotopy.HDPModel.purge_dead_topics()` method is added to remove non-live topics from the model.
+    * Bug fixes
+        * Fixed an issue that prevents setting user defined values for nuSq in `tomotopy.SLDAModel` (by @jucendrero).
+        * Fixed an issue where `tomotopy.utils.Coherence` did not work for `tomotopy.DTModel`.
+        * Fixed an issue that often crashed when calling `make_dic()` before calling `train()`.
+        * Resolved the problem that the results of `tomotopy.DMRModel` and `tomotopy.GDMRModel` are different even when the seed is fixed.
+        * The parameter optimization process of `tomotopy.DMRModel` and `tomotopy.GDMRModel` has been improved.
+        * Fixed an issue that sometimes crashed when calling `tomotopy.PTModel.copy()`.
+
 * 0.12.2 (2021-09-06)
     * An issue where calling `convert_to_lda` of `tomotopy.HDPModel` with `min_cf > 0`, `min_df > 0` or `rm_top > 0` causes a crash has been fixed.
     * A new argument `from_pseudo_doc` is added to `tomotopy.Document.get_topics` and `tomotopy.Document.get_topic_dist`.

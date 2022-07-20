@@ -1617,6 +1617,23 @@ topic_threshold : float
     기본값은 0이며, 이 경우 유효하지 않는 토픽을 제외한 모든 토픽이 LDA 모델에 포함됩니다.
 )"");
 
+DOC_SIGNATURE_EN_KO(HDP_purge_dead_topics__doc__,
+    "purge_dead_topics(self)",
+    u8R""(.. versionadded:: 0.12.3
+
+Purge all non-alive topics from the model and return `new_topic_ids`. After called, `HDPModel.k` shrinks to `HDPModel.live_k` and all topics of the model become live.
+
+`new_topic_id` is an array of length `HDPModel.k` and `new_topic_id[i]` indicates a topic id of the new model, equivalent to topic `i` of previous HDP model.
+If topic `i` of previous HDP model is not alive or is removed in the new model, `new_topic_id[i]` would be `-1`.
+)"",
+u8R""(.. versionadded:: 0.12.3
+
+현재 모델에서 유효하지 않은 토픽을 모두 제거하고 `new_topic_ids`를 반환합니다. 호출 후에 `HDPModel.k`는 `HDPModel.live_k`값으로 줄어들며 모든 토픽은 유효한 상태가 됩니다.
+
+`new_topic_id`는 길이 `HDPModel.k`의 배열이며, `new_topic_id[i]`는 새 모델에서 기존 HDP 모델의 토픽 `i`와 동등한 토픽의 id를 가리킵니다.
+만약 기존 HDP 모델의 토픽 `i`가 유효하지 않거나, 새 모델에서 제거된 것이라면, `new_topic_id[i]`는 `-1`이 됩니다.
+)"");
+
 DOC_VARIABLE_EN_KO(HDP_gamma__doc__,
     u8R""(the hyperparameter gamma (read-only))"",
     u8R""(하이퍼 파라미터 gamma (읽기전용))"");

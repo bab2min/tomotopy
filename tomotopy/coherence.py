@@ -150,7 +150,9 @@ topic_id : int
     This parameter is valid when `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.LDAModel` or its descendants.
     If this is omitted, the average score of all topics is returned.
 timepoint : int
-    A timepoint of the topic from which words are extracted. (Only for `DTModel`)
+    ..versionadded:: 0.12.3
+
+    A timepoint of the topic from which words are extracted. (Only for `tomotopy.DTModel`)
         '''
         import tomotopy as tp
         if words is None and self._topic_model is None:
@@ -251,5 +253,9 @@ topic_id : int
     단어가 추출될 토픽의 id.
     이 파라미터는 오직 `tomotopy.coherence.Coherence`가 `tomotopy.LDAModel`나 기타 토픽 모델의 인스턴스로 `corpus`를 받아 초기화된 경우에만 사용 가능합니다.
     생략시 모든 토픽의 coherence 점수를 평균낸 값이 반환됩니다.
+timepoint : int
+    ..versionadded:: 0.12.3
+
+    단어가 추출될 토픽의 시점 (`tomotopy.DTModel`에서만 유효)
 '''
 del os
