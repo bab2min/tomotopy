@@ -18,6 +18,7 @@ jobs:
         language: [kr, en]
 
     steps:
+    - uses: actions/checkout@v1
     - name: Install dependencies
       run: |
         /opt/python/cp38-cp38/bin/python -m pip install --upgrade pip
