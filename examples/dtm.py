@@ -1,6 +1,7 @@
 import tomotopy as tp
 import numpy as np
 import nltk
+import pyLDAvis
 
 def data_feeder(input_file):
     for line in open(input_file, encoding='utf-8'):
@@ -39,4 +40,22 @@ topic_dist_by_time /= mdl.num_docs_by_timepoint[:, np.newaxis]
 for k in range(mdl.k):
     print('Topic #{}'.format(k), *(w for w, _ in mdl.get_topic_words(k, 0, top_n=5)))
     print(topic_dist_by_time[:, k])
-    
+
+for timepoint in range(mdl.num_timepoints):
+    topic_term_dists = np.stack([mdl.get_topic_word_dist(k, timepoint=timepoint) for k in range(mdl.k)])
+    doc_topic_dists = np.stack([doc.get_topic_dist() for doc in mdl.docs if doc.timepoint == timepoint])
+    doc_topic_dists /= doc_topic_dists.sum(axis=1, keepdims=True)
+    doc_lengths = np.array([len(doc.words) for doc in mdl.docs if doc.timepoint == timepoint])
+    vocab = list(mdl.used_vocabs)
+    term_frequency = mdl.used_vocab_freq
+
+    prepared_data = pyLDAvis.prepare(
+        topic_term_dists, 
+        doc_topic_dists, 
+        doc_lengths, 
+        vocab, 
+        term_frequency,
+        start_index=0,
+        sort_topics=False
+    )
+    pyLDAvis.save_html(prepared_data, 'dtmvis_{}.html'.format(timepoint))
