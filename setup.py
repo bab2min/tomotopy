@@ -23,7 +23,17 @@ else:
 from sysconfig import get_platform
 fd = get_platform().split('-')
 if fd[0] == 'macosx':
-    if os.environ.get('MACOSX_DEPLOYMENT_TARGET'): fd[1] = os.environ['MACOSX_DEPLOYMENT_TARGET']
+    if os.environ.get('MACOSX_DEPLOYMENT_TARGET'): 
+        from distutils import sysconfig
+        cfg_target = sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET') or ''
+        if cfg_target.startswith('10.'):
+            cfg_target = list(map(int, cfg_target.split('.')))
+            cur_target = list(map(int, os.environ['MACOSX_DEPLOYMENT_TARGET'].split('.')))
+            target = max(cfg_target, cur_target)
+            if target != cur_target:
+                print(f"MACOSX_DEPLOYMENT_TARGET={'.'.join(map(str, cur_target))} is not supported. MACOSX_DEPLOYMENT_TARGET={'.'.join(map(str, target))} is used instead.")
+            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '.'.join(map(str, target))
+        fd[1] = os.environ['MACOSX_DEPLOYMENT_TARGET']
     os.environ['_PYTHON_HOST_PLATFORM'] = '-'.join(fd[:-1] + [tomotopy_cpu_arch])
     
 exec(open('tomotopy/_version.py').read())
