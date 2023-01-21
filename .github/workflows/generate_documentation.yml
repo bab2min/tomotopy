@@ -11,7 +11,7 @@ jobs:
     name: Build for manylinux
     runs-on: ubuntu-latest
     container:
-      image: docker://quay.io/pypa/manylinux2010_x86_64
+      image: docker://quay.io/pypa/manylinux2014_x86_64
     strategy:
       max-parallel: 1
       matrix:
@@ -31,7 +31,7 @@ jobs:
         mv eigen/Eigen/ include/
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
-        git checkout tags/v0.4.0alpha
+        git checkout tags/v0.4.1
         cd ..
         mv EigenRand/EigenRand include/
         git clone https://github.com/mapbox/variant

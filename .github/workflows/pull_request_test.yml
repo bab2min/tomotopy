@@ -10,11 +10,11 @@ jobs:
     name: Build for manylinux
     runs-on: ubuntu-latest
     container:
-      image: docker://quay.io/pypa/manylinux2010_x86_64
+      image: docker://quay.io/pypa/manylinux2014_x86_64
     strategy:
       max-parallel: 4
       matrix:
-        cp: [cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310]
+        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
 
     steps:        
     - uses: actions/checkout@v1
@@ -30,7 +30,7 @@ jobs:
         mv eigen include
         git clone https://github.com/bab2min/EigenRand
         cd EigenRand
-        git checkout tags/v0.4.0alpha
+        git checkout tags/v0.4.1
         cd ..
         mv EigenRand/EigenRand include/
         git clone https://github.com/mapbox/variant
@@ -54,7 +54,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v1
@@ -68,57 +68,58 @@ jobs:
         wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
         tar -zxvf eigen-3.4.0.tar.gz
         mv eigen-3.4.0 include
-        wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
-        tar -zxvf v0.4.0alpha.tar.gz
-        mv EigenRand-0.4.0alpha/EigenRand include/
+        wget https://github.com/bab2min/EigenRand/archive/v0.4.1.tar.gz
+        tar -zxvf v0.4.1.tar.gz
+        mv EigenRand-0.4.1/EigenRand include/
         wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
         tar -zxvf v1.1.3.tar.gz
         mv variant-1.1.3/include/mapbox include/
     - name: Build
       run: |
         python -m pip install numpy==`python test/numpy_version.py`
-        python setup.py build install
+        TOMOTOPY_CPU_ARCH=x86_64 python setup.py build install
     - name: Test
       run: |
         python -m pip install pytest nltk
         python -m nltk.downloader stopwords
         python -m pytest --verbose -s test/unit_test.py
 
-  # build_macos_11:
-  #   name: Build for macOS 11
-  #   runs-on: macOS-11
-  #   strategy:
-  #     max-parallel: 4
-  #     matrix:
-  #       python-version: ["3.10"]
+  build_macos_11:
+    name: Build for macOS 11
+    runs-on: macOS-11
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.9, "3.10", 3.11]
+        cpu-arch: ["x86_64", "arm64"]
 
-  #   steps:
-  #   - uses: actions/checkout@v1
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v1
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       python -m pip install --upgrade pip
-  #       wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-  #       tar -zxvf eigen-3.4.0.tar.gz
-  #       mv eigen-3.4.0 include
-  #       wget https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
-  #       tar -zxvf v0.4.0alpha.tar.gz
-  #       mv EigenRand-0.4.0alpha/EigenRand include/
-  #       wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
-  #       tar -zxvf v1.1.3.tar.gz
-  #       mv variant-1.1.3/include/mapbox include/
-  #   - name: Build
-  #     run: |
-  #       python -m pip install numpy==`python test/numpy_version.py`
-  #       python setup.py build install
-  #   - name: Test
-  #     run: |
-  #       python -m pip install pytest nltk
-  #       python -m nltk.downloader stopwords
-  #       python -m pytest --verbose -s test/unit_test.py
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -zxvf eigen-3.4.0.tar.gz
+        mv eigen-3.4.0 include
+        wget https://github.com/bab2min/EigenRand/archive/v0.4.1.tar.gz
+        tar -zxvf v0.4.1.tar.gz
+        mv EigenRand-0.4.1/EigenRand include/
+        wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
+        tar -zxvf v1.1.3.tar.gz
+        mv variant-1.1.3/include/mapbox include/
+    - name: Build
+      run: |
+        python -m pip install numpy==`python test/numpy_version.py`
+        TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py build install
+    - name: Test
+      run: |
+        python -m pip install pytest nltk
+        python -m nltk.downloader stopwords
+        python -m pytest --verbose -s test/unit_test.py
 
 
   build_windows:
@@ -127,7 +128,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.8, 3.9, "3.10", 3.11]
         architecture: [x86, x64]
 
     steps:
@@ -144,9 +145,9 @@ jobs:
         Invoke-WebRequest -OutFile eigen-3.4.0.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
         tar -zxvf eigen-3.4.0.tar.gz
         mv eigen-3.4.0 include
-        Invoke-WebRequest -OutFile v0.4.0alpha.tar.gz https://github.com/bab2min/EigenRand/archive/v0.4.0alpha.tar.gz
-        tar -zxvf v0.4.0alpha.tar.gz
-        mv EigenRand-0.4.0alpha/EigenRand include/
+        Invoke-WebRequest -OutFile v0.4.1.tar.gz https://github.com/bab2min/EigenRand/archive/v0.4.1.tar.gz
+        tar -zxvf v0.4.1.tar.gz
+        mv EigenRand-0.4.1/EigenRand include/
         Invoke-WebRequest -OutFile v1.1.3.tar.gz https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
         tar -zxvf v1.1.3.tar.gz
         mv variant-1.1.3/include/mapbox include/
