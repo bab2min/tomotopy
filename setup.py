@@ -51,10 +51,11 @@ elif platform.system() == 'Darwin':
     largs += ['-stdlib=libc++']
     if 'many' in os.environ.get('AUDITWHEEL_PLAT', ''): cargs.append('-g0')
     if tomotopy_cpu_arch == 'arm64':
-        arch_levels = {'': '-arch arm64'}
+        arch_levels = {'': ''}
+        cargs += ['-DTOMOTOPY_ISA=arm64', '-arch', 'arm64']
     else:
-        if 'many' not in os.environ.get('AUDITWHEEL_PLAT', ''): arch_levels = {'':'-march=native'}
-        arch_levels = {k:v + ' -arch x86_64' for k, v in arch_levels.items()}
+        if 'many' not in os.environ.get('AUDITWHEEL_PLAT', ''): arch_levels = {'':'-march=core-avx2'}
+        cargs += ['-arch', 'x86_64']
 elif 'many' in os.environ.get('AUDITWHEEL_PLAT', ''):
     cargs = ['-std=c++1y', '-O3', '-fpermissive', '-g0', '-Wno-unused-variable', '-Wno-switch']
 else:

@@ -8,6 +8,15 @@ using namespace std;
 
 PyObject* gModule;
 
+#ifdef TOMOTOPY_ISA
+#define TO_STR(name) #name
+#define TO_STR_WRAP(name) TO_STR(name)
+#define TOMOTOPY_ISA_STR TO_STR_WRAP(TOMOTOPY_ISA)
+static const char* isa_str = TOMOTOPY_ISA_STR;
+#else
+static const char* isa_str = "none";
+#endif
+
 void char2Byte(const char* strBegin, const char* strEnd, vector<uint32_t>& startPos, vector<uint16_t>& length)
 {
 	if (strBegin == strEnd) return;
@@ -159,7 +168,7 @@ PyMODINIT_FUNC MODULE_NAME()
 #elif defined(__SSE2__) || defined(__x86_64__) || defined(_WIN64)
 	PyModule_AddStringConstant(gModule, "isa", "sse2");
 #else
-	PyModule_AddStringConstant(gModule, "isa", "none");
+	PyModule_AddStringConstant(gModule, "isa", isa_str);
 #endif
 	addLabelTypes(gModule);
 	addUtilsTypes(gModule);
