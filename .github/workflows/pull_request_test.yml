@@ -42,7 +42,14 @@ jobs:
       run: |
         /opt/python/${{ matrix.cp }}/bin/python -m pip install numpy==`/opt/python/${{ matrix.cp }}/bin/python test/numpy_version.py`
         /opt/python/${{ matrix.cp }}/bin/python setup.py build install
+    - run: tar -zcvf build.tgz build
+    - name: Archive binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: Linux Binary ${{ matrix.cp }}
+        path: build.tgz
     - name: Test
+      continue-on-error: True
       run: |
         /opt/python/${{ matrix.cp }}/bin/python -m pip install pytest nltk
         /opt/python/${{ matrix.cp }}/bin/python -m nltk.downloader stopwords
@@ -77,7 +84,13 @@ jobs:
     - name: Build
       run: |
         python -m pip install numpy==`python test/numpy_version.py`
-        TOMOTOPY_CPU_ARCH=x86_64 python setup.py build install
+        MACOSX_DEPLOYMENT_TARGET=10.14 TOMOTOPY_CPU_ARCH=x86_64 python setup.py build install
+    - name: Archive binary
+      uses: actions/upload-artifact@v2
+      with:
+        name: macOS Binary ${{ matrix.python-version }} ${{ matrix.cpu-arch }}
+        path: |
+          build/*
     - name: Test
       run: |
         python -m pip install pytest nltk
@@ -114,8 +127,15 @@ jobs:
     - name: Build
       run: |
         python -m pip install numpy==`python test/numpy_version.py`
-        TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py build install
+        MACOSX_DEPLOYMENT_TARGET=10.14 TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py build install
+    - name: Archive binary
+      uses: actions/upload-artifact@v2
+      with:
+        name: macOS Binary ${{ matrix.python-version }} ${{ matrix.cpu-arch }}
+        path: |
+          build/*
     - name: Test
+      if: ${{ matrix.cpu-arch == 'x86_64' }}
       run: |
         python -m pip install pytest nltk
         python -m nltk.downloader stopwords

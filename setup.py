@@ -23,6 +23,7 @@ else:
 from sysconfig import get_platform
 fd = get_platform().split('-')
 if fd[0] == 'macosx':
+    if os.environ.get('MACOSX_DEPLOYMENT_TARGET'): fd[1] = os.environ['MACOSX_DEPLOYMENT_TARGET']
     os.environ['_PYTHON_HOST_PLATFORM'] = '-'.join(fd[:-1] + [tomotopy_cpu_arch])
     
 exec(open('tomotopy/_version.py').read())

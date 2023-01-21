@@ -93,7 +93,7 @@ jobs:
       run: |
         export AUDITWHEEL_PLAT=many
         python -m pip install twine wheel numpy==`python test/numpy_version.py`
-        python setup.py bdist_wheel
+        MACOSX_DEPLOYMENT_TARGET=10.14 python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
 
   build_macos_11:
@@ -131,7 +131,7 @@ jobs:
       run: |
         export AUDITWHEEL_PLAT=many
         python -m pip install twine wheel numpy==`python test/numpy_version.py`
-        TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
+        MACOSX_DEPLOYMENT_TARGET=10.14 TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
 
   build_windows:
