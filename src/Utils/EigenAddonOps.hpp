@@ -93,7 +93,7 @@ namespace Eigen
 #endif
 #ifdef EIGEN_VECTORIZE_NEON
 #include <arm_neon.h>
-
+#include "neon_gamma.h"
 
 namespace Eigen
 {
