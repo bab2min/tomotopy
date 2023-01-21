@@ -44,7 +44,7 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python test/numpy_version.py`
+        /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python .github/workflows/numpy_version.py`
         /opt/python/${{ matrix.cp }}/bin/python setup.py sdist
         /opt/python/${{ matrix.cp }}/bin/python -m twine upload --repository testpypi dist/*.tar.gz
 
@@ -54,7 +54,7 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python test/numpy_version.py`
+        /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python .github/workflows/numpy_version.py`
         /opt/python/${{ matrix.cp }}/bin/python setup.py build bdist_wheel
         auditwheel repair dist/*-${{ matrix.cp }}-linux_x86_64.whl
         /opt/python/${{ matrix.cp }}/bin/python -m twine upload --repository testpypi wheelhouse/*.whl
@@ -65,7 +65,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7]
 
     steps:
     - uses: actions/checkout@v1
@@ -92,8 +92,8 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        python -m pip install twine wheel numpy==`python test/numpy_version.py`
-        MACOSX_DEPLOYMENT_TARGET=10.14 python setup.py bdist_wheel
+        python -m pip install twine wheel numpy==`python .github/workflows/numpy_version.py`
+        python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
 
   build_macos_11:
@@ -102,7 +102,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.9, "3.10", 3.11]
+        python-version: [3.8, 3.9, "3.10", 3.11]
         cpu-arch: [x86_64, arm64]
 
     steps:
@@ -130,7 +130,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        python -m pip install twine wheel numpy==`python test/numpy_version.py`
+        python -m pip install twine wheel numpy==`python .github/workflows/numpy_version.py`
         MACOSX_DEPLOYMENT_TARGET=10.14 TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
 
@@ -168,6 +168,6 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python -m pip install twine wheel numpy==$(python test/numpy_version.py)
+        python -m pip install twine wheel numpy==$(python .github/workflows/numpy_version.py)
         python setup.py bdist_wheel
         twine upload --repository testpypi dist/*

@@ -41,7 +41,7 @@ jobs:
         mv variant/include/mapbox include/
     - name: build
       run: |
-        /opt/python/cp38-cp38/bin/python -m pip install numpy==`/opt/python/cp38-cp38/bin/python test/numpy_version.py`
+        /opt/python/cp38-cp38/bin/python -m pip install numpy==`/opt/python/cp38-cp38/bin/python .github/workflows/numpy_version.py`
         /opt/python/cp38-cp38/bin/python -m pip install pdoc3==0.8.4
         export TOMOTOPY_LANG=${{ matrix.language }}
         /opt/python/cp38-cp38/bin/python setup.py install
