@@ -389,6 +389,13 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.12.4 (2023-01-22)
+    * New features
+        * Added support for macOS ARM64 architecture.
+    * Bug fixes
+        * Fixed an issue where `tomotopy.Document.get_sub_topic_dist()` raises a bad argument exception.
+        * Fixed an issue where exception raising sometimes causes crashes.
+
 * 0.12.3 (2022-07-19)
     * New features
         * Now, inserting an empty document using `tomotopy.LDAModel.add_doc()` just ignores it instead of raising an exception. If the newly added argument `ignore_empty_words` is set to False, an exception is raised as before.

@@ -247,6 +247,15 @@ def infer_together(cls, inputFile, mdFields, f, kargs, ps):
 
     mdl.infer(unseen_docs, parallel=ps, together=True)
 
+def test_issue_187_crash_exc():
+    mdl = tp.LDAModel(k=10)
+    exc = None
+    try:
+        mdl.add_doc([[0, 1]])
+    except Exception as e:
+        exc = e
+    assert isinstance(exc, ValueError)
+
 def train_raw_corpus(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train with raw corpus')
     from nltk.stem.porter import PorterStemmer

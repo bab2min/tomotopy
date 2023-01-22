@@ -1197,7 +1197,7 @@ static PyMethodDef UtilsDocument_methods[] =
 	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_VARARGS | METH_KEYWORDS, Document_get_topic_dist__doc__ },
 #ifdef TM_PA
 	{ "get_sub_topics", (PyCFunction)Document_getSubTopics, METH_VARARGS | METH_KEYWORDS, Document_get_sub_topics__doc__ },
-	{ "get_sub_topic_dist", (PyCFunction)Document_getSubTopicDist, METH_NOARGS, Document_get_sub_topic_dist__doc__ },
+	{ "get_sub_topic_dist", (PyCFunction)Document_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, Document_get_sub_topic_dist__doc__ },
 #endif
 	{ "get_words", (PyCFunction)Document_getWords, METH_VARARGS | METH_KEYWORDS, Document_get_words__doc__ },
 	{ "get_count_vector", (PyCFunction)Document_getCountVector, METH_NOARGS, Document_get_count_vector__doc__ },

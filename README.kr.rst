@@ -305,6 +305,13 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.12.4 (2023-01-22)
+    * New features
+        * macOS ARM64 아키텍처에 대한 지원을 추가했습니다.
+    * Bug fixes
+        * `tomotopy.Document.get_sub_topic_dist()`가 bad argument 예외를 발생시키는 문제를 해결했습니다.
+        * 예외 발생이 종종 크래시를 발생시키는 문제를 해결했습니다.
+
 * 0.12.3 (2022-07-19)
     * 기능 개선
         * 이제 `tomotopy.LDAModel.add_doc()`로 빈 문서를 삽입할 경우 예외를 발생시키는 대신 그냥 무시합니다. 새로 추가된 인자인 `ignore_empty_words`를 False로 설정할 경우 이전처럼 예외를 발생시킵니다.
