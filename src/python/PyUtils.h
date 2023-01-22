@@ -1313,6 +1313,7 @@ namespace py
 			{
 				PyObject* exc, * val, * tb, * val2;
 				PyErr_Fetch(&exc, &val, &tb);
+				PyErr_NormalizeException(&exc, &val, &tb);
 				if (tb)
 				{
 					PyException_SetTraceback(val, tb);
@@ -1321,7 +1322,9 @@ namespace py
 				Py_DECREF(exc);
 				PyObject* et = e.pytype();
 				val2 = PyObject_CallFunctionObjArgs(et, py::UniqueObj{ buildPyValue(e.what()) }.get(), nullptr);
+				Py_INCREF(val);
 				PyException_SetCause(val2, val);
+				PyException_SetContext(val2, val);
 				PyErr_SetObject(et, val2);
 				Py_DECREF(val2);
 			}
@@ -1355,6 +1358,7 @@ namespace py
 			{
 				PyObject* exc, * val, * tb, * val2;
 				PyErr_Fetch(&exc, &val, &tb);
+				PyErr_NormalizeException(&exc, &val, &tb);
 				if (tb)
 				{
 					PyException_SetTraceback(val, tb);
@@ -1363,7 +1367,9 @@ namespace py
 				Py_DECREF(exc);
 				PyObject* et = e.pytype();
 				val2 = PyObject_CallFunctionObjArgs(et, py::UniqueObj{ buildPyValue(e.what()) }.get(), nullptr);
+				Py_INCREF(val);
 				PyException_SetCause(val2, val);
+				PyException_SetContext(val2, val);
 				PyErr_SetObject(et, val2);
 				Py_DECREF(val2);
 			}
