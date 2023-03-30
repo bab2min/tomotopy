@@ -170,7 +170,8 @@ jobs:
         python -m pip install -r requirements.txt
         Invoke-WebRequest -OutFile eigen-3.4.0.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
         tar -zxvf eigen-3.4.0.tar.gz
-        mv eigen-3.4.0 include
+        rm eigen-3.4.0.tar.gz
+        mv eigen-* include
         Invoke-WebRequest -OutFile v0.4.1.tar.gz https://github.com/bab2min/EigenRand/archive/v0.4.1.tar.gz
         tar -zxvf v0.4.1.tar.gz
         mv EigenRand-0.4.1/EigenRand include/
