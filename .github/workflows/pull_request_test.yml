@@ -55,6 +55,53 @@ jobs:
         /opt/python/${{ matrix.cp }}/bin/python -m nltk.downloader stopwords
         /opt/python/${{ matrix.cp }}/bin/python -m pytest --verbose -s test/unit_test.py
 
+  build_linux_arm64:
+    name: Arm64-Centos7
+    runs-on: ubuntu-18.04
+    strategy:
+      max-parallel: 4
+      matrix:
+        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+        lfs: true
+    - uses: bab2min/run-on-arch-action@use-custom-image
+      id: runcmd
+      with:
+        image: quay.io/pypa/manylinux2014_aarch64
+        githubToken: ${{ github.token }}
+        setup: |
+          mkdir -p "${PWD}/artifacts"
+        dockerRunArgs: |
+          --volume "${PWD}/artifacts:/artifacts"
+        run: |
+          git clone https://gitlab.com/libeigen/eigen
+          cd eigen
+          git checkout tags/3.4.0
+          cd ..
+          mv eigen include
+          git clone https://github.com/bab2min/EigenRand
+          cd EigenRand
+          git checkout tags/v0.4.1
+          cd ..
+          mv EigenRand/EigenRand include/
+          git clone https://github.com/mapbox/variant
+          cd variant
+          git checkout tags/v1.1.3
+          cd ..
+          mv variant/include/mapbox include/
+          /opt/python/${{ matrix.cp }}/bin/python -m pip install numpy==`/opt/python/${{ matrix.cp }}/bin/python .github/workflows/numpy_version.py`
+          /opt/python/${{ matrix.cp }}/bin/python setup.py build install
+          tar -zcvf /artifacts/build.tgz build
+    - name: Archive binaries
+      uses: actions/upload-artifact@v1
+      with:
+        name: Artifacts ${{ matrix.name }}
+        path: artifacts/build.tgz
+
   build_macos_11:
     name: Build for macOS 11
     runs-on: macOS-11
