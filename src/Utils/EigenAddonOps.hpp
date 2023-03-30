@@ -116,7 +116,7 @@ namespace Eigen
 
 		EIGEN_STRONG_INLINE Packet4f p_bool2float(const Packet4f& a)
 		{
-			return vcvtq_f32_s32(vandq_s32(a, vdupq_n_s32(1)));
+			return vcvtq_f32_s32(vandq_s32((Packet4i)a, vdupq_n_s32(1)));
 		}
 
 		EIGEN_STRONG_INLINE Packet4f p_bool2float(const Packet4i& a)
