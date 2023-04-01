@@ -246,6 +246,14 @@ def infer_together(cls, inputFile, mdFields, f, kargs, ps):
             unseen_docs[n] = mdl.make_doc(ch)
 
     mdl.infer(unseen_docs, parallel=ps, together=True)
+    
+def test_issue197():
+    model = tp.LDAModel()
+    model.save("./model.bin")
+
+    model = tp.LDAModel.load("./model.bin")
+    doc = model.make_doc(["unseen", "document"])
+    model.infer(doc)
 
 def test_issue_187_crash_exc():
     mdl = tp.LDAModel(k=10)
