@@ -12,7 +12,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        cp: [cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     container:
       image: docker://quay.io/pypa/manylinux2014_x86_64
 
@@ -65,7 +65,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        cp: [cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
 
     steps:
     - uses: actions/checkout@v2
@@ -151,7 +151,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10", 3.11]
+        python-version: [3.8, 3.9, "3.10", 3.11, 3.12]
         architecture: [x86, x64]
 
     steps:
