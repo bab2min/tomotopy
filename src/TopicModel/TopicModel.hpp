@@ -257,6 +257,7 @@ namespace tomoto
 		virtual void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0, bool updateStopwords = true) = 0;
 		
 		virtual size_t getK() const = 0;
+		virtual size_t getNumTopicsForPrior() const = 0;
 		virtual std::vector<Float> getWidsByTopic(size_t tid, bool normalize = true) const = 0;
 		virtual std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(size_t tid, size_t topN) const = 0;
 
@@ -723,6 +724,11 @@ namespace tomoto
 		size_t getK() const override
 		{
 			return 0;
+		}
+
+		size_t getNumTopicsForPrior() const override
+		{
+			return this->getK();
 		}
 
 		std::vector<Float> getWidsByTopic(size_t tid, bool normalize) const override

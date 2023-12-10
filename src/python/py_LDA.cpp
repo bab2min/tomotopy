@@ -137,7 +137,25 @@ PyObject* LDA_setWordPrior(TopicModelObject* self, PyObject* args, PyObject *kwa
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		if (self->isPrepared) throw py::RuntimeError{ "cannot set_word_prior() after train()" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		inst->setWordPrior(word, py::toCpp<vector<tomoto::Float>>(prior, "`prior` must be a list of floats with len = k"));
+		if (PyDict_Check(prior))
+		{
+			vector<tomoto::Float> priors(inst->getNumTopicsForPrior(), inst->getEta());
+			PyObject* key, * value;
+			Py_ssize_t pos = 0;
+			while (PyDict_Next(prior, &pos, &key, &value))
+			{
+				auto k = PyLong_AsLong(key);
+				if (k < 0 || k >= priors.size()) throw py::ValueError{ "`prior` must be a dict of {topic_id: float}" };
+				auto v = PyFloat_AsDouble(value);
+				if (PyErr_Occurred()) throw py::ValueError{ "`prior` must be a dict of {topic_id: float}" };
+				priors[k] = v;
+			}
+			inst->setWordPrior(word, priors);
+		}
+		else
+		{
+			inst->setWordPrior(word, py::toCpp<vector<tomoto::Float>>(prior, "`prior` must be a list of floats with len = k"));
+		}
 		Py_INCREF(Py_None);
 		return Py_None;
 	});
