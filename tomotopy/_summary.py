@@ -2,6 +2,8 @@
 module for printing summary of topic models
 '''
 
+from ._call_utils import call_method_bound
+
 def _extract_param_desc(mdl_type:type):
     import re
     ps = mdl_type.__doc__.split('\nParameters\n')[1].split('\n')
@@ -26,16 +28,6 @@ def _extract_param_desc(mdl_type:type):
             continue
     if name: ret[name] = period.split(desc)[0]
     return ret
-
-def _call_method_bound(mdl, method:str, *args, **kwargs):
-    glob_methods = globals()
-    for c in type(mdl).mro()[:-1]:
-        cname = c.__name__
-        try:
-            return glob_methods[method + '_' + cname](mdl, *args, **kwargs)
-        except KeyError:
-            pass
-    raise KeyError(method + '_' + cname)
 
 def _format_numpy(arr, prefix=''):
     import numpy as np
@@ -132,7 +124,7 @@ def initial_params_info_LDAModel(mdl, file):
             else: fmt = ''
 
             try:
-                _call_method_bound(mdl, 'initial_params_info_' + k, v, file=file)
+                call_method_bound(mdl, 'initial_params_info_' + k, globals(), v, file=file)
             except KeyError:
                 if k in param_desc:
                     print(('| {}: {' + fmt + '} ({})').format(k, v, param_desc[k]), file=file)
@@ -333,25 +325,25 @@ def summary(mdl, initial_hp=True, params=True, topic_word_top_n=5, file=None, fl
     flush = flush or False
 
     print('<Basic Info>', file=file)
-    _call_method_bound(mdl, 'basic_info', file=file)
+    call_method_bound(mdl, 'basic_info', globals(), file=file)
     print('|', file=file)
     print('<Training Info>', file=file)
-    _call_method_bound(mdl, 'training_info', file=file)
+    call_method_bound(mdl, 'training_info', globals(), file=file)
     print('|', file=file)
 
     if initial_hp:
         print('<Initial Parameters>', file=file)
-        _call_method_bound(mdl, 'initial_params_info', file=file)
+        call_method_bound(mdl, 'initial_params_info', globals(), file=file)
         print('|', file=file)
     
     if params:
         print('<Parameters>', file=file)
-        _call_method_bound(mdl, 'params_info', file=file)
+        call_method_bound(mdl, 'params_info', globals(), file=file)
         print('|', file=file)
 
     if topic_word_top_n > 0:
         print('<Topics>', file=file)
-        _call_method_bound(mdl, 'topics_info', file=file, topic_word_top_n=topic_word_top_n)
+        call_method_bound(mdl, 'topics_info', globals(), file=file, topic_word_top_n=topic_word_top_n)
         print('|', file=file)
 
     print(file=file, flush=flush)
