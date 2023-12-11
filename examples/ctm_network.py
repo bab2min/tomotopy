@@ -42,11 +42,7 @@ print('Num docs:{}, Num Vocabs:{}, Total Words:{}'.format(
 print('Removed Top words: ', *mdl.removed_top_words)
 
 # Let's train the model
-for i in range(0, 1000, 20):
-    print('Iteration: {:04}, LL per word: {:.4}'.format(i, mdl.ll_per_word))
-    mdl.train(20)
-print('Iteration: {:04}, LL per word: {:.4}'.format(1000, mdl.ll_per_word))
-
+mdl.train(1000, show_progress=True)
 mdl.summary()
 
 # Let's visualize the result

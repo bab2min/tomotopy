@@ -11,10 +11,8 @@ def corpus_and_labeling_example(input_file):
     mdl.train(0)
     print('Num docs:', len(mdl.docs), ', Vocab size:', len(mdl.used_vocabs), ', Num words:', mdl.num_words)
     print('Removed top words:', mdl.removed_top_words)
-    for i in range(0, 1000, 10):
-        mdl.train(10)
-        print('Iteration: {}\tLog-likelihood: {}'.format(i, mdl.ll_per_word))
     
+    mdl.train(1000, show_progress=True)
     mdl.summary()
 
     # extract candidates for auto topic labeling

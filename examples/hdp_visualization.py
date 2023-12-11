@@ -41,11 +41,7 @@ print('Num docs:{}, Num Vocabs:{}, Total Words:{}'.format(
 print('Removed Top words: ', *mdl.removed_top_words)
 
 # Let's train the model
-for i in range(0, 5000, 50):
-    print('Iteration: {:04}, LL per word: {:.4}'.format(i, mdl.ll_per_word))
-    mdl.train(50)
-print('Iteration: {:04}, LL per word: {:.4}'.format(mdl.global_step, mdl.ll_per_word))
-
+mdl.train(5000, show_progress=True)
 mdl.summary()
 
 live_topics = [k for k in range(mdl.k) if mdl.is_live_topic(k)]
