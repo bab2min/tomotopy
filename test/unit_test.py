@@ -80,6 +80,21 @@ def null_doc(cls, inputFile, mdFields, f, kargs, ps):
     print(mdl.docs[0].words)
     print(mdl.docs[0].topics)
 
+def word_prior(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test word_prior')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
+    print('Adding docs...')
+    for n, line in enumerate(open(inputFile, encoding='utf-8')):
+        ch = line.strip().split()
+        if len(ch) < mdFields + 1: continue
+        if mdFields: mdl.add_doc(ch[mdFields:], f(ch[:mdFields]))
+        else: mdl.add_doc(ch)
+        mdl.set_word_prior(ch[0], {n % kargs['k']:1})
+    mdl.train(2000, workers=1, parallel=ps)
+    mdl.summary()
+
 def train1(cls, inputFile, mdFields, f, kargs, ps):
     print('Test train')
     tw = 0
@@ -660,4 +675,10 @@ for model_case in model_raw_cases:
     if not pss: pss = [tp.ParallelScheme.COPY_MERGE, tp.ParallelScheme.PARTITION]
     for ps in pss:
         for func in [train_raw_corpus, train_infer_raw_corpus]:
+            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
+for model_case in model_cases[:1]:
+    pss = model_case[5]
+    if not pss: pss = [tp.ParallelScheme.PARTITION]
+    for ps in pss:
+        for func in [word_prior]:
             locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)

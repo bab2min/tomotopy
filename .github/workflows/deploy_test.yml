@@ -12,7 +12,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        cp: [cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     container:
       image: docker://quay.io/pypa/manylinux2014_x86_64
 
@@ -65,7 +65,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        cp: [cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
 
     steps:
     - uses: actions/checkout@v2
@@ -140,7 +140,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        export MACOSX_DEPLOYMENT_TARGET=10.14
+        export MACOSX_DEPLOYMENT_TARGET=11.7
         python -m pip install twine wheel numpy==`python .github/workflows/numpy_version.py`
         TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
         twine upload --repository testpypi dist/*
@@ -151,7 +151,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10", 3.11]
+        python-version: [3.8, 3.9, "3.10", 3.11, 3.12]
         architecture: [x86, x64]
 
     steps:

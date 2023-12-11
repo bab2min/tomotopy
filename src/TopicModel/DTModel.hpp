@@ -365,6 +365,7 @@ namespace tomoto
 		{
 			double ll = 0;
 			const size_t V = this->realV;
+			if (V == 0) return 0;
 			for (Tid t = 0; t < T; ++t)
 			{
 				// topic-word distribution

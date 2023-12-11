@@ -8,6 +8,7 @@ def get_old_numpy_version():
         cpu_arch = 'x86_64'
 
     py_version = sys.version_info
+    if py_version >= (3, 12): return '1.26.0'
     if py_version >= (3, 11): return '1.24.0'
     if py_version >= (3, 10): return '1.22.0'
     if py_version >= (3, 9): return '1.20.0'

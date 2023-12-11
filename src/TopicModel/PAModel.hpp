@@ -460,6 +460,11 @@ namespace tomoto
 			return ret;
 		}
 
+		size_t getNumTopicsForPrior() const override
+		{
+			return this->K2;
+		}
+
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
 			if (priors.size() != K2) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors.size() must be equal to K2.");

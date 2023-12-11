@@ -137,7 +137,25 @@ PyObject* LDA_setWordPrior(TopicModelObject* self, PyObject* args, PyObject *kwa
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		if (self->isPrepared) throw py::RuntimeError{ "cannot set_word_prior() after train()" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
-		inst->setWordPrior(word, py::toCpp<vector<tomoto::Float>>(prior, "`prior` must be a list of floats with len = k"));
+		if (PyDict_Check(prior))
+		{
+			vector<tomoto::Float> priors(inst->getNumTopicsForPrior(), inst->getEta());
+			PyObject* key, * value;
+			Py_ssize_t pos = 0;
+			while (PyDict_Next(prior, &pos, &key, &value))
+			{
+				auto k = PyLong_AsLong(key);
+				if (k < 0 || k >= priors.size()) throw py::ValueError{ "`prior` must be a dict of {topic_id: float}" };
+				auto v = PyFloat_AsDouble(value);
+				if (PyErr_Occurred()) throw py::ValueError{ "`prior` must be a dict of {topic_id: float}" };
+				priors[k] = v;
+			}
+			inst->setWordPrior(word, priors);
+		}
+		else
+		{
+			inst->setWordPrior(word, py::toCpp<vector<tomoto::Float>>(prior, "`prior` must be a list of floats with len = k"));
+		}
 		Py_INCREF(Py_None);
 		return Py_None;
 	});
@@ -158,9 +176,10 @@ PyObject* LDA_getWordPrior(TopicModelObject* self, PyObject* args, PyObject *kwa
 
 static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t iteration = 10, workers = 0, ps = 0, fixed = 0;
-	static const char* kwlist[] = { "iter", "workers", "parallel", "freeze_topics", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnp", (char**)kwlist, &iteration, &workers, &ps, &fixed)) return nullptr;
+	size_t iteration = 10, workers = 0, ps = 0, fixed = 0, callback_interval = 10, show_progress = 1;
+	PyObject* callback = nullptr;
+	static const char* kwlist[] = { "iter", "workers", "parallel", "freeze_topics", "callback_interval", "callback", "show_progress", nullptr};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnpnOp", (char**)kwlist, &iteration, &workers, &ps, &fixed, &callback_interval, &callback, &show_progress)) return nullptr;
 	if (self->seedGiven && workers != 1 && PyErr_WarnEx(PyExc_RuntimeWarning, "The training result may differ even with fixed seed if `workers` != 1.", 1)) return nullptr;
 	return py::handleExc([&]()
 	{
@@ -171,9 +190,58 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 			inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
 			self->isPrepared = true;
 		}
-		if (inst->train(iteration, workers, (tomoto::ParallelScheme)ps, !!fixed) < 0) 
+
+		if (callback && !PyCallable_Check(callback)) throw py::ValueError{ "`callback` should be a callable object" };
+		if (!callback && !show_progress)
 		{
-			throw py::RuntimeError{ "Train failed" };
+			callback_interval = iteration;
+		}
+
+		PyObject* progress_func = nullptr;
+		if (show_progress)
+		{
+			py::UniqueObj mod{ PyImport_ImportModule("tomotopy._show_progress") };
+			if (!mod) throw py::ExcPropagation{};
+			PyObject* mod_dict = PyModule_GetDict(mod);
+			if (!mod_dict) throw py::ExcPropagation{};
+			progress_func = PyDict_GetItemString(mod_dict, "show_progress");
+		}
+
+		for (size_t it = 0; it < iteration; it += callback_interval)
+		{
+			if (callback || progress_func)
+			{
+				py::UniqueObj args{ py::buildPyTuple((PyObject*)self, it, iteration) };
+				if (callback)
+				{
+					py::UniqueObj ret{ PyObject_CallObject(callback, args) };
+					if (!ret) throw py::ExcPropagation{};
+				}
+				if (progress_func)
+				{
+					py::UniqueObj ret{ PyObject_CallObject(progress_func, args) };
+					if (!ret) throw py::ExcPropagation{};
+				}
+			}
+
+			if (inst->train(std::min(callback_interval, iteration - it), workers, (tomoto::ParallelScheme)ps, !!fixed) < 0)
+			{
+				throw py::RuntimeError{ "Train failed" };
+			}
+		}
+		if (callback || progress_func)
+		{
+			py::UniqueObj args{ py::buildPyTuple((PyObject*)self, iteration, iteration) };
+			if (callback)
+			{
+				py::UniqueObj ret{ PyObject_CallObject(callback, args) };
+				if (!ret) throw py::ExcPropagation{};
+			}
+			if (progress_func)
+			{
+				py::UniqueObj ret{ PyObject_CallObject(progress_func, args) };
+				if (!ret) throw py::ExcPropagation{};
+			}
 		}
 		Py_INCREF(Py_None);
 		return Py_None;

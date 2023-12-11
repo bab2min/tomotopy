@@ -516,9 +516,14 @@ namespace tomoto
 			return std::make_unique<_DocType>(as_mutable(this)->template _makeFromRawDoc<true>(rawDoc));
 		}
 
+		size_t getNumTopicsForPrior() const override
+		{
+			return this->K + KL;
+		}
+
 		void setWordPrior(const std::string& word, const std::vector<Float>& priors) override
 		{
-			if (priors.size() != this->K + KL) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors.size() must be equal to K.");
+			if (priors.size() != this->K + KL) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors.size() must be equal to K + KL.");
 			for (auto p : priors)
 			{
 				if (p < 0) THROW_ERROR_WITH_INFO(exc::InvalidArgument, "priors must not be less than 0.");
