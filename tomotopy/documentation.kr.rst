@@ -386,10 +386,20 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.12.6 (2023-12-11)
+    * 신규 기능
+        * `tomotopy.LDAModel.train`과 `tomotopy.LDAModel.set_word_prior`에 몇가지 편의 기능을 추가했습니다.
+        * `LDAModel.train`가 이제 학습 진행상황을 모니터링할 수 있는 `callback`, `callback_interval`, `show_progres` 인자를 지원합니다.
+        * `LDAModel.set_word_prior`가 이제 `prior` 인자로 `Dict[int, float]` 타입도 받을 수 있게 되었습니다.
+
+* 0.12.5 (2023-08-03)
+    * 신규 기능
+        * Linux ARM64 아키텍처에 대한 지원을 추가했습니다.
+
 * 0.12.4 (2023-01-22)
-    * New features
+    * 신규 기능
         * macOS ARM64 아키텍처에 대한 지원을 추가했습니다.
-    * Bug fixes
+    * 버그 수정
         * `tomotopy.Document.get_sub_topic_dist()`가 bad argument 예외를 발생시키는 문제를 해결했습니다.
         * 예외 발생이 종종 크래시를 발생시키는 문제를 해결했습니다.
 
