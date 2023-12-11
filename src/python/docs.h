@@ -407,8 +407,18 @@ Parameters
 ----------
 word : str
     a word to be set
-prior : Iterable[float]
+prior : Union[Iterable[float], Dict[int, float]]
 	topic distribution of `word` whose length is equal to `tomotopy.LDAModel.k`
+
+Note
+----
+Since version 0.12.6, this method can accept a dictionary type parameter as well as a list type parameter for `prior`.
+The key of the dictionary is the topic id and the value is the prior of the topic. If the prior of a topic is not set, the default value is set to `eta` parameter of the model.
+```python
+>>> model = tp.LDAModel(k=3, eta=0.01)
+>>> model.set_word_prior('apple', [0.01, 0.9, 0.01])
+>>> model.set_word_prior('apple', {1: 0.9}) # same effect as above
+```
 )"",
 u8R""(.. versionadded:: 0.6.0
 
@@ -418,8 +428,18 @@ Parameters
 ----------
 word : str
     설정할 어휘
-prior : Iterable[float]
+prior : Union[Iterable[float], Dict[int, float]]
     어휘 `word`의 주제 분포. `prior`의 길이는 `tomotopy.LDAModel.k`와 동일해야 합니다.
+
+Note
+----
+0.12.6 버전부터 이 메소드는 `prior`에 리스트 타입 파라미터 외에도 딕셔너리 타입 파라미터를 받을 수 있습니다.
+딕셔너리의 키는 주제의 id이며 값은 사전 주제 분포입니다. 만약 주제의 사전 분포가 설정되지 않았을 경우, 기본값으로 모델의 `eta` 파라미터로 설정됩니다.
+```python
+>>> model = tp.LDAModel(k=3, eta=0.01)
+>>> model.set_word_prior('apple', [0.01, 0.9, 0.01])
+>>> model.set_word_prior('apple', {1: 0.9}) # 위와 동일한 효과
+```
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_word_prior__doc__,
@@ -444,7 +464,7 @@ word : str
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_train__doc__,
-    "train(self, iter=10, workers=0, parallel=0, freeze_topics=False)",
+    "train(self, iter=10, workers=0, parallel=0, freeze_topics=False, callback_interval=10, callback=None, show_progress=False)",
     u8R""(Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
 After calling this method, you cannot `tomotopy.LDAModel.add_doc` or `tomotopy.LDAModel.set_word_prior` more.
 
@@ -463,6 +483,19 @@ freeze_topics : bool
     .. versionadded:: 0.10.1
 
     prevents to create a new topic when training. Only valid for `tomotopy.HLDAModel`
+callback_interval : int
+    .. versionadded:: 0.12.6
+
+    the interval of calling `callback` function. If `callback_interval` <= 0, `callback` function is called at the beginning and the end of training.
+callback : Callable[[tomotopy.LDAModel, int, int], None]
+    .. versionadded:: 0.12.6
+
+    a callable object which is called every `callback_interval` iterations. 
+    It receives three arguments: the current model, the current number of iterations, and the total number of iterations.
+show_progress : bool
+    .. versionadded:: 0.12.6
+
+    If `True`, it shows progress bar during training using `tqdm` package.
 )"",
 u8R""(깁스 샘플링을 `iter` 회 반복하여 현재 모델을 학습시킵니다. 반환값은 `None`입니다. 
 이 메소드가 호출된 이후에는 더 이상 `tomotopy.LDAModel.add_doc`로 현재 모델에 새로운 학습 문헌을 추가시킬 수 없습니다.
@@ -482,6 +515,19 @@ freeze_topics : bool
     .. versionadded:: 0.10.1
 
     학습 시 새로운 토픽을 생성하지 못하도록 합니다. 이 파라미터는 오직 `tomotopy.HLDAModel`에만 유효합니다.
+callback_interval : int
+    .. versionadded:: 0.12.6
+
+    `callback` 함수를 호출하는 간격. `callback_interval` <= 0일 경우 학습 시작과 종료 시에만 `callback` 함수가 호출됩니다.
+callback : Callable[[tomotopy.LDAModel, int, int], None]
+    .. versionadded:: 0.12.6
+
+    학습 과정에서 `callback_interval` 마다 호출되는 호출가능한 객체. 
+    이 함수는 세 개의 인자를 받습니다: 현재 모델, 현재까지의 반복 횟수, 총 반복 횟수.
+show_progress : bool
+    .. versionadded:: 0.12.6
+
+    `True`일 경우 `tqdm` 패키지를 이용해 학습 진행 상황을 표시합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_words__doc__,

@@ -176,7 +176,7 @@ PyObject* LDA_getWordPrior(TopicModelObject* self, PyObject* args, PyObject *kwa
 
 static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t iteration = 10, workers = 0, ps = 0, fixed = 0, callback_interval = 10, show_progress = 1;
+	size_t iteration = 10, workers = 0, ps = 0, fixed = 0, callback_interval = 10, show_progress = 0;
 	PyObject* callback = nullptr;
 	static const char* kwlist[] = { "iter", "workers", "parallel", "freeze_topics", "callback_interval", "callback", "show_progress", nullptr};
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnpnOp", (char**)kwlist, &iteration, &workers, &ps, &fixed, &callback_interval, &callback, &show_progress)) return nullptr;
@@ -192,7 +192,7 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 		}
 
 		if (callback && !PyCallable_Check(callback)) throw py::ValueError{ "`callback` should be a callable object" };
-		if (!callback && !show_progress)
+		if ((!callback && !show_progress) || callback_interval <= 0)
 		{
 			callback_interval = iteration;
 		}
