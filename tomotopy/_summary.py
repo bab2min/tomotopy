@@ -316,6 +316,21 @@ def topics_info_DTModel(mdl, file, topic_word_top_n):
             words = ' '.join(w for w, _ in mdl.get_topic_words(k, t, top_n=topic_word_top_n))
             print('|  t={} ({}) : {}'.format(t, topic_cnt[t, k], words), file=file)
 
+def basic_info(mdl, file=None):
+    call_method_bound(mdl, 'basic_info', globals(), file=file)
+
+def training_info(mdl, file=None):
+    call_method_bound(mdl, 'training_info', globals(), file=file)
+
+def initial_params_info(mdl, file=None):
+    call_method_bound(mdl, 'initial_params_info', globals(), file=file)
+
+def params_info(mdl, file=None):
+    call_method_bound(mdl, 'params_info', globals(), file=file)
+
+def topics_info(mdl, file=None, topic_word_top_n=5):
+    call_method_bound(mdl, 'topics_info', globals(), file=file, topic_word_top_n=topic_word_top_n)
+
 def summary(mdl, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False):
     import tomotopy as tp
     import numpy as np
@@ -325,25 +340,25 @@ def summary(mdl, initial_hp=True, params=True, topic_word_top_n=5, file=None, fl
     flush = flush or False
 
     print('<Basic Info>', file=file)
-    call_method_bound(mdl, 'basic_info', globals(), file=file)
+    basic_info(mdl, file=file)
     print('|', file=file)
     print('<Training Info>', file=file)
-    call_method_bound(mdl, 'training_info', globals(), file=file)
+    training_info(mdl, file=file)
     print('|', file=file)
 
     if initial_hp:
         print('<Initial Parameters>', file=file)
-        call_method_bound(mdl, 'initial_params_info', globals(), file=file)
+        initial_params_info(mdl, file=file)
         print('|', file=file)
     
     if params:
         print('<Parameters>', file=file)
-        call_method_bound(mdl, 'params_info', globals(), file=file)
+        params_info(mdl, file=file)
         print('|', file=file)
 
     if topic_word_top_n > 0:
         print('<Topics>', file=file)
-        call_method_bound(mdl, 'topics_info', globals(), file=file, topic_word_top_n=topic_word_top_n)
+        topics_info(mdl, file=file, topic_word_top_n=topic_word_top_n)
         print('|', file=file)
 
     print(file=file, flush=flush)
