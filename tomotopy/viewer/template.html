@@ -56,7 +56,11 @@
             <h3>Initial Parameters</h3>
             <div class="mb-3 row">
               {% for i, (k, v) in enumerate(getattr(model, '_init_params', {}).items()) %}
-              <label for="init-param-{{i}}" class="col-sm-2 col-form-label" data-bs-toggle="tooltip" data-bs-title="{{init_param_desc.get(k, "")}}">{{k}}</label>
+              {% if k in init_param_desc %}
+              <label for="init-param-{{i}}" class="col-sm-2 col-form-label" data-bs-toggle="tooltip" data-bs-title="{{init_param_desc[k]}}">{{k}}</label>
+              {% else %}
+              <label for="init-param-{{i}}" class="col-sm-2 col-form-label">{{k}}</label>
+              {% end %}
               <div class="col-sm-4">
                 <input type="text" readonly class="form-control" id="init-param-{{i}}" value="{{v}}">
               </div>
@@ -82,7 +86,7 @@
               <div class="mb-3 row">
                 <div class="col-sm-7">
                   <div class="input-group mb-3">
-                    <span class="input-group-text">Filter only documents where the proportion of</span>
+                    <span class="input-group-text">Show only documents where the proportion of</span>
                     <select class="form-select" name="t">
                       {% for k in range(model.k) %}
                       <option value="{{k}}" {{"selected" if k == filter_target else ""}}>Topic #{{k}}</option>
