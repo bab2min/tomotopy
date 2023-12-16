@@ -5,8 +5,9 @@ import urllib.parse
 import html
 from dataclasses import dataclass
 import traceback
-
 import http.server
+
+import numpy as np
 
 def _escape_html(s):
     if isinstance(s, str):
@@ -208,12 +209,23 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
     
     def get_topic(self):
         top_n = int(self.arguments.get('top_n', '10'))
+        alpha = float(self.arguments.get('alpha', '0.0'))
         topics = []
         max_dist = 0
-        for k in range(self.model.k):
-            topic_words = self.model.get_topic_words(k, top_n)
-            max_dist = max(max_dist, topic_words[0][1])
-            topics.append(Topic(k, topic_words))
+        if alpha > 0:
+            topic_word_dist = np.stack([self.model.get_topic_word_dist(k) for k in range(self.model.k)])
+            pseudo_idf = np.log(len(topic_word_dist) / (topic_word_dist ** alpha).sum(0))
+            weighted_topic_word_dist = topic_word_dist * pseudo_idf
+            top_words = (-weighted_topic_word_dist).argsort()[:, :top_n]
+            max_dist = topic_word_dist.max()
+            for k, top_word in enumerate(top_words):
+                topic_words = [(self.model.vocabs[w], topic_word_dist[k, w]) for w in top_word]
+                topics.append(Topic(k, topic_words))
+        else:
+            for k in range(self.model.k):
+                topic_words = self.model.get_topic_words(k, top_n)
+                max_dist = max(max_dist, topic_words[0][1])
+                topics.append(Topic(k, topic_words))
         
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
@@ -233,11 +245,23 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
             if topic < 0: continue
             if last < s:
                 chunks.append(html.escape(raw[last:s]))
-            chunks.append(f'<span class="topic-color-{topic % 40}-040 topic-{topic}" data-bs-toggle="tooltip" data-bs-title="Topic #{topic}">{html.escape(raw[s:e])}</span>')
+            chunks.append(f'<span class="topic-color-{topic % 40}-040 topic-action" data-topic-id="{topic}" data-bs-toggle="tooltip" data-bs-title="Topic #{topic}">{html.escape(raw[s:e])}</span>')
             last = e
         if last < len(raw):
             chunks.append(html.escape(raw[last:]))
-        html_cont = ''.join(chunks).replace('\n', '<br>')
+        html_cont = '<p>' + ''.join(chunks).strip().replace('\n', '<br>') + '</p>'
+        
+        chunks = ['<table class="table table-striped table-hover topic-dist">']
+        for topic_id, dist in doc.get_topics(top_n=-1):
+            chunks.append(
+f'''<tr class="topic-action" data-topic-id="{topic_id}">
+    <th scope="row"><a href="javascript:void(0);">Topic # {topic_id}</a></th>
+    <td><div class="progress flex-grow-1" data-bs-toggle="tooltip" data-bs-title="{dist:.5%}">
+        <div class="progress-bar topic-color-{topic_id % 40}" role="progressbar" style="width: {dist:.5%}">{dist:.3%}</div>
+    </div></td>
+    </tr>''')
+        chunks.append('</table>')
+        html_cont += ''.join(chunks)
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()

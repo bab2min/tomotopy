@@ -22,10 +22,12 @@
       .list-group-item.active a {color: #fff; }
       .topic-word-dist-container {overflow-x: scroll; margin: 0; padding: 0; list-style: none; white-space: nowrap; }
       .topic-word-dist-container>li {display: inline-block; width: 25%; max-width: 15em;}
-      .word-dist th {width:1%;}
+      .word-dist th, .topic-dist th {width:1%; white-space: nowrap;}
 
       #document-content .card {height:100%;}
-      #document-content-body {text-shadow: -1px 0 #fff, 1px 0 #fff, 0 -1px #fff, 0 1px #fff;}
+      #document-content-body p {text-shadow: -1px 0 #fff, 1px 0 #fff, 0 -1px #fff, 0 1px #fff;}
+      #document-content-body p span.active {font-weight: bold;}
+      #document-content-body table tr.active {background-color: #ccf;}
     </style>
   </head>
   <body style="background-color: #eee;">
@@ -165,7 +167,7 @@
                     <button type="button" class="btn-close float-end" id="document-content-close" aria-label="Close"></button>
                   </div>
                   <div class="card-body">
-                    <p id="document-content-body"></p>
+                    <div id="document-content-body"></div>
                   </div>
                 </div>
               </div>
@@ -263,6 +265,23 @@
           document.querySelector('#document-filter').submit();
         });
       }
+
+      // attach event handler to element with .topic-action dynamically
+      document.addEventListener("click", function(e){
+        const target = e.target.closest(".topic-action");
+        if (!target) return;
+        
+        // remove active class from all topic elements
+        document.querySelectorAll('.topic-action').forEach((el) => {
+          el.classList.remove('active');
+        });
+        // add active class to elements having the same topic id to the clicked topic element
+        const topic_id = target.getAttribute('data-topic-id');
+        document.querySelectorAll(`.topic-action[data-topic-id="${topic_id}"]`).forEach((el) => {
+          el.classList.add('active');
+        });
+      });
+
     }());
     </script>
   </body>
