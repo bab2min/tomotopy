@@ -64,6 +64,53 @@ void char2Byte(const tomoto::SharedString& str, vector<uint32_t>& startPos, vect
 	return char2Byte(str.begin(), str.end(), startPos, length);
 }
 
+void byte2Char(const char* strBegin, const char* strEnd, vector<uint32_t>& startPos, vector<uint16_t>& length)
+{
+	if (strBegin == strEnd) return;
+	vector<size_t> charPos;
+	auto it = strBegin;
+	for (; it != strEnd; )
+	{
+		charPos.emplace_back(it - strBegin);
+		uint8_t c = *it;
+		if ((c & 0xF8) == 0xF0)
+		{
+			it += 4;
+		}
+		else if ((c & 0xF0) == 0xE0)
+		{
+			it += 3;
+		}
+		else if ((c & 0xE0) == 0xC0)
+		{
+			it += 2;
+		}
+		else if ((c & 0x80))
+		{
+			throw std::runtime_error{ "utf-8 decoding error" };
+		}
+		else it += 1;
+	}
+	charPos.emplace_back(strEnd - strBegin);
+
+	for (size_t i = 0; i < startPos.size(); ++i)
+	{
+		size_t s = startPos[i], e = (size_t)startPos[i] + length[i];
+		startPos[i] = std::lower_bound(charPos.begin(), charPos.end(), s) - charPos.begin();
+		length[i] = std::lower_bound(charPos.begin(), charPos.end(), e) - charPos.begin() - startPos[i];
+	}
+}
+
+void byte2Char(const string& str, vector<uint32_t>& startPos, vector<uint16_t>& length)
+{
+	return byte2Char(&str[0], &str[0] + str.size(), startPos, length);
+}
+
+void byte2Char(const tomoto::SharedString& str, vector<uint32_t>& startPos, vector<uint16_t>& length)
+{
+	return byte2Char(str.begin(), str.end(), startPos, length);
+}
+
 void TopicModelObject::dealloc(TopicModelObject* self)
 {
 	DEBUG_LOG("TopicModelObject Dealloc " << self);

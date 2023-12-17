@@ -7,6 +7,8 @@
 
 using namespace std;
 
+void byte2Char(const tomoto::SharedString& str, vector<uint32_t>& startPos, vector<uint16_t>& length);
+
 namespace py
 {
 	template<>
@@ -390,10 +392,14 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 					PyObject* pos = PyTuple_GetItem(t, 1);
 					PyObject* len = PyTuple_GetItem(t, 2);
 					if (!(PyUnicode_Check(word) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
-
-					py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
-					if (!stopRet) throw py::ExcPropagation{};
-					doc.words.emplace_back(PyObject_IsTrue(stopRet) ? -1 : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
+					bool isStopword = false;
+					if (stopwords != Py_None)
+					{
+						py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
+						if (!stopRet) throw py::ExcPropagation{};
+						isStopword = PyObject_IsTrue(stopRet);
+					}
+					doc.words.emplace_back(isStopword ? -1 : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
 					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
 					doc.origWordLen.emplace_back(PyLong_AsLong(len));
 				}
@@ -446,6 +452,97 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 		return py::buildPyValue(self->docs.size() - 1);
 	});
 }
+
+
+PyObject* CorpusObject::addDocs(CorpusObject* self, PyObject* args, PyObject* kwargs)
+{
+	return py::handleExc([&]()
+	{
+		if (!self->isIndependent())
+			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
+		if (PyTuple_Size(args) != 3) throw py::ValueError{ "function takes 1 positional arguments." };
+		PyObject* tokenized_iter = PyTuple_GetItem(args, 0);
+		PyObject* raw_iter = PyTuple_GetItem(args, 1);
+		PyObject* metadata_iter = PyTuple_GetItem(args, 2);
+
+		size_t cnt = 0;
+
+		py::UniqueObj stopwords{ PyObject_GetAttrString((PyObject*)self, "_stopwords") };
+
+		py::foreach<PyObject*>(tokenized_iter, [&](PyObject* tokenized)
+		{
+			tomoto::RawDoc doc;
+			py::foreach<PyObject*>(tokenized, [&](PyObject* t)
+			{
+				if (PyUnicode_Check(t))
+				{
+					doc.words.emplace_back(self->vocab->vocabs->add(PyUnicode_AsUTF8(t)));
+				}
+				else if (PyTuple_Size(t) == 3)
+				{
+					PyObject* word = PyTuple_GetItem(t, 0);
+					PyObject* pos = PyTuple_GetItem(t, 1);
+					PyObject* len = PyTuple_GetItem(t, 2);
+					if (!(PyUnicode_Check(word) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+
+					bool isStopword = false;
+					if (stopwords != Py_None)
+					{
+						py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
+						if (!stopRet) throw py::ExcPropagation{};
+						isStopword = PyObject_IsTrue(stopRet);
+					}
+					doc.words.emplace_back(isStopword ? -1 : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
+					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
+					doc.origWordLen.emplace_back(PyLong_AsLong(len));
+				}
+				else
+				{
+					throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+				}
+			}, "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`).");
+			py::UniqueObj raw{ PyIter_Next(raw_iter) };
+			if (!raw) throw py::ExcPropagation{};
+			py::UniqueObj metadata{ PyIter_Next(metadata_iter) };
+			if (!metadata) throw py::ExcPropagation{};
+
+			doc.rawStr = tomoto::SharedString{ PyUnicode_AsUTF8(raw) };
+
+			PyObject* key, * value;
+			Py_ssize_t p = 0;
+			while (PyDict_Next(metadata, &p, &key, &value))
+			{
+				const char* utf8 = PyUnicode_AsUTF8(key);
+				if (utf8 == string{ "uid" })
+				{
+					if (value == Py_None) continue;
+					const char* uid = PyUnicode_AsUTF8(value);
+					if (!uid) throw py::ValueError{ "`uid` must be str type." };
+					string suid = uid;
+					if (suid.empty()) throw py::ValueError{ "wrong `uid` value : empty str not allowed" };
+					if (self->invmap.find(suid) != self->invmap.end())
+					{
+						throw py::ValueError{ "there is a document with uid = " + py::repr(value) + " already." };
+					}
+					self->invmap.emplace(suid, self->docs.size());
+					doc.docUid = tomoto::SharedString{ uid };
+					continue;
+				}
+
+				Py_INCREF(value);
+				doc.misc[utf8] = std::shared_ptr<void>{ value, [](void* p)
+				{
+					Py_XDECREF(p);
+				} };
+			}
+			self->docs.emplace_back(move(doc));
+			cnt++;
+		}, "");
+
+		return py::buildPyValue(cnt);
+	});
+}
+
 
 PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs)
 {
@@ -797,6 +894,7 @@ static PyMethodDef UtilsCorpus_methods[] =
 	{ "__getstate__", (PyCFunction)CorpusObject::getstate, METH_NOARGS, "" },
 	{ "__setstate__", (PyCFunction)CorpusObject::setstate, METH_VARARGS, "" },
 	{ "add_doc", (PyCFunction)CorpusObject::addDoc, METH_VARARGS | METH_KEYWORDS, "" },
+	{ "add_docs", (PyCFunction)CorpusObject::addDocs, METH_VARARGS | METH_KEYWORDS, "" },
 	{ "extract_ngrams", (PyCFunction)CorpusObject::extractNgrams, METH_VARARGS | METH_KEYWORDS, "" },
 	{ "concat_ngrams", (PyCFunction)CorpusObject::concatNgrams, METH_VARARGS | METH_KEYWORDS, "" },
 	{ nullptr }
@@ -1025,10 +1123,14 @@ PyObject* DocumentObject::getSpan(DocumentObject* self, void* closure)
 {
 	return py::handleExc([&]()
 	{
-		PyObject* ret = PyList_New(self->doc->origWordPos.size());
-		for (size_t i = 0; i < self->doc->origWordPos.size(); ++i)
+		auto starts = self->doc->origWordPos;
+		auto lengthes = self->doc->origWordLen;
+		byte2Char(self->doc->rawStr, starts, lengthes);
+
+		PyObject* ret = PyList_New(starts.size());
+		for (size_t i = 0; i < starts.size(); ++i)
 		{
-			size_t begin = self->doc->origWordPos[i], end = begin + self->doc->origWordLen[i];
+			size_t begin = starts[i], end = begin + lengthes[i];
 			PyList_SET_ITEM(ret, i, py::buildPyTuple(begin, end));
 		}
 		return ret;
