@@ -241,11 +241,11 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         chunks = []
         raw = doc.raw
         last = 0
-        for (s, e), topic in zip(doc.span, doc.topics):
+        for (s, e), topic, w in zip(doc.span, doc.topics, doc.words):
             if topic < 0: continue
             if last < s:
                 chunks.append(html.escape(raw[last:s]))
-            chunks.append(f'<span class="topic-color-{topic % 40}-040 topic-action" data-topic-id="{topic}" data-bs-toggle="tooltip" data-bs-title="Topic #{topic}">{html.escape(raw[s:e])}</span>')
+            chunks.append(f'<span class="topic-color-{topic % 40}-040 topic-action" data-topic-id="{topic}" data-bs-toggle="tooltip" data-bs-title="Topic #{topic}: {self.model.vocabs[w]}">{html.escape(raw[s:e])}</span>')
             last = e
         if last < len(raw):
             chunks.append(html.escape(raw[last:]))
