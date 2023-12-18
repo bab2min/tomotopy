@@ -416,9 +416,14 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 			if (!PyObject_IsTrue(words)) return py::buildPyValue(-1);
 			py::foreach<string>(words, [&](const string& w)
 			{
-				py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(w) }) };
-				if (!stopRet) throw py::ExcPropagation{};
-				doc.words.emplace_back(PyObject_IsTrue(stopRet) ? -1 : self->vocab->vocabs->add(w));
+				bool isStopword = false;
+				if (stopwords != Py_None)
+				{
+					py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
+					if (!stopRet) throw py::ExcPropagation{};
+					isStopword = PyObject_IsTrue(stopRet);
+				}
+				doc.words.emplace_back(isStopword ? -1 : self->vocab->vocabs->add(w));
 			}, "");
 		}
 		PyObject* key, * value;
