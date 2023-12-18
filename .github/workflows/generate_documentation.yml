@@ -47,7 +47,7 @@ jobs:
         /opt/python/cp38-cp38/bin/python setup.py install
     - name: gen doc
       run: |
-        export TOMOTOPY_VER="`python3 -m pip show tomotopy | grep Version | cut -d' ' -f2`"
+        export TOMOTOPY_VER="`/opt/python/cp38-cp38/bin/python -m pip show tomotopy | grep Version | cut -d' ' -f2`"
         export TOMOTOPY_LANG=${{ matrix.language }}
         /opt/python/cp38-cp38/bin/python -m pdoc --html tomotopy
         sed -i -E "s/documentation<\/title>/documentation (v${TOMOTOPY_VER})<\/title>/" html/tomotopy/*.html
