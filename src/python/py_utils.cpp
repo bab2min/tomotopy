@@ -705,7 +705,7 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 						size_t found = nnode->val - 1;
 						doc.words[i] = pcandVids[found];
 						size_t len = pcands[found].w.size();
-						if(len > 1) doc.words.erase(doc.words.begin() + i - len + 1, doc.words.begin() + i);
+						if(len > 1) doc.words.erase(doc.words.begin() + i + 1 - len, doc.words.begin() + i);
 						totUpdated++;
 					}
 				}

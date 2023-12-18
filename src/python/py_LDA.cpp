@@ -365,6 +365,11 @@ static PyObject* LDA_save(TopicModelObject* self, PyObject* args, PyObject *kwar
 	return py::handleExc([&]()
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared)
+		{
+			self->inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
+			self->isPrepared = true;
+		}
 		ofstream str{ filename, ios_base::binary };
 		if (!str) throw py::OSError{ std::string("cannot open file '") + filename + std::string("'") };
 
@@ -398,6 +403,11 @@ static PyObject* LDA_saves(TopicModelObject* self, PyObject* args, PyObject* kwa
 	return py::handleExc([&]()
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (!self->isPrepared)
+		{
+			self->inst->prepare(true, self->minWordCnt, self->minWordDf, self->removeTopWord);
+			self->isPrepared = true;
+		}
 		ostringstream str;
 
 		vector<uint8_t> extra_data;
