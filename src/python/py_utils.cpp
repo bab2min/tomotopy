@@ -419,7 +419,7 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 				bool isStopword = false;
 				if (stopwords != Py_None)
 				{
-					py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
+					py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(w) }) };
 					if (!stopRet) throw py::ExcPropagation{};
 					isStopword = PyObject_IsTrue(stopRet);
 				}
