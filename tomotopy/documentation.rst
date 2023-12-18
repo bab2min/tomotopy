@@ -389,6 +389,13 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.12.7 (2023-12-19)
+    * New features
+        * Added Topic Model Viewer `tomotopy.viewer.open_viewer()`
+        * Optimized the performance of `tomotopy.utils.Corpus.process()`
+    * Bug fixes
+        * `Document.span` now returns the ranges in character unit, not in byte unit.
+
 * 0.12.6 (2023-12-11)
     * New features
         * Added some convenience features to `tomotopy.LDAModel.train` and `tomotopy.LDAModel.set_word_prior`.

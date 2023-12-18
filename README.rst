@@ -309,6 +309,23 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.12.7 (2023-12-19)
+    * New features
+        * Added Topic Model Viewer `tomotopy.viewer.open_viewer()`
+        * Optimized the performance of `tomotopy.utils.Corpus.process()`
+    * Bug fixes
+        * `Document.span` now returns the ranges in character unit, not in byte unit.
+
+* 0.12.6 (2023-12-11)
+    * New features
+        * Added some convenience features to `tomotopy.LDAModel.train` and `tomotopy.LDAModel.set_word_prior`.
+        * `LDAModel.train` now has new arguments `callback`, `callback_interval` and `show_progres` to monitor the training progress.
+        * `LDAModel.set_word_prior` now can accept `Dict[int, float]` type as its argument `prior`.
+
+* 0.12.5 (2023-08-03)
+    * New features
+        * Added support for Linux ARM64 architecture.
+
 * 0.12.4 (2023-01-22)
     * New features
         * Added support for macOS ARM64 architecture.

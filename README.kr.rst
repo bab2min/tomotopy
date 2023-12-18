@@ -305,6 +305,23 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.12.7 (2023-12-19)
+    * 신규 기능
+        * 토픽 모델 뷰어인 `tomotopy.viewer.open_viewer()`가 추가되었습니다.
+        * `tomotopy.utils.Corpus.process()`의 속도를 개선했습니다.
+    * Bug fixes
+        * `Document.span`이 이제 바이트 단위가 아니라 문자 단위로 범위를 제대로 반환합니다.
+
+* 0.12.6 (2023-12-11)
+    * 신규 기능
+        * `tomotopy.LDAModel.train`과 `tomotopy.LDAModel.set_word_prior`에 몇가지 편의 기능을 추가했습니다.
+        * `LDAModel.train`가 이제 학습 진행상황을 모니터링할 수 있는 `callback`, `callback_interval`, `show_progres` 인자를 지원합니다.
+        * `LDAModel.set_word_prior`가 이제 `prior` 인자로 `Dict[int, float]` 타입도 받을 수 있게 되었습니다.
+
+* 0.12.5 (2023-08-03)
+    * 신규 기능
+        * Linux ARM64 아키텍처에 대한 지원을 추가했습니다.
+
 * 0.12.4 (2023-01-22)
     * New features
         * macOS ARM64 아키텍처에 대한 지원을 추가했습니다.
