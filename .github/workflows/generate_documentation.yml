@@ -61,14 +61,13 @@ jobs:
         git clone https://${{ secrets.ACCESS_TOKEN }}@github.com/bab2min/bab2min.github.io
         mkdir -p bab2min.github.io/tomotopy/v${TOMOTOPY_VER}/${{ matrix.language }}
         popd
-        cp html/tomotopy/* ../g/bab2min.github.io/tomotopy/v${TOMOTOPY_VER}/${{ matrix.language }}
+        cp -r html/tomotopy/* ../g/bab2min.github.io/tomotopy/v${TOMOTOPY_VER}/${{ matrix.language }}
         pushd ../g/bab2min.github.io
-        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/v${TOMOTOPY_VER}/en/'' >" > tomotopy/index.html
-        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/v${TOMOTOPY_VER}/kr/'' >" > tomotopy/index.kr.html
+        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/v${TOMOTOPY_VER}/en/' >" > tomotopy/index.html
+        echo "<meta http-equiv='refresh' content='0;url=/tomotopy/v${TOMOTOPY_VER}/kr/' >" > tomotopy/index.kr.html
         git config user.email "bab2min@gmail.com"
         git config user.name "bab2min"
         git add .
         git commit -m "v${TOMOTOPY_VER} ${{ matrix.language }}"
         git push
         popd
-        
