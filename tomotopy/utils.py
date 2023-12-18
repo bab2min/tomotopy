@@ -15,7 +15,7 @@ class Corpus(_UtilsCorpus):
     def __init__(self, tokenizer=None, batch_size=64, stopwords=None):
         '''Parameters
 ----------
-tokenizer : Callable[[str, Any], Iterable[Union[str, Tuple[str, int, int]]]]
+tokenizer : Union[Callable[[str, Any], List[Union[str, Tuple[str, int, int]]]], Callable[[Iterable[Tuple[str, Any]]], Iterable[List[Union[str, Tuple[str, int, int]]]]]]
     a callable object for tokenizing raw documents. If `tokenizer` is provided, you can use `tomotopy.utils.Corpus.add_doc` method with `raw` and `user_data` parameters.
     `tokenizer` receives two arguments `raw` and `user_data` and 
     it should return an iterable of `str`(the tokenized word) or of Tuple[`str`, `int`, `int`] (the tokenized word, starting position of the word, the length of the word).
@@ -31,7 +31,7 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
         if callable(stopwords):
             self._stopwords = stopwords
         elif stopwords is None:
-            self._stopwords = lambda x: False
+            self._stopwords = None
         else:
             self._stopwords = lambda x: x in set(stopwords)
 
@@ -71,7 +71,7 @@ user_data : Any
         '''
         return super().add_doc(words, raw, user_data, **kargs)
 
-    def process(self, data_feeder):
+    def process(self, data_feeder, show_progress=False, total=None):
         '''Add multiple documents into the corpus through a given iterator `data_feeder` and return the number of documents inserted.
 
 Parameters
@@ -79,28 +79,41 @@ Parameters
 data_feeder : Iterable[Union[str, Tuple[str, Any], Tuple[str, Any, dict]]]
     any iterable yielding a str `raw`, a tuple of (`raw`, `user_data`) or a tuple of (`raw`, `user_data`, `arbitrary_keyword_args`). 
         '''
-        res = []
-        num = 0
-        for d in data_feeder:
-            num += 1
-            if type(d) is tuple and len(d) == 2:
-                res.append((*d, {}))
-            elif type(d) is tuple and len(d) == 3:
-                res.append(d)
-            elif type(d) is str:
-                res.append((d, None, {}))
-            else:
-                raise ValueError("`data_feeder` must return an iterable of str, of Tuple[str, Any] or Tuple[str, Any, dict]")
-
-            if len(res) >= self._batch_size:
-                for raw, user_data, kargs in res:
-                    self.add_doc(raw=raw, user_data=user_data, **kargs)
-                res.clear()
+        if self._tokenizer is None:
+            raise ValueError("`tokenizer` must be set when using `tomotopy.utils.Corpus.process`")
         
-        for raw, user_data, kargs in res:
-            self.add_doc(raw=raw, user_data=user_data, **kargs)
+        num = [0]
+        raw_list = []
+        metadata_list = []
+        if show_progress:
+            from tqdm import tqdm
+            data_feeder_iter = iter(tqdm(data_feeder, total=total))
+        else:
+            data_feeder_iter = iter(data_feeder)
+        def _generate():
+            for _, d in zip(range(self._batch_size), data_feeder_iter):
+                num[0] += 1
+                if isinstance(d, tuple) and len(d) == 2:
+                    raw_list.append(d[0])
+                    metadata_list.append({})
+                    yield d
+                elif isinstance(d, tuple) and len(d) == 3:
+                    raw_list.append(d[0])
+                    metadata_list.append(d[2])
+                    yield d[:2]
+                elif isinstance(d, str):
+                    raw_list.append(d)
+                    metadata_list.append({})
+                    yield (d, None)
+                else:
+                    raise ValueError("`data_feeder` must return an iterable of str, of Tuple[str, Any] or Tuple[str, Any, dict]")    
         
-        return num
+        while 1:
+            added = super().add_docs(self._tokenizer(_generate()), iter(raw_list), iter(metadata_list))
+            if added == 0: break
+            raw_list.clear()
+            metadata_list.clear()
+        return num[0]
 
     def save(self, filename:str, protocol=0):
         '''Save the current instance into the file `filename`. 
@@ -126,7 +139,7 @@ filename : str
         import pickle
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
-        obj._stopwords = lambda x : False
+        obj._stopwords = None
         return obj
 
     def __len__(self):
@@ -199,7 +212,7 @@ Here is an example of using SimpleTokenizer with NLTK for stemming.
         self._stemmer = stemmer or None
         self._lowercase = lowercase
 
-    def __call__(self, raw:str, user_data=None):
+    def _tokenize(self, raw:str):
         if self._stemmer:
             for g in self._pat.finditer(raw if self._lowercase else raw):
                 start, end = g.span(0)
@@ -212,6 +225,21 @@ Here is an example of using SimpleTokenizer with NLTK for stemming.
                 word = g.group(0)
                 if self._lowercase: word = word.lower()
                 yield word, start, end - start
+
+    def __call__(self, raw:str, user_data=None):
+        is_iterable = False
+        # test raw is iterable
+        if user_data is None and not isinstance(raw, str):
+            try:
+                iter(raw)
+                is_iterable = True
+            except TypeError:
+                pass
+        if is_iterable:
+            for r, _ in raw:
+                yield list(self._tokenize(r))
+        else:
+            yield from self._tokenize(raw)
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

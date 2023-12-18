@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <style>
+      {% for i, (c, s) in enumerate(zip(topic_colors, topic_styles)) %}
+        {% if s == 0 %}
+        {% set style_text = '' %}
+        {% elif s == 1 %}
+        {% set style_text = 'background-image: linear-gradient(45deg,rgba(255,255,255,.25) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.25) 50%,rgba(255,255,255,.25) 75%,transparent 75%,transparent); background-size: 1rem 1rem;' %}
+        {% else %}
+        {% set style_text = 'background-image: linear-gradient(135deg,rgba(0,0,0,.15) 25%,transparent 25%,transparent 50%,rgba(0,0,0,.15) 50%,rgba(0,0,0,.15) 75%,transparent 75%,transparent); background-size: 1rem 1rem;' %}
+        {% end %}
+      .topic-color-{{i}} {background-color: rgba{{(*c, 1.0)}}; {{style_text}} }
+      .topic-color-{{i}}-050 {background-color: rgba{{(*c, 0.50)}}; {{style_text}} }
+      .topic-color-{{i}}-040 {background-color: rgba{{(*c, 0.40)}}; {{style_text}} }
+      {% end %}
+
+      .list-group-item.active a {color: #fff; }
+      .topic-word-dist-container {overflow-x: scroll; margin: 0; padding: 0; list-style: none; white-space: nowrap; }
+      .topic-word-dist-container>li {display: inline-block; width: 25%; max-width: 15em;}
+      .word-dist th, .topic-dist th {width:1%; white-space: nowrap;}
+
+      #document-content .card {height:100%;}
+      #document-content-body p {text-shadow: -1px 0 rgba(255, 255, 255, 0.75), 1px 0 rgba(255, 255, 255, 0.75), 0 -1px rgba(255, 255, 255, 0.75), 0 1px rgba(255, 255, 255, 0.75);}
+      #document-content-body p span.active {font-weight: bold;}
+      #document-content-body table tr.active {background-color: #ccf;}
+    </style>
+  </head>
+  <body style="background-color: #eee;">
+    <div class="" style="background-color: #fff;">
+      <main class="p-3">
+        <ul class="nav nav-tabs" id="menu" role="tablist">
+          <li class="nav-item" role="presentation">
+            <a class="nav-link {{"active" if action == "overview" else ""}}" id="overview-tab" href="/">Overview</a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a class="nav-link {{"active" if action == "document" else ""}}" id="document-tab" href="/document">Document</a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a class="nav-link {{"active" if action == "topic" else ""}}" id="topic-tab" href="/topic">Topic</a>
+          </li>
+        </ul>
+        <div class="tab-content" id="tab-content">
+          {% if action == 'overview' %}
+          <div class="tab-pane fade show active mx-1 my-3" id="overview-tab-pane" role="tabpanel" aria-labelledby="overview-tab">
+            <h3>Basic Info</h3>
+            <div class="mb-3 row">
+              <pre>{{basic_info}}</pre>
+            </div>
+            <h3>Training Info</h3>
+            <div class="mb-3 row">
+              <pre>{{training_info}}</pre>
+            </div>
+            <h3>Initial Parameters</h3>
+            <div class="mb-3 row">
+              {% for i, (k, v) in enumerate(getattr(model, '_init_params', {}).items()) %}
+              {% if k in init_param_desc %}
+              <label for="init-param-{{i}}" class="col-sm-2 col-form-label" data-bs-toggle="tooltip" data-bs-title="{{init_param_desc[k]}}">{{k}}</label>
+              {% else %}
+              <label for="init-param-{{i}}" class="col-sm-2 col-form-label">{{k}}</label>
+              {% end %}
+              <div class="col-sm-4">
+                <input type="text" readonly class="form-control" id="init-param-{{i}}" value="{{v}}">
+              </div>
+              {% end %}
+            </div>
+            <h3>Parameters</h3>
+            <div class="mb-3 row">
+              <pre>{{params_info}}</pre>
+            </div>
+            <h3>Topics</h3>
+            <div class="mb-3 row">
+              <pre>{{topics_info}}</pre>
+            </div>
+          </div>
+          {% elif action == 'document' %}
+          <div class="tab-pane fade show active mx-1 my-3" id="document-tab-pane" role="tabpanel" aria-labelledby="document-tab">
+            {% if filtered_docs is None %}
+            <h3>All documents in the model ({{total_docs}})</h3>
+            {% else %}
+            <h3>Filtered documents ({{filtered_docs}} / {{total_docs}})</h3>
+            {% end %}
+            <form id="document-filter">
+              <div class="mb-3 row">
+                <div class="col-sm-7">
+                  <div class="input-group mb-3">
+                    <span class="input-group-text">Show only documents where the proportion of</span>
+                    <select class="form-select" name="t">
+                      {% for k in range(model.k) %}
+                      <option value="{{k}}" {{"selected" if k == filter_target else ""}}>Topic #{{k}}</option>
+                      {% end %}
+                    </select>
+                    <span class="input-group-text">&gt;=</span>
+                    <input type="text" class="form-control" id="document-filter-value" name="v" value="{{filter_value:g}}">
+                    <span class="input-group-text">%</span>
+                  </div>
+                </div>
+                <div class="col-sm-5">
+                  <select class="form-select" name="s" id="document-sort-key">
+                    <option value="-1" {{"selected" if -1 == sort_key else ""}}>Order by DocId</option>
+                    {% for k in range(model.k) %}
+                    <option value="{{k}}" {{"selected" if k == sort_key else ""}}>Order by Topic #{{k}}</option>
+                    {% end %}
+                  </select>
+                </div>
+              </div>
+            </form>
+            <div class="row">
+              <div class="col">
+                <ul class="list-group">
+                  {% for doc in documents %}
+                  <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-start doc-item" id="doc-item-{{doc.doc_id}}">
+                    <div class="pe-3">
+                      <a href="#doc-{{doc.doc_id}}" class="document-view">Doc {{doc.doc_id}}</a>
+                    </div>
+                    <div class="progress flex-grow-1 topic-dist-bar">
+                      {% for i, v in enumerate(doc.topic_dist) %}
+                      <div class="progress-bar topic-dist-bar-{{i}} topic-color-{{i % 40}}" data-topic-id="{{i}}" role="progressbar" style="width: {{v:.5%}}" data-bs-toggle="tooltip" data-bs-title="Topic #{{i}}: {{v:.2%}}"></div>
+                      {% end %}
+                    </div>
+                  </li>
+                  {% end %}
+                </ul>
+                {% if total_pages > 1 %}
+                {% set args = f'&s={sort_key}&t={filter_target}&v={filter_value}' %}
+                <form id="document-pagination">
+                  <input type="hidden" name="p">
+                  <input type="hidden" name="s" value="{{sort_key}}">
+                  <input type="hidden" name="t" value="{{filter_target}}">
+                  <input type="hidden" name="v" value="{{filter_value}}">
+                  <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                      {% if page > 0 %}
+                      <li class="page-item"><a class="page-link" href="?p=0{{args}}" aria-label="First"><span aria-hidden="true">&laquo;</span></a></li>
+                      <li class="page-item"><a class="page-link" href="?p={{page - 1}}{{args}}" aria-label="Previous"><span aria-hidden="true">&lt;</span></a></li>
+                      {% else %}
+                      <li class="page-item disabled"><a class="page-link" aria-label="First"><span aria-hidden="true">&laquo;</span></a></li>
+                      <li class="page-item disabled"><a class="page-link" aria-label="Previous"><span aria-hidden="true">&lt;</span></a></li>
+                      {% end %}
+                      {% for i in range(max(page - 3, 0), min(page + 4, total_pages)) %}
+                      {% if page == i %}
+                        <li class="page-item"><input type="number" id="document-page" class="form-control rounded-0 text-center" value="{{i + 1}}" min="1" max="{{total_pages}}"></li>
+                      {% else %}
+                        <li class="page-item"><a class="page-link" href="?p={{i}}{{args}}">{{i + 1}}</a></li>
+                      {% end %}
+                      {% end %}
+                      {% if page + 1 < total_pages %}
+                      <li class="page-item"><a class="page-link" href="?p={{page + 1}}{{args}}" aria-label="Next"><span aria-hidden="true">&gt;</span></a></li>
+                      <li class="page-item"><a class="page-link" href="?p={{total_pages - 1}}{{args}}" aria-label="Last"><span aria-hidden="true">&raquo;</span></a></li>
+                      {% else %}
+                      <li class="page-item disabled"><a class="page-link" aria-label="Next"><span aria-hidden="true">&gt;</span></a></li>
+                      <li class="page-item disabled"><a class="page-link" aria-label="Last"><span aria-hidden="true">&raquo;</span></a></li>
+                      {% end %}
+                    </ul>
+                  </nav>
+                </form>
+                {% end %}
+              </div>
+              <div class="col" style="display: none;" id="document-content">
+                <div class="card">
+                  <div class="card-header">
+                    <span id="document-content-title"></span>
+                    <button type="button" class="btn-close float-end" id="document-content-close" aria-label="Close"></button>
+                  </div>
+                  <div class="card-body">
+                    <div id="document-content-body"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% elif action == 'topic' %}
+          <div class="tab-pane fade show active mx-1 my-3" id="topic-tab-pane" role="tabpanel" aria-labelledby="topic-tab">
+            <ul class="topic-word-dist-container">
+              {% for topic in topics %}
+              <li name="topic-{{topic.topic_id}}">
+                <h4 class="topic-color-{{topic.topic_id % 40}}-050 p-1">Topic #{{topic.topic_id}}</h4>
+                <table class="table table-striped table-hover word-dist">
+                  {% for word, dist in topic.words %}
+                  <tr>
+                    <th scope="row">{{word}}</th>
+                    <td>
+                      <div class="progress flex-grow-1 word-dist-bar" data-bs-toggle="tooltip" data-bs-title="{{dist:.5%}}">
+                        <div class="progress-bar" role="progressbar" style="width: {{dist / max_dist:.5%}}">{{dist:.3%}}</div>
+                      </div>
+                    </td>
+                  </tr>
+                  {% end %}
+                </table>
+              </li>
+              {% end %}
+          </ul>
+          <div class="d-grid gap-2">
+            <a href="/topic?top_n={{top_n + 10}}" class="btn btn-primary" role="button">More words...</a>
+          </div>
+          {% end %}
+        </div>
+      </main>
+      <footer class="d-flex flex-wrap justify-content-between align-items-center p-3 my-4 border-top">
+        <p class="col-md-4 mb-0 text-muted">Topic Model Viewer from <a href="https://github.com/bab2min/tomotopy" target="_blank">tomotopy v{{tomotopy_version}}</a></p>
+      </footer>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script>
+    (function(){
+      const tooltip_list = [...document.querySelectorAll('[data-bs-toggle="tooltip"]')].map(e => new bootstrap.Tooltip(e));
+
+      document.querySelectorAll('.document-view').forEach((el) => {
+        el.addEventListener('click', (e) => {
+          //e.preventDefault();
+          const doc_id = el.getAttribute('href').substring(5);
+          // remove active class
+          document.querySelectorAll('.doc-item').forEach((el) => {
+            el.classList.remove('active');
+          });
+          // add active class
+          document.getElementById(`doc-item-${doc_id}`).classList.add('active');
+          // show loading
+          document.getElementById('document-content-title').innerHTML = `Doc ${doc_id}`;
+          document.getElementById('document-content-body').innerHTML = '<div class="d-flex align-items-center"><strong>Loading...</strong><div class="spinner-border ms-auto" role="status" aria-hidden="true"></div></div>';
+          document.getElementById('document-content').style.display = 'block';
+
+          fetch(`/api/document/${doc_id}`).then((res) => res.text()).then((html) => {
+            document.getElementById('document-content-body').innerHTML = html;
+            const tooltip_list = [...document.querySelectorAll('#document-content-body [data-bs-toggle="tooltip"]')].map(e => new bootstrap.Tooltip(e));
+          }).catch((err) => {
+            document.getElementById('document-content-body').innerHTML = `<p class="text-danger">${err}</p>`;
+          })
+        });
+      });
+
+      if (document.querySelector('#document-content-close')) {
+        document.querySelector('#document-content-close').addEventListener('click', (e) => {
+          e.preventDefault();
+          document.getElementById('document-content').style.display = 'none';
+        });
+      }
+
+      if (document.querySelector('#document-pagination')) {
+        document.querySelector('#document-pagination').addEventListener('submit', (e) => {
+          document.querySelector('#document-pagination input[name="p"]').value = (document.querySelector('#document-page').value | 0) - 1;
+          return true;
+        });
+      }
+
+      // validate filter value
+      if (document.querySelector('#document-filter')) {
+        document.querySelector('#document-filter').addEventListener('submit', (e) => {
+          const v = document.querySelector('#document-filter-value').value;
+          if (isNaN(v) || v < 0 || v > 100) {
+            e.preventDefault();
+            document.querySelector('#document-filter-value').classList.add('is-invalid');
+            return false;
+          }
+          return true;
+        });
+      }
+
+      if (document.querySelector('#document-sort-key')) {
+        document.querySelector('#document-sort-key').addEventListener('change', (e) => {
+          document.querySelector('#document-filter').submit();
+        });
+      }
+
+      // attach event handler to element with .topic-action dynamically
+      document.addEventListener("click", function(e){
+        const target = e.target.closest(".topic-action");
+        if (!target) return;
+        
+        // remove active class from all topic elements
+        document.querySelectorAll('.topic-action').forEach((el) => {
+          el.classList.remove('active');
+        });
+        // add active class to elements having the same topic id to the clicked topic element
+        const topic_id = target.getAttribute('data-topic-id');
+        document.querySelectorAll(`.topic-action[data-topic-id="${topic_id}"]`).forEach((el) => {
+          el.classList.add('active');
+        });
+      });
+
+    }());
+    </script>
+  </body>
+</html>

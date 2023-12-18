@@ -74,6 +74,7 @@ from _tomotopy import *
 import tomotopy.utils as utils
 import tomotopy.coherence as coherence
 import tomotopy.label as label
+import tomotopy.viewer as viewer
 
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':

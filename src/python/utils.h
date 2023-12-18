@@ -77,6 +77,7 @@ struct CorpusObject
 	static PyObject* getstate(CorpusObject* self, PyObject*);
 	static PyObject* setstate(CorpusObject* self, PyObject* args);
 	static PyObject* addDoc(CorpusObject* self, PyObject* args, PyObject* kwargs);
+	static PyObject* addDocs(CorpusObject* self, PyObject* args, PyObject* kwargs);
 	static PyObject* extractNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs);
 	static PyObject* concatNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs);
 	static Py_ssize_t len(CorpusObject* self);
