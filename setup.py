@@ -201,6 +201,8 @@ elif platform.system() == 'Darwin':
     if tomotopy_cpu_arch == 'arm64':
         arch_levels = ['aarch64']
     elif build_for_manyplatform: 
+        arch_levels = ['sse2', 'avx', 'avx2']
+    else:
         arch_levels = ['sse2']
 elif build_for_manyplatform:
     if tomotopy_cpu_arch in ('arm64', 'aarch64'):
