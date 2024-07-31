@@ -721,7 +721,15 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 						size_t found = nnode->val - 1;
 						doc.words[i] = pcandVids[found];
 						size_t len = pcands[found].w.size();
-						if(len > 1) doc.words.erase(doc.words.begin() + i + 1 - len, doc.words.begin() + i);
+						if (len > 1)
+						{
+							std::fill(doc.words.begin() + i + 1 - len, doc.words.begin() + i, tomoto::rm_vocab_id);
+							if (doc.origWordLen.size() > i)
+							{
+								doc.origWordLen[i] = (doc.origWordPos[i] + doc.origWordLen[i]) - doc.origWordPos[i - len + 1];
+								doc.origWordPos[i] = doc.origWordPos[i - len + 1];
+							}
+						}
 						totUpdated++;
 					}
 				}
@@ -730,6 +738,25 @@ PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObjec
 					node = &root;
 				}
 			}
+
+			// remove tomoto::rm_vocab_id
+			size_t j = 0;
+			for (size_t i = 0; i < doc.words.size(); ++i)
+			{
+				if (doc.words[i] != tomoto::rm_vocab_id)
+				{
+					doc.words[j] = doc.words[i];
+					if (doc.origWordLen.size() > i)
+					{
+						doc.origWordLen[j] = doc.origWordLen[i];
+						doc.origWordPos[j] = doc.origWordPos[i];
+					}
+					++j;
+				}
+			}
+			doc.words.resize(j);
+			if (doc.origWordLen.size() > j) doc.origWordLen.resize(j);
+			if (doc.origWordPos.size() > j) doc.origWordPos.resize(j);
 		}
 		return py::buildPyValue(totUpdated);
 	});
