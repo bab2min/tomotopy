@@ -12,8 +12,9 @@ namespace tomoto
 {
 	using Vid = uint32_t;
 	static constexpr Vid non_vocab_id = (Vid)-1;
+	static constexpr Vid rm_vocab_id = (Vid)-2;
 	using Tid = uint16_t;
-	static constexpr Vid non_topic_id = (Tid)-1;
+	static constexpr Tid non_topic_id = (Tid)-1;
 	using Float = float;
 
 	struct VidPair : public std::pair<Vid, Vid>

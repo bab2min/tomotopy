@@ -386,12 +386,16 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 				{
 					doc.words.emplace_back(self->vocab->vocabs->add(PyUnicode_AsUTF8(t)));
 				}
+				else if (Py_IsNone(t))
+				{
+					doc.words.emplace_back(tomoto::non_vocab_id);
+				}
 				else if (PyTuple_Size(t) == 3)
 				{
 					PyObject* word = PyTuple_GetItem(t, 0);
 					PyObject* pos = PyTuple_GetItem(t, 1);
 					PyObject* len = PyTuple_GetItem(t, 2);
-					if (!(PyUnicode_Check(word) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+					if (!((PyUnicode_Check(word) || Py_IsNone(word)) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
 					bool isStopword = false;
 					if (stopwords != Py_None)
 					{
@@ -399,7 +403,11 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 						if (!stopRet) throw py::ExcPropagation{};
 						isStopword = PyObject_IsTrue(stopRet);
 					}
-					doc.words.emplace_back(isStopword ? -1 : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
+					else if (Py_IsNone(word))
+					{
+						isStopword = true;
+					}
+					doc.words.emplace_back(isStopword ? tomoto::non_vocab_id : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
 					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
 					doc.origWordLen.emplace_back(PyLong_AsLong(len));
 				}
@@ -483,12 +491,16 @@ PyObject* CorpusObject::addDocs(CorpusObject* self, PyObject* args, PyObject* kw
 				{
 					doc.words.emplace_back(self->vocab->vocabs->add(PyUnicode_AsUTF8(t)));
 				}
+				else if (Py_IsNone(t))
+				{
+					doc.words.emplace_back(tomoto::non_vocab_id);
+				}
 				else if (PyTuple_Size(t) == 3)
 				{
 					PyObject* word = PyTuple_GetItem(t, 0);
 					PyObject* pos = PyTuple_GetItem(t, 1);
 					PyObject* len = PyTuple_GetItem(t, 2);
-					if (!(PyUnicode_Check(word) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+					if (!((PyUnicode_Check(word) || Py_IsNone(word)) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
 
 					bool isStopword = false;
 					if (stopwords != Py_None)
@@ -497,7 +509,11 @@ PyObject* CorpusObject::addDocs(CorpusObject* self, PyObject* args, PyObject* kw
 						if (!stopRet) throw py::ExcPropagation{};
 						isStopword = PyObject_IsTrue(stopRet);
 					}
-					doc.words.emplace_back(isStopword ? -1 : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
+					else if (Py_IsNone(word))
+					{
+						isStopword = true;
+					}
+					doc.words.emplace_back(isStopword ? tomoto::non_vocab_id : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
 					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
 					doc.origWordLen.emplace_back(PyLong_AsLong(len));
 				}
