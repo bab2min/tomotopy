@@ -2,8 +2,8 @@
 #include "module.h"
 #include "utils.h"
 #include "label.h"
-#include "../Labeling/Phraser.hpp"
-#include "../Labeling/FoRelevance.h"
+#include "../../Labeling/Phraser.hpp"
+#include "../../Labeling/FoRelevance.h"
 
 using namespace std;
 

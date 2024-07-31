@@ -10,7 +10,7 @@
 #include "PyUtils.h"
 #endif
 
-#include "../Labeling/FoRelevance.h"
+#include "../../Labeling/FoRelevance.h"
 
 struct CorpusObject;
 

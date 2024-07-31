@@ -13,10 +13,10 @@
 #include "PyUtils.h"
 #endif
 
-#include "../TopicModel/TopicModel.hpp"
-#include "../Utils/serializer.hpp"
+#include "../../TopicModel/TopicModel.hpp"
+#include "../../Utils/serializer.hpp"
+#include "../../Utils/Mmap.h"
 #include "docs.h"
-#include "mmap.h"
 
 void char2Byte(const std::string& str, std::vector<uint32_t>& startPos, std::vector<uint16_t>& length);
 

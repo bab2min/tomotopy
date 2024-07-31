@@ -1,4 +1,4 @@
-#include "../TopicModel/CT.h"
+#include "../../TopicModel/CT.h"
 
 #include "module.h"
 #include "utils.h"

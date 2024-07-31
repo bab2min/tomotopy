@@ -1,4 +1,4 @@
-#include "../TopicModel/HPA.h"
+#include "../../TopicModel/HPA.h"
 
 #include "module.h"
 #include "utils.h"

@@ -1,4 +1,4 @@
-#include "../TopicModel/HDP.h"
+#include "../../TopicModel/HDP.h"
 
 #include "module.h"
 #include "utils.h"

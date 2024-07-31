@@ -1,4 +1,4 @@
-#include "../TopicModel/PLDA.h"
+#include "../../TopicModel/PLDA.h"
 
 #include "module.h"
 #include "utils.h"
