@@ -141,7 +141,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        export MACOSX_DEPLOYMENT_TARGET=11.7
+        export MACOSX_DEPLOYMENT_TARGET=10.14
         python -m pip install twine wheel numpy==`python .github/workflows/numpy_version.py`
         TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
         twine upload dist/*
