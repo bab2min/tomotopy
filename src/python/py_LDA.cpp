@@ -250,16 +250,23 @@ static PyObject* LDA_train(TopicModelObject* self, PyObject* args, PyObject *kwa
 
 PyObject* LDA_getTopicWords(TopicModelObject* self, PyObject* args, PyObject *kwargs)
 {
-	size_t topicId, topN = 10;
-	static const char* kwlist[] = { "topic_id", "top_n", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|n", (char**)kwlist, &topicId, &topN)) return nullptr;
+	size_t topicId, topN = 10, returnId = 0;
+	static const char* kwlist[] = { "topic_id", "top_n", "return_id", nullptr};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "n|np", (char**)kwlist, &topicId, &topN, &returnId)) return nullptr;
 	return py::handleExc([&]()
 	{
 		if (!self->inst) throw py::RuntimeError{ "inst is null" };
 		auto* inst = static_cast<tomoto::ILDAModel*>(self->inst);
 		if (topicId >= inst->getK()) throw py::ValueError{ "must topic_id < K" };
 		
-		return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
+		if (returnId)
+		{
+			return py::buildPyValue(inst->getWordIdsByTopicSorted(topicId, topN));
+		}
+		else
+		{
+			return py::buildPyValue(inst->getWordsByTopicSorted(topicId, topN));
+		}
 	});
 }
 
@@ -582,6 +589,29 @@ static PyObject* LDA_summary(TopicModelObject* self, PyObject* args, PyObject* k
 	});
 }
 
+static PyObject* LDA_get_word_forms(TopicModelObject* self, PyObject* args, PyObject* kwargs)
+{
+	size_t idx = -1;
+	static const char* kwlist[] = { "idx", nullptr};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &idx)) return nullptr;
+	return py::handleExc([&]()
+	{
+		if (!self->inst) throw py::RuntimeError{ "inst is null" };
+		if (idx == (size_t)-1)
+		{
+			return py::buildPyValue(self->inst->getWordFormCnts());
+		}
+		else
+		{
+			if (idx >= self->inst->getWordFormCnts().size())
+			{
+				throw py::ValueError{ "`idx` must be less than the `len(used_vocabs)`." };
+			}
+			return py::buildPyValue(self->inst->getWordFormCnts()[idx]);
+		}
+	});
+}
+
 static PyObject* LDA_copy(TopicModelObject* self)
 {
 	return py::handleExc([&]()
@@ -782,6 +812,7 @@ static PyMethodDef LDA_methods[] =
 	{ "copy", (PyCFunction)LDA_copy, METH_NOARGS, LDA_copy__doc__},
 	{ "_update_vocab", (PyCFunction)LDA_update_vocab, METH_VARARGS | METH_KEYWORDS, ""},
 	{ "summary", (PyCFunction)LDA_summary, METH_VARARGS | METH_KEYWORDS, LDA_summary__doc__},
+	{ "get_word_forms", (PyCFunction)LDA_get_word_forms, METH_VARARGS | METH_KEYWORDS, LDA_get_word_forms__doc__},
 	{ nullptr }
 };
 

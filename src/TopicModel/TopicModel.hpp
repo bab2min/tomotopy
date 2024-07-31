@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <numeric>
 #include <unordered_set>
 #include "../Utils/Utils.hpp"
@@ -251,6 +251,7 @@ namespace tomoto
 		virtual const std::vector<uint64_t>& getVocabCf() const = 0;
 		virtual std::vector<double> getVocabWeightedCf() const = 0;
 		virtual const std::vector<uint64_t>& getVocabDf() const = 0;
+		virtual const std::vector<std::vector<std::pair<std::string, size_t>>>& getWordFormCnts() const = 0;
 
 		virtual int train(size_t iteration, size_t numWorkers, ParallelScheme ps = ParallelScheme::default_, bool freeze_topics = false) = 0;
 		virtual size_t getGlobalStep() const = 0;
@@ -260,6 +261,7 @@ namespace tomoto
 		virtual size_t getNumTopicsForPrior() const = 0;
 		virtual std::vector<Float> getWidsByTopic(size_t tid, bool normalize = true) const = 0;
 		virtual std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(size_t tid, size_t topN) const = 0;
+		virtual std::vector<std::tuple<std::string, Vid, Float>> getWordIdsByTopicSorted(size_t tid, size_t topN) const = 0;
 
 		virtual std::vector<std::pair<std::string, Float>> getWordsByDocSorted(const DocumentBase* doc, size_t topN) const = 0;
 		
@@ -319,6 +321,7 @@ namespace tomoto
 		size_t globalStep = 0;
 		_ModelState globalState, tState;
 		Dictionary dict;
+		std::vector<std::vector<std::pair<std::string, size_t>>> wordFormCnts;
 		uint64_t realV = 0; // vocab size after removing stopwords
 		uint64_t realN = 0; // total word size after removing stopwords
 		double weightedN = 0;
@@ -565,6 +568,44 @@ namespace tomoto
 			}
 		}
 
+		void updateWordFormCnts()
+		{
+			wordFormCnts.clear();
+			wordFormCnts.resize(realV);
+			std::vector<std::unordered_map<std::string, size_t>> cnts(realV);
+			for (auto& doc : docs)
+			{
+				for (size_t i = 0; i < doc.words.size(); ++i)
+				{
+					auto w = doc.words[i];
+					if (w >= realV) continue;
+					auto& cnt = cnts[w];
+					std::string word;
+					if (!doc.rawStr.empty() && i < doc.origWordPos.size())
+					{
+						word = doc.rawStr.substr(doc.origWordPos[i], doc.origWordLen[i]);
+					}
+					else
+					{
+						word = dict.toWord(w);
+					}
+					++cnt[word];
+				}
+			}
+
+			for (size_t i = 0; i < realV; ++i)
+			{
+				auto& cnt = cnts[i];
+				std::vector<std::pair<std::string, size_t>> v{ std::make_move_iterator(cnt.begin()), std::make_move_iterator(cnt.end()) };
+				std::sort(v.begin(), v.end(), [](const std::pair<std::string, size_t>& a, const std::pair<std::string, size_t>& b)
+				{
+					return a.second > b.second;
+				});
+				wordFormCnts[i] = move(v);
+				cnt.clear();
+			}
+		}
+
 		int restoreFromTrainingError(const exc::TrainingError& e, ThreadPool& pool, _ModelState* localData, _RandGen* rgs)
 		{
 			throw e;
@@ -751,9 +792,24 @@ namespace tomoto
 			return ret;
 		}
 
+		std::vector<std::tuple<std::string, Vid, Float>> vid2StringVid(const std::vector<std::pair<Vid, Float>>& vids) const
+		{
+			std::vector<std::tuple<std::string, Vid, Float>> ret(vids.size());
+			for (size_t i = 0; i < vids.size(); ++i)
+			{
+				ret[i] = std::make_tuple(dict.toWord(vids[i].first), vids[i].first, vids[i].second);
+			}
+			return ret;
+		}
+
 		std::vector<std::pair<std::string, Float>> getWordsByTopicSorted(size_t tid, size_t topN) const override
 		{
 			return vid2String(getWidsByTopicSorted(tid, topN));
+		}
+
+		std::vector<std::tuple<std::string, Vid, Float>> getWordIdsByTopicSorted(size_t tid, size_t topN) const override
+		{
+			return vid2StringVid(getWidsByTopicSorted(tid, topN));
 		}
 
 		std::vector<std::pair<Vid, Float>> getWidsByDocSorted(const DocumentBase* doc, size_t topN) const
@@ -870,6 +926,11 @@ namespace tomoto
 		const std::vector<uint64_t>& getVocabDf() const override
 		{
 			return vocabDf;
+		}
+
+		const std::vector<std::vector<std::pair<std::string, size_t>>>& getWordFormCnts() const override
+		{
+			return wordFormCnts;
 		}
 
 		void saveModel(std::ostream& writer, bool fullModel, const std::vector<uint8_t>* extra_data) const override

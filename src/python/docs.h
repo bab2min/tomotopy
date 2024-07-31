@@ -531,14 +531,19 @@ show_progress : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_words__doc__,
-    "get_topic_words(self, topic_id, top_n=10)",
+    "get_topic_words(self, topic_id, top_n=10, return_id=False)",
     u8R""(Return the `top_n` words and its probability in the topic `topic_id`. 
-The return type is a `list` of (word:`str`, probability:`float`).
+The return type is a `list` of (word:`str`, probability:`float`) tuples if return_id is False,
+otherwise a `list` of (word:`str`, word_id:`int`, probability:`float`) tuples.
 
 Parameters
 ----------
 topic_id : int
     an integer in range [0, `k`), indicating the topic
+top_n : int
+	the number of words to be returned
+return_id : bool
+	If `True`, it returns the word IDs too.
 )"",
 u8R""(토픽 `topic_id`에 속하는 상위 `top_n`개의 단어와 각각의 확률을 반환합니다. 
 반환 타입은 (단어:`str`, 확률:`float`) 튜플의 `list`형입니다.
@@ -547,6 +552,10 @@ Parameters
 ----------
 topic_id : int
     토픽을 가리키는 [0, `k`) 범위의 정수
+top_n : int
+	반환할 단어의 개수
+return_id : bool
+	참일 경우 단어 ID도 함께 반환합니다.
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_topic_word_dist__doc__,
@@ -765,6 +774,12 @@ file
 flush : bool
     출력 스트림의 강제 flush 여부
 )"");
+
+DOC_SIGNATURE_EN_KO(LDA_get_word_forms__doc__,
+    "get_word_forms(self)",
+    u8R""()"",
+u8R""()"");
+
 
 
 DOC_VARIABLE_EN_KO(LDA_tw__doc__,
