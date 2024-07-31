@@ -10,6 +10,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from sysconfig import get_platform
+import struct
 
 import numpy as np
 
@@ -208,6 +209,10 @@ elif build_for_manyplatform:
         arch_levels = ['aarch64']
 else:
     arch_levels = ['native']
+
+# if target is in 64bit, remove 'none'
+if struct.calcsize("P") == 8:
+    arch_levels.remove('none')
 
 modules = []
 if len(arch_levels) > 1:
