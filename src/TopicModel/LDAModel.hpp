@@ -47,6 +47,10 @@ Term Weighting Scheme is based on following paper:
 		return nullptr; } while(0)
 #endif
 
+#define TMT_INSTANTIATE_DOC(CLS) template struct CLS<TermWeight::one>; \
+	template struct CLS<TermWeight::idf>; \
+	template struct CLS<TermWeight::pmi>;
+
 #define GETTER(name, type, field) type get##name() const override { return field; }
 
 namespace tomoto

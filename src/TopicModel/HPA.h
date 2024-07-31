@@ -12,8 +12,8 @@ namespace tomoto
 
 		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 
-		DEFINE_SERIALIZER_BASE_WITH_VERSION(BaseDocument, 0);
-		DEFINE_SERIALIZER_BASE_WITH_VERSION(BaseDocument, 1);
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 	};
 
 	struct HPAArgs : public PAArgs

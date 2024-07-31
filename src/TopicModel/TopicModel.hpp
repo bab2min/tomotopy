@@ -7,7 +7,7 @@
 #include "../Utils/ThreadPool.hpp"
 #include "../Utils/serializer.hpp"
 #include "../Utils/exception.h"
-#include "../Utils/SharedString.hpp"
+#include "../Utils/SharedString.h"
 #include <EigenRand/EigenRand>
 #include <mapbox/variant.hpp>
 

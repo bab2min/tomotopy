@@ -139,8 +139,8 @@ namespace tomoto
 		tvector<Float> wordWeights;
 		ShareableMatrix<WeightType, -1, 1> numByTopic;
 
-		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(DocumentBase, 0, Zs, wordWeights);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(DocumentBase, 1, 0x00010001, Zs, wordWeights);
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 
 		template<typename _TopicModel> void update(WeightType* ptr, const _TopicModel& mdl);
 		

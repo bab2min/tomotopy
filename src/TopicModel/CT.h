@@ -11,8 +11,8 @@ namespace tomoto
 		Matrix beta; // Dim: (K, betaSample)
 		Vector smBeta; // Dim: K
 		
-		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, smBeta);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, smBeta);
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 	};
 
 	struct CTArgs : public LDAArgs
