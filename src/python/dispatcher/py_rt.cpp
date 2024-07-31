@@ -13,8 +13,6 @@
 #include <Python.h>
 #endif
 
-using namespace std;
-
 #if defined(_WIN32) || defined(_WIN64)
 #include <Windows.h>
 #include <immintrin.h>
@@ -41,6 +39,8 @@ void cpuid(int info[4], int InfoType) {
 
 PyMODINIT_FUNC PyInit__tomotopy()
 {
+	using namespace std;
+
 	bool sse2 = false, avx = false, avx2 = false;
 	bool env_sse2 = false, env_avx = false, env_avx2 = false;
 
