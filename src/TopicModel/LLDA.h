@@ -11,8 +11,8 @@ namespace tomoto
 		using WeightType = typename DocumentLDA<_tw>::WeightType;
 		Eigen::Matrix<int8_t, -1, 1> labelMask;
 
-		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, labelMask);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, labelMask);
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 	};
 
 	class ILLDAModel : public ILDAModel

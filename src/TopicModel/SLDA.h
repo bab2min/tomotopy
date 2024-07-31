@@ -16,8 +16,9 @@ namespace tomoto
 			ret["y"] = y;
 			return ret;
 		}
-		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, y);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, y);
+		
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 	};
 
 	struct SLDAArgs;

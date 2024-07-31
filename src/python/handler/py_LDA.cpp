@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "../TopicModel/LDA.h"
+#include "../../TopicModel/LDA.h"
 
 #include "utils.h"
 #include "module.h"

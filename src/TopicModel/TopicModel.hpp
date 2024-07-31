@@ -7,7 +7,7 @@
 #include "../Utils/ThreadPool.hpp"
 #include "../Utils/serializer.hpp"
 #include "../Utils/exception.h"
-#include "../Utils/SharedString.hpp"
+#include "../Utils/SharedString.h"
 #include <EigenRand/EigenRand>
 #include <mapbox/variant.hpp>
 
@@ -107,7 +107,7 @@ namespace tomoto
 
 		virtual operator RawDoc() const
 		{
-			RawDoc raw{ *this };
+			RawDoc raw{ *static_cast<const RawDocKernel*>(this) };
 			if (wOrder.empty())
 			{
 				raw.words.insert(raw.words.begin(), words.begin(), words.end());

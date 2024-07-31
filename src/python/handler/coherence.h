@@ -2,7 +2,7 @@
 
 #include "module.h"
 #include "utils.h"
-#include "../Coherence/CoherenceModel.hpp"
+#include "../../Coherence/CoherenceModel.hpp"
 
 struct CoherenceObject
 {

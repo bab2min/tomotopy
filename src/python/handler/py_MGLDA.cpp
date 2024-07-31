@@ -1,4 +1,4 @@
-#include "../TopicModel/MGLDA.h"
+#include "../../TopicModel/MGLDA.h"
 
 #include "module.h"
 #include "utils.h"

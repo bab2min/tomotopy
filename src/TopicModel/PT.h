@@ -11,9 +11,9 @@ namespace tomoto
 		using WeightType = typename DocumentLDA<_tw>::WeightType;
 		
 		uint64_t pseudoDoc = 0;
-
-		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, pseudoDoc);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, pseudoDoc);
+		
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 	};
 
 	struct PTArgs : public LDAArgs

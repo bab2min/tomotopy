@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../TopicModel/LDA.h"
-#include "../Utils/Dictionary.h"
+#include "../../TopicModel/LDA.h"
+#include "../../Utils/Dictionary.h"
 #include "module.h"
-#include "../Labeling/Phraser.hpp"
+#include "../../Labeling/Phraser.hpp"
 
 extern PyTypeObject UtilsCorpus_type;
 extern PyTypeObject UtilsCorpusIter_type;

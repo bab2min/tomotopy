@@ -1,4 +1,4 @@
-#include "../TopicModel/DT.h"
+#include "../../TopicModel/DT.h"
 
 #include "module.h"
 #include "utils.h"

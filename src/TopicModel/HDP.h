@@ -39,8 +39,8 @@ namespace tomoto
 		};
 		std::vector<TableTopicInfo> numTopicByTable;
 
-		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 0, numTopicByTable);
-		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseDocument, 1, 0x00010001, numTopicByTable);
+		DECLARE_SERIALIZER_WITH_VERSION(0);
+		DECLARE_SERIALIZER_WITH_VERSION(1);
 
 		size_t getNumTable() const
 		{

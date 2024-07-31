@@ -1,4 +1,4 @@
-#include "../TopicModel/GDMR.h"
+#include "../../TopicModel/GDMR.h"
 
 #include "module.h"
 #include "utils.h"

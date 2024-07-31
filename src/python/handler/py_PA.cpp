@@ -1,4 +1,4 @@
-#include "../TopicModel/PA.h"
+#include "../../TopicModel/PA.h"
 
 #include "module.h"
 #include "utils.h"

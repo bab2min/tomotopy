@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 #include "text.hpp"
+#include "Utils.hpp"
 
 /*
 
@@ -30,27 +31,21 @@ namespace tomoto
 {
 	namespace serializer
 	{
-		struct membuf : std::streambuf 
+		struct membuf : public std::streambuf
 		{
-			membuf(char* base, std::ptrdiff_t n) 
-			{
-				this->setg(base, base, base + n);
-			}
+			membuf(bool read, bool write, char* base, std::ptrdiff_t n);
+			~membuf();
 
-			pos_type seekpos(pos_type sp, std::ios_base::openmode which) override {
-				return seekoff(sp - pos_type(off_type(0)), std::ios_base::beg, which);
-			}
+			std::streampos seekpos(pos_type sp, std::ios_base::openmode which) override;
 
-			pos_type seekoff(off_type off,
+			std::streampos seekoff(off_type off,
 				std::ios_base::seekdir dir,
-				std::ios_base::openmode which = std::ios_base::in) override {
-				if (dir == std::ios_base::cur)
-					gbump(off);
-				else if (dir == std::ios_base::end)
-					setg(eback(), egptr() + off, egptr());
-				else if (dir == std::ios_base::beg)
-					setg(eback(), eback() + off, egptr());
-				return gptr() - eback();
+				std::ios_base::openmode which = std::ios_base::in
+			) override;
+
+			const char* curptr() const
+			{
+				return this->gptr();
 			}
 		};
 
@@ -58,8 +53,29 @@ namespace tomoto
 		{
 			membuf buf;
 		public:
-			imstream(const char* base, std::ptrdiff_t n)
-				: std::istream(&buf), buf((char*)base, n)
+			imstream(const char* base, std::ptrdiff_t n);
+			~imstream();
+
+			template<class Ty>
+			imstream(const Ty& m) : imstream(m.get(), m.size())
+			{
+			}
+
+			const char* curptr() const
+			{
+				return buf.curptr();
+			}
+		};
+
+		class omstream : public std::ostream
+		{
+			membuf buf;
+		public:
+			omstream(char* base, std::ptrdiff_t n);
+			~omstream();
+
+			template<class Ty>
+			omstream(const Ty& m) : omstream(m.get(), m.size())
 			{
 			}
 		};
@@ -637,89 +653,91 @@ namespace tomoto
 			}
 		};
 
-		static auto taggedDataKey = to_key("TPTK");
+		class BlockStreamBuffer : public std::basic_streambuf<char>
+		{
+			std::vector<std::unique_ptr<uint8_t[]>> buffers;
+			size_t block_size = 0;
+		public:
+			BlockStreamBuffer(size_t _block_size = 4096);
+			~BlockStreamBuffer();
+
+			int overflow(int c) override;
+
+			std::streamsize xsputn(const char* s, std::streamsize n) override;
+
+			size_t totalSize() const;
+
+			template<class Fn>
+			void iterateBuffers(Fn fn) const
+			{
+				for (size_t i = 0; i < buffers.size() - 1; ++i)
+				{
+					fn(buffers[i].get(), block_size);
+				}
+				fn(buffers.back().get(), this->pptr() - this->pbase());
+			}
+		};
+
+		static constexpr uint32_t taggedDataKeyUint = 0x4b545054; // "TPTK"
+
+		struct TaggedDataHeader
+		{
+			uint32_t key;
+			uint32_t version;
+			uint64_t totsize;
+			uint32_t keysize;
+			uint32_t trailing_cnt;
+		};
 
 		template<size_t _len, typename _Ty>
 		inline void writeTaggedData(std::ostream& ostr, uint32_t version, uint32_t trailing_cnt, const Key<_len>& key, const _Ty& data)
 		{
-			uint16_t major = version >> 16, minor = version & 0xFFFF;
-			writeMany(ostr, taggedDataKey, version);
-			std::streampos totsize_pos = ostr.tellp();
-			writeMany(ostr, (uint64_t)0, (uint32_t)_len, trailing_cnt, key, data);
-			std::streampos end_pos = ostr.tellp();
-			ostr.seekp(totsize_pos);
-			writeMany(ostr, (uint64_t)(end_pos - totsize_pos));
-			ostr.seekp(end_pos);
+			BlockStreamBuffer buf;
+			std::ostream serialized_data(&buf);
+			writeMany(serialized_data, key, data);
+			const auto key_data_size = buf.totalSize();
+
+			TaggedDataHeader h;
+			h.key = taggedDataKeyUint;
+			h.version = version;
+			h.totsize = key_data_size + 16;
+			h.keysize = key.size();
+			h.trailing_cnt = trailing_cnt;
+
+			ostr.write((const char*)&h, sizeof(h));
+			buf.iterateBuffers([&](const void* data, size_t size)
+			{
+				ostr.write((const char*)data, size);
+			});
 		}
 
-		template<size_t _len, typename _Ty>
-		inline std::pair<bool, std::streampos> readTaggedData(std::istream& istr, uint32_t version, uint32_t& trailing_cnt, const Key<_len>& key, _Ty& data)
-		{
-			uint16_t major = version >> 16, minor = version & 0xFFFF;
-			uint64_t totsize;
-			uint32_t keysize;
-			std::streampos start_pos = istr.tellg();
-			readMany(istr, taggedDataKey, version);
-			std::streampos totsize_pos = istr.tellg();
-			readMany(istr, totsize, keysize, trailing_cnt);
-			std::streampos end_pos = totsize_pos + (std::streamoff)totsize;
-			if (_len != keysize)
-			{
-				istr.seekg(start_pos);
-				return std::make_pair(false, end_pos);
-			}
-			
-			if (!readTest(istr, key))
-			{
-				istr.seekg(start_pos);
-				return std::make_pair(false, end_pos);
-			}
-			
-			readMany(istr, data);
-			if (end_pos != istr.tellg())
-			{
-				istr.seekg(start_pos);
-				return std::make_pair(false, end_pos);
-			}
-			return std::make_pair(true, end_pos);
-		}
+		using TaggedDataMap = std::unordered_map<std::string, std::pair<std::streampos, std::streampos>>;
 
-		inline void readTaggedMany(std::istream& istr, uint32_t version)
+		TaggedDataMap readTaggedDataMap(std::istream& istr, uint32_t version);
+
+		inline void readTaggedMany(std::istream& istr, const TaggedDataMap& data_map, uint32_t version)
 		{
 			// seek to the end of tagged data list
-			uint32_t trailing_cnt;
-			do
-			{
-				uint64_t totsize;
-				uint32_t keysize;
-				readMany(istr, taggedDataKey, version);
-				std::streampos totsize_pos = istr.tellg();
-				readMany(istr, totsize, keysize, trailing_cnt);
-				istr.seekg(totsize_pos + (std::streamoff)totsize);
-
-			} while (trailing_cnt);
+			istr.seekg(data_map.find("")->second.second);
 		}
 
 		template<size_t _len, typename _Ty, typename ... _Rest>
-		inline void readTaggedMany(std::istream& istr, uint32_t version, const Key<_len>& key, _Ty& data, _Rest&&... rest)
+		inline void readTaggedMany(std::istream& istr, const TaggedDataMap& data_map, uint32_t version, const Key<_len>& key, _Ty& data, _Rest&&... rest)
 		{
-			auto start_pos = istr.tellg();
-			uint32_t trailing_cnt;
-			do
+			auto it = data_map.find(key.str());
+			if (it != data_map.end())
 			{
-				std::pair<bool, std::streampos> p = readTaggedData(istr, version, trailing_cnt, key, data);
-				if (p.first)
-				{
-					break;
-				}
-				else
-				{
-					istr.seekg(p.second);
-				}
-			} while (trailing_cnt);
+				istr.seekg(it->second.first);
+				readMany(istr, data);
+			}
+			readTaggedMany(istr, data_map, version, std::forward<_Rest>(rest)...);
+		}
 
-			istr.seekg(start_pos);
-			readTaggedMany(istr, version, std::forward<_Rest>(rest)...);
+		template<typename ... _Rest>
+		inline void readTaggedMany(std::istream& istr, uint32_t version, _Rest&&... rest)
+		{
+			const auto data_map = readTaggedDataMap(istr, version);
+			readTaggedMany(istr, data_map, version, std::forward<_Rest>(rest)...);
 		}
 
 		inline void writeTaggedMany(std::ostream& ostr, uint32_t version)
@@ -786,6 +804,17 @@ void serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ost
 	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
 }
 
+#define DEFINE_OUT_SERIALIZER_AFTER_BASE_WITH_VERSION(cls, base, v, ...) template<TermWeight _tw> void cls<_tw>::serializerRead(tomoto::serializer::version_holder<v> _v, std::istream& istr)\
+{\
+	base::serializerRead(_v, istr);\
+	tomoto::serializer::readMany(istr, __VA_ARGS__);\
+}\
+template<TermWeight _tw> void cls<_tw>::serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ostr) const\
+{\
+	base::serializerWrite(_v, ostr);\
+	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
+}
+
 #define DEFINE_SERIALIZER_BASE_WITH_VERSION(base, v) void serializerRead(tomoto::serializer::version_holder<v> _v, std::istream& istr)\
 {\
 	base::serializerRead(_v, istr);\
@@ -794,6 +823,19 @@ void serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ost
 {\
 	base::serializerWrite(_v, ostr);\
 }
+
+#define DEFINE_OUT_SERIALIZER_BASE_WITH_VERSION(cls, base, v) template<TermWeight _tw> void cls<_tw>::serializerRead(tomoto::serializer::version_holder<v> _v, std::istream& istr)\
+{\
+	base::serializerRead(_v, istr);\
+}\
+template<TermWeight _tw> void cls<_tw>::serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ostr) const\
+{\
+	base::serializerWrite(_v, ostr);\
+}
+
+
+#define DECLARE_SERIALIZER_WITH_VERSION(v) void serializerRead(tomoto::serializer::version_holder<v> _v, std::istream& istr);\
+void serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ostr) const;
 
 #define DEFINE_SERIALIZER_AFTER_BASE_CALLBACK(base, onRead, ...) void serializerRead(std::istream& istr)\
 {\
@@ -859,6 +901,17 @@ void serializerWrite(tomoto::serializer::version_holder<v>, std::ostream& ostr) 
 	tomoto::serializer::readTaggedMany(istr, t, _TO_KEY_VALUE(__VA_ARGS__));\
 }\
 void serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ostr) const\
+{\
+	base::serializerWrite(_v, ostr);\
+	tomoto::serializer::writeTaggedMany(ostr, t, _TO_KEY_VALUE(__VA_ARGS__));\
+}
+
+#define DEFINE_OUT_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(cls, base, v, t,...) template<TermWeight _tw> void cls<_tw>::serializerRead(tomoto::serializer::version_holder<v> _v, std::istream& istr)\
+{\
+	base::serializerRead(_v, istr);\
+	tomoto::serializer::readTaggedMany(istr, t, _TO_KEY_VALUE(__VA_ARGS__));\
+}\
+template<TermWeight _tw> void cls<_tw>::serializerWrite(tomoto::serializer::version_holder<v> _v, std::ostream& ostr) const\
 {\
 	base::serializerWrite(_v, ostr);\
 	tomoto::serializer::writeTaggedMany(ostr, t, _TO_KEY_VALUE(__VA_ARGS__));\
