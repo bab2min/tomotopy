@@ -638,6 +638,16 @@ namespace tomoto
 		};
 
 		static auto taggedDataKey = to_key("TPTK");
+		static constexpr uint32_t taggedDataKeyUint = 0x4b545054; // "TPTK"
+
+		struct TaggedDataHeader
+		{
+			uint32_t key;
+			uint32_t version;
+			uint64_t totsize;
+			uint32_t keysize;
+			uint32_t trailing_cnt;
+		};
 
 		template<size_t _len, typename _Ty>
 		inline void writeTaggedData(std::ostream& ostr, uint32_t version, uint32_t trailing_cnt, const Key<_len>& key, const _Ty& data)
@@ -652,74 +662,54 @@ namespace tomoto
 			ostr.seekp(end_pos);
 		}
 
-		template<size_t _len, typename _Ty>
-		inline std::pair<bool, std::streampos> readTaggedData(std::istream& istr, uint32_t version, uint32_t& trailing_cnt, const Key<_len>& key, _Ty& data)
-		{
-			uint16_t major = version >> 16, minor = version & 0xFFFF;
-			uint64_t totsize;
-			uint32_t keysize;
-			std::streampos start_pos = istr.tellg();
-			readMany(istr, taggedDataKey, version);
-			std::streampos totsize_pos = istr.tellg();
-			readMany(istr, totsize, keysize, trailing_cnt);
-			std::streampos end_pos = totsize_pos + (std::streamoff)totsize;
-			if (_len != keysize)
-			{
-				istr.seekg(start_pos);
-				return std::make_pair(false, end_pos);
-			}
-			
-			if (!readTest(istr, key))
-			{
-				istr.seekg(start_pos);
-				return std::make_pair(false, end_pos);
-			}
-			
-			readMany(istr, data);
-			if (end_pos != istr.tellg())
-			{
-				istr.seekg(start_pos);
-				return std::make_pair(false, end_pos);
-			}
-			return std::make_pair(true, end_pos);
-		}
+		using TaggedDataMap = std::unordered_map<std::string, std::pair<std::streampos, std::streampos>>;
 
-		inline void readTaggedMany(std::istream& istr, uint32_t version)
+		inline TaggedDataMap readTaggedDataMap(std::istream& istr, uint32_t version)
 		{
-			// seek to the end of tagged data list
-			uint32_t trailing_cnt;
+			std::unordered_map<std::string, std::pair<std::streampos, std::streampos>> ret;
+			TaggedDataHeader h;
 			do
 			{
-				uint64_t totsize;
-				uint32_t keysize;
-				readMany(istr, taggedDataKey, version);
-				std::streampos totsize_pos = istr.tellg();
-				readMany(istr, totsize, keysize, trailing_cnt);
-				istr.seekg(totsize_pos + (std::streamoff)totsize);
+				istr.read((char*)&h, sizeof(h));
+				if (h.key != taggedDataKeyUint)
+				{
+					throw UnfitException("tagged data key is not found");
+				}
+				const std::streampos totsize_pos = istr.tellg() - (std::streamoff)16;
+				std::array<char, 256> key;
+				istr.read(key.data(), h.keysize);
+				const std::streampos start_pos = istr.tellg();
+				const std::streampos end_pos = totsize_pos + (std::streamoff)h.totsize;
+				ret.emplace(std::string{ key.data(), h.keysize }, std::make_pair(start_pos, end_pos));
+				ret[""] = std::make_pair(start_pos, end_pos);
+				istr.seekg(end_pos);
+			} while (h.trailing_cnt);
+			return ret;
+		}
 
-			} while (trailing_cnt);
+		inline void readTaggedMany(std::istream& istr, const TaggedDataMap& data_map, uint32_t version)
+		{
+			// seek to the end of tagged data list
+			istr.seekg(data_map.find("")->second.second);
 		}
 
 		template<size_t _len, typename _Ty, typename ... _Rest>
-		inline void readTaggedMany(std::istream& istr, uint32_t version, const Key<_len>& key, _Ty& data, _Rest&&... rest)
+		inline void readTaggedMany(std::istream& istr, const TaggedDataMap& data_map, uint32_t version, const Key<_len>& key, _Ty& data, _Rest&&... rest)
 		{
-			auto start_pos = istr.tellg();
-			uint32_t trailing_cnt;
-			do
+			auto it = data_map.find(key.str());
+			if (it != data_map.end())
 			{
-				std::pair<bool, std::streampos> p = readTaggedData(istr, version, trailing_cnt, key, data);
-				if (p.first)
-				{
-					break;
-				}
-				else
-				{
-					istr.seekg(p.second);
-				}
-			} while (trailing_cnt);
+				istr.seekg(it->second.first);
+				readMany(istr, data);
+			}
+			readTaggedMany(istr, data_map, version, std::forward<_Rest>(rest)...);
+		}
 
-			istr.seekg(start_pos);
-			readTaggedMany(istr, version, std::forward<_Rest>(rest)...);
+		template<typename ... _Rest>
+		inline void readTaggedMany(std::istream& istr, uint32_t version, _Rest&&... rest)
+		{
+			const auto data_map = readTaggedDataMap(istr, version);
+			readTaggedMany(istr, data_map, version, std::forward<_Rest>(rest)...);
 		}
 
 		inline void writeTaggedMany(std::ostream& ostr, uint32_t version)
