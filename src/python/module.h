@@ -16,6 +16,7 @@
 #include "../TopicModel/TopicModel.hpp"
 #include "../Utils/serializer.hpp"
 #include "docs.h"
+#include "mmap.h"
 
 void char2Byte(const std::string& str, std::vector<uint32_t>& startPos, std::vector<uint16_t>& length);
 
@@ -104,8 +105,8 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist, &filename)) return nullptr;\
 	try\
 	{\
-		ifstream str{ filename, ios_base::binary };\
-		if (!str) throw ios_base::failure{ std::string("cannot open file '") + filename + std::string("'") };\
+		tomoto::utils::MMap mm{ filename };\
+		tomoto::utils::imstream str{ mm };\
 		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)\
 		{\
 			str.seekg(0);\
