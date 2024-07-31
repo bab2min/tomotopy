@@ -653,22 +653,17 @@ namespace tomoto
 			}
 		};
 
-		template<size_t block_size>
 		class BlockStreamBuffer : public std::basic_streambuf<char>
 		{
-			std::vector<std::array<uint8_t, block_size>> buffers;
+			std::vector<std::unique_ptr<uint8_t[]>> buffers;
+			size_t block_size = 0;
 		public:
-			BlockStreamBuffer();
+			BlockStreamBuffer(size_t _block_size = 4096);
 			~BlockStreamBuffer();
 
 			int overflow(int c) override;
 
 			std::streamsize xsputn(const char* s, std::streamsize n) override;
-
-			const std::vector<std::array<uint8_t, block_size>>& getBuffers() const
-			{
-				return buffers;
-			}
 
 			size_t totalSize() const;
 
@@ -677,9 +672,9 @@ namespace tomoto
 			{
 				for (size_t i = 0; i < buffers.size() - 1; ++i)
 				{
-					fn(buffers[i].data(), block_size);
+					fn(buffers[i].get(), block_size);
 				}
-				fn(buffers.back().data(), this->pptr() - this->pbase());
+				fn(buffers.back().get(), this->pptr() - this->pbase());
 			}
 		};
 
@@ -697,7 +692,7 @@ namespace tomoto
 		template<size_t _len, typename _Ty>
 		inline void writeTaggedData(std::ostream& ostr, uint32_t version, uint32_t trailing_cnt, const Key<_len>& key, const _Ty& data)
 		{
-			BlockStreamBuffer<4096> buf;
+			BlockStreamBuffer buf;
 			std::ostream serialized_data(&buf);
 			writeMany(serialized_data, key, data);
 			const auto key_data_size = buf.totalSize();

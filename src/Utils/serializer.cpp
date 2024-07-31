@@ -70,23 +70,20 @@ namespace tomoto
 		omstream::~omstream() = default;
 
 
-		template<size_t block_size>
-		BlockStreamBuffer<block_size>::BlockStreamBuffer()
+		BlockStreamBuffer::BlockStreamBuffer(size_t _block_size) : block_size{ _block_size }
 		{
-			buffers.emplace_back();
-			this->setp((char*)buffers.back().data(), (char*)buffers.back().data() + buffers.back().size());
+			buffers.emplace_back(std::make_unique<uint8_t[]>(block_size));
+			this->setp((char*)buffers.back().get(), (char*)buffers.back().get() + block_size);
 		}
 
-		template<size_t block_size>
-		BlockStreamBuffer<block_size>::~BlockStreamBuffer() = default;
+		BlockStreamBuffer::~BlockStreamBuffer() = default;
 
-		template<size_t block_size>
-		int BlockStreamBuffer<block_size>::overflow(int c)
+		int BlockStreamBuffer::overflow(int c)
 		{
 			if (this->pptr() == this->epptr())
 			{
-				buffers.emplace_back();
-				this->setp((char*)buffers.back().data(), (char*)buffers.back().data() + buffers.back().size());
+				buffers.emplace_back(std::make_unique<uint8_t[]>(block_size));
+				this->setp((char*)buffers.back().get(), (char*)buffers.back().get() + block_size);
 			}
 			else
 			{
@@ -96,8 +93,7 @@ namespace tomoto
 			return c;
 		}
 
-		template<size_t block_size>
-		std::streamsize BlockStreamBuffer<block_size>::xsputn(const char* s, std::streamsize n)
+		std::streamsize BlockStreamBuffer::xsputn(const char* s, std::streamsize n)
 		{
 			auto rest = n;
 			auto buf_remain = this->epptr() - this->pptr();
@@ -105,8 +101,8 @@ namespace tomoto
 			{
 				std::copy(s, s + buf_remain, this->pptr());
 				this->pbump(buf_remain);
-				buffers.emplace_back();
-				this->setp((char*)buffers.back().data(), (char*)buffers.back().data() + buffers.back().size());
+				buffers.emplace_back(std::make_unique<uint8_t[]>(block_size));
+				this->setp((char*)buffers.back().get(), (char*)buffers.back().get() + block_size);
 				rest -= buf_remain;
 				s += buf_remain;
 				buf_remain = block_size;
@@ -116,13 +112,10 @@ namespace tomoto
 			return n;
 		}
 
-		template<size_t block_size>
-		size_t BlockStreamBuffer<block_size>::totalSize() const
+		size_t BlockStreamBuffer::totalSize() const
 		{
 			return (buffers.size() - 1) * block_size + (this->pptr() - this->pbase());
 		}
-
-		template class BlockStreamBuffer<4096>;
 
 		TaggedDataMap readTaggedDataMap(std::istream& istr, uint32_t version)
 		{
