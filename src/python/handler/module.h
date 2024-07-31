@@ -106,7 +106,7 @@ PyObject* PREFIX##_load(PyObject*, PyObject* args, PyObject *kwargs)\
 	try\
 	{\
 		tomoto::utils::MMap mm{ filename };\
-		tomoto::utils::imstream str{ mm };\
+		tomoto::serializer::imstream str{ mm };\
 		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)\
 		{\
 			str.seekg(0);\
