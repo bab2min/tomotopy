@@ -103,8 +103,8 @@ jobs:
         path: artifacts/build.tgz
 
   build_macos_11:
-    name: Build for macOS 11
-    runs-on: macOS-11
+    name: Build for macOS 13
+    runs-on: macOS-13
     strategy:
       max-parallel: 4
       matrix:

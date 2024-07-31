@@ -107,8 +107,8 @@ jobs:
           TWINE_USERNAME=${{ secrets.PYPI_USERNAME }} TWINE_PASSWORD=${{ secrets.PYPI_PASSWORD }} /opt/python/${{ matrix.cp }}/bin/python -m twine upload wheelhouse/*.whl
 
   build_macos_11:
-    name: Build for macOS 11
-    runs-on: macOS-11
+    name: Build for macOS 13
+    runs-on: macOS-13
     strategy:
       max-parallel: 4
       matrix:
