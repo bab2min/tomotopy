@@ -19,8 +19,6 @@ def get_extra_cmake_options():
     """read --clean, --no, --set, --compiler-flags, and -G options from the command line and add them as cmake switches.
     """
     _cmake_extra_options = ["-DCMAKE_POSITION_INDEPENDENT_CODE=1"]
-    if os.environ.get('KIWI_CPU_ARCH'):
-        _cmake_extra_options.append("-DKIWI_CPU_ARCH=" + os.environ['KIWI_CPU_ARCH'])
     if os.environ.get('MACOSX_DEPLOYMENT_TARGET'):
         _cmake_extra_options.append("-DCMAKE_OSX_DEPLOYMENT_TARGET=" + os.environ['MACOSX_DEPLOYMENT_TARGET'])
     _clean_build_folder = False
@@ -212,7 +210,12 @@ else:
 
 # if target is in 64bit, remove 'none'
 if struct.calcsize("P") == 8:
-    arch_levels.remove('none')
+    try:
+        arch_levels.remove('none')
+    except ValueError:
+        pass
+else:
+    arch_levels = [a for a in arch_levels if a in ('none', 'sse2')]
 
 modules = []
 if len(arch_levels) > 1:

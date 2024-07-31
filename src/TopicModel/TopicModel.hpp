@@ -107,7 +107,7 @@ namespace tomoto
 
 		virtual operator RawDoc() const
 		{
-			RawDoc raw{ *this };
+			RawDoc raw{ *static_cast<const RawDocKernel*>(this) };
 			if (wOrder.empty())
 			{
 				raw.words.insert(raw.words.begin(), words.begin(), words.end());
