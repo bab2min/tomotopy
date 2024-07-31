@@ -106,8 +106,8 @@ jobs:
           TWINE_USERNAME=${{ secrets.TEST_PYPI_USERNAME }} TWINE_PASSWORD=${{ secrets.TEST_PYPI_PASSWORD }} /opt/python/${{ matrix.cp }}/bin/python -m twine upload --repository testpypi wheelhouse/*.whl
 
   build_macos_11:
-    name: Build for macOS 11
-    runs-on: macOS-11
+    name: Build for macOS 13
+    runs-on: macOS-13
     strategy:
       max-parallel: 4
       matrix:
@@ -140,7 +140,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
       run: |
         export AUDITWHEEL_PLAT=many
-        export MACOSX_DEPLOYMENT_TARGET=11.7
+        export MACOSX_DEPLOYMENT_TARGET=10.14
         python -m pip install twine wheel numpy==`python .github/workflows/numpy_version.py`
         TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
         twine upload --repository testpypi dist/*

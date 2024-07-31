@@ -103,8 +103,8 @@ jobs:
         path: artifacts/build.tgz
 
   build_macos_11:
-    name: Build for macOS 11
-    runs-on: macOS-11
+    name: Build for macOS 13
+    runs-on: macOS-13
     strategy:
       max-parallel: 4
       matrix:
@@ -133,7 +133,7 @@ jobs:
     - name: Build
       run: |
         export AUDITWHEEL_PLAT=many
-        export MACOSX_DEPLOYMENT_TARGET=11.7
+        export MACOSX_DEPLOYMENT_TARGET=10.14
         python -m pip install numpy==`python .github/workflows/numpy_version.py`
         TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py build install
     - name: Archive binary
