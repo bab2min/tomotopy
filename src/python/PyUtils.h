@@ -748,6 +748,31 @@ namespace py
 		}
 	};
 
+	template<typename _Ty1, typename _Ty2, typename _Ty3>
+	struct ValueBuilder<std::tuple<_Ty1, _Ty2, _Ty3>>
+	{
+		PyObject* operator()(const std::tuple<_Ty1, _Ty2, _Ty3>& v)
+		{
+			PyObject* ret = PyTuple_New(3);
+			size_t id = 0;
+			PyTuple_SetItem(ret, id++, buildPyValue(std::get<0>(v)));
+			PyTuple_SetItem(ret, id++, buildPyValue(std::get<1>(v)));
+			PyTuple_SetItem(ret, id++, buildPyValue(std::get<2>(v)));
+			return ret;
+		}
+
+		template<typename _FailMsg>
+		std::tuple<_Ty1, _Ty2, _Ty3> _toCpp(PyObject* obj, _FailMsg&&)
+		{
+			if (PyTuple_Size(obj) != 3) throw ConversionFail{ "input is not tuple with len=3" };
+			return std::make_tuple(
+				toCpp<_Ty1>(PyTuple_GetItem(obj, 0)),
+				toCpp<_Ty2>(PyTuple_GetItem(obj, 1)),
+				toCpp<_Ty3>(PyTuple_GetItem(obj, 2))
+			);
+		}
+	};
+
 	template<typename _Ty1, typename _Ty2>
 	struct ValueBuilder<std::unordered_map<_Ty1, _Ty2>>
 	{

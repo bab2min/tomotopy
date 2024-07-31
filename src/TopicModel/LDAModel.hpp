@@ -1066,6 +1066,7 @@ namespace tomoto
 		void prepare(bool initDocs = true, size_t minWordCnt = 0, size_t minWordDf = 0, size_t removeTopN = 0, bool updateStopwords = true) override
 		{
 			if (initDocs && updateStopwords) this->removeStopwords(minWordCnt, minWordDf, removeTopN);
+			static_cast<DerivedClass*>(this)->updateWordFormCnts();
 			static_cast<DerivedClass*>(this)->updateWeakArray();
 			static_cast<DerivedClass*>(this)->initGlobalState(initDocs);
 			static_cast<DerivedClass*>(this)->prepareWordPriors();
