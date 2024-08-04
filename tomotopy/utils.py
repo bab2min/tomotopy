@@ -1,3 +1,7 @@
+from typing import Optional, List
+
+import re
+
 '''
 Submodule `tomotopy.utils` provides various utilities for topic modeling. 
 `tomotopy.utils.Corpus` class helps manage multiple documents easily. 
@@ -191,7 +195,13 @@ delimiter : str
 
 class SimpleTokenizer:
     '''`SimpleTokenizer` provided a simple word-tokenizing utility with an arbitrary stemmer.'''
-    def __init__(self, stemmer=None, pattern:str=None, lowercase=True):
+    def __init__(self, 
+                 stemmer = None, 
+                 pattern:str = None, 
+                 lowercase = True, 
+                 ngram_list:Optional[List[str]] = None,
+                 ngram_delimiter:str = '_',
+                 ):
         '''Parameters
 ----------
 stemmer : Callable[str, str]
@@ -205,26 +215,81 @@ Here is an example of using SimpleTokenizer with NLTK for stemming.
 
 .. include:: ./auto_labeling_code_with_porter.rst
 '''
-        import re
         self._pat = re.compile(pattern or r"""[^\s.,;:'"?!<>(){}\[\]\\/`~@#$%^&*|]+""")
         if stemmer and not callable(stemmer):
             raise ValueError("`stemmer` must be callable.")
         self._stemmer = stemmer or None
         self._lowercase = lowercase
+        self._ngram_pat = None
+        self._ngram_delimiter = ngram_delimiter
+        if ngram_list:
+            self.build_ngram_pat(ngram_list)
+
+    def build_ngram_pat(self, ngram_list:List[str]):
+        ngram_vocab = {}
+        patterns = []
+
+        for ngram in ngram_list:
+            if self._lowercase:
+                ngram = ngram.lower()
+            words = self._pat.findall(ngram)
+            if len(words) < 2:
+                continue
+            chrs = []
+            for word in words:
+                if self._stemmer is not None:
+                    word = self._stemmer(word)
+                try:
+                    wid = ngram_vocab[word]
+                except KeyError:
+                    wid = chr(len(ngram_vocab) + 256)
+                    ngram_vocab[word] = wid
+                chrs.append(wid)
+            patterns.append(''.join(chrs))
+        
+        if patterns:
+            self._ngram_pat = re.compile('|'.join(sorted(patterns, key=lambda x: len(x), reverse=True)))
+            self._ngram_vocab = ngram_vocab
 
     def _tokenize(self, raw:str):
-        if self._stemmer:
-            for g in self._pat.finditer(raw if self._lowercase else raw):
-                start, end = g.span(0)
-                word = g.group(0)
-                if self._lowercase: word = word.lower()
-                yield self._stemmer(word), start, end - start
-        else:
-            for g in self._pat.finditer(raw if self._lowercase else raw):
-                start, end = g.span(0)
-                word = g.group(0)
-                if self._lowercase: word = word.lower()
+        if self._ngram_pat is None:
+            for g in self._pat.finditer(raw):
+                start, end = g.span()
+                word = g.group()
+                if self._lowercase: 
+                    word = word.lower()
+                if self._stemmer is not None:
+                    word = self._stemmer(word)
                 yield word, start, end - start
+        else:
+            all_words = []
+            all_spans = []
+            chrs = []
+            for g in self._pat.finditer(raw):
+                all_spans.append(g.span())
+                word = g.group()
+                if self._lowercase: 
+                    word = word.lower()
+                if self._stemmer is not None:
+                    word = self._stemmer(word)
+                all_words.append(word)
+                try:
+                    chrs.append(self._ngram_vocab[word])
+                except KeyError:
+                    chrs.append(' ')
+            chrs = ''.join(chrs)
+            for g in self._ngram_pat.finditer(chrs):
+                s, e = g.span()
+                is_space = all(raw[ns:ne].isspace() for (_, ns), (ne, _) in zip(all_spans[s:e-1], all_spans[s+1:e]))
+                if not is_space:
+                    continue
+                all_words[s] = self._ngram_delimiter.join(all_words[s:e])
+                all_words[s+1:e] = [None] * (e - s - 1)
+                all_spans[s] = (all_spans[s][0], all_spans[e-1][1])
+
+            for (s, e), word in zip(all_spans, all_words):
+                if word is None: continue
+                yield word, s, e - s
 
     def __call__(self, raw:str, user_data=None):
         is_iterable = False
