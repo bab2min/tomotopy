@@ -589,7 +589,7 @@ static PyObject* LDA_summary(TopicModelObject* self, PyObject* args, PyObject* k
 	});
 }
 
-static PyObject* LDA_get_word_forms(TopicModelObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* LDA_getWordForms(TopicModelObject* self, PyObject* args, PyObject* kwargs)
 {
 	size_t idx = -1;
 	static const char* kwlist[] = { "idx", nullptr};
@@ -812,7 +812,7 @@ static PyMethodDef LDA_methods[] =
 	{ "copy", (PyCFunction)LDA_copy, METH_NOARGS, LDA_copy__doc__},
 	{ "_update_vocab", (PyCFunction)LDA_update_vocab, METH_VARARGS | METH_KEYWORDS, ""},
 	{ "summary", (PyCFunction)LDA_summary, METH_VARARGS | METH_KEYWORDS, LDA_summary__doc__},
-	{ "get_word_forms", (PyCFunction)LDA_get_word_forms, METH_VARARGS | METH_KEYWORDS, LDA_get_word_forms__doc__},
+	{ "get_word_forms", (PyCFunction)LDA_getWordForms, METH_VARARGS | METH_KEYWORDS, LDA_get_word_forms__doc__},
 	{ nullptr }
 };
 

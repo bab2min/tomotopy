@@ -577,7 +577,7 @@ namespace tomoto
 			{
 				for (size_t i = 0; i < doc.words.size(); ++i)
 				{
-					auto w = doc.words[i];
+					auto w = doc.words[doc.wOrder.empty() ? i : doc.wOrder[i]];
 					if (w >= realV) continue;
 					auto& cnt = cnts[w];
 					std::string word;
