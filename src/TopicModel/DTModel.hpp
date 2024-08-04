@@ -22,6 +22,7 @@ namespace tomoto
 		Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic * Time, Vocabs)
 		//ShareableMatrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic * Time, Vocabs)
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
+		DEFINE_HASHER(numByTopic, numByTopicWord);
 	};
 
 	template<TermWeight _tw, typename _RandGen,
@@ -495,6 +496,8 @@ namespace tomoto
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, 
 			T, shapeA, shapeB, shapeC, alphaVar, etaVar, phiVar, alphas, etaByDoc, phi);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, 
+			T, shapeA, shapeB, shapeC, alphaVar, etaVar, phiVar, alphas, etaByDoc, phi);
+		DEFINE_HASHER_AFTER_BASE(BaseClass,
 			T, shapeA, shapeB, shapeC, alphaVar, etaVar, phiVar, alphas, etaByDoc, phi);
 
 		GETTER(T, size_t, T);

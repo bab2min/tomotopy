@@ -65,6 +65,7 @@ namespace tomoto
 		//Eigen::Matrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
 		ShareableMatrix<WeightType, -1, -1> numByTopicWord; // Dim: (Topic, Vocabs)
 		DEFINE_SERIALIZER(numByTopic, numByTopicWord);
+		DEFINE_HASHER(numByTopic, numByTopicWord);
 	};
 
 	namespace flags
@@ -957,6 +958,8 @@ namespace tomoto
 
 		DEFINE_TAGGED_SERIALIZER_WITH_VERSION(1, 0x00010001, vocabWeights, alpha, alphas, eta, K, etaByWord,
 			burnIn, optimInterval);
+
+		DEFINE_HASHER(vocabWeights, alpha, alphas, eta, K, /*etaByWord,*/ burnIn, optimInterval);
 
 		LDAModel(const LDAArgs& args, bool checkAlpha = true)
 			: BaseClass(args.seed), K(args.k), alpha(args.alpha[0]), eta(args.eta)

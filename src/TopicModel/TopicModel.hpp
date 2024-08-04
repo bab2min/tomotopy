@@ -224,6 +224,8 @@ namespace tomoto
 		virtual void loadModel(std::istream& reader, 
 			std::vector<uint8_t>* extra_data = nullptr) = 0;
 
+		virtual std::array<uint64_t, 2> getHash() const = 0;
+
 		virtual std::unique_ptr<ITopicModel> copy() const = 0;
 
 		virtual const DocumentBase* getDoc(size_t docId) const = 0;
@@ -942,6 +944,17 @@ namespace tomoto
 		{ 
 			static_cast<_Derived*>(this)->_loadModel(reader, extra_data);
 			static_cast<_Derived*>(this)->prepare(false);
+		}
+
+		std::array<uint64_t, 2> getHash() const override
+		{
+			std::array<uint64_t, 2> ret;
+			ret[0] = dict.computeHash(0);
+			const std::string s = static_cast<const _Derived*>(this)->tmid().str() + static_cast<const _Derived*>(this)->twid().str();
+			ret[0] = serializer::computeHashMany(ret[0], s, realV, globalStep, docs.size());
+			ret[1] = globalState.computeHash(0);
+			ret[1] = static_cast<const _Derived*>(this)->computeHash(ret[1]);
+			return ret;
 		}
 	};
 

@@ -348,6 +348,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, F, responseVars, mu, nuSq);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, F, responseVars, mu, nuSq);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, F, mu, nuSq);
 
 		SLDAModel(const SLDAArgs& args)
 			: BaseClass(args), F(args.vars.size()), varTypes(args.vars),

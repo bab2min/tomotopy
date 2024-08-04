@@ -50,6 +50,8 @@ namespace tomoto
 		
 		void serializerRead(std::istream& reader);
 
+		uint64_t computeHash(uint64_t seed) const;
+
 		void swap(Dictionary& rhs);
 
 		void reorder(const std::vector<Vid>& order);

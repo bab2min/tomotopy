@@ -107,6 +107,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, topicLabelDict);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, topicLabelDict);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, topicLabelDict);
 
 		LLDAModel(const LDAArgs& args)
 			: BaseClass(args)

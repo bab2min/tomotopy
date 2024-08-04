@@ -93,6 +93,12 @@ namespace tomoto
 			if (!ostr.write((const char*)this->data(), sizeof(_Scalar) * this->size()))
 				throw std::ios_base::failure(std::string("writing type '") + typeid(_Scalar).name() + std::string("' is failed"));
 		}
+
+		uint64_t computeHash(uint64_t seed) const
+		{
+			seed = serializer::computeHashMany(seed, (uint32_t)this->rows(), (uint32_t)this->cols());
+			return serializer::computeFastHash(this->data(), sizeof(_Scalar) * this->size(), seed);
+		}
 	};
 
 	template<typename _Base, TermWeight _tw>

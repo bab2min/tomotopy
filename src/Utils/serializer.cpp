@@ -139,5 +139,28 @@ namespace tomoto
 			} while (h.trailing_cnt);
 			return ret;
 		}
+
+		uint64_t computeFastHash(const void* data, size_t size, uint64_t seed)
+		{
+			for (size_t i = 0; i < size / 4; ++i) 
+			{
+				uint32_t x = ((const uint32_t*)data)[i];
+				x = ((x >> 16) ^ x) * 0x45d9f3b;
+				x = ((x >> 16) ^ x) * 0x45d9f3b;
+				x = (x >> 16) ^ x;
+				seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			}
+
+			if (size % 4)
+			{
+				uint32_t x = 0;
+				memcpy(&x, (const char*)data + (size / 4) * 4, size % 4);
+				x = ((x >> 16) ^ x) * 0x45d9f3b;
+				x = ((x >> 16) ^ x) * 0x45d9f3b;
+				x = (x >> 16) ^ x;
+				seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			}
+			return seed;
+		}
 	}
 }

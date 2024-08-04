@@ -776,10 +776,14 @@ flush : bool
 )"");
 
 DOC_SIGNATURE_EN_KO(LDA_get_word_forms__doc__,
-    "get_word_forms(self)",
+    "get_word_forms(self, idx)",
     u8R""()"",
 u8R""()"");
 
+DOC_SIGNATURE_EN_KO(LDA_get_hash__doc__,
+    "get_hash(self)",
+    u8R""()"",
+    u8R""()"");
 
 
 DOC_VARIABLE_EN_KO(LDA_tw__doc__,

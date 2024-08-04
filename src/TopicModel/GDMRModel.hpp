@@ -412,6 +412,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma0, degreeByF, mdCoefs, mdIntercepts);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma0, orderDecay, degreeByF, mdCoefs, mdIntercepts, mdMax);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, sigma0, orderDecay, degreeByF, mdCoefs, mdIntercepts, mdMax);
 
 		GDMRModel(const GDMRArgs& args)
 			: BaseClass(args), sigma0(args.sigma0), orderDecay(args.orderDecay), degreeByF(args.degrees)

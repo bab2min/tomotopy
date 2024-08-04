@@ -18,6 +18,7 @@ namespace tomoto
 			int32_t parent = 0, sibling = 0, child = 0;
 
 			DEFINE_SERIALIZER(numCustomers, level, parent, sibling, child);
+			DEFINE_HASHER(numCustomers, level, parent, sibling, child);
 
 			NCRPNode* getParent() const
 			{
@@ -118,6 +119,7 @@ namespace tomoto
 			Vector nodeWLikelihoods; //
 
 			DEFINE_SERIALIZER(nodes, levelBlocks);
+			DEFINE_HASHER(nodes, levelBlocks);
 
 			template<bool _makeNewPath = true>
 			void calcNodeLikelihood(Float gamma, size_t levelDepth)
@@ -316,6 +318,12 @@ namespace tomoto
 		{
 			ModelStateLDA<_tw>::serializerWrite(ostr);
 			nt->serializerWrite(ostr);
+		}
+
+		uint64_t computeHash(uint64_t seed) const
+		{
+			seed = ModelStateLDA<_tw>::computeHash(seed);
+			return nt->computeHash(seed);
 		}
 	};
 
@@ -596,6 +604,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, gamma);
 
 		HLDAModel(const HLDAArgs& args)
 			: BaseClass(args), gamma(args.gamma)
