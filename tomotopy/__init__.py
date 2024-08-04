@@ -76,6 +76,60 @@ import tomotopy.coherence as coherence
 import tomotopy.label as label
 import tomotopy.viewer as viewer
 
+def _get_all_model_types():
+    import _tomotopy
+    types = []
+    for name in dir(_tomotopy):
+        if name.endswith('Model') and not name.startswith('_'):
+            types.append(getattr(_tomotopy, name))
+    return types
+
+def load_model(path:str):
+    '''
+..versionadded:: 0.13.0
+
+Load any topic model from the given file path.    
+
+Parameters
+----------
+path : str
+    The file path to load the model from.
+
+Returns
+-------
+model : LDAModel or its subclass
+    '''
+    model_types = _get_all_model_types()
+    for model_type in model_types:
+        try:
+            return model_type.load(path)
+        except:
+            pass
+    raise ValueError(f'Cannot load model from {path}')
+
+def loads_model(data:bytes):
+    '''
+..versionadded:: 0.13.0
+
+Load any topic model from the given bytes data.
+
+Parameters
+----------
+data : bytes
+    The bytes data to load the model from.
+
+Returns
+-------
+model : LDAModel or its subclass
+    '''
+    model_types = _get_all_model_types()
+    for model_type in model_types:
+        try:
+            return model_type.loads(data)
+        except:
+            pass
+    raise ValueError(f'Cannot load model from the given data')
+
 import os
 if os.environ.get('TOMOTOPY_LANG') == 'kr':
     __doc__ = """`tomotopy` 패키지는 Python에서 사용가능한 다양한 토픽 모델링 타입과 함수를 제공합니다.
