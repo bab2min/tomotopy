@@ -389,6 +389,15 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.13.0 (2024-08-05)
+    * New features
+        * Major features of Topic Model Viewer `tomotopy.viewer.open_viewer()` are ready now.
+        * `tomotopy.LDAModel.get_hash()` is added. You can get 128bit hash value of the model.
+        * Add an argument `ngram_list` to `tomotopy.utils.SimpleTokenizer`.
+    * Bug fixes
+        * Fixed inconsistent `spans` bug after `Corpus.concat_ngrams` is called.
+        * Optimized the bottleneck of `tomotopy.LDAModel.load()` and `tomotopy.LDAModel.save()` and improved its speed more than 10 times.
+
 * 0.12.7 (2023-12-19)
     * New features
         * Added Topic Model Viewer `tomotopy.viewer.open_viewer()`
