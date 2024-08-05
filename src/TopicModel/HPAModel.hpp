@@ -21,6 +21,7 @@ namespace tomoto
 		Eigen::Matrix<WeightType, -1, -1> numByTopic1_2;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numByTopicWord, numByTopic, numByTopic1_2);
+		DEFINE_HASHER_AFTER_BASE(ModelStateLDA<_tw>, numByTopicWord, numByTopic, numByTopic1_2);
 	};
 
 	template<TermWeight _tw, typename _RandGen,
@@ -439,6 +440,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, K2, subAlphas, subAlphaSum);
 
 		HPAModel(const HPAArgs& args)
 			: BaseClass(args, false), K2(args.k2)

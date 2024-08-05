@@ -199,14 +199,14 @@ if platform.system() == 'Windows':
     arch_levels = ['none', 'sse2', 'avx2']
 elif platform.system() == 'Darwin': 
     if tomotopy_cpu_arch == 'arm64':
-        arch_levels = ['aarch64']
+        arch_levels = ['arm64']
     elif build_for_manyplatform: 
         arch_levels = ['sse2', 'avx', 'avx2']
     else:
         arch_levels = ['sse2']
 elif build_for_manyplatform:
     if tomotopy_cpu_arch in ('arm64', 'aarch64'):
-        arch_levels = ['aarch64']
+        arch_levels = ['arm64']
 else:
     arch_levels = ['native']
 
@@ -237,7 +237,7 @@ if os.environ.get('TOMOTOPY_LANG'):
 
 for arch in arch_levels:
     if len(arch_levels) > 1:
-        if arch in ('none', 'native', 'aarch64'):
+        if arch in ('none', 'native', 'arm64'):
             module_name = '_tomotopy_none'
         else:
             module_name = '_tomotopy_' + arch

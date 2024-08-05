@@ -386,6 +386,15 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.13.0 (2024-08-05)
+    * 신규 기능
+        * 토픽 모델 뷰어인 `tomotopy.viewer.open_viewer()`의 주요 기능이 완성되었습니다.
+        * `tomotopy.LDAModel.get_hash()`가 추가되었습니다. 모델의 128bit 해시를 구해줍니다.
+        * `ngram_list` 인자가 `tomotopy.utils.SimpleTokenizer`에 추가되었습니다.
+    * Bug fixes
+        * `Corpus.concat_ngrams` 호출 후에 `spans`이 비일관적인 버그가 수정되었습니다.
+        * `tomotopy.LDAModel.load()`와 `tomotopy.LDAModel.save()`의 병목을 최적화하여 속도를 10배 이상 개선했습니다.
+
 * 0.12.7 (2023-12-19)
     * 신규 기능
         * 토픽 모델 뷰어인 `tomotopy.viewer.open_viewer()`가 추가되었습니다.

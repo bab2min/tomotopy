@@ -240,6 +240,16 @@ namespace tomoto
 			return v;
 		}
 
+		template<typename _Ty>
+		inline uint64_t computeHash(uint64_t seed, const _Ty& v)
+		{
+			return Serializer<
+				typename std::remove_const<typename std::remove_reference<_Ty>::type>::type
+			>{}.hash(seed, v);
+		}
+
+		uint64_t computeFastHash(const void* data, size_t size, uint64_t seed = 0);
+
 		inline void writeMany(std::ostream& ostr)
 		{
 			// do nothing
@@ -293,6 +303,22 @@ namespace tomoto
 			std::array<char, _len> m;
 			istr.read(m.data(), m.size());
 			return m == first.m;
+		}
+
+		inline uint64_t computeHashMany(uint64_t seed)
+		{
+			return seed;
+		}
+
+		template<typename _FirstTy, typename ... _RestTy>
+		inline typename std::enable_if<
+			!is_key<typename std::remove_reference<_FirstTy>::type>::value,
+			uint64_t
+		>::type computeHashMany(uint64_t seed, _FirstTy&& first, _RestTy&&... rest)
+		{
+			seed = computeHash(seed, std::forward<_FirstTy>(first));
+			seed = computeHashMany(seed, std::forward<_RestTy>(rest)...);
+			return seed;
 		}
 
 		template<size_t>
@@ -359,6 +385,11 @@ namespace tomoto
 				if (!istr.read((char*)&v, sizeof(_Ty)))
 					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
+
+			uint64_t hash(uint64_t seed, const _Ty& v)
+			{
+				return computeFastHash(&v, sizeof(_Ty), seed);
+			}
 		};
 
 		template<typename _Ty>
@@ -372,6 +403,11 @@ namespace tomoto
 			void read(std::istream& istr, _Ty& v)
 			{
 				v.serializerRead(istr);
+			}
+
+			uint64_t hash(uint64_t seed, const _Ty& v)
+			{
+				return v.computeHash(seed);
 			}
 		};
 
@@ -451,6 +487,13 @@ namespace tomoto
 				if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
 					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.rows());
+				seed = computeHash(seed, (uint32_t)v.cols());
+				return computeFastHash(v.data(), sizeof(_Ty) * v.size(), seed);
+			}
 		};
 
 		template<typename _Ty>
@@ -472,6 +515,13 @@ namespace tomoto
 				v = Eigen::Matrix<_Ty, -1, -1>::Zero(rows, cols);
 				if (!istr.read((char*)v.data(), sizeof(_Ty) * rows * cols))
 					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
+			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.rows());
+				seed = computeHash(seed, (uint32_t)v.cols());
+				return computeFastHash(v.data(), sizeof(_Ty) * v.size(), seed);
 			}
 		};
 
@@ -503,6 +553,12 @@ namespace tomoto
 				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
 					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.size());
+				return computeFastHash(v.data(), sizeof(_Ty) * v.size(), seed);
+			}
 		};
 
 		template<typename _Ty>
@@ -520,6 +576,16 @@ namespace tomoto
 				auto size = readFromStream<uint32_t>(istr);
 				v.resize(size);
 				for (auto& e : v) Serializer<_Ty>{}.read(istr, e);
+			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.size());
+				for (auto& e : v)
+				{
+					seed = computeHash(seed, e);
+				}
+				return seed;
 			}
 		};
 
@@ -541,6 +607,12 @@ namespace tomoto
 				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
 					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.size());
+				return computeFastHash(v.data(), sizeof(_Ty) * v.size(), seed);
+			}
 		};
 
 		template<typename _Ty, size_t n>
@@ -558,6 +630,16 @@ namespace tomoto
 				auto size = readFromStream<uint32_t>(istr);
 				if (n != size) throw std::ios_base::failure(text::format("the size of array must be %zd, not %zd", n, size));
 				for (auto& e : v) Serializer<_Ty>{}.read(istr, e);
+			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.size());
+				for (auto& e : v)
+				{
+					seed = computeHash(seed, e);
+				}
+				return seed;
 			}
 		};
 
@@ -579,6 +661,12 @@ namespace tomoto
 				if (!istr.read((char*)v.data(), sizeof(_Ty) * size))
 					throw std::ios_base::failure(std::string("reading type '") + typeid(_Ty).name() + std::string("' is failed"));
 			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.size());
+				return computeFastHash(v.data(), sizeof(_Ty) * v.size(), seed);
+			}
 		};
 
 		template<typename _Ty1, typename _Ty2>
@@ -593,6 +681,13 @@ namespace tomoto
 			void read(std::istream& istr, VTy& v)
 			{
 				readMany(istr, v.first, v.second);
+			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, v.first);
+				seed = computeHash(seed, v.second);
+				return seed;
 			}
 		};
 
@@ -615,6 +710,8 @@ namespace tomoto
 					v.emplace(readFromStream<std::pair<_Ty1, _Ty2>>(istr));
 				}
 			}
+
+			// not support hash
 		};
 
 		template<typename _Ty1, typename _Ty2>
@@ -636,6 +733,16 @@ namespace tomoto
 					v.emplace(readFromStream<std::pair<_Ty1, _Ty2>>(istr));
 				}
 			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				seed = computeHash(seed, (uint32_t)v.size());
+				for (auto& e : v)
+				{
+					seed = computeHash(seed, e);
+				}
+				return seed;
+			}
 		};
 
 		template<typename _Ty>
@@ -650,6 +757,11 @@ namespace tomoto
 			void read(std::istream& istr, VTy& v)
 			{
 				_Ty::serializerRead(v, istr);
+			}
+
+			uint64_t hash(uint64_t seed, const VTy& v)
+			{
+				return _Ty::serializerHash(v, seed);
 			}
 		};
 
@@ -763,6 +875,11 @@ void serializerWrite(std::ostream& ostr) const\
 	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
 }
 
+#define DEFINE_HASHER(...) uint64_t computeHash(uint64_t seed) const\
+{\
+	return tomoto::serializer::computeHashMany(seed, __VA_ARGS__);\
+}
+
 #define DEFINE_SERIALIZER_WITH_VERSION(v,...) void serializerRead(tomoto::serializer::version_holder<v>, std::istream& istr)\
 {\
 	tomoto::serializer::readMany(istr, __VA_ARGS__);\
@@ -792,6 +909,12 @@ void serializerWrite(std::ostream& ostr) const\
 	base::serializerWrite(ostr);\
 	tomoto::serializer::writeMany(ostr, __VA_ARGS__);\
 }
+
+#define DEFINE_HASHER_AFTER_BASE(base, ...) uint64_t computeHash(uint64_t seed) const\
+{\
+	seed = base::computeHash(seed);\
+	return tomoto::serializer::computeHashMany(seed, __VA_ARGS__);\
+}\
 
 #define DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(base, v, ...) void serializerRead(tomoto::serializer::version_holder<v> _v, std::istream& istr)\
 {\

@@ -13,6 +13,8 @@
 #include <deque>
 #include <future>
 
+#define PY_SSIZE_T_CLEAN 1
+
 #ifdef _DEBUG
 	#undef _DEBUG
 	#include <Python.h>

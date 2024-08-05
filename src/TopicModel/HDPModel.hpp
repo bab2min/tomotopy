@@ -19,6 +19,7 @@ namespace tomoto
 		size_t totalTable = 0;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numTableByTopic, totalTable);
+		DEFINE_HASHER_AFTER_BASE(ModelStateLDA<_tw>, numTableByTopic, totalTable);
 	};
 
 	template<TermWeight _tw, typename _RandGen,
@@ -457,6 +458,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, gamma);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, gamma);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, gamma);
 
 		HDPModel(const HDPArgs& args)
 			: BaseClass(args), gamma(args.gamma)

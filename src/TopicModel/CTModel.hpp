@@ -243,6 +243,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, numBetaSample, numTMNSample, topicPrior);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, numBetaSample, numTMNSample, topicPrior);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, numBetaSample, numTMNSample, topicPrior);
 
 		CTModel(const CTArgs& args)
 			: BaseClass(args)

@@ -19,18 +19,44 @@
       .topic-color-{{i}}-040 {background-color: rgba{{(*c, 0.40)}}; {{style_text}} }
       {% end %}
 
+      .topic-title input {width:100%;}
+
       .list-group-item.active a {color: #fff; }
       .topic-word-dist-container {overflow-x: scroll; margin: 0; padding: 0; list-style: none; white-space: nowrap; }
-      .topic-word-dist-container>li {display: inline-block; width: 25%; max-width: 15em;}
+      .topic-word-dist-container>li {display: inline-block; width: 25%; max-width: 15em; overflow-x: hidden;}
       .word-dist th, .topic-dist th {width:1%; white-space: nowrap;}
 
       #document-content .card {height:100%;}
       #document-content-body p {text-shadow: -1px 0 rgba(255, 255, 255, 0.75), 1px 0 rgba(255, 255, 255, 0.75), 0 -1px rgba(255, 255, 255, 0.75), 0 1px rgba(255, 255, 255, 0.75);}
       #document-content-body p span.active {font-weight: bold;}
       #document-content-body table tr.active {background-color: #ccf;}
+      #document-content-title {font-weight: bold;}
+
+      .topic-overlap {font-size: 80%; border-collapse: collapse; table-layout: fixed;}
+      .topic-overlap th, .topic-overlap td {margin:0; padding:0; text-align: center; border: 1px solid #333; overflow: hidden;}
+      .topic-overlap th span, .topic-overlap td span {display: block; width: 2em; height: 2em;}
+      .topic-overlap td {cursor: pointer;}
+      .topic-pair {border-collapse: collapse; margin-bottom: 0.5em;}
+      .topic-pair th {font-size:105%; font-weight: bold; text-align: center; border-top: 1px solid #ccc; border-left: 1px solid #ccc; border-right: 1px solid #ccc; background: #eee;}
+      .topic-pair.active th {background: #89f;}
+      .topic-pair td {border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; border-right: 1px solid #ccc; padding:0 0.5em 1em;}
+      .topic-pair td span {display:inline-block; margin-right: 0.5em;}
+
+      .chart-item {border:1px solid #ccc; padding: 1em;}
+
+      .download-csv {float: right;}
+      .download-csv svg {width: 1em; height: 1em; vertical-align: middle;}
     </style>
   </head>
   <body style="background-color: #eee;">
+    
+    <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+      <defs><symbol id="csv-icon" viewBox="0 0 56 64">
+        <path clip-rule="evenodd" d="m5.106 0c-2.802 0-5.073 2.272-5.073 5.074v53.841c0 2.803 2.271 5.074 5.073 5.074h45.774c2.801 0 5.074-2.271 5.074-5.074v-38.605l-18.903-20.31h-31.945z" fill="#45b058" fill-rule="evenodd"/><path d="m20.306 43.197c.126.144.198.324.198.522 0 .378-.306.72-.703.72-.18 0-.378-.072-.504-.234-.702-.846-1.891-1.387-3.007-1.387-2.629 0-4.627 2.017-4.627 4.88 0 2.845 1.999 4.879 4.627 4.879 1.134 0 2.25-.486 3.007-1.369.125-.144.324-.233.504-.233.415 0 .703.359.703.738 0 .18-.072.36-.198.504-.937.972-2.215 1.693-4.015 1.693-3.457 0-6.176-2.521-6.176-6.212s2.719-6.212 6.176-6.212c1.8.001 3.096.721 4.015 1.711zm6.802 10.714c-1.782 0-3.187-.594-4.213-1.495-.162-.144-.234-.342-.234-.54 0-.361.27-.757.702-.757.144 0 .306.036.432.144.828.739 1.98 1.314 3.367 1.314 2.143 0 2.827-1.152 2.827-2.071 0-3.097-7.112-1.386-7.112-5.672 0-1.98 1.764-3.331 4.123-3.331 1.548 0 2.881.467 3.853 1.278.162.144.252.342.252.54 0 .36-.306.72-.703.72-.144 0-.306-.054-.432-.162-.882-.72-1.98-1.044-3.079-1.044-1.44 0-2.467.774-2.467 1.909 0 2.701 7.112 1.152 7.112 5.636.001 1.748-1.187 3.531-4.428 3.531zm16.994-11.254-4.159 10.335c-.198.486-.685.81-1.188.81h-.036c-.522 0-1.008-.324-1.207-.81l-4.142-10.335c-.036-.09-.054-.18-.054-.288 0-.36.323-.793.81-.793.306 0 .594.18.72.486l3.889 9.992 3.889-9.992c.108-.288.396-.486.72-.486.468 0 .81.378.81.793.001.09-.017.198-.052.288z" fill="#fff"/><g clip-rule="evenodd" fill-rule="evenodd"><path d="m56.001 20.357v1h-12.8s-6.312-1.26-6.128-6.707c0 0 .208 5.707 6.003 5.707z" fill="#349c42"/><path d="m37.098.006v14.561c0 1.656 1.104 5.791 6.104 5.791h12.8l-18.904-20.352z" fill="#fff" opacity=".5"/></g>
+      </symbol></defs>
+      <use href="#csv-icon"/>
+    </svg>
+
     <div class="" style="background-color: #fff;">
       <main class="p-3">
         <ul class="nav nav-tabs" id="menu" role="tablist">
@@ -43,6 +69,17 @@
           <li class="nav-item" role="presentation">
             <a class="nav-link {{"active" if action == "topic" else ""}}" id="topic-tab" href="/topic">Topic</a>
           </li>
+          <li class="nav-item" role="presentation">
+            <a class="nav-link {{"active" if action == "topic-rel" else ""}}" id="topic-rel-tab" href="/topic-rel">Topic Relation</a>
+          </li>
+          {% if available.get('metadata') %}
+          <li class="nav-item" role="presentation">
+            <a class="nav-link {{"active" if action == "metadata" else ""}}" id="metadata-tab" href="/metadata">Metadata</a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a class="nav-link {{"active" if action == "tdf-map" else ""}}" id="tdf-map-tab" href="/tdf-map">TDF Map</a>
+          </li>
+          {% end %}
         </ul>
         <div class="tab-content" id="tab-content">
           {% if action == 'overview' %}
@@ -85,13 +122,30 @@
             <h3>Filtered documents ({{filtered_docs}} / {{total_docs}})</h3>
             {% end %}
             <form id="document-filter">
+              <div class="row">
+                <div class="input-group">
+                  {% if available.get('metadata') %}
+                  <div class="input-group-text">  
+                    <select class="form-select form-select-sm" id="document-filter-metadata" name="m">
+                      <option value="-1">All metadata</option>
+                      {% for i, v in enumerate(model.metadata_dict) %}
+                      <option value="{{i}}" {{"selected" if i == filter_metadata else ""}}>{{v}}</option>
+                      {% end %}
+                    </select>
+                  </div>
+                  {% end %}
+                  <span class="input-group-text">Keywords: </span>
+                  <input type="text" class="form-control" id="document-filter-keyword" name="sq" value="{{filter_keyword}}">
+                  <button class="btn btn-outline-secondary" type="submit">Search</button>
+                </div>
+              </div>
               <div class="mb-3 row">
                 <div class="col-sm-7">
                   <div class="input-group mb-3">
                     <span class="input-group-text">Show only documents where the proportion of</span>
                     <select class="form-select" name="t">
                       {% for k in range(model.k) %}
-                      <option value="{{k}}" {{"selected" if k == filter_target else ""}}>Topic #{{k}}</option>
+                      <option value="{{k}}" {{"selected" if k == filter_target else ""}}>Topic {{get_topic_label(k, id_suffix=True)}}</option>
                       {% end %}
                     </select>
                     <span class="input-group-text">&gt;=</span>
@@ -103,14 +157,14 @@
                   <select class="form-select" name="s" id="document-sort-key">
                     <option value="-1" {{"selected" if -1 == sort_key else ""}}>Order by DocId</option>
                     {% for k in range(model.k) %}
-                    <option value="{{k}}" {{"selected" if k == sort_key else ""}}>Order by Topic #{{k}}</option>
+                    <option value="{{k}}" {{"selected" if k == sort_key else ""}}>Order by Topic {{get_topic_label(k, id_suffix=True)}}</option>
                     {% end %}
                   </select>
                 </div>
               </div>
             </form>
             <div class="row">
-              <div class="col">
+              <div class="col d-md-block" id="document-list">
                 <ul class="list-group">
                   {% for doc in documents %}
                   <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-start doc-item" id="doc-item-{{doc.doc_id}}">
@@ -126,12 +180,14 @@
                   {% end %}
                 </ul>
                 {% if total_pages > 1 %}
-                {% set args = f'&s={sort_key}&t={filter_target}&v={filter_value}' %}
+                {% set args = f'&s={sort_key}&t={filter_target}&v={filter_value}&sq={filter_keyword}&m={filter_metadata}' %}
                 <form id="document-pagination">
                   <input type="hidden" name="p">
                   <input type="hidden" name="s" value="{{sort_key}}">
                   <input type="hidden" name="t" value="{{filter_target}}">
                   <input type="hidden" name="v" value="{{filter_value}}">
+                  <input type="hidden" name="sq" value="{{filter_keyword}}">
+                  <input type="hidden" name="m" value="{{filter_metadata}}">
                   <nav aria-label="Page navigation">
                     <ul class="pagination justify-content-center">
                       {% if page > 0 %}
@@ -164,6 +220,7 @@
                 <div class="card">
                   <div class="card-header">
                     <span id="document-content-title"></span>
+                    <span id="document-metadata"></span>
                     <button type="button" class="btn-close float-end" id="document-content-close" aria-label="Close"></button>
                   </div>
                   <div class="card-body">
@@ -174,15 +231,23 @@
             </div>
           </div>
           {% elif action == 'topic' %}
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
           <div class="tab-pane fade show active mx-1 my-3" id="topic-tab-pane" role="tabpanel" aria-labelledby="topic-tab">
+            <h3>Top words in each topic <a class="download-csv" href="/d/topic-words.csv?n=100"><svg><use href="#csv-icon" /></svg></a></h3>
             <ul class="topic-word-dist-container">
               {% for topic in topics %}
               <li name="topic-{{topic.topic_id}}">
-                <h4 class="topic-color-{{topic.topic_id % 40}}-050 p-1">Topic #{{topic.topic_id}}</h4>
+                <h4 class="topic-title topic-color-{{topic.topic_id % 40}}-050 p-1" data-id="{{topic.topic_id}}" data-bs-toggle="tooltip" data-bs-title="{{get_topic_label(topic.topic_id, "Topic ", True)}}">
+                  <span class="topic-label">{{get_topic_label(topic.topic_id, "Topic ")}}</span>
+                  <input class="topic-label-editable" type="text" style="display: none;">
+                  {% if not read_only %}
+                  <button type="button" class="btn btn-sm btn-secondary float-end" style="font-size:50%">Rename</button>
+                  {% end %}
+                </h4>
                 <table class="table table-striped table-hover word-dist">
-                  {% for word, dist in topic.words %}
+                  {% for word, id, dist in topic.words %}
                   <tr>
-                    <th scope="row">{{word}}</th>
+                    <th scope="row" data-bs-toggle="tooltip" data-bs-title="{{model.get_word_forms(id)[0][0]}} (ID: {{id}})">{{word}}</th>
                     <td>
                       <div class="progress flex-grow-1 word-dist-bar" data-bs-toggle="tooltip" data-bs-title="{{dist:.5%}}">
                         <div class="progress-bar" role="progressbar" style="width: {{dist / max_dist:.5%}}">{{dist:.3%}}</div>
@@ -193,9 +258,291 @@
                 </table>
               </li>
               {% end %}
-          </ul>
-          <div class="d-grid gap-2">
-            <a href="/topic?top_n={{top_n + 10}}" class="btn btn-primary" role="button">More words...</a>
+            </ul>
+            <div class="d-grid gap-2">
+              <a href="/topic?top_n={{top_n + 10}}" class="btn btn-primary" role="button">More words...</a>
+            </div>
+            <div class="row" style="margin-top: 1em;">
+              {% set col = "col-md-6" if top1_topic_dist_by_metadata else "" %}
+              <div class="chart-item {{col}}" style="height:45vh;">
+                <h3>Distribution of Document Top1 Topics <a class="download-csv" href="/d/document-top1-topic.csv"><svg><use href="#csv-icon" /></svg></a></h3>
+                <canvas id="chart-all"></canvas>
+                <script>
+                  const topic_labels = {{get_all_topic_labels()}};
+                  (function(){
+                    var data = {{top1_topic_dist}};
+                    const ctx = document.getElementById('chart-all');
+                    const chart = new Chart(ctx, {
+                      type: 'bar',
+                      data: {
+                        labels: data.map((_, i) => topic_labels[i]),
+                        datasets: [{
+                          label: 'Num. of Document Top1 Topic',
+                          data: data,
+                        }]
+                      },
+                      options: {
+                        scales: {
+                          y: {
+                            beginAtZero: true
+                          }
+                        }
+                      }
+                    });
+                  }());
+                </script>
+              </div>
+              {% if top1_topic_dist_by_metadata %}
+              <div class="chart-item {{col}}" style="height:45vh;">
+                <h3>Distribution of Document Top1 Topics by Metadata <a class="download-csv" href="/d/document-top1-topic.csv?m=1"><svg><use href="#csv-icon" /></svg></a></h3>
+                <canvas id="chart-metadata"></canvas>
+                <script>
+                  (function(){
+                    const labels = {{[k for k, _ in top1_topic_dist_by_metadata.items()]}};
+                    const data = {{[d for _, d in top1_topic_dist_by_metadata.items()]}};
+                    const ctx = document.getElementById('chart-metadata');
+                    var datasets = [];
+                    for (var i in labels) {
+                      datasets.push({
+                        label: labels[i],
+                        data: data[i],
+                      });
+                    }
+                    const chart = new Chart(ctx, {
+                      type: 'bar',
+                      data: {
+                        labels: data[0].map((_, i) => topic_labels[i]),
+                        datasets: datasets,
+                      },
+                      options: {
+                        scales: {
+                          x: {
+                            stacked: true,
+                          },
+                          y: {
+                            beginAtZero: true,
+                            stacked: true,
+                          }
+                        }
+                      }
+                    });
+                  }());
+                </script>
+              </div>
+              {% end %}
+            </div>
+          </div>
+          {% elif action == 'topic-rel' %}
+          <div class="tab-pane fade show active mx-1 my-3" id="topic-tab-pane" role="tabpanel" aria-labelledby="topic-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <h3>Word overlap between topics <button id="topic-pair-reset" class="btn btn-primary float-end" type="button">Reset</button></h3>
+                <div style="overflow-x: auto; width: 100%;">
+                  <table class="topic-overlap" id="topic-overlap-table">
+                    <tr>
+                      <th></th>
+                      {% for i in range(len(overlaps)) %}
+                      <th data-i="{{i}}" data-j="-1"><span>{{i}}</span></th>
+                      {% end %}
+                    </tr>
+                    {% for j in range(len(overlaps)) %}
+                    <tr>
+                      <th data-i="-1" data-j="{{j}}"><span>{{j}}</span></th>
+                      {% for i in range(len(overlaps)) %}
+                      <td data-i="{{i}}" data-j="{{j}}" data-val="{{overlaps[i, j]}}" style="background:rgb{{scale_color(overlaps[i, j] ** 0.67)}}" data-bs-toggle="tooltip" data-bs-title="{{get_topic_label(i, id_suffix=True)}} - {{get_topic_label(j, id_suffix=True)}}: {{overlaps[i, j]:.2%}}"></td>
+                      {% end %}
+                    </tr>
+                    {% end %}
+                  </table>
+                </div>
+              </div>
+              <div class="col-md-6" id="most-similar-topic-pairs">
+                {% for n, (i, j) in enumerate(similar_pairs) %}
+                <table class="topic-pair" data-i="{{i}}" data-j="{{j}}" data-val="{{overlaps[i, j]}}" style="{{"display:none" if n >= len(overlaps) else ""}}">
+                  <tr>
+                    <th colspan="2"><small>{{get_topic_label(i, id_suffix=True)}} - {{get_topic_label(j, id_suffix=True)}}:</small> {{overlaps[i, j]:.2%}}</th>
+                  </tr>
+                  <tr>
+                    <td><b>{{get_topic_label(i, prefix="Topic ", id_suffix=True)}}:</b>
+                      {% for word, p in model.get_topic_words(i, top_n=10) %}
+                      <span>{{word}}<small>({{p:.2%}})</small></span>
+                      {% end %}
+                    </td>
+                    <td><b>{{get_topic_label(j, prefix="Topic ", id_suffix=True)}}:</b>
+                      {% for word, p in model.get_topic_words(j, top_n=10) %}
+                      <span>{{word}}<small>({{p:.2%}})</small></span>
+                      {% end %}
+                    </td>
+                  </tr>
+                </table>
+                {% end %}
+              </div>
+            </div>
+          </div>
+          {% elif action == 'metadata' %}
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <div class="tab-pane fade show active mx-1 my-3" id="metadata-tab-pane" role="tabpanel" aria-labelledby="metadata-tab">
+            <div class="input-group">
+              <div class="input-group-text">
+                <label for="show-conf-interval">Show Confidence Interval</label>
+                  <input type="checkbox" id="show-conf-interval">
+                </label>
+              </div>
+              <span class="input-group-text">Confidence</span>
+              <input type="text" class="form-control" id="confidence" value="0.9">
+              <div class="input-group-text">
+                <label for="opacity">Opacity from Data Density</label>
+                  <input type="checkbox" id="opacity" checked>
+                </label>
+              </div>
+            </div>
+            <form method="get" id="numeric-metadata-range">
+            {% for i, (s, e) in enumerate(numeric_metadata) %}
+            <div class="input-group">
+              <span class="input-group-text">Numeric Metadata #{{i}}: Range({{s}} - {{e}})</span>
+              <div class="input-group-text">
+                <label for="axis-{{i}}">Show this metadata on axis</label>
+                  <input type="radio" id="axis-{{i}}" name="axis" value="{{i}}" {{"checked" if i == axis else ""}}>
+                </label>
+              </div>
+              <input type="text" class="form-control range-value" id="range-start-{{i}}" value="{{range_start[i]}}">
+              <span class="input-group-text"> - </span>
+              <input type="text" class="form-control range-value" id="range-end-{{i}}" value="{{range_end[i]}}">
+              {% if i == len(numeric_metadata) - 1 %}
+              <button class="btn btn-outline-secondary" type="submit">Update</button>
+              {% end %}
+            </div>
+            {% end %}
+            <input type="hidden" name="x" id="all-range-value">
+            </form>
+
+            <div id="chart-view" class="row">
+              {% for topic in range(cats.shape[2]) %}
+              <div class="chart-item col-md-6">
+                <h3>{{get_topic_label(topic, prefix="Topic ", id_suffix=True)}}: <small>{{", ".join(w for w, _ in model.get_topic_words(topic, 5))}}</small></h3>
+                <canvas id="chart-{{topic}}"></canvas>
+              </div>
+              {% end %}
+            </div>
+            
+            <script>
+              var tdf_data = [
+                {% for topic in range(cats.shape[2]) %}
+                {{cats[:, :, topic].tolist()}},
+                {% end %}
+              ];
+              var category_data_density = [
+                {% for d in data_density %}
+                {{d.tolist()}},
+                {% end %}
+              ];
+              var tdf_ci_p = [];
+              var tdf_ci_lb = [];
+              var tdf_ci_ub = [];
+              var x_values = {{x_values.tolist()}};
+              var x_labels = {{x_labels}};
+              var category_labels = {{categorical_metadata}};
+            </script>
+            <script>
+              var charts = [];
+              for (var i in tdf_data) {
+                var data = tdf_data[i];
+                const ctx = document.getElementById('chart-' + i);
+
+                var datasets = [];
+                for (var c in category_labels) {
+                  datasets.push({
+                    label: category_labels[c],
+                    cubicInterpolationMode: 'monotone',
+                    data: data[c],
+                    borderWidth: 2,
+                    pointStyle: false,
+                    segment: {
+                      borderColor: (ctx) => {
+                        // if opacity is checked 
+                        if (!document.querySelector('#opacity').checked) {
+                          return undefined;
+                        }
+                        const cid = ctx.datasetIndex;
+                        const density = category_data_density[cid];
+                        const orig_color = datasets[cid].borderColor;
+                        const alpha = (density[ctx.p0DataIndex] + density[ctx.p1DataIndex]) / 2;
+                        return 'rgba(' + orig_color.substring(4, orig_color.length - 1) + ', ' + alpha + ')';
+                      },
+                      borderDash: (ctx) => {
+                        if (!document.querySelector('#opacity').checked) {
+                          return undefined;
+                        }
+                        const cid = ctx.datasetIndex;
+                        const density = category_data_density[cid];
+                        const orig_color = datasets[cid].borderColor;
+                        const alpha = (density[ctx.p0DataIndex] + density[ctx.p1DataIndex]) / 2;
+                        if (alpha < 0.25) {
+                          return [2, 6];
+                        } else if (alpha < 0.5) {
+                          return [4, 4];
+                        } else if (alpha < 0.75) {
+                          return [6, 2];
+                        }
+                        return undefined;
+                      },
+                    },
+                  });
+                }
+              
+                const chart = new Chart(ctx, {
+                  type: 'line',
+                  data: {
+                    labels: x_values,
+                    datasets: datasets
+                  },
+                  options: {
+                    scales: {
+                      x: {
+                        ticks: {
+                          callback: function(val, index) {
+                            return x_labels[index];
+                          },
+                        }
+                      },
+                      y: {
+                        beginAtZero: true
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        labels: {
+                          filter: function(item, chart) {
+                            return item.datasetIndex < category_labels.length;
+                          }
+                        }
+                      },
+                      tooltip: {
+                        filter: function(item) {
+                          return item.datasetIndex < category_labels.length;
+                        }
+                      },
+                    }
+                  }
+                });
+                charts.push(chart);
+              }
+            </script>
+          </div>
+          {% elif action == 'tdf-map' %}
+          <div class="tab-pane fade show active mx-1 my-3" id="tdf-map-tab-pane" role="tabpanel" aria-labelledby="tdf-map-tab">
+            <h3>Topic Distribution Function Map</h3>
+            <div class="row">
+              <div class="text-center">
+                <img src="/d/tdf-map-legend.png?x={{x_axis}}&y={{y_axis}}&w=800&h=40&s={{contour_interval}}" style="border: 1px solid #333; max-width:800px; width:100%;">
+              </div>
+              {% for topic in range(model.k) %}
+              <div class="col-md-4 col-sm-6">
+                <h4>{{get_topic_label(topic, prefix="Topic ", id_suffix=True)}}</h4>
+                <img src="/d/tdf-map-{{topic}}.png?x={{x_axis}}&y={{y_axis}}&w={{width}}&h={{height}}&s={{contour_interval}}&smooth={{int(smooth)}}" class="img-fluid" alt="Map for {{get_topic_label(topic, prefix="Topic ", id_suffix=True)}}">
+              </div>
+              {% end %}
+            </div>
           </div>
           {% end %}
         </div>
@@ -209,34 +556,62 @@
     (function(){
       const tooltip_list = [...document.querySelectorAll('[data-bs-toggle="tooltip"]')].map(e => new bootstrap.Tooltip(e));
 
+      function view_document(doc_id) {
+        if (doc_id === null) {
+          // hide document view
+          document.getElementById('document-content').style.display = 'none';
+          document.getElementById('document-list').classList.remove('d-none');
+          return;
+        } 
+        // remove active class
+        document.querySelectorAll('.doc-item').forEach((el) => {
+          el.classList.remove('active');
+        });
+        // add active class
+        document.getElementById(`doc-item-${doc_id}`).classList.add('active');
+        // show loading
+        document.getElementById('document-content-title').innerHTML = `Doc ${doc_id}`;
+        document.getElementById('document-metadata').innerHTML = '';
+        document.getElementById('document-content-body').innerHTML = '<div class="d-flex align-items-center"><strong>Loading...</strong><div class="spinner-border ms-auto" role="status" aria-hidden="true"></div></div>';
+        document.getElementById('document-content').style.display = 'block';
+        document.getElementById('document-list').classList.add('d-none');
+
+        fetch(`/api/document/${doc_id}`).then((res) => res.text()).then((html) => {
+          document.getElementById('document-content-body').innerHTML = html;
+          const tooltip_list = [...document.querySelectorAll('#document-content-body [data-bs-toggle="tooltip"]')].map(e => new bootstrap.Tooltip(e));
+          document.querySelectorAll('#document-content-body meta').forEach((el) => {
+            const key = el.getAttribute('name');
+            const value = el.getAttribute('content');
+            document.getElementById('document-metadata').innerHTML += `<span class="badge bg-secondary">${key}: ${value}</span> `;
+          });
+        }).catch((err) => {
+          document.getElementById('document-content-body').innerHTML = `<p class="text-danger">${err}</p>`;
+        })
+      }
+
       document.querySelectorAll('.document-view').forEach((el) => {
         el.addEventListener('click', (e) => {
           //e.preventDefault();
-          const doc_id = el.getAttribute('href').substring(5);
-          // remove active class
-          document.querySelectorAll('.doc-item').forEach((el) => {
-            el.classList.remove('active');
-          });
-          // add active class
-          document.getElementById(`doc-item-${doc_id}`).classList.add('active');
-          // show loading
-          document.getElementById('document-content-title').innerHTML = `Doc ${doc_id}`;
-          document.getElementById('document-content-body').innerHTML = '<div class="d-flex align-items-center"><strong>Loading...</strong><div class="spinner-border ms-auto" role="status" aria-hidden="true"></div></div>';
-          document.getElementById('document-content').style.display = 'block';
-
-          fetch(`/api/document/${doc_id}`).then((res) => res.text()).then((html) => {
-            document.getElementById('document-content-body').innerHTML = html;
-            const tooltip_list = [...document.querySelectorAll('#document-content-body [data-bs-toggle="tooltip"]')].map(e => new bootstrap.Tooltip(e));
-          }).catch((err) => {
-            document.getElementById('document-content-body').innerHTML = `<p class="text-danger">${err}</p>`;
-          })
+          //const doc_id = el.getAttribute('href').substring(5);
+          //view_document(doc_id);
         });
       });
 
       if (document.querySelector('#document-content-close')) {
         document.querySelector('#document-content-close').addEventListener('click', (e) => {
           e.preventDefault();
-          document.getElementById('document-content').style.display = 'none';
+          //view_document(null);
+          location.hash = '';
+        });
+
+        // when user go history back
+        window.addEventListener('popstate', (e) => {
+          // test if #doc-xxx exists
+          if (location.hash.startsWith('#doc-')) {
+            view_document(location.hash.substring(5));
+          } else {
+            view_document(null);
+          }
         });
       }
 
@@ -266,6 +641,12 @@
         });
       }
 
+      if (document.querySelector('#document-filter-metadata')) {
+        document.querySelector('#document-filter-metadata').addEventListener('change', (e) => {
+          document.querySelector('#document-filter').submit();
+        });
+      }
+
       // attach event handler to element with .topic-action dynamically
       document.addEventListener("click", function(e){
         const target = e.target.closest(".topic-action");
@@ -281,6 +662,188 @@
           el.classList.add('active');
         });
       });
+
+      if (document.querySelector('.topic-title')) {
+        document.querySelectorAll('.topic-title').forEach((el) => {
+          const topic_id = el.getAttribute('data-id');
+          el.querySelector('button').addEventListener('click', (e) => {
+            const button = el.querySelector('button');
+            const label = el.querySelector('.topic-label');
+            const input = el.querySelector('.topic-label-editable');
+            button.style.display = 'none';
+            label.style.display = 'none';
+            input.style.display = '';
+            input.value = label.textContent;
+            input.focus();
+          });
+
+          function update_topic_label() {
+            const button = el.querySelector('button');
+            const label = el.querySelector('.topic-label');
+            const input = el.querySelector('.topic-label-editable');
+            button.style.display = '';
+            label.style.display = '';
+            input.style.display = 'none';
+            label.textContent = input.value;
+            fetch(`/api/topic/${topic_id}/label`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({label: input.value}),
+            }).then((res) => res.json()).then((json) => {
+              setTimeout(() => window.location.reload(), 50);
+            });
+          }
+          el.querySelector('.topic-label-editable').addEventListener('blur', update_topic_label);
+          el.querySelector('.topic-label-editable').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              update_topic_label();
+            }
+          });
+        });
+      }
+
+      if (document.querySelector('#topic-overlap-table')) {
+        const num_topics = document.querySelectorAll('#topic-overlap-table tr').length - 1;
+        document.querySelectorAll('#topic-overlap-table td').forEach((el) => {
+          el.addEventListener('click', (e) => {
+            const topic_i = el.getAttribute('data-i');
+            const topic_j = el.getAttribute('data-j');
+            if (topic_i == '-1' || topic_j == '-1') return;
+            const list = document.querySelector('#most-similar-topic-pairs');
+            [...list.children]
+              .sort((a, b) => {
+                const a_selected = a.getAttribute('data-j') == topic_j ? 1 : 0;
+                const b_selected = b.getAttribute('data-j') == topic_j ? 1 : 0;
+                if (b_selected > a_selected) return 1;
+                if (b_selected < a_selected) return -1;
+                return parseFloat(b.getAttribute('data-val')) - parseFloat(a.getAttribute('data-val'));
+              })
+              .forEach((node, idx) => {
+                if (node.getAttribute('data-j') == topic_j) {
+                  node.classList.add('active');
+                } else {
+                  node.classList.remove('active');
+                }
+                node.style.display = node.getAttribute('data-i') == topic_i ? '' : 'none';
+                list.appendChild(node);
+              });
+          });
+        });
+        document.querySelector('#topic-pair-reset').addEventListener('click', (e) => {
+          const list = document.querySelector('#most-similar-topic-pairs');
+          [...list.children]
+            .sort((a, b) => parseFloat(b.getAttribute('data-val')) - parseFloat(a.getAttribute('data-val')))
+            .forEach((node, idx) => {
+              const is_triu = parseInt(node.getAttribute('data-i')) < parseInt(node.getAttribute('data-j'));
+              node.style.display = idx < (num_topics - 1) * 2 && is_triu ? '' : 'none';
+              list.appendChild(node);
+            });
+        });
+      }
+
+      function get_confidence_interval_data(p, done, cid = 0) {
+        if (typeof tdf_ci_lb[cid] !== 'undefined' && tdf_ci_p[cid] == p) {
+          if (cid + 1 < category_labels.length) {
+            get_confidence_interval_data(p, done, cid + 1);
+          } else {
+            done();
+          }
+          return;
+        }
+
+        fetch(`/api/conf-interval/${cid}/${p}`).then((res) => res.json()).then((json) => {
+          const cid = json.data.cid;
+          const p = json.data.p;
+          const lbs = json.data.lbs;
+          const ubs = json.data.ubs;
+          tdf_ci_p[cid] = p;
+          tdf_ci_lb[cid] = lbs;
+          tdf_ci_ub[cid] = ubs;
+          if (cid + 1 < category_labels.length) {
+            get_confidence_interval_data(p, done, cid + 1);
+          } else {
+            done();
+          }
+        });
+      }
+
+      function updateConfInterval() {
+        const show_conf_interval = document.querySelector('#show-conf-interval').checked;
+        if (show_conf_interval) {
+            const p = parseFloat(document.querySelector('#confidence').value);
+            if (isNaN(p) || p <= 0 || p >= 1) {
+              alert('Confidence should be a number between 0 and 1.');
+              return;
+            }
+            get_confidence_interval_data(p, () => {
+              for (var i in charts) {
+                const chart = charts[i];
+                const data = chart.data;
+                const datasets = data.datasets;
+                datasets.splice(category_labels.length);
+                for (var cid in category_labels) {
+                  const lb = tdf_ci_lb[cid][i];
+                  const ub = tdf_ci_ub[cid][i];
+                  for (var lv = 0; lv < 3; ++lv) {
+                    const backgroundColor = datasets[cid].backgroundColor.replace(/, *0\.\d+\)/, lv > 0 ? ', 0.1)' : ', 0.15)');
+                    datasets.push({
+                      label: category_labels[cid] + ' LB',
+                      data: lb.map((v, x) => (v * (3 - lv) + tdf_data[i][cid][x] * lv) / 3),
+                      fill: cid,
+                      backgroundColor: backgroundColor,
+                      borderColor: 'transparent',
+                      pointStyle: false,
+                    });
+                    datasets.push({
+                      label: category_labels[cid] + ' UB',
+                      data: ub.map((v, x) => (v * (3 - lv) + tdf_data[i][cid][x] * lv) / 3),
+                      fill: cid,
+                      backgroundColor: backgroundColor,
+                      borderColor: 'transparent',
+                      pointStyle: false,
+                    });
+                  }
+                }
+                chart.update();
+              }
+            });
+          } else {
+            for (var i in charts) {
+              const chart = charts[i];
+              const data = chart.data;
+              const datasets = data.datasets;
+              datasets.splice(category_labels.length);
+              chart.update();
+            }
+          }
+      }
+
+      if (document.querySelector('#show-conf-interval')) {
+        document.querySelector('#show-conf-interval').addEventListener('change', updateConfInterval);
+        document.querySelector('#confidence').addEventListener('change', updateConfInterval);
+      }
+
+      if (document.querySelector('#opacity')) {
+        document.querySelector('#opacity').addEventListener('change', (e) => {
+          for (var i in charts) {
+            const chart = charts[i];
+            chart.update();
+          }
+        });
+      }
+
+      if (document.querySelector('#numeric-metadata-range')) {
+        document.querySelector('#numeric-metadata-range').addEventListener('submit', (e) => {
+          const range_values = [];
+          document.querySelectorAll('.range-value').forEach((el) => {
+            range_values.push(el.value);
+          });
+          document.querySelector('#all-range-value').value = range_values.join(',');
+          return true;
+        });
+      }
 
     }());
     </script>

@@ -50,6 +50,11 @@ namespace tomoto
         }
     }
 
+    uint64_t Dictionary::computeHash(uint64_t seed) const
+	{
+        return serializer::computeHashMany(seed, id2word);
+	}
+
     void Dictionary::swap(Dictionary& rhs)
     {
         std::swap(dict, rhs.dict);

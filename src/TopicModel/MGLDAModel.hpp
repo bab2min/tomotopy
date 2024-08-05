@@ -370,6 +370,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, alphaL, alphaM, alphaML, etaL, gamma, KL, T);
 
 		MGLDAModel(const MGLDAArgs& args)
 			: BaseClass(args), KL(args.kL), T(args.t),

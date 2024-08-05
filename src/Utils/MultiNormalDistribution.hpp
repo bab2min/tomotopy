@@ -58,6 +58,7 @@ namespace tomoto
 			}
 
 			DEFINE_SERIALIZER_CALLBACK(onRead, mean, cov);
+			DEFINE_HASHER(mean, cov);
 		private:
 			void onRead() 
 			{

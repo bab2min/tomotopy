@@ -364,6 +364,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, sigma, alphaEps, metadataDict, lambda);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, sigma, alphaEps, metadataDict, lambda, multiMetadataDict);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, sigma, alphaEps, metadataDict, lambda, multiMetadataDict);
 
 		DMRModel(const DMRArgs& args)
 			: BaseClass(args), sigma(args.sigma), alphaEps(args.alphaEps)

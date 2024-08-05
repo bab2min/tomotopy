@@ -19,6 +19,7 @@ namespace tomoto
 		Vector subTmp;
 
 		DEFINE_SERIALIZER_AFTER_BASE(ModelStateLDA<_tw>, numByTopic1_2, numByTopic2);
+		DEFINE_HASHER_AFTER_BASE(ModelStateLDA<_tw>, numByTopic1_2, numByTopic2);
 	};
 
 	template<TermWeight _tw, typename _RandGen,
@@ -364,6 +365,7 @@ namespace tomoto
 	public:
 		DEFINE_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 0, K2, subAlphas, subAlphaSum);
 		DEFINE_TAGGED_SERIALIZER_AFTER_BASE_WITH_VERSION(BaseClass, 1, 0x00010001, K2, subAlphas, subAlphaSum);
+		DEFINE_HASHER_AFTER_BASE(BaseClass, K2, subAlphas, subAlphaSum);
 
 		PAModel(const PAArgs& args)
 			: BaseClass(args), K2(args.k2)
