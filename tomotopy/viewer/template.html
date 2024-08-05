@@ -61,23 +61,23 @@
       <main class="p-3">
         <ul class="nav nav-tabs" id="menu" role="tablist">
           <li class="nav-item" role="presentation">
-            <a class="nav-link {{"active" if action == "overview" else ""}}" id="overview-tab" href="/">Overview</a>
+            <a class="nav-link {{"active" if action == "overview" else ""}}" id="overview-tab" href="{{root_path}}">Overview</a>
           </li>
           <li class="nav-item" role="presentation">
-            <a class="nav-link {{"active" if action == "document" else ""}}" id="document-tab" href="/document">Document</a>
+            <a class="nav-link {{"active" if action == "document" else ""}}" id="document-tab" href="{{root_path}}document">Document</a>
           </li>
           <li class="nav-item" role="presentation">
-            <a class="nav-link {{"active" if action == "topic" else ""}}" id="topic-tab" href="/topic">Topic</a>
+            <a class="nav-link {{"active" if action == "topic" else ""}}" id="topic-tab" href="{{root_path}}topic">Topic</a>
           </li>
           <li class="nav-item" role="presentation">
-            <a class="nav-link {{"active" if action == "topic-rel" else ""}}" id="topic-rel-tab" href="/topic-rel">Topic Relation</a>
+            <a class="nav-link {{"active" if action == "topic-rel" else ""}}" id="topic-rel-tab" href="{{root_path}}topic-rel">Topic Relation</a>
           </li>
           {% if available.get('metadata') %}
           <li class="nav-item" role="presentation">
-            <a class="nav-link {{"active" if action == "metadata" else ""}}" id="metadata-tab" href="/metadata">Metadata</a>
+            <a class="nav-link {{"active" if action == "metadata" else ""}}" id="metadata-tab" href="{{root_path}}metadata">Metadata</a>
           </li>
           <li class="nav-item" role="presentation">
-            <a class="nav-link {{"active" if action == "tdf-map" else ""}}" id="tdf-map-tab" href="/tdf-map">TDF Map</a>
+            <a class="nav-link {{"active" if action == "tdf-map" else ""}}" id="tdf-map-tab" href="{{root_path}}tdf-map">TDF Map</a>
           </li>
           {% end %}
         </ul>
@@ -233,7 +233,7 @@
           {% elif action == 'topic' %}
           <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
           <div class="tab-pane fade show active mx-1 my-3" id="topic-tab-pane" role="tabpanel" aria-labelledby="topic-tab">
-            <h3>Top words in each topic <a class="download-csv" href="/d/topic-words.csv?n=100"><svg><use href="#csv-icon" /></svg></a></h3>
+            <h3>Top words in each topic <a class="download-csv" href="{{root_path}}d/topic-words.csv?n=100"><svg><use href="#csv-icon" /></svg></a></h3>
             <ul class="topic-word-dist-container">
               {% for topic in topics %}
               <li name="topic-{{topic.topic_id}}">
@@ -260,12 +260,12 @@
               {% end %}
             </ul>
             <div class="d-grid gap-2">
-              <a href="/topic?top_n={{top_n + 10}}" class="btn btn-primary" role="button">More words...</a>
+              <a href="{{root_path}}topic?top_n={{top_n + 10}}" class="btn btn-primary" role="button">More words...</a>
             </div>
             <div class="row" style="margin-top: 1em;">
               {% set col = "col-md-6" if top1_topic_dist_by_metadata else "" %}
               <div class="chart-item {{col}}" style="height:45vh;">
-                <h3>Distribution of Document Top1 Topics <a class="download-csv" href="/d/document-top1-topic.csv"><svg><use href="#csv-icon" /></svg></a></h3>
+                <h3>Distribution of Document Top1 Topics <a class="download-csv" href="{{root_path}}d/document-top1-topic.csv"><svg><use href="#csv-icon" /></svg></a></h3>
                 <canvas id="chart-all"></canvas>
                 <script>
                   const topic_labels = {{get_all_topic_labels()}};
@@ -294,7 +294,7 @@
               </div>
               {% if top1_topic_dist_by_metadata %}
               <div class="chart-item {{col}}" style="height:45vh;">
-                <h3>Distribution of Document Top1 Topics by Metadata <a class="download-csv" href="/d/document-top1-topic.csv?m=1"><svg><use href="#csv-icon" /></svg></a></h3>
+                <h3>Distribution of Document Top1 Topics by Metadata <a class="download-csv" href="{{root_path}}d/document-top1-topic.csv?m=1"><svg><use href="#csv-icon" /></svg></a></h3>
                 <canvas id="chart-metadata"></canvas>
                 <script>
                   (function(){
@@ -534,12 +534,12 @@
             <h3>Topic Distribution Function Map</h3>
             <div class="row">
               <div class="text-center">
-                <img src="/d/tdf-map-legend.png?x={{x_axis}}&y={{y_axis}}&w=800&h=40&s={{contour_interval}}" style="border: 1px solid #333; max-width:800px; width:100%;">
+                <img src="{{root_path}}d/tdf-map-legend.png?x={{x_axis}}&y={{y_axis}}&w=800&h=40&s={{contour_interval}}" style="border: 1px solid #333; max-width:800px; width:100%;">
               </div>
               {% for topic in range(model.k) %}
               <div class="col-md-4 col-sm-6">
                 <h4>{{get_topic_label(topic, prefix="Topic ", id_suffix=True)}}</h4>
-                <img src="/d/tdf-map-{{topic}}.png?x={{x_axis}}&y={{y_axis}}&w={{width}}&h={{height}}&s={{contour_interval}}&smooth={{int(smooth)}}" class="img-fluid" alt="Map for {{get_topic_label(topic, prefix="Topic ", id_suffix=True)}}">
+                <img src="{{root_path}}d/tdf-map-{{topic}}.png?x={{x_axis}}&y={{y_axis}}&w={{width}}&h={{height}}&s={{contour_interval}}&smooth={{int(smooth)}}" class="img-fluid" alt="Map for {{get_topic_label(topic, prefix="Topic ", id_suffix=True)}}">
               </div>
               {% end %}
             </div>
@@ -576,7 +576,7 @@
         document.getElementById('document-content').style.display = 'block';
         document.getElementById('document-list').classList.add('d-none');
 
-        fetch(`/api/document/${doc_id}`).then((res) => res.text()).then((html) => {
+        fetch(`{{root_path}}api/document/${doc_id}`).then((res) => res.text()).then((html) => {
           document.getElementById('document-content-body').innerHTML = html;
           const tooltip_list = [...document.querySelectorAll('#document-content-body [data-bs-toggle="tooltip"]')].map(e => new bootstrap.Tooltip(e));
           document.querySelectorAll('#document-content-body meta').forEach((el) => {
@@ -685,7 +685,7 @@
             label.style.display = '';
             input.style.display = 'none';
             label.textContent = input.value;
-            fetch(`/api/topic/${topic_id}/label`, {
+            fetch(`{{root_path}}api/topic/${topic_id}/label`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -753,7 +753,7 @@
           return;
         }
 
-        fetch(`/api/conf-interval/${cid}/${p}`).then((res) => res.json()).then((json) => {
+        fetch(`{{root_path}}api/conf-interval/${cid}/${p}`).then((res) => res.json()).then((json) => {
           const cid = json.data.cid;
           const p = json.data.p;
           const lbs = json.data.lbs;

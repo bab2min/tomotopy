@@ -264,6 +264,10 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         return self.server.model
     
     @property
+    def root_path(self):
+        return self.server.root_path
+
+    @property
     def model_hash(self):
         hex_chr = hex(self.model.get_hash())[2:]
         if len(hex_chr) < 32:
@@ -879,7 +883,7 @@ def _prepare_template():
     compiled_template = compile('\n'.join(codes), 'template.html', 'exec')
     return compiled_template
 
-def open_viewer(model, host='localhost', port=80, title=None, user_config_file=None, read_only=False):
+def open_viewer(model, host='localhost', port=80, root_path='/', title=None, user_config_file=None, read_only=False):
     '''
 Run a server for topic model viewer
 
@@ -891,6 +895,8 @@ host: str
     The host name to bind the server. Default is 'localhost'.
 port: int
     The port number to bind the server. Default is 80.
+root_path: str
+    The root path of the viewer. Default is '/'.
 title: str
     The title of the viewer in a web browser. Default is the class name of the model.
 user_config_file: str
@@ -915,6 +921,7 @@ because this uses python's built-in `http.server` module which is not designed f
     with http.server.ThreadingHTTPServer((host, port), ViewerHandler) as httpd:
         httpd.title = title
         httpd.model = model
+        httpd.root_path = root_path
         httpd.template = template
         httpd.user_config_file = user_config_file
         httpd.user_config = None
