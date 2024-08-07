@@ -148,6 +148,31 @@ CGS와 VB는 서로 접근방법이 아예 다른 기법이기 때문에 둘을 
 
 이에 대해서는 `tomotopy.LDAModel.save`와 `tomotopy.LDAModel.load`에서 더 자세한 내용을 확인할 수 있습니다.
 
+인터랙티브 모델 뷰어
+------------------
+
+.. raw:: html
+
+    <video src="https://private-user-images.githubusercontent.com/19266222/355924875-fc9d27f5-5542-4e65-ab69-1d96dc0913af.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MjMwNTI4MTUsIm5iZiI6MTcyMzA1MjUxNSwicGF0aCI6Ii8xOTI2NjIyMi8zNTU5MjQ4NzUtZmM5ZDI3ZjUtNTU0Mi00ZTY1LWFiNjktMWQ5NmRjMDkxM2FmLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDA4MDclMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwODA3VDE3NDE1NVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTk1N2YxODE3MzBiZTNhMjkyNTk1OWJkODRmZjc4ZTcyYzFkZGYxZjgxODUxYTNlNGYxMzllOTgzNDI0MjA4ZDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.evTswIGMps594nQ6JCtbd6puFM8ARHM0emgaluIUxvY" style="max-width:100%"></video>
+
+v0.13.0부터는 토픽 모델링의 결과를 인터랙티브 뷰어를 통해 살펴보는 것도 가능합니다.
+
+::
+
+    import tomotopy as tp
+    model = tp.LDAModel(...)
+    # ... some training codes ...
+    tp.viewer.open_viewer(model, host="localhost", port=9999)
+    # And open http://localhost:9999 in your web browser!
+
+이미 저장된 모델 파일이 있다면 다음 명령행을 통해서도 간단히 뷰어를 구동할 수 있습니다.
+
+::
+
+    python -m tomotopy.viewer a_trained_model.bin --host localhost --port 9999
+
+자세한 내용은 `tomotopy.viewer`을 참조하세요.
+
 모델 안의 문헌과 모델 밖의 문헌
 -------------------------------------------
 토픽 모델은 크게 2가지 목적으로 사용할 수 있습니다. 
