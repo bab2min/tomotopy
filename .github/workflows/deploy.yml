@@ -40,6 +40,7 @@ jobs:
         cd ..
         mv variant/include/mapbox include/
     - name: Src Deploy
+      continue-on-error: True
       if: ${{ matrix.cp == 'cp38-cp38' }}
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}

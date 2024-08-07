@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: |
-        /opt/python/cp38-cp38/bin/python -m pip install --upgrade pip
+        /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip
         yum install libffi-devel -y
         git clone https://gitlab.com/libeigen/eigen
         cd eigen
@@ -42,7 +42,7 @@ jobs:
     - name: build
       run: |
         /opt/python/cp39-cp39/bin/python -m pip install numpy==`/opt/python/cp39-cp39/bin/python .github/workflows/numpy_version.py`
-        /opt/python/cp39-cp3/bin/python -m pip install pdoc3==0.8.4
+        /opt/python/cp39-cp39/bin/python -m pip install pdoc3==0.8.4
         export TOMOTOPY_LANG=${{ matrix.language }}
         /opt/python/cp39-cp39/bin/python setup.py install
     - name: gen doc
