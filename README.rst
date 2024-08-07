@@ -149,6 +149,31 @@ When you load the model from a file, a model type in the file should match the c
 
 See more at `tomotopy.LDAModel.save` and `tomotopy.LDAModel.load` methods.
 
+Interactive Model Viewer
+------------------------
+
+.. raw:: html
+
+    <video src="https://private-user-images.githubusercontent.com/19266222/355924875-fc9d27f5-5542-4e65-ab69-1d96dc0913af.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MjMwNTI4MTUsIm5iZiI6MTcyMzA1MjUxNSwicGF0aCI6Ii8xOTI2NjIyMi8zNTU5MjQ4NzUtZmM5ZDI3ZjUtNTU0Mi00ZTY1LWFiNjktMWQ5NmRjMDkxM2FmLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDA4MDclMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwODA3VDE3NDE1NVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTk1N2YxODE3MzBiZTNhMjkyNTk1OWJkODRmZjc4ZTcyYzFkZGYxZjgxODUxYTNlNGYxMzllOTgzNDI0MjA4ZDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.evTswIGMps594nQ6JCtbd6puFM8ARHM0emgaluIUxvY" style="max-width:100%"></video>
+
+You can see the result of modeling using the interactive viewer since v0.13.0.
+
+::
+
+    import tomotopy as tp
+    model = tp.LDAModel(...)
+    # ... some training codes ...
+    tp.viewer.open_viewer(model, host="localhost", port=9999)
+    # And open http://localhost:9999 in your web browser!
+
+If you have a saved model file, you can also use the following command line.
+
+::
+
+    python -m tomotopy.viewer a_trained_model.bin --host localhost --port 9999
+
+See more at `tomotopy.viewer` module.
+
 Documents in the Model and out of the Model
 -------------------------------------------
 We can use Topic Model for two major purposes. 
