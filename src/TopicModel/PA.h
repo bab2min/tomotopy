@@ -29,7 +29,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentPA<TermWeight::one>;
-		static IPAModel* create(TermWeight _weight, const PAArgs& args,
+		static std::unique_ptr<IPAModel> create(TermWeight _weight, const PAArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getDirichletEstIteration() const = 0;

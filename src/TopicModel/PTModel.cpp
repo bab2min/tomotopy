@@ -7,7 +7,7 @@ namespace tomoto
 
 	TMT_INSTANTIATE_DOC(DocumentPT);
 
-	IPTModel* IPTModel::create(TermWeight _weight, const PTArgs& args, bool scalarRng)
+	std::unique_ptr<IPTModel> IPTModel::create(TermWeight _weight, const PTArgs& args, bool scalarRng)
 	{
 		TMT_SWITCH_TW(_weight, scalarRng, PTModel, args);
 	}

@@ -24,11 +24,11 @@ Term Weighting Scheme is based on following paper:
 		{\
 			switch (TW){\
 			case TermWeight::one:\
-				return new MDL<TermWeight::one, ScalarRandGen>(__VA_ARGS__);\
+				return std::make_unique<MDL<TermWeight::one, ScalarRandGen>>(__VA_ARGS__);\
 			case TermWeight::idf:\
-				return new MDL<TermWeight::idf, ScalarRandGen>(__VA_ARGS__);\
+				return std::make_unique<MDL<TermWeight::idf, ScalarRandGen>>(__VA_ARGS__);\
 			case TermWeight::pmi:\
-				return new MDL<TermWeight::pmi, ScalarRandGen>(__VA_ARGS__);\
+				return std::make_unique<MDL<TermWeight::pmi, ScalarRandGen>>(__VA_ARGS__);\
 			}\
 		}\
 		return nullptr; } while(0)
@@ -37,11 +37,11 @@ Term Weighting Scheme is based on following paper:
 		{\
 			switch (TW){\
 			case TermWeight::one:\
-				return new MDL<TermWeight::one, RandGen>(__VA_ARGS__);\
+				return std::make_unique<MDL<TermWeight::one, RandGen>>(__VA_ARGS__);\
 			case TermWeight::idf:\
-				return new MDL<TermWeight::idf, RandGen>(__VA_ARGS__);\
+				return std::make_unique<MDL<TermWeight::idf, RandGen>>(__VA_ARGS__);\
 			case TermWeight::pmi:\
-				return new MDL<TermWeight::pmi, RandGen>(__VA_ARGS__);\
+				return std::make_unique<MDL<TermWeight::pmi, RandGen>>(__VA_ARGS__);\
 			}\
 		}\
 		return nullptr; } while(0)

@@ -7,7 +7,7 @@ namespace tomoto
 
 	TMT_INSTANTIATE_DOC(DocumentHDP);
 
-    IHDPModel* IHDPModel::create(TermWeight _weight, const HDPArgs& args, bool scalarRng)
+	std::unique_ptr<IHDPModel> IHDPModel::create(TermWeight _weight, const HDPArgs& args, bool scalarRng)
 	{
 		TMT_SWITCH_TW(_weight, scalarRng, HDPModel, args);
 	}

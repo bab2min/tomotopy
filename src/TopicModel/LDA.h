@@ -179,7 +179,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLDA<TermWeight::one>;
-		static ILDAModel* create(TermWeight _weight, const LDAArgs& args,
+		static std::unique_ptr<ILDAModel> create(TermWeight _weight, const LDAArgs& args,
 			bool scalarRng = false);
 
 		virtual TermWeight getTermWeight() const = 0;

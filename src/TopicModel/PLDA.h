@@ -20,7 +20,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLLDA<TermWeight::one>;
-		static IPLDAModel* create(TermWeight _weight, const PLDAArgs& args,
+		static std::unique_ptr<IPLDAModel> create(TermWeight _weight, const PLDAArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getNumLatentTopics() const = 0;

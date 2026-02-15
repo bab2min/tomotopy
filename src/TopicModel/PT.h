@@ -26,7 +26,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentPT<TermWeight::one>;
-		static IPTModel* create(TermWeight _weight, const PTArgs& args,
+		static std::unique_ptr<IPTModel> create(TermWeight _weight, const PTArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getP() const = 0;

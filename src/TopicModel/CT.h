@@ -24,7 +24,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentCTM<TermWeight::one>;
-		static ICTModel* create(TermWeight _weight, const CTArgs& args,
+		static std::unique_ptr<ICTModel> create(TermWeight _weight, const CTArgs& args,
 			bool scalarRng = false);
 
 		virtual void setNumBetaSample(size_t numSample) = 0;

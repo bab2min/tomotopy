@@ -7,7 +7,7 @@ namespace tomoto
 
 	TMT_INSTANTIATE_DOC(DocumentMGLDA);
 
-    IMGLDAModel* IMGLDAModel::create(TermWeight _weight, const MGLDAArgs& args, bool scalarRng)
+	std::unique_ptr<IMGLDAModel> IMGLDAModel::create(TermWeight _weight, const MGLDAArgs& args, bool scalarRng)
 	{
 		TMT_SWITCH_TW(_weight, scalarRng, MGLDAModel, args);
 	}
