@@ -14,168 +14,87 @@ namespace py
 	template<>
 	struct ValueBuilder<tomoto::SharedString>
 	{
-		PyObject* operator()(const tomoto::SharedString& v)
+		py::UniqueObj operator()(const tomoto::SharedString& v)
 		{
-			return PyUnicode_FromStringAndSize(v.data(), v.size());
+			return py::UniqueObj{ PyUnicode_FromStringAndSize(v.data(), v.size()) };
 		}
 	};
 
 	template<>
 	struct ValueBuilder<tomoto::RawDoc>
 	{
-		PyObject* operator()(const tomoto::RawDoc& v)
+		py::UniqueObj operator()(const tomoto::RawDoc& v)
 		{
-			PyObject* ret = PyTuple_New(5);
-			PyTuple_SET_ITEM(ret, 0, buildPyValue(v.words, py::force_list));
-			PyTuple_SET_ITEM(ret, 1, buildPyValue(v.rawStr));
-			PyTuple_SET_ITEM(ret, 2, buildPyValue(v.origWordPos, py::force_list));
-			PyTuple_SET_ITEM(ret, 3, buildPyValue(v.origWordLen, py::force_list));
-			PyObject* dict = PyDict_New();
+			py::UniqueObj ret{ PyTuple_New(5) };
+			PyTuple_SetItem(ret.get(), 0, buildPyValue(v.words, py::force_list).release());
+			PyTuple_SetItem(ret.get(), 1, buildPyValue(v.rawStr).release());
+			PyTuple_SetItem(ret.get(), 2, buildPyValue(v.origWordPos, py::force_list).release());
+			PyTuple_SetItem(ret.get(), 3, buildPyValue(v.origWordLen, py::force_list).release());
+			py::UniqueObj dict{ PyDict_New() };
 			for (auto& p : v.misc)
 			{
-				PyObject* o = (PyObject*)p.second.template get<std::shared_ptr<void>>().get();
+				PyObject* o = (PyObject*)std::get<std::shared_ptr<void>>(p.second).get();
 				Py_INCREF(o);
-				PyDict_SetItemString(dict, p.first.c_str(), o);
+				PyDict_SetItemString(dict.get(), p.first.c_str(), o);
 			}
-			PyTuple_SET_ITEM(ret, 4, dict);
+			PyTuple_SetItem(ret.get(), 4, dict.release());
 			return ret;
 		}
 	};
 }
 
-
-int VocabObject::init(VocabObject* self, PyObject* args, PyObject* kwargs)
+VocabObject::~VocabObject()
 {
-	self->vocabs = nullptr;
-	return 0;
+	if (dep)
+	{
+		dep = {};
+	}
+	else if (vocabs)
+	{
+		delete vocabs;
+		vocabs = nullptr;
+	}
 }
 
-void VocabObject::dealloc(VocabObject* self)
-{
-	if (self->dep)
-	{
-		Py_XDECREF(self->dep);
-		self->dep = nullptr;
-	}
-	else if (self->vocabs)
-	{
-		delete self->vocabs;
-		self->vocabs = nullptr;
-	}
-	Py_TYPE(self)->tp_free((PyObject*)self);
-}
-
-PyObject* VocabObject::getstate(VocabObject* self, PyObject*)
+py::UniqueObj VocabObject::getstate() const
 {
 	static const char* keys[] = { "id2word" };
-	return py::buildPyDict(keys, self->vocabs->getRaw());
+	return py::buildPyDict(keys, vocabs->getRaw());
 }
 
-PyObject* VocabObject::setstate(VocabObject* self, PyObject* args)
+void VocabObject::setstate(PyObject* args)
 {
-	return py::handleExc([&]()
+	PyObject* dict = PyTuple_GetItem(args, 0);
+	PyObject* id2word = PyDict_GetItemString(dict, "id2word");
+	this->~VocabObject();
+	vocabs = new tomoto::Dictionary;
+	dep = {};
+	size = -1;
+	py::foreach<std::string>(id2word, [&](const std::string& str)
 	{
-		PyObject* dict = PyTuple_GetItem(args, 0);
-		PyObject* id2word = PyDict_GetItemString(dict, "id2word");
-		if (!self->dep && self->vocabs) delete self->vocabs;
-		self->vocabs = new tomoto::Dictionary;
-		self->dep = nullptr;
-		self->size = -1;
-		py::foreach<const char*>(id2word, [&](const char* str)
-		{
-			if (!str) throw py::ExcPropagation{};
-			self->vocabs->add(str);
-		}, "");
-		if (PyErr_Occurred()) throw py::ExcPropagation{};
-		Py_INCREF(Py_None);
-		return Py_None;
-	});
+		vocabs->add(str);
+	}, "");
+	if (PyErr_Occurred()) throw py::ExcPropagation{};
 }
 
-Py_ssize_t VocabObject::len(VocabObject* self)
+size_t VocabObject::len() const
 {
-	return py::handleExc([&]()
-	{
-		if (self->size == -1) return self->vocabs->size();
-		return self->size;
-	});
+	if (size == -1) return vocabs->size();
+	return size;
 }
 
-PyObject* VocabObject::getitem(VocabObject* self, Py_ssize_t key)
+std::string_view VocabObject::getitem(size_t key) const
 {
-	return py::handleExc([&]()
-	{
-		if (key >= len(self)) throw py::IndexError{ std::to_string(key) };
-
-		return py::buildPyValue(self->vocabs->toWord(key));
-	});
+	if (key >= len()) throw py::IndexError{ std::to_string(key) };
+	return vocabs->toWord(key);
 }
 
-PyObject* VocabObject::repr(VocabObject* self)
+py::UniqueObj VocabObject::repr() const
 {
-	py::UniqueObj args{ Py_BuildValue("(O)", self) };
-	py::UniqueObj l{ PyObject_CallObject((PyObject*)&PyList_Type, args) };
-	PyObject* r = PyObject_Repr(l);
-	return r;
+	py::UniqueObj args{ py::buildPyTuple((PyObject*)this) };
+	py::UniqueObj l{ PyObject_CallObject((PyObject*)&PyList_Type, args.get()) };
+	return py::UniqueObj{ PyObject_Repr(l.get()) };
 }
-
-static PyMethodDef UtilsVocab_methods[] =
-{
-	{ "__getstate__", (PyCFunction)VocabObject::getstate, METH_NOARGS, "" },
-	{ "__setstate__", (PyCFunction)VocabObject::setstate, METH_VARARGS, "" },
-	{ nullptr }
-};
-
-
-static PySequenceMethods UtilsVocab_seq_methods = {
-	(lenfunc)VocabObject::len,
-	nullptr,
-	nullptr,
-	(ssizeargfunc)VocabObject::getitem,
-};
-
-
-PyTypeObject UtilsVocab_type = {
-	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy._UtilsVocabDict",             /* tp_name */
-	sizeof(VocabObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)VocabObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	(reprfunc)VocabObject::repr,                         /* tp_repr */
-	0,                         /* tp_as_number */
-	&UtilsVocab_seq_methods,       /* tp_as_sequence */
-	0,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	0,                         /* tp_call */
-	0,                         /* tp_str */
-	0,                         /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"",           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	0,              /* tp_iter */
-	0,                         /* tp_iternext */
-	UtilsVocab_methods,             /* tp_methods */
-	0,						 /* tp_members */
-	0,                         /* tp_getset */
-	0,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)VocabObject::init,      /* tp_init */
-	PyType_GenericAlloc,
-	PyType_GenericNew,
-};
-
 
 class RawDocWrapper
 {
@@ -216,7 +135,6 @@ public:
 	}
 };
 
-
 size_t CorpusObject::findUid(const std::string& uid) const
 {
 	if (isIndependent() || isSubDocs())
@@ -238,219 +156,280 @@ const tomoto::RawDocKernel* CorpusObject::getDoc(size_t idx) const
 	else return tm->inst->getDoc(isSubDocs() ? docIdcs[idx] : idx);
 }
 
-CorpusObject* CorpusObject::_new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs)
+CorpusObject::CorpusObject()
 {
-	CorpusObject* obj = (CorpusObject*)subtype->tp_alloc(subtype, 0);
-	new (&obj->docs) vector<tomoto::RawDoc>;
-	new (&obj->invmap) unordered_map<string, size_t>;
-	obj->made = false;
-	return obj;
+	new (&docs) vector<tomoto::RawDoc>();
+	new (&depObj) py::UniqueObj();
 }
 
-int CorpusObject::init(CorpusObject* self, PyObject* args, PyObject* kwargs)
+CorpusObject::CorpusObject(PyObject* vocabInst, PyObject* dep)
 {
-	PyObject* dep = nullptr;
-	static const char* kwlist[] = { "dep", nullptr };
+	new (&docs) vector<tomoto::RawDoc>();
+	new (&depObj) py::UniqueObj();
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist,
-		&dep)) return -1;
-
-	if (!dep)
+	if (vocabInst && vocabInst != Py_None)
 	{
-		PyObject* utils = PyImport_AddModule("tomotopy.utils");
-		py::UniqueObj classCorpus{ PyObject_GetAttrString(utils, "Corpus") };
-		py::UniqueObj classVocabDict{ PyObject_GetAttrString(classCorpus, "_VocabDict") };
-
-		dep = PyObject_CallObject(classVocabDict, nullptr);
-		((VocabObject*)dep)->vocabs = new tomoto::Dictionary;
-		((VocabObject*)dep)->size = -1;
+		Py_INCREF(vocabInst);
+		vocab = py::UniqueCObj<VocabObject>{ (VocabObject*)vocabInst };
+		vocab->vocabs = new tomoto::Dictionary;
+		vocab->size = -1;
 	}
-	else Py_INCREF(dep);
-
-	self->depObj = dep;
-	return 0;
-}
-
-void CorpusObject::dealloc(CorpusObject* self)
-{
-	if (self->isIndependent()) self->docs.~vector();
-	else if (self->made) self->docsMade.~vector();
-	else self->docIdcs.~vector();
-	self->invmap.~unordered_map();
-	Py_XDECREF(self->depObj);
-	self->depObj = nullptr;
-}
-
-PyObject* CorpusObject::getstate(CorpusObject* self, PyObject*)
-{
-	return py::handleExc([&]()
+	else
 	{
-		if (!self->isIndependent())
-			throw py::RuntimeError{ "Cannot pickle the corpus bound to a topic model. Try to use a topic model's `save()` method." };
-		static const char* keys[] = { "_docs", "_vocab" };
-		return py::buildPyDict(keys, py::UniqueObj{ py::buildPyValue(self->docs) }, (PyObject*)self->vocab);
-	});
+		Py_INCREF(dep);
+		depObj = py::UniqueObj{ dep };
+	}
 }
 
-PyObject* CorpusObject::setstate(CorpusObject* self, PyObject* args)
+CorpusObject::~CorpusObject()
 {
-	return py::handleExc([&]()
+	if (isIndependent()) docs.~vector();
+	else if (made) docsMade.~vector();
+	else docIdcs.~vector();
+	depObj.~UniqueCObj();
+}
+
+py::UniqueObj CorpusObject::getstate() const
+{
+	if (!isIndependent())
+		throw py::RuntimeError{ "Cannot pickle the corpus bound to a topic model. Try to use a topic model's `save()` method." };
+	static const char* keys[] = { "_docs", "_vocab" };
+	return py::buildPyDict(keys, docs, vocab);
+}
+
+void CorpusObject::setstate(PyObject* args)
+{
+	PyObject* dict = PyTuple_GetItem(args, 0);
+	PyObject* vocab = PyDict_GetItemString(dict, "_vocab");
+	Py_INCREF(vocab);
+	this->vocab = py::UniqueCObj<VocabObject>{ (VocabObject*)vocab };
+	PyObject* docs = PyDict_GetItemString(dict, "_docs");
+	py::UniqueObj iter{ PyObject_GetIter(docs) }, next;
+	if (!iter) throw py::ExcPropagation{};
+	while ((next = py::UniqueObj{ PyIter_Next(iter.get()) }))
 	{
-		PyObject* dict = PyTuple_GetItem(args, 0);
-		PyObject* vocab = PyDict_GetItemString(dict, "_vocab");
-		self->vocab = (VocabObject*)vocab;
-		Py_INCREF(self->vocab);
-		PyObject* docs = PyDict_GetItemString(dict, "_docs");
-		py::UniqueObj iter{ PyObject_GetIter(docs) }, next;
-		if (!iter) throw py::ExcPropagation{};
-		while ((next = py::UniqueObj{ PyIter_Next(iter) }))
+		auto size = PyTuple_Size(next.get());
+		PyObject* words = nullptr;
+		PyObject* raw = nullptr;
+		PyObject* pos = nullptr;
+		PyObject* len = nullptr;
+		PyObject* kwargs = nullptr;
+		if (size == 2)
 		{
-			auto size = PyTuple_Size(next);
-			PyObject* words = nullptr;
-			PyObject* raw = nullptr;
-			PyObject* pos = nullptr;
-			PyObject* len = nullptr;
-			PyObject* kwargs = nullptr;
-			if (size == 2)
-			{
-				words = PyTuple_GetItem(next, 0);
-				kwargs = PyTuple_GetItem(next, 1);
-			}
-			else if (size == 5)
-			{
-				words = PyTuple_GetItem(next, 0);
-				raw = PyTuple_GetItem(next, 1);
-				pos = PyTuple_GetItem(next, 2);
-				len = PyTuple_GetItem(next, 3);
-				kwargs = PyTuple_GetItem(next, 4);
-			}
-			tomoto::RawDoc doc;
-			doc.words = py::toCpp<vector<tomoto::Vid>>(words, "");
-			if (raw) doc.rawStr = tomoto::SharedString{ PyUnicode_AsUTF8(raw) };
-			if (pos) doc.origWordPos = py::toCpp<vector<uint32_t>>(pos, "");
-			if (len) doc.origWordLen = py::toCpp<vector<uint16_t>>(len, "");
-
-			PyObject* key, * value;
-			Py_ssize_t p = 0;
-			while (PyDict_Next(kwargs, &p, &key, &value))
-			{
-				const char* utf8 = PyUnicode_AsUTF8(key);
-				Py_INCREF(value);
-				doc.misc[utf8] = std::shared_ptr<void>{ value, [](void* p)
-				{
-					Py_XDECREF(p);
-				} };
-			}
-			self->docs.emplace_back(move(doc));
+			words = PyTuple_GetItem(next.get(), 0);
+			kwargs = PyTuple_GetItem(next.get(), 1);
 		}
-		if (PyErr_Occurred()) throw py::ExcPropagation{};
-		Py_INCREF(Py_None);
-		return Py_None;
-	});
-}
-
-PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwargs)
-{
-	return py::handleExc([&]()
-	{
-		if (!self->isIndependent())
-			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
-		if (PyTuple_Size(args) != 3) throw py::ValueError{ "function takes 3 positional arguments." };
-		PyObject* words = PyTuple_GetItem(args, 0);
-		PyObject* raw = PyTuple_GetItem(args, 1);
-		PyObject* user_data = PyTuple_GetItem(args, 2);
-
+		else if (size == 5)
+		{
+			words = PyTuple_GetItem(next.get(), 0);
+			raw = PyTuple_GetItem(next.get(), 1);
+			pos = PyTuple_GetItem(next.get(), 2);
+			len = PyTuple_GetItem(next.get(), 3);
+			kwargs = PyTuple_GetItem(next.get(), 4);
+		}
 		tomoto::RawDoc doc;
+		doc.words = py::toCpp<vector<tomoto::Vid>>(words);
+		if (raw) doc.rawStr = tomoto::SharedString{ py::toCpp<std::string>(raw) };
+		if (pos) doc.origWordPos = py::toCpp<vector<uint32_t>>(pos);
+		if (len) doc.origWordLen = py::toCpp<vector<uint16_t>>(len);
 
-		py::UniqueObj stopwords{ PyObject_GetAttrString((PyObject*)self, "_stopwords") };
-
-		if (PyObject_HasAttrString((PyObject*)self, "_tokenizer")
-			&& PyObject_IsTrue(py::UniqueObj{ PyObject_GetAttrString((PyObject*)self, "_tokenizer") }))
-		{
-			if (words && words != Py_None) throw py::ValueError{ "only `raw` is required when `tokenizer` is provided." };
-			if (!PyObject_IsTrue(raw)) return py::buildPyValue(-1);
-
-			py::UniqueObj tokenizer{ PyObject_GetAttrString((PyObject*)self, "_tokenizer") };
-
-			py::UniqueObj args{ PyTuple_New(1) };
-			Py_INCREF(raw);
-			PyTuple_SET_ITEM(args.get(), 0, raw);
-			py::UniqueObj kwargs{ PyDict_New() };
-			PyDict_SetItemString(kwargs, "user_data", user_data);
-
-			py::UniqueObj ret{ PyObject_Call(tokenizer, args, kwargs) };
-			if (!ret) throw py::ExcPropagation{};
-			py::foreach<PyObject*>(ret, [&](PyObject* t)
-			{
-				if (PyUnicode_Check(t))
-				{
-					doc.words.emplace_back(self->vocab->vocabs->add(PyUnicode_AsUTF8(t)));
-				}
-				else if (t == Py_None)
-				{
-					doc.words.emplace_back(tomoto::non_vocab_id);
-				}
-				else if (PyTuple_Size(t) == 3)
-				{
-					PyObject* word = PyTuple_GetItem(t, 0);
-					PyObject* pos = PyTuple_GetItem(t, 1);
-					PyObject* len = PyTuple_GetItem(t, 2);
-					if (!((PyUnicode_Check(word) || word == Py_None) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
-					bool isStopword = false;
-					if (stopwords != Py_None)
-					{
-						py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
-						if (!stopRet) throw py::ExcPropagation{};
-						isStopword = PyObject_IsTrue(stopRet);
-					}
-					else if (word == Py_None)
-					{
-						isStopword = true;
-					}
-					doc.words.emplace_back(isStopword ? tomoto::non_vocab_id : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
-					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
-					doc.origWordLen.emplace_back(PyLong_AsLong(len));
-				}
-				else
-				{
-					throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
-				}
-			}, "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`).");
-			doc.rawStr = tomoto::SharedString{ PyUnicode_AsUTF8(raw) };
-		}
-		else
-		{
-			if (raw && raw != Py_None) throw py::ValueError{ "only `words` is required when `tokenizer` is not provided." };
-			if (!PyObject_IsTrue(words)) return py::buildPyValue(-1);
-			py::foreach<string>(words, [&](const string& w)
-			{
-				bool isStopword = false;
-				if (stopwords != Py_None)
-				{
-					py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(w) }) };
-					if (!stopRet) throw py::ExcPropagation{};
-					isStopword = PyObject_IsTrue(stopRet);
-				}
-				doc.words.emplace_back(isStopword ? -1 : self->vocab->vocabs->add(w));
-			}, "");
-		}
 		PyObject* key, * value;
 		Py_ssize_t p = 0;
 		while (PyDict_Next(kwargs, &p, &key, &value))
 		{
-			const char* utf8 = PyUnicode_AsUTF8(key);
+			auto utf8 = py::toCpp<std::string>(key);
+			Py_INCREF(value);
+			doc.misc[utf8] = std::shared_ptr<void>{ value, [](void* p)
+			{
+				Py_XDECREF(p);
+			} };
+		}
+		this->docs.emplace_back(move(doc));
+	}
+	if (PyErr_Occurred()) throw py::ExcPropagation{};
+}
+
+size_t CorpusObject::addDoc(PyObject* words, PyObject* raw, PyObject* userData, PyObject* additionalKwargs)
+{
+	if (!isIndependent())
+		throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
+	tomoto::RawDoc doc;
+
+	py::UniqueObj stopwords{ PyObject_GetAttrString((PyObject*)this, "_stopwords") };
+
+	if (PyObject_HasAttrString((PyObject*)this, "_tokenizer")
+		&& PyObject_IsTrue(py::UniqueObj{ PyObject_GetAttrString((PyObject*)this, "_tokenizer") }.get()))
+	{
+		if (words && words != Py_None) throw py::ValueError{ "only `raw` is required when `tokenizer` is provided." };
+		if (!PyObject_IsTrue(raw)) return py::buildPyValue(-1);
+
+		py::UniqueObj tokenizer{ PyObject_GetAttrString((PyObject*)this, "_tokenizer") };
+
+		py::UniqueObj args{ PyTuple_New(1) };
+		Py_INCREF(raw);
+		PyTuple_SetItem(args.get(), 0, raw);
+		py::UniqueObj kwargs{ PyDict_New() };
+		PyDict_SetItemString(kwargs.get(), "user_data", userData);
+
+		py::UniqueObj ret{ PyObject_Call(tokenizer.get(), args.get(), kwargs.get())};
+		if (!ret) throw py::ExcPropagation{};
+		py::foreach<PyObject*>(ret.get(), [&](PyObject* t)
+		{
+			if (PyUnicode_Check(t))
+			{
+				doc.words.emplace_back(vocab->vocabs->add(py::toCpp<std::string>(t)));
+			}
+			else if (t == Py_None)
+			{
+				doc.words.emplace_back(tomoto::non_vocab_id);
+			}
+			else if (PyTuple_Size(t) == 3)
+			{
+				PyObject* word = PyTuple_GetItem(t, 0);
+				PyObject* pos = PyTuple_GetItem(t, 1);
+				PyObject* len = PyTuple_GetItem(t, 2);
+				if (!((PyUnicode_Check(word) || word == Py_None) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+				bool isStopword = false;
+				if (stopwords.get() != Py_None)
+				{
+					py::UniqueObj stopRet{ PyObject_CallObject(stopwords.get(), py::buildPyTuple(word).get())};
+					if (!stopRet) throw py::ExcPropagation{};
+					isStopword = PyObject_IsTrue(stopRet.get());
+				}
+				else if (word == Py_None)
+				{
+					isStopword = true;
+				}
+				doc.words.emplace_back(isStopword ? tomoto::non_vocab_id : vocab->vocabs->add(py::toCpp<std::string>(word)));
+				doc.origWordPos.emplace_back(PyLong_AsLong(pos));
+				doc.origWordLen.emplace_back(PyLong_AsLong(len));
+			}
+			else
+			{
+				throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+			}
+		}, "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`).");
+		doc.rawStr = tomoto::SharedString{ py::toCpp<std::string>(raw) };
+	}
+	else
+	{
+		if (raw && raw != Py_None) throw py::ValueError{ "only `words` is required when `tokenizer` is not provided." };
+		if (!PyObject_IsTrue(words)) return py::buildPyValue(-1);
+		py::foreach<string>(words, [&](const string& w)
+		{
+			bool isStopword = false;
+			if (stopwords.get() != Py_None)
+			{
+				py::UniqueObj stopRet{ PyObject_CallObject(stopwords.get(), py::buildPyTuple(w).get())};
+				if (!stopRet) throw py::ExcPropagation{};
+				isStopword = PyObject_IsTrue(stopRet.get());
+			}
+			doc.words.emplace_back(isStopword ? -1 : vocab->vocabs->add(w));
+		}, "");
+	}
+	PyObject* key, * value;
+	Py_ssize_t p = 0;
+	while (PyDict_Next(additionalKwargs, &p, &key, &value))
+	{
+		auto utf8 = py::toCpp<std::string>(key);
+		if (utf8 == string{ "uid" })
+		{
+			if (value == Py_None) continue;
+			std::string uid; ;
+			if (!py::toCpp<std::string>(value, uid)) throw py::ValueError{ "`uid` must be str type." };
+			string suid = uid;
+			if (suid.empty()) throw py::ValueError{ "wrong `uid` value : empty str not allowed" };
+			if (invmap.find(suid) != invmap.end())
+			{
+				throw py::ValueError{ "there is a document with uid = " + py::repr(value) + " already." };
+			}
+			invmap.emplace(suid, docs.size());
+			doc.docUid = tomoto::SharedString{ uid };
+			continue;
+		}
+
+		Py_INCREF(value);
+		doc.misc[utf8] = std::shared_ptr<void>{ value, [](void* p)
+		{
+			Py_XDECREF(p);
+		} };
+	}
+	docs.emplace_back(move(doc));
+	return docs.size() - 1;
+}
+
+size_t CorpusObject::addDocs(PyObject* tokenizedIter, PyObject* rawIter, PyObject* metadataIter)
+{
+	if (!isIndependent())
+		throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
+
+	size_t cnt = 0;
+	py::UniqueObj stopwords{ PyObject_GetAttrString((PyObject*)this, "_stopwords") };
+
+	py::foreach<PyObject*>(tokenizedIter, [&](PyObject* tokenized)
+	{
+		tomoto::RawDoc doc;
+		py::foreach<PyObject*>(tokenized, [&](PyObject* t)
+		{
+			if (PyUnicode_Check(t))
+			{
+				doc.words.emplace_back(vocab->vocabs->add(py::toCpp<std::string>(t)));
+			}
+			else if (t == Py_None)
+			{
+				doc.words.emplace_back(tomoto::non_vocab_id);
+			}
+			else if (PyTuple_Size(t) == 3)
+			{
+				PyObject* word = PyTuple_GetItem(t, 0);
+				PyObject* pos = PyTuple_GetItem(t, 1);
+				PyObject* len = PyTuple_GetItem(t, 2);
+				if (!((PyUnicode_Check(word) || word == Py_None) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+
+				bool isStopword = false;
+				if (stopwords.get() != Py_None)
+				{
+					py::UniqueObj stopRet{ PyObject_CallObject(stopwords.get(), py::buildPyTuple(word).get())};
+					if (!stopRet) throw py::ExcPropagation{};
+					isStopword = PyObject_IsTrue(stopRet.get());
+				}
+				else if (word == Py_None)
+				{
+					isStopword = true;
+				}
+				doc.words.emplace_back(isStopword ? tomoto::non_vocab_id : vocab->vocabs->add(py::toCpp<std::string>(word)));
+				doc.origWordPos.emplace_back(PyLong_AsLong(pos));
+				doc.origWordLen.emplace_back(PyLong_AsLong(len));
+			}
+			else
+			{
+				throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
+			}
+		}, "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`).");
+		py::UniqueObj raw{ PyIter_Next(rawIter) };
+		if (!raw) throw py::ExcPropagation{};
+		py::UniqueObj metadata{ PyIter_Next(metadataIter) };
+		if (!metadata) throw py::ExcPropagation{};
+
+		doc.rawStr = tomoto::SharedString{ py::toCpp<std::string>(raw.get()) };
+
+		PyObject* key, * value;
+		Py_ssize_t p = 0;
+		while (PyDict_Next(metadata.get(), &p, &key, &value))
+		{
+			auto utf8 = py::toCpp<std::string>(key);
 			if (utf8 == string{ "uid" })
 			{
 				if (value == Py_None) continue;
-				const char* uid = PyUnicode_AsUTF8(value);
-				if (!uid) throw py::ValueError{ "`uid` must be str type." };
+				std::string uid;
+				if (!py::toCpp<std::string>(value, uid)) throw py::ValueError{ "`uid` must be str type." };
 				string suid = uid;
 				if (suid.empty()) throw py::ValueError{ "wrong `uid` value : empty str not allowed" };
-				if (self->invmap.find(suid) != self->invmap.end())
+				if (invmap.find(suid) != invmap.end())
 				{
 					throw py::ValueError{ "there is a document with uid = " + py::repr(value) + " already." };
 				}
-				self->invmap.emplace(suid, self->docs.size());
+				invmap.emplace(suid, docs.size());
 				doc.docUid = tomoto::SharedString{ uid };
 				continue;
 			}
@@ -461,474 +440,353 @@ PyObject* CorpusObject::addDoc(CorpusObject* self, PyObject* args, PyObject* kwa
 				Py_XDECREF(p);
 			} };
 		}
-		self->docs.emplace_back(move(doc));
-		return py::buildPyValue(self->docs.size() - 1);
-	});
+		docs.emplace_back(move(doc));
+		cnt++;
+	}, "");
+
+	return cnt;
 }
 
-
-PyObject* CorpusObject::addDocs(CorpusObject* self, PyObject* args, PyObject* kwargs)
+py::UniqueObj CorpusObject::extractNgrams(size_t minCf, size_t minDf, size_t maxLen, size_t maxCand,
+	float minScore, bool normalized, size_t workers) const
 {
-	return py::handleExc([&]()
+	if (!isIndependent())
+		throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
+	size_t vSize = vocab->vocabs->size();
+	vector<size_t> cf(vSize),
+		df(vSize),
+		odf(vSize);
+	for (auto& d : docs)
 	{
-		if (!self->isIndependent())
-			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
-		if (PyTuple_Size(args) != 3) throw py::ValueError{ "function takes 1 positional arguments." };
-		PyObject* tokenized_iter = PyTuple_GetItem(args, 0);
-		PyObject* raw_iter = PyTuple_GetItem(args, 1);
-		PyObject* metadata_iter = PyTuple_GetItem(args, 2);
-
-		size_t cnt = 0;
-
-		py::UniqueObj stopwords{ PyObject_GetAttrString((PyObject*)self, "_stopwords") };
-
-		py::foreach<PyObject*>(tokenized_iter, [&](PyObject* tokenized)
+		for (auto w : d.words)
 		{
-			tomoto::RawDoc doc;
-			py::foreach<PyObject*>(tokenized, [&](PyObject* t)
-			{
-				if (PyUnicode_Check(t))
-				{
-					doc.words.emplace_back(self->vocab->vocabs->add(PyUnicode_AsUTF8(t)));
-				}
-				else if (t == Py_None)
-				{
-					doc.words.emplace_back(tomoto::non_vocab_id);
-				}
-				else if (PyTuple_Size(t) == 3)
-				{
-					PyObject* word = PyTuple_GetItem(t, 0);
-					PyObject* pos = PyTuple_GetItem(t, 1);
-					PyObject* len = PyTuple_GetItem(t, 2);
-					if (!((PyUnicode_Check(word) || word == Py_None) && PyLong_Check(pos) && PyLong_Check(len))) throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
-
-					bool isStopword = false;
-					if (stopwords != Py_None)
-					{
-						py::UniqueObj stopRet{ PyObject_CallObject(stopwords, py::UniqueObj{ py::buildPyTuple(word) }) };
-						if (!stopRet) throw py::ExcPropagation{};
-						isStopword = PyObject_IsTrue(stopRet);
-					}
-					else if (word == Py_None)
-					{
-						isStopword = true;
-					}
-					doc.words.emplace_back(isStopword ? tomoto::non_vocab_id : self->vocab->vocabs->add(PyUnicode_AsUTF8(word)));
-					doc.origWordPos.emplace_back(PyLong_AsLong(pos));
-					doc.origWordLen.emplace_back(PyLong_AsLong(len));
-				}
-				else
-				{
-					throw py::ValueError{ "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`)." };
-				}
-			}, "`tokenizer` must return an iterable of `str` or `tuple` of (`str`, `int`, `int`).");
-			py::UniqueObj raw{ PyIter_Next(raw_iter) };
-			if (!raw) throw py::ExcPropagation{};
-			py::UniqueObj metadata{ PyIter_Next(metadata_iter) };
-			if (!metadata) throw py::ExcPropagation{};
-
-			doc.rawStr = tomoto::SharedString{ PyUnicode_AsUTF8(raw) };
-
-			PyObject* key, * value;
-			Py_ssize_t p = 0;
-			while (PyDict_Next(metadata, &p, &key, &value))
-			{
-				const char* utf8 = PyUnicode_AsUTF8(key);
-				if (utf8 == string{ "uid" })
-				{
-					if (value == Py_None) continue;
-					const char* uid = PyUnicode_AsUTF8(value);
-					if (!uid) throw py::ValueError{ "`uid` must be str type." };
-					string suid = uid;
-					if (suid.empty()) throw py::ValueError{ "wrong `uid` value : empty str not allowed" };
-					if (self->invmap.find(suid) != self->invmap.end())
-					{
-						throw py::ValueError{ "there is a document with uid = " + py::repr(value) + " already." };
-					}
-					self->invmap.emplace(suid, self->docs.size());
-					doc.docUid = tomoto::SharedString{ uid };
-					continue;
-				}
-
-				Py_INCREF(value);
-				doc.misc[utf8] = std::shared_ptr<void>{ value, [](void* p)
-				{
-					Py_XDECREF(p);
-				} };
-			}
-			self->docs.emplace_back(move(doc));
-			cnt++;
-		}, "");
-
-		return py::buildPyValue(cnt);
-	});
-}
-
-
-PyObject* CorpusObject::extractNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs)
-{
-	size_t minCf = 10, minDf = 5, maxLen = 5, maxCand = 5000;
-	float minScore = -INFINITY;
-	size_t normalized = 0, workers = 1;
-	static const char* kwlist[] = { "min_cf", "min_df", "max_len", "max_cand", "min_score", "normalized", "workers", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnfpn", (char**)kwlist,
-		&minCf, &minDf, &maxLen, &maxCand, &minScore, &normalized, &workers)) return nullptr;
-	return py::handleExc([&]()
-	{
-		if (!self->isIndependent())
-			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
-		size_t vSize = self->vocab->vocabs->size();
-		vector<size_t> cf(vSize),
-			df(vSize),
-			odf(vSize);
-		for (auto& d : self->docs)
-		{
-			for (auto w : d.words)
-			{
-				if (w == tomoto::non_vocab_id) continue;
-				odf[w] = 1;
-				cf[w]++;
-			}
-
-			for (size_t i = 0; i < df.size(); ++i) df[i] += odf[i];
-			fill(odf.begin(), odf.end(), 0);
+			if (w == tomoto::non_vocab_id) continue;
+			odf[w] = 1;
+			cf[w]++;
 		}
 
-		auto tx = [](const tomoto::RawDoc& raw)
-		{
-			return RawDocWrapper{ raw };
-		};
-		auto docBegin = tomoto::makeTransformIter(self->docs.begin(), tx);
-		auto docEnd = tomoto::makeTransformIter(self->docs.end(), tx);
-		auto cands = tomoto::phraser::extractPMINgrams(docBegin, docEnd,
-			cf, df,
-			minCf, minDf, 2, maxLen, maxCand, minScore, normalized
-		);
+		for (size_t i = 0; i < df.size(); ++i) df[i] += odf[i];
+		fill(odf.begin(), odf.end(), 0);
+	}
 
-		PyObject* ret = PyList_New(0);
-		for (auto& c : cands)
-		{
-			PyObject* item = PyObject_CallObject((PyObject*)&Candidate_type, nullptr);
-			((CandidateObject*)item)->corpus = self;
-			Py_INCREF(self);
-			((CandidateObject*)item)->cand = move(c);
-			PyList_Append(ret, item);
-		}
-		return ret;
-	});
+	auto tx = [](const tomoto::RawDoc& raw)
+	{
+		return RawDocWrapper{ raw };
+	};
+	auto docBegin = tomoto::makeTransformIter(docs.begin(), tx);
+	auto docEnd = tomoto::makeTransformIter(docs.end(), tx);
+	auto cands = tomoto::phraser::extractPMINgrams(docBegin, docEnd,
+		cf, df,
+		minCf, minDf, 2, maxLen, maxCand, minScore, normalized
+	);
+
+	auto ret = py::UniqueObj{ PyList_New(0) };
+	for (auto& c : cands)
+	{
+		auto item = py::makeNewObject<CandidateObject>();
+		item->corpus = py::UniqueCObj<CorpusObject>{ (CorpusObject*)this };
+		Py_INCREF(this);
+		item->cand = move(c);
+		PyList_Append(ret.get(), (PyObject*)item.get());
+	}
+	return ret;
 }
 
 // TODO: It loses some ngram patterns. Fix me!
-PyObject* CorpusObject::concatNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs)
+size_t CorpusObject::concatNgrams(PyObject* cands, const std::string& delimiter)
 {
-	PyObject* cands;
-	const char* delimiter = "_";
-	float minScore = -INFINITY;
-	static const char* kwlist[] = { "cands", "delimiter", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", (char**)kwlist,
-		&cands, &delimiter)) return nullptr;
-	return py::handleExc([&]() -> PyObject*
+	if (!isIndependent())
+		throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
+
+	py::UniqueObj iter{ PyObject_GetIter(cands) };
+	if (!iter) throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
+	vector<tomoto::label::Candidate> pcands;
+	vector<tomoto::Vid> pcandVids;
 	{
-		if (!self->isIndependent())
-			throw py::RuntimeError{ "Cannot modify the corpus bound to a topic model." };
-
-		py::UniqueObj iter{ PyObject_GetIter(cands) };
-		if (!iter) throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
-		vector<tomoto::label::Candidate> pcands;
-		vector<tomoto::Vid> pcandVids;
+		py::UniqueObj item;
+		while ((item = py::UniqueObj{ PyIter_Next(iter.get()) }))
 		{
-			py::UniqueObj item;
-			while ((item = py::UniqueObj{ PyIter_Next(iter) }))
+			if (!PyObject_TypeCheck(item, py::Type<CandidateObject>))
 			{
-				if (!PyObject_TypeCheck(item, &Candidate_type))
-				{
-					throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
-				}
-				CandidateObject* cand = (CandidateObject*)item.get();
-				if (cand->corpus == self)
-				{
-					pcands.emplace_back(cand->cand);
-				}
-				else if(cand->corpus)
-				{
-					tomoto::label::Candidate c = cand->cand;
-					c.w = cand->corpus->vocab->vocabs->mapToNewDict(c.w, *self->vocab->vocabs);
-					if (find(c.w.begin(), c.w.end(), tomoto::non_vocab_id) != c.w.end())
-					{
-						auto repr = py::toCpp<std::string>(py::UniqueObj{ PyObject_Repr(item.get()) });
-						if (PyErr_WarnEx(PyExc_RuntimeWarning, 
-							("Candidate is ignored because it is not found in the corpus.\n" + repr).c_str(), 1
-						)) return nullptr;
-						continue;
-					}
-					pcands.emplace_back(move(c));
-				}
-				else if (cand->tm)
-				{
-					tomoto::label::Candidate c = cand->cand;
-					c.w = cand->tm->inst->getVocabDict().mapToNewDict(c.w, *self->vocab->vocabs);
-					if (find(c.w.begin(), c.w.end(), tomoto::non_vocab_id) != c.w.end())
-					{
-						auto repr = py::toCpp<std::string>(py::UniqueObj{ PyObject_Repr(item.get()) });
-						if (PyErr_WarnEx(PyExc_RuntimeWarning,
-							("Candidate is ignored because it is not found in the corpus.\n" + repr).c_str(), 1
-						)) return nullptr;
-						continue;
-					}
-					pcands.emplace_back(move(c));
-				}
-				pcandVids.emplace_back(self->vocab->vocabs->add(tomoto::text::join(cand->begin(), cand->end(), delimiter)));
+				throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 			}
-		}
-
-		vector<tomoto::Trie<tomoto::Vid, size_t>> candTrie(1);
-		candTrie.reserve(std::accumulate(pcands.begin(), pcands.end(), 0, [](size_t s, const tomoto::label::Candidate& c)
-		{
-			return s + c.w.size() * 2;
-		}));
-		auto& root = candTrie.front();
-
-		size_t idx = 0;
-		for (auto& c : pcands)
-		{
-			root.build(c.w.begin(), c.w.end(), ++idx, [&]()
+			CandidateObject* cand = (CandidateObject*)item.get();
+			if (cand->corpus.get() == this)
 			{
-				candTrie.emplace_back();
-				return &candTrie.back();
-			});
-		}
-		root.fillFail();
-
-		size_t totUpdated = 0;
-		for (auto& doc : self->docs)
-		{
-			auto* node = &root;
-			for (size_t i = 0; i < doc.words.size(); ++i)
+				pcands.emplace_back(cand->cand);
+			}
+			else if(cand->corpus)
 			{
-				auto* nnode = node->getNext(doc.words[i]);
-				while (!nnode)
+				tomoto::label::Candidate c = cand->cand;
+				c.w = cand->corpus->vocab->vocabs->mapToNewDict(c.w, *vocab->vocabs);
+				if (find(c.w.begin(), c.w.end(), tomoto::non_vocab_id) != c.w.end())
 				{
-					node = node->getFail();
-					if (node) nnode = node->getNext(doc.words[i]);
-					else break;
+					auto repr = py::repr(item.get());
+					if (PyErr_WarnEx(PyExc_RuntimeWarning, 
+						("Candidate is ignored because it is not found in the corpus.\n" + repr).c_str(), 1
+					)) throw py::ExcPropagation{};
+					continue;
 				}
+				pcands.emplace_back(move(c));
+			}
+			else if (cand->tm)
+			{
+				tomoto::label::Candidate c = cand->cand;
+				c.w = cand->tm->inst->getVocabDict().mapToNewDict(c.w, *vocab->vocabs);
+				if (find(c.w.begin(), c.w.end(), tomoto::non_vocab_id) != c.w.end())
+				{
+					auto repr = py::repr(item.get());
+					if (PyErr_WarnEx(PyExc_RuntimeWarning,
+						("Candidate is ignored because it is not found in the corpus.\n" + repr).c_str(), 1
+					)) throw py::ExcPropagation{};
+					continue;
+				}
+				pcands.emplace_back(move(c));
+			}
+			pcandVids.emplace_back(vocab->vocabs->add(tomoto::text::join(cand->begin(), cand->end(), delimiter)));
+		}
+	}
+
+	vector<tomoto::Trie<tomoto::Vid, size_t>> candTrie(1);
+	candTrie.reserve(std::accumulate(pcands.begin(), pcands.end(), 0, [](size_t s, const tomoto::label::Candidate& c)
+	{
+		return s + c.w.size() * 2;
+	}));
+	auto& root = candTrie.front();
+
+	size_t idx = 0;
+	for (auto& c : pcands)
+	{
+		root.build(c.w.begin(), c.w.end(), ++idx, [&]()
+		{
+			candTrie.emplace_back();
+			return &candTrie.back();
+		});
+	}
+	root.fillFail();
+
+	size_t totUpdated = 0;
+	for (auto& doc : docs)
+	{
+		auto* node = &root;
+		for (size_t i = 0; i < doc.words.size(); ++i)
+		{
+			auto* nnode = node->getNext(doc.words[i]);
+			while (!nnode)
+			{
+				node = node->getFail();
+				if (node) nnode = node->getNext(doc.words[i]);
+				else break;
+			}
 				
-				if (nnode)
+			if (nnode)
+			{
+				node = nnode;
+				if (nnode->val && nnode->val != (size_t)-1)
 				{
-					node = nnode;
-					if (nnode->val && nnode->val != (size_t)-1)
+					size_t found = nnode->val - 1;
+					doc.words[i] = pcandVids[found];
+					size_t len = pcands[found].w.size();
+					if (len > 1)
 					{
-						size_t found = nnode->val - 1;
-						doc.words[i] = pcandVids[found];
-						size_t len = pcands[found].w.size();
-						if (len > 1)
+						std::fill(doc.words.begin() + i + 1 - len, doc.words.begin() + i, tomoto::rm_vocab_id);
+						if (doc.origWordLen.size() > i)
 						{
-							std::fill(doc.words.begin() + i + 1 - len, doc.words.begin() + i, tomoto::rm_vocab_id);
-							if (doc.origWordLen.size() > i)
-							{
-								doc.origWordLen[i] = (doc.origWordPos[i] + doc.origWordLen[i]) - doc.origWordPos[i - len + 1];
-								doc.origWordPos[i] = doc.origWordPos[i - len + 1];
-							}
+							doc.origWordLen[i] = (doc.origWordPos[i] + doc.origWordLen[i]) - doc.origWordPos[i - len + 1];
+							doc.origWordPos[i] = doc.origWordPos[i - len + 1];
 						}
-						totUpdated++;
 					}
+					totUpdated++;
 				}
-				else
-				{
-					node = &root;
-				}
-			}
-
-			// remove tomoto::rm_vocab_id
-			size_t j = 0;
-			for (size_t i = 0; i < doc.words.size(); ++i)
-			{
-				if (doc.words[i] != tomoto::rm_vocab_id)
-				{
-					doc.words[j] = doc.words[i];
-					if (doc.origWordLen.size() > i)
-					{
-						doc.origWordLen[j] = doc.origWordLen[i];
-						doc.origWordPos[j] = doc.origWordPos[i];
-					}
-					++j;
-				}
-			}
-			doc.words.resize(j);
-			if (doc.origWordLen.size() > j) doc.origWordLen.resize(j);
-			if (doc.origWordPos.size() > j) doc.origWordPos.resize(j);
-		}
-		return py::buildPyValue(totUpdated);
-	});
-}
-
-Py_ssize_t CorpusObject::len(CorpusObject* self)
-{
-	if (self->isIndependent()) return self->docs.size();
-	if (self->made) return self->docsMade.size();
-	if (self->isSubDocs()) return self->docIdcs.size();
-	return self->tm->inst->getNumDocs();
-}
-
-PyObject* CorpusObject::getitem(CorpusObject* self, PyObject* idx)
-{
-	return py::handleExc([&]()
-	{
-		// indexing by int
-		Py_ssize_t v = PyLong_AsLongLong(idx);
-		if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
-		{
-			if (v >= len(self) || -v > len(self)) throw py::IndexError{ to_string(v) };
-			if (v < 0) v += len(self);
-			auto doc = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, (PyObject*)self, nullptr);
-			if (!doc) throw py::ExcPropagation{};
-			doc->doc = self->getDoc(v);
-			return (PyObject*)doc;
-		}
-		// indexing by uid
-		else if (PyUnicode_Check(idx))
-		{
-			string v = PyUnicode_AsUTF8(idx);
-			auto doc = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, (PyObject*)self, nullptr);
-			if (!doc) throw py::ExcPropagation{};
-			size_t iidx = self->findUid(v);
-			if (iidx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(idx)  }; 
-			doc->doc = self->getDoc(iidx);
-			return (PyObject*)doc;
-		}
-		// slicing
-		else if (PySlice_Check(idx))
-		{
-			Py_ssize_t start, end, step, size;
-			if (PySlice_GetIndicesEx(idx, len(self), &start, &end, &step, &size))
-			{
-				throw py::ExcPropagation{};
-			}
-
-			if (self->isIndependent())
-			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->vocab, nullptr);
-				if (!ret) throw py::ExcPropagation{};
-				for (Py_ssize_t i = start; i < end; i += step)
-				{
-					ret->docs.emplace_back(self->docs[i]);
-				}
-				return (PyObject*)ret;
-			}
-			else if (self->made)
-			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw bad_exception{};
-				for (Py_ssize_t i = start; i < end; i += step)
-				{
-					ret->docsMade.emplace_back(self->docsMade[i]);
-					ret->invmap.emplace(self->docsMade[i]->docUid, i);
-				}
-				return (PyObject*)ret;
-			}
-			else if(self->isSubDocs())
-			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw bad_exception{};
-				for (Py_ssize_t i = start; i < end; i += step)
-				{
-					ret->docIdcs.emplace_back(self->docIdcs[i]);
-					ret->invmap.emplace(ret->tm->inst->getDoc(i)->docUid, i);
-				}
-				return (PyObject*)ret;
-			}
-			else 
-			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw bad_exception{};
-				for (Py_ssize_t i = start; i < end; i += step)
-				{
-					ret->docIdcs.emplace_back(i);
-					ret->invmap.emplace(ret->tm->inst->getDoc(i)->docUid, i);
-				}
-				return (PyObject*)ret;
-			}
-		}
-		// indexing by list of uid or int
-		else if (py::UniqueObj{ PyObject_GetIter(idx) })
-		{
-			vector<size_t> idcs;
-			py::foreach<PyObject*>(idx, [&](PyObject* o)
-			{
-				Py_ssize_t v = PyLong_AsLongLong(o);
-				if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
-				{
-					if (v >= len(self) || -v > len(self))
-					{
-						throw py::IndexError{ "len = " + to_string(len(self)) + ", idx = " + to_string(v) };
-					}
-					if (v < 0) v += len(self);
-					idcs.emplace_back((size_t)v);
-				}
-				else if (PyUnicode_Check(o))
-				{
-					string k = py::toCpp<string>(o);
-					size_t idx = self->findUid(k);
-					if (idx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(o) };
-					idcs.emplace_back(idx);
-				}
-				else
-				{
-					py::UniqueObj ty{ PyObject_Type(o) };
-					py::UniqueObj repr{ PyObject_Str(ty) };
-					throw py::IndexError{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
-				}
-			}, "");
-
-			if (self->isIndependent())
-			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->vocab, nullptr);
-				if (!ret) throw py::ExcPropagation{};
-				for (auto i : idcs)
-				{
-					ret->docs.emplace_back(self->docs[i]);
-				}
-				return (PyObject*)ret;
-			}
-			else if (self->made)
-			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw py::ExcPropagation{};
-				for (auto i : ret->docIdcs)
-				{
-					ret->docsMade.emplace_back(self->docsMade[i]);
-					ret->invmap.emplace(self->docsMade[i]->docUid, i);
-				}
-				return (PyObject*)ret;
 			}
 			else
 			{
-				auto ret = (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self->tm, nullptr);
-				if (!ret) throw py::ExcPropagation{};
-				ret->docIdcs = move(idcs);
-				for (auto i : ret->docIdcs)
-				{
-					ret->invmap.emplace(self->tm->inst->getDoc(i)->docUid, i);
-				}
-				return (PyObject*)ret;
+				node = &root;
 			}
+		}
+
+		// remove tomoto::rm_vocab_id
+		size_t j = 0;
+		for (size_t i = 0; i < doc.words.size(); ++i)
+		{
+			if (doc.words[i] != tomoto::rm_vocab_id)
+			{
+				doc.words[j] = doc.words[i];
+				if (doc.origWordLen.size() > i)
+				{
+					doc.origWordLen[j] = doc.origWordLen[i];
+					doc.origWordPos[j] = doc.origWordPos[i];
+				}
+				++j;
+			}
+		}
+		doc.words.resize(j);
+		if (doc.origWordLen.size() > j) doc.origWordLen.resize(j);
+		if (doc.origWordPos.size() > j) doc.origWordPos.resize(j);
+	}
+	return totUpdated;
+}
+
+size_t CorpusObject::len() const
+{
+	if (isIndependent()) return docs.size();
+	if (made) return docsMade.size();
+	if (isSubDocs()) return docIdcs.size();
+	return tm->inst->getNumDocs();
+}
+
+py::UniqueObj CorpusObject::getitem(PyObject* idx) const
+{
+	// indexing by int
+	Py_ssize_t v = PyLong_AsLongLong(idx);
+	if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
+	{
+		if (v >= len() || -v > len()) throw py::IndexError{ to_string(v) };
+		if (v < 0) v += len();
+		auto doc = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, this, nullptr) };
+		if (!doc) throw py::ExcPropagation{};
+		doc->doc = getDoc(v);
+		return doc;
+	}
+	// indexing by uid
+	else if (PyUnicode_Check(idx))
+	{
+		string v = py::toCpp<std::string>(idx);
+		auto doc = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, this, nullptr) };
+		if (!doc) throw py::ExcPropagation{};
+		size_t iidx = findUid(v);
+		if (iidx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(idx)  }; 
+		doc->doc = getDoc(iidx);
+		return doc;
+	}
+	// slicing
+	else if (PySlice_Check(idx))
+	{
+		Py_ssize_t start, end, step, size;
+		if (PySlice_GetIndicesEx(idx, len(), &start, &end, &step, &size))
+		{
+			throw py::ExcPropagation{};
+		}
+
+		if (isIndependent())
+		{
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, vocab.get(), nullptr)};
+			if (!ret) throw py::ExcPropagation{};
+			for (Py_ssize_t i = start; i < end; i += step)
+			{
+				ret->docs.emplace_back(docs[i]);
+			}
+			return ret;
+		}
+		else if (made)
+		{
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr)};
+			if (!ret) throw bad_exception{};
+			for (Py_ssize_t i = start; i < end; i += step)
+			{
+				ret->docsMade.emplace_back(docsMade[i]);
+				ret->invmap.emplace(docsMade[i]->docUid, i);
+			}
+			return ret;
+		}
+		else if(isSubDocs())
+		{
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr) };
+			if (!ret) throw bad_exception{};
+			for (Py_ssize_t i = start; i < end; i += step)
+			{
+				ret->docIdcs.emplace_back(docIdcs[i]);
+				ret->invmap.emplace(ret->tm->inst->getDoc(i)->docUid, i);
+			}
+			return ret;
+		}
+		else 
+		{
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr) };
+			if (!ret) throw bad_exception{};
+			for (Py_ssize_t i = start; i < end; i += step)
+			{
+				ret->docIdcs.emplace_back(i);
+				ret->invmap.emplace(ret->tm->inst->getDoc(i)->docUid, i);
+			}
+			return ret;
+		}
+	}
+	// indexing by list of uid or int
+	else if (py::UniqueObj{ PyObject_GetIter(idx) })
+	{
+		vector<size_t> idcs;
+		py::foreach<PyObject*>(idx, [&](PyObject* o)
+		{
+			Py_ssize_t v = PyLong_AsLongLong(o);
+			if (v != -1 || !(PyErr_Occurred() && (PyErr_Clear(), true)))
+			{
+				if (v >= len() || -v > len())
+				{
+					throw py::IndexError{ "len = " + to_string(len()) + ", idx = " + to_string(v) };
+				}
+				if (v < 0) v += len();
+				idcs.emplace_back((size_t)v);
+			}
+			else if (PyUnicode_Check(o))
+			{
+				string k = py::toCpp<string>(o);
+				size_t idx = findUid(k);
+				if (idx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(o) };
+				idcs.emplace_back(idx);
+			}
+			else
+			{
+				throw py::IndexError{ string{"Unsupported index "} + py::repr(o)};
+			}
+		}, "");
+
+		if (isIndependent())
+		{
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, vocab.get(), nullptr)};
+			if (!ret) throw py::ExcPropagation{};
+			for (auto i : idcs)
+			{
+				ret->docs.emplace_back(docs[i]);
+			}
+			return ret;
+		}
+		else if (made)
+		{
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr)};
+			if (!ret) throw py::ExcPropagation{};
+			for (auto i : ret->docIdcs)
+			{
+				ret->docsMade.emplace_back(docsMade[i]);
+				ret->invmap.emplace(docsMade[i]->docUid, i);
+			}
+			return ret;
 		}
 		else
 		{
-			py::UniqueObj ty{ PyObject_Type(idx) };
-			py::UniqueObj repr{ PyObject_Str(ty) };
-			throw py::IndexError{ string{"Unsupported indexing type "} + PyUnicode_AsUTF8(repr) };
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr)};
+			if (!ret) throw py::ExcPropagation{};
+			ret->docIdcs = move(idcs);
+			for (auto i : ret->docIdcs)
+			{
+				ret->invmap.emplace(tm->inst->getDoc(i)->docUid, i);
+			}
+			return ret;
 		}
-	});
+	}
+	else
+	{
+		throw py::IndexError{ string{"Unsupported indexing type "} + py::repr(idx) };
+	}
 }
 
-PyObject* CorpusObject::iter(CorpusObject* self)
+py::UniqueCObj<CorpusIterObject> CorpusObject::iter()
 {
-	auto ret = (CorpusIterObject*)PyObject_CallObject((PyObject*)&UtilsCorpusIter_type, nullptr);
-	if (!ret) return nullptr;
-	ret->corpus = self;
-	Py_INCREF(self);
-	return (PyObject*)ret;
+	auto ret = py::makeNewObject<CorpusIterObject>();
+	if (!ret) throw py::ExcPropagation{};
+	ret->corpus = py::UniqueCObj<CorpusObject>{ this };
+	Py_INCREF(this);
+	return ret;
 }
 
 const tomoto::Dictionary& CorpusObject::getVocabDict() const
@@ -937,135 +795,22 @@ const tomoto::Dictionary& CorpusObject::getVocabDict() const
 	return tm->inst->getVocabDict();
 }
 
-static PyMethodDef UtilsCorpus_methods[] =
+py::UniqueCObj<CorpusIterObject> CorpusIterObject::iter()
 {
-	{ "__getstate__", (PyCFunction)CorpusObject::getstate, METH_NOARGS, "" },
-	{ "__setstate__", (PyCFunction)CorpusObject::setstate, METH_VARARGS, "" },
-	{ "add_doc", (PyCFunction)CorpusObject::addDoc, METH_VARARGS | METH_KEYWORDS, "" },
-	{ "add_docs", (PyCFunction)CorpusObject::addDocs, METH_VARARGS | METH_KEYWORDS, "" },
-	{ "extract_ngrams", (PyCFunction)CorpusObject::extractNgrams, METH_VARARGS | METH_KEYWORDS, "" },
-	{ "concat_ngrams", (PyCFunction)CorpusObject::concatNgrams, METH_VARARGS | METH_KEYWORDS, "" },
-	{ nullptr }
-};
-
-PyMappingMethods UtilsCorpus_mapping = {
-	(lenfunc)CorpusObject::len, //lenfunc mp_length;
-	(binaryfunc)CorpusObject::getitem, //binaryfunc mp_subscript;
-	nullptr, //objobjargproc mp_ass_subscript;
-};
-
-PyTypeObject UtilsCorpus_type = {
-	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy._UtilsCorpus",             /* tp_name */
-	sizeof(CorpusObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)CorpusObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
-	0,                         /* tp_as_number */
-	0,       /* tp_as_sequence */
-	&UtilsCorpus_mapping,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	0,                         /* tp_call */
-	0,                         /* tp_str */
-	0,                         /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"",           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	(getiterfunc)CorpusObject::iter,              /* tp_iter */
-	0,                         /* tp_iternext */
-	UtilsCorpus_methods,             /* tp_methods */
-	0,						 /* tp_members */
-	0,                         /* tp_getset */
-	0,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)CorpusObject::init,      /* tp_init */
-	PyType_GenericAlloc,
-	(newfunc)CorpusObject::_new,
-};
-
-
-int CorpusIterObject::init(CorpusIterObject* self, PyObject* args, PyObject* kwargs)
-{
-	return 0;
+	Py_INCREF(this);
+	return py::UniqueCObj<CorpusIterObject>{ this };
 }
 
-void CorpusIterObject::dealloc(CorpusIterObject* self)
+py::UniqueCObj<DocumentObject> CorpusIterObject::iternext()
 {
-	Py_XDECREF(self->corpus);
-	self->corpus = nullptr;
-	Py_TYPE(self)->tp_free((PyObject*)self);
+	if (idx >= corpus->len()) throw py::ExcPropagation{};
+	py::UniqueObj args = py::buildPyTuple(corpus);
+	auto doc = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallObject((PyObject*)py::Type<DocumentObject>, args.get()) };
+	if (!doc) throw py::ExcPropagation{};
+	doc->doc = corpus->getDoc(idx);
+	idx++;
+	return doc;
 }
-
-CorpusIterObject* CorpusIterObject::iter(CorpusIterObject* self)
-{
-	Py_INCREF(self);
-	return self;
-}
-
-
-PyObject* CorpusIterObject::iternext(CorpusIterObject* self)
-{
-	if (self->idx >= CorpusObject::len(self->corpus)) return nullptr;
-	py::UniqueObj args{ py::buildPyTuple((PyObject*)self->corpus) };
-	auto doc = (DocumentObject*)PyObject_CallObject((PyObject*)&UtilsDocument_type, args);
-	if (!doc) return nullptr;
-	doc->doc = self->corpus->getDoc(self->idx);
-	self->idx++;
-	return (PyObject*)doc;
-}
-
-PyTypeObject UtilsCorpusIter_type = {
-	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy._UtilsCorpusIter",             /* tp_name */
-	sizeof(CorpusIterObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)CorpusIterObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
-	0,                         /* tp_as_number */
-	0,       /* tp_as_sequence */
-	0,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	0,                         /* tp_call */
-	0,                         /* tp_str */
-	0,                         /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"",           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	(getiterfunc)CorpusIterObject::iter,              /* tp_iter */
-	(iternextfunc)CorpusIterObject::iternext,                         /* tp_iternext */
-	0,             /* tp_methods */
-	0,						 /* tp_members */
-	0,                         /* tp_getset */
-	0,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)CorpusIterObject::init,      /* tp_init */
-	PyType_GenericAlloc,
-	PyType_GenericNew,
-};
 
 DocWordIterator wordBegin(const tomoto::RawDocKernel* doc, bool independent)
 {
@@ -1089,887 +834,502 @@ DocWordIterator wordEnd(const tomoto::RawDocKernel* doc, bool independent)
 	return { rdoc->words.data(), rdoc->wOrder.empty() ? nullptr : rdoc->wOrder.data(), rdoc->words.size() };
 }
 
-int DocumentObject::init(DocumentObject* self, PyObject* args, PyObject* kwargs)
+DocumentObject::DocumentObject(PyObject* corpus)
 {
-	PyObject* corpus = nullptr;
-	static const char* kwlist[] = { "corpus", nullptr };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist,
-		&corpus)) return -1;
-
-	return py::handleExc([&]()
-	{
-		self->corpus = (CorpusObject*)corpus;
-		Py_INCREF(corpus);
-		self->doc = nullptr;
-		return 0;
-	});
+	this->corpus = py::UniqueCObj<CorpusObject>{ (CorpusObject*)corpus };
+	Py_INCREF(corpus);
 }
 
-void DocumentObject::dealloc(DocumentObject* self)
+DocumentObject::~DocumentObject()
 {
-	if (!self->corpus->isIndependent() && self->owner)
+	if (!corpus->isIndependent() && owner)
 	{
-		delete self->getBoundDoc();
+		delete getBoundDoc();
 	}
-
-	Py_XDECREF(self->corpus);
-	self->corpus = nullptr;
-	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-Py_ssize_t DocumentObject::len(DocumentObject* self)
+size_t DocumentObject::len() const
 {
-	if (!self->doc) return 0;
-	if (self->corpus->isIndependent())
+	if (!doc) return 0;
+	if (corpus->isIndependent())
 	{
-		return self->getRawDoc()->words.size();
+		return getRawDoc()->words.size();
 	}
-	return self->getBoundDoc()->words.size();
+	return getBoundDoc()->words.size();
 }
 
-PyObject* DocumentObject::getitem(DocumentObject* self, Py_ssize_t idx)
+std::optional<std::string_view> DocumentObject::getitem(size_t idx) const
 {
-	return py::handleExc([&]()
+	if (idx >= len()) throw py::IndexError{ std::to_string(idx) };
+	if (corpus->isIndependent())
 	{
-		if (idx >= len(self)) throw py::IndexError{ "" };
-		if (self->corpus->isIndependent())
+		if (getRawDoc()->words[idx] == tomoto::non_vocab_id)
 		{
-			if (self->getRawDoc()->words[idx] == tomoto::non_vocab_id)
-			{
-				Py_INCREF(Py_None);
-				return Py_None;
-			}
-			return py::buildPyValue(self->corpus->getVocabDict().toWord(self->getRawDoc()->words[idx]));
+			return std::nullopt;
 		}
-		else
-		{
-			idx = self->getBoundDoc()->wOrder.empty() ? idx : self->getBoundDoc()->wOrder[idx];
-			return py::buildPyValue(self->corpus->getVocabDict().toWord(self->getBoundDoc()->words[idx]));
-		}
-	});
-}
-
-PyObject* DocumentObject::getWords(DocumentObject* self, void* closure)
-{
-	return py::handleExc([&]()
+		return corpus->getVocabDict().toWord(getRawDoc()->words[idx]);
+	}
+	else
 	{
-		if (self->corpus->isIndependent()) return py::buildPyValue(self->getRawDoc()->words);
-		else return buildPyValueReorder(self->getBoundDoc()->words, self->getBoundDoc()->wOrder);
-	});
+		idx = getBoundDoc()->wOrder.empty() ? idx : getBoundDoc()->wOrder[idx];
+		return corpus->getVocabDict().toWord(getBoundDoc()->words[idx]);
+	}
 }
 
-PyObject* DocumentObject::getRaw(DocumentObject* self, void* closure)
+py::UniqueObj DocumentObject::getAllWords() const
 {
-	return py::handleExc([&]()
-	{
-		return py::buildPyValue(self->doc->rawStr);
-	});
+	if (corpus->isIndependent()) return py::buildPyValue(getRawDoc()->words);
+	else return buildPyValueReorder(getBoundDoc()->words, getBoundDoc()->wOrder);
 }
 
-PyObject* DocumentObject::getSpan(DocumentObject* self, void* closure)
+const tomoto::SharedString& DocumentObject::getRaw() const
 {
-	return py::handleExc([&]()
-	{
-		auto starts = self->doc->origWordPos;
-		auto lengthes = self->doc->origWordLen;
-		byte2Char(self->doc->rawStr, starts, lengthes);
-
-		PyObject* ret = PyList_New(starts.size());
-		for (size_t i = 0; i < starts.size(); ++i)
-		{
-			size_t begin = starts[i], end = begin + lengthes[i];
-			PyList_SET_ITEM(ret, i, py::buildPyTuple(begin, end));
-		}
-		return ret;
-	});
+	return doc->rawStr;
 }
 
-PyObject* DocumentObject::getWeight(DocumentObject* self, void* closure)
+py::UniqueObj DocumentObject::getSpan() const
 {
-	return py::handleExc([&]()
+	auto starts = doc->origWordPos;
+	auto lengthes = doc->origWordLen;
+	byte2Char(doc->rawStr, starts, lengthes);
+
+	auto ret = py::UniqueObj{ PyList_New(starts.size()) };
+	for (size_t i = 0; i < starts.size(); ++i)
 	{
-		return py::buildPyValue(self->doc->weight);
-	});
+		size_t begin = starts[i], end = begin + lengthes[i];
+		PyList_SetItem(ret.get(), i, py::buildPyTuple(begin, end).release());
+	}
+	return ret;
 }
 
-PyObject* DocumentObject::getUid(DocumentObject* self, void* closure)
+tomoto::Float DocumentObject::getWeight() const
 {
-	return py::handleExc([&]()
-	{
-		return py::buildPyValue(self->doc->docUid);
-	});
+	return doc->weight;
 }
 
-PyObject* DocumentObject::getattro(DocumentObject* self, PyObject* attr)
+const tomoto::SharedString& DocumentObject::getUid() const
 {
-	return py::handleExc([&]()
-	{
-		if (!self->corpus->isIndependent()) return PyObject_GenericGetAttr((PyObject*)self, attr);
-		const char* a = PyUnicode_AsUTF8(attr);
-		if (!a) throw py::AttributeError{ "invalid attribute name" };
-		string name = a;
-		auto it = self->getRawDoc()->misc.find(name);
-		if (it == self->getRawDoc()->misc.end()) return PyObject_GenericGetAttr((PyObject*)self, attr);
-		auto ret = (PyObject*)it->second.template get<std::shared_ptr<void>>().get();
-		Py_INCREF(ret);
-		return ret;
-	});
+	return doc->docUid;
 }
 
-PyObject* DocumentObject::repr(DocumentObject* self)
+py::UniqueObj DocumentObject::getattro(PyObject* attr) const
+{
+	if (!corpus->isIndependent()) return py::UniqueObj{ PyObject_GenericGetAttr((PyObject*)this, attr) };
+	std::string a;
+	if (!py::toCpp<std::string>(attr, a)) throw py::AttributeError{ "invalid attribute name" };
+	string name = a;
+	auto it = getRawDoc()->misc.find(name);
+	if (it == getRawDoc()->misc.end()) return py::UniqueObj{ PyObject_GenericGetAttr((PyObject*)this, attr) };
+	auto ret = py::UniqueObj{ (PyObject*)std::get<std::shared_ptr<void>>(it->second).get() };
+	Py_INCREF(ret.get());
+	return ret;
+}
+
+std::string DocumentObject::repr() const
 {
 	string ret = "<tomotopy.Document with words=\"";
 
-	for (size_t i = 0; i < len(self); ++i)
+	for (size_t i = 0; i < len(); ++i)
 	{
 		size_t w;
-		if (self->corpus->isIndependent())
+		if (corpus->isIndependent())
 		{
-			w = self->getRawDoc()->words[i];
+			w = getRawDoc()->words[i];
 			if (w == tomoto::non_vocab_id) continue;
 		}
 		else
 		{
-			w = self->getBoundDoc()->wOrder.empty() ? self->getBoundDoc()->words[i] : self->getBoundDoc()->words[self->getBoundDoc()->wOrder[i]];
+			w = getBoundDoc()->wOrder.empty() ? getBoundDoc()->words[i] : getBoundDoc()->words[getBoundDoc()->wOrder[i]];
 		}
-		ret += self->corpus->getVocabDict().toWord(w);
+		ret += corpus->getVocabDict().toWord(w);
 		ret.push_back(' ');
 	}
 	ret.pop_back();
 	ret += "\">";
-	return py::buildPyValue(ret);
+	return ret;
 }
 
-static PyObject* Document_getTopics(DocumentObject* self, PyObject* args, PyObject* kwargs)
+std::vector<std::pair<tomoto::Tid, tomoto::Float>> DocumentObject::getTopics(size_t topN, bool fromPseudoDoc) const
 {
-	size_t topN = 10;
-	size_t fromPseudoDoc = 0;
-	static const char* kwlist[] = { "top_n", "from_pseudo_doc", nullptr};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|np", (char**)kwlist, &topN, &fromPseudoDoc)) return nullptr;
-	return py::handleExc([&]() -> PyObject*
-	{
-		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
-		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
+	if (corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+	if (!corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
+	if (!corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
 
-		if (self->owner && !self->initialized)
+	if (owner && !initialized)
+	{
+		if (PyErr_WarnEx(PyExc_RuntimeWarning, "This document has no topic information. Call `infer()` method passing this document as an argument first!", 1)) throw py::ExcPropagation{};
+	}
+
+	if (fromPseudoDoc) return getTopicsFromPseudoDoc(topN);
+	return corpus->tm->inst->getTopicsByDocSorted(getBoundDoc(), topN);
+}
+
+std::vector<float> DocumentObject::getTopicDist(bool normalize, bool fromPseudoDoc) const
+{
+	if (corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+	if (!corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
+	if (!corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
+
+	if (owner && !initialized)
+	{
+		if (PyErr_WarnEx(PyExc_RuntimeWarning, "This document has no topic information. Call `infer()` method passing this document as an argument first!", 1)) throw py::ExcPropagation{};
+	}
+	if (fromPseudoDoc) return getTopicDistFromPseudoDoc(normalize);
+	return corpus->tm->inst->getTopicsByDoc(getBoundDoc(), normalize);
+}
+
+std::vector<std::pair<std::string, tomoto::Float>> DocumentObject::getWords(size_t topN) const
+{
+	if (corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+	if (!corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
+	return corpus->tm->inst->getWordsByDocSorted(getBoundDoc(), topN);
+}
+
+py::UniqueObj DocumentObject::getZ() const
+{
+	if (corpus->isIndependent()) throw py::AttributeError{ "doc has no `topics` field!" };
+	if (!doc) throw py::RuntimeError{ "doc is null!" };
+	if (auto ret = getZFromHLDA()) return ret;
+	if (auto ret = getZFromHDP()) return ret;
+	if (auto ret = getZFromLDA()) return ret;
+	throw py::AttributeError{ "doc has no `topics` field!" };
+}
+
+std::string_view DocumentObject::getMetadata() const
+{
+	if (corpus->isIndependent()) throw py::AttributeError{ "doc has no `metadata` field!" };
+	if (!doc) throw py::RuntimeError{ "doc is null!" };
+	if (auto ret = getMetadataFromDMR()) return *ret;
+	throw py::AttributeError{ "doc has no `metadata` field!" };
+}
+
+double DocumentObject::getLL() const
+{
+	if (corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
+	if (!corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
+	return corpus->tm->inst->getDocLL(getBoundDoc());
+}
+
+PhraserObject::PhraserObject()
+	: trie_nodes{ 1 } // root node
+{
+}
+
+PhraserObject::PhraserObject(PyObject* candidates, const std::string& delimiter)
+{
+	if (!candidates || candidates == Py_None) return;
+
+	py::UniqueObj iter{ PyObject_GetIter(candidates) }, item;
+	if (!iter) throw py::ValueError{ "`candidates` must be an iterable of Candidates." };
+
+	CorpusObject* base_corpus = nullptr;
+	auto alloc = [&]() { trie_nodes.emplace_back(); return &trie_nodes.back(); };
+
+	while ((item = py::UniqueObj{ PyIter_Next(iter.get()) }))
+	{
+		if (PyObject_TypeCheck(item, py::Type<CandidateObject>))
 		{
-			if (PyErr_WarnEx(PyExc_RuntimeWarning, "This document has no topic information. Call `infer()` method passing this document as an argument first!", 1)) return nullptr;
-		}
-
-#ifdef TM_PT
-		if (fromPseudoDoc) return Document_getTopicsFromPseudoDoc(self, topN);
-#endif
-		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDocSorted(self->getBoundDoc(), topN));
-	});
-}
-
-static PyObject* Document_getTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs)
-{
-	size_t normalize = 1;
-	size_t fromPseudoDoc = 0;
-	static const char* kwlist[] = { "normalize", "from_pseudo_doc", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|p", (char**)kwlist, &normalize)) return nullptr;
-	return py::handleExc([&]() -> PyObject*
-	{
-		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
-		if (!self->corpus->tm->isPrepared) throw py::RuntimeError{ "train() should be called first for calculating the topic distribution" };
-
-		if (self->owner && !self->initialized)
-		{
-			if (PyErr_WarnEx(PyExc_RuntimeWarning, "This document has no topic information. Call `infer()` method passing this document as an argument first!", 1)) return nullptr;
-		}
-#ifdef TM_PT
-		if (fromPseudoDoc) return Document_getTopicDistFromPseudoDoc(self, !!normalize);
-#endif
-		return py::buildPyValue(self->corpus->tm->inst->getTopicsByDoc(self->getBoundDoc(), !!normalize));
-	});
-}
-
-static PyObject* Document_getWords(DocumentObject* self, PyObject* args, PyObject* kwargs)
-{
-	size_t topN = 10;
-	static const char* kwlist[] = { "top_n", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|n", (char**)kwlist, &topN)) return nullptr;
-	return py::handleExc([&]()
-	{
-		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
-		return py::buildPyValue(self->corpus->tm->inst->getWordsByDocSorted(self->getBoundDoc(), topN));
-	});
-}
-
-static PyObject* Document_Z(DocumentObject* self, void* closure)
-{
-	return py::handleExc([&]()
-	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `topics` field!" };
-		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
-#ifdef TM_HLDA
-		if (auto* ret = Document_HLDA_Z(self, closure)) return ret;
-#endif
-#ifdef TM_HDP
-		if (auto* ret = Document_HDP_Z(self, closure)) return ret;
-#endif
-		if (auto* ret = Document_LDA_Z(self, closure)) return ret;
-		throw py::AttributeError{ "doc has no `topics` field!" };
-	});
-}
-
-static PyObject* Document_metadata(DocumentObject* self, void* closure)
-{
-	return py::handleExc([&]()
-	{
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `metadata` field!" };
-		if (!self->doc) throw py::RuntimeError{ "doc is null!" };
-#ifdef TM_DMR
-		if (auto* ret = Document_DMR_metadata(self, closure)) return ret;
-#endif
-		throw py::AttributeError{ "doc has no `metadata` field!" };
-	});
-}
-
-PyObject* Document_getLL(DocumentObject* self)
-{
-	return py::handleExc([&]()
-	{
-		if (self->corpus->isIndependent()) throw py::RuntimeError{ "This method can only be called by documents bound to the topic model." };
-		if (!self->corpus->tm->inst) throw py::RuntimeError{ "inst is null" };
-		return py::buildPyValue(self->corpus->tm->inst->getDocLL(self->getBoundDoc()));
-	});
-}
-
-static PyMethodDef UtilsDocument_methods[] =
-{
-	{ "get_topics", (PyCFunction)Document_getTopics, METH_VARARGS | METH_KEYWORDS, Document_get_topics__doc__ },
-	{ "get_topic_dist", (PyCFunction)Document_getTopicDist, METH_VARARGS | METH_KEYWORDS, Document_get_topic_dist__doc__ },
-#ifdef TM_PA
-	{ "get_sub_topics", (PyCFunction)Document_getSubTopics, METH_VARARGS | METH_KEYWORDS, Document_get_sub_topics__doc__ },
-	{ "get_sub_topic_dist", (PyCFunction)Document_getSubTopicDist, METH_VARARGS | METH_KEYWORDS, Document_get_sub_topic_dist__doc__ },
-#endif
-	{ "get_words", (PyCFunction)Document_getWords, METH_VARARGS | METH_KEYWORDS, Document_get_words__doc__ },
-	{ "get_count_vector", (PyCFunction)Document_getCountVector, METH_NOARGS, Document_get_count_vector__doc__ },
-	{ "get_ll", (PyCFunction)Document_getLL, METH_NOARGS, Document_get_ll__doc__ },
-	{ nullptr }
-};
-
-static PySequenceMethods UtilsDocument_sequence = {
-	(lenfunc)DocumentObject::len,
-	nullptr, 
-	nullptr, 
-	(ssizeargfunc)DocumentObject::getitem, 
-};
-
-static PyGetSetDef UtilsDocument_getseters[] = {
-	{ (char*)"words", (getter)DocumentObject::getWords, nullptr, Document_words__doc__, nullptr },
-	{ (char*)"weight", (getter)DocumentObject::getWeight, nullptr, Document_weight__doc__, nullptr },
-	{ (char*)"topics", (getter)Document_Z, nullptr, Document_topics__doc__, nullptr },
-	{ (char*)"uid", (getter)DocumentObject::getUid, nullptr, Document_uid__doc__, nullptr },
-	{ (char*)"raw", (getter)DocumentObject::getRaw, nullptr, Document_raw__doc__, nullptr },
-	{ (char*)"span", (getter)DocumentObject::getSpan, nullptr, Document_span__doc__, nullptr },
-#ifdef TM_DMR
-	{ (char*)"metadata", (getter)Document_metadata, nullptr, Document_metadata__doc__, nullptr },
-	{ (char*)"multi_metadata", (getter)Document_DMR_multiMetadata, nullptr, Document_multi_metadata__doc__, nullptr },
-#endif
-#ifdef TM_GDMR
-	{ (char*)"numeric_metadata", (getter)Document_numericMetadata, nullptr, Document_numeric_metadata__doc__, nullptr },
-#endif
-#ifdef TM_PA
-	{ (char*)"subtopics", (getter)Document_Z2, nullptr, Document_subtopics__doc__, nullptr },
-#endif
-#ifdef TM_MGLDA
-	{ (char*)"windows", (getter)Document_windows, nullptr, Document_windows__doc__, nullptr },
-#endif
-#ifdef TM_HLDA
-	{ (char*)"path", (getter)Document_path, nullptr, Document_path__doc__, nullptr },
-#endif
-#ifdef TM_CT
-	{ (char*)"beta", (getter)Document_beta, nullptr, Document_beta__doc__, nullptr },
-#endif
-#ifdef TM_SLDA
-	{ (char*)"vars", (getter)Document_y, nullptr, Document_vars__doc__, nullptr },
-#endif
-#ifdef TM_LLDA
-	{ (char*)"labels", (getter)Document_labels, nullptr, Document_labels__doc__, nullptr },
-#endif
-#ifdef TM_DT
-	{ (char*)"eta", (getter)Document_eta, nullptr, Document_eta__doc__, nullptr },
-	{ (char*)"timepoint", (getter)Document_timepoint, nullptr, Document_timepoint__doc__, nullptr },
-#endif
-#ifdef TM_PT
-	{ (char*)"pseudo_doc_id", (getter)Document_pseudo_doc_id, nullptr, Document_pseudo_doc_id__doc__, nullptr },
-#endif
-	{ nullptr },
-};
-
-
-PyTypeObject UtilsDocument_type = {
-	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy.Document",             /* tp_name */
-	sizeof(DocumentObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)DocumentObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	(reprfunc)DocumentObject::repr,                         /* tp_repr */
-	0,                         /* tp_as_number */
-	&UtilsDocument_sequence,       /* tp_as_sequence */
-	0,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	0,                         /* tp_call */
-	0,                         /* tp_str */
-	(getattrofunc)DocumentObject::getattro, /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT,   /* tp_flags */
-	Document___init____doc__,           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	0,              /* tp_iter */
-	0,                         /* tp_iternext */
-	UtilsDocument_methods,             /* tp_methods */
-	0,						 /* tp_members */
-	UtilsDocument_getseters,                         /* tp_getset */
-	0,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)DocumentObject::init,      /* tp_init */
-	PyType_GenericAlloc,
-	PyType_GenericNew,
-};
-
-PhraserObject* PhraserObject::_new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs)
-{
-	PhraserObject* obj = (PhraserObject*)subtype->tp_alloc(subtype, 0);
-	new (&obj->vocabs) tomoto::Dictionary;
-	new (&obj->trie_nodes) vector<TrieNode>(1);
-	new (&obj->cand_info) vector<string>;
-	return obj;
-}
-
-int PhraserObject::init(PhraserObject* self, PyObject* args, PyObject* kwargs)
-{
-	return py::handleExc([&]()
-	{
-		PyObject* candidates = nullptr;
-		const char* delimiter = "_";
-		static const char* kwlist[] = { "candidates", "delimiter", nullptr };
-
-		if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Os", (char**)kwlist,
-			&candidates, &delimiter)) return -1;
-		if (!candidates || candidates == Py_None) return 0;
-
-		py::UniqueObj iter{ PyObject_GetIter(candidates) }, item;
-		if (!iter) throw py::ValueError{ "`candidates` must be an iterable of Candidates." };
-
-		CorpusObject* base_corpus = nullptr;
-		auto alloc = [&]() { self->trie_nodes.emplace_back(); return &self->trie_nodes.back(); };
-
-		while ((item = py::UniqueObj{ PyIter_Next(iter) }))
-		{
-			if (PyObject_TypeCheck(item, &Candidate_type))
+			auto c = (CandidateObject*)item.get();
+			if (!vocabs.size())
 			{
-				auto c = (CandidateObject*)item.get();
-				if (!self->vocabs.size())
-				{
-					self->vocabs = c->corpus->getVocabDict();
-					base_corpus = c->corpus;
-				}
-
-				if (self->trie_nodes.capacity() < self->trie_nodes.size() + c->cand.w.size())
-				{
-					self->trie_nodes.reserve(max(self->trie_nodes.size() + c->cand.w.size(), self->trie_nodes.size() * 2));
-				}
-
-				if (c->corpus == base_corpus)
-				{
-					self->trie_nodes[0].build(c->cand.w.begin(), c->cand.w.end(), self->cand_info.size() + 1, alloc);
-				}
-				else
-				{
-					auto new_cw = c->corpus->getVocabDict().mapToNewDictAdd(c->cand.w, self->vocabs);
-					self->trie_nodes[0].build(new_cw.begin(), new_cw.end(), self->cand_info.size() + 1, alloc);
-				}
-
-				string name = c->cand.name;
-				if (name.empty())
-				{
-					for (auto& w : *c)
-					{
-						if (!name.empty()) name += delimiter;
-						name += w;
-					}
-				}
-				self->cand_info.emplace_back(name, c->cand.w.size());
+				vocabs = c->corpus->getVocabDict();
+				base_corpus = c->corpus.get();
 			}
-			else if (PyTuple_Size(item) == 2)
-			{
-				auto name = py::toCpp<string>(PyTuple_GET_ITEM(item.get(), 1), "`candidates` must be an iterable of `(list of str, str)`.");
-				vector<tomoto::Vid> ws;
-				py::foreach<string>(PyTuple_GET_ITEM(item.get(), 0), [&](const string& w)
-				{
-					ws.emplace_back(self->vocabs.add(w));
-				}, "`candidates` must be an iterable of `(list of str, str)`.");
 
-				if (self->trie_nodes.capacity() < self->trie_nodes.size() + ws.size())
-				{
-					self->trie_nodes.reserve(max(self->trie_nodes.size() + ws.size(), self->trie_nodes.size() * 2));
-				}
-				self->trie_nodes[0].build(ws.begin(), ws.end(), self->cand_info.size() + 1, alloc);
-				self->cand_info.emplace_back(name, ws.size());
+			if (trie_nodes.capacity() < trie_nodes.size() + c->cand.w.size())
+			{
+				trie_nodes.reserve(max(trie_nodes.size() + c->cand.w.size(), trie_nodes.size() * 2));
+			}
+
+			if (c->corpus.get() == base_corpus)
+			{
+				trie_nodes[0].build(c->cand.w.begin(), c->cand.w.end(), cand_info.size() + 1, alloc);
 			}
 			else
 			{
-				throw py::ValueError{ "`candidates` must be an iterable of Candidates." };
+				auto new_cw = c->corpus->getVocabDict().mapToNewDictAdd(c->cand.w, vocabs);
+				trie_nodes[0].build(new_cw.begin(), new_cw.end(), cand_info.size() + 1, alloc);
 			}
+
+			string name = c->cand.name;
+			if (name.empty())
+			{
+				for (auto& w : *c)
+				{
+					if (!name.empty()) name += delimiter;
+					name += w;
+				}
+			}
+			cand_info.emplace_back(name, c->cand.w.size());
 		}
-		if (PyErr_Occurred()) throw py::ExcPropagation{};
-		self->trie_nodes[0].fillFail();
-		self->trie_nodes.shrink_to_fit();
-		return 0;
-	});
+		else if (PyTuple_Size(item.get()) == 2)
+		{
+			string name;
+			if (!py::toCpp<string>(PyTuple_GetItem(item.get(), 1), name))
+			{
+				throw std::invalid_argument{ "`candidates` must be an iterable of `(list of str, str)`." };
+			}
+			vector<tomoto::Vid> ws;
+			py::foreach<string>(PyTuple_GetItem(item.get(), 0), [&](const string& w)
+			{
+				ws.emplace_back(vocabs.add(w));
+			}, "`candidates` must be an iterable of `(list of str, str)`.");
+
+			if (trie_nodes.capacity() < trie_nodes.size() + ws.size())
+			{
+				trie_nodes.reserve(max(trie_nodes.size() + ws.size(), trie_nodes.size() * 2));
+			}
+			trie_nodes[0].build(ws.begin(), ws.end(), cand_info.size() + 1, alloc);
+			cand_info.emplace_back(name, ws.size());
+		}
+		else
+		{
+			throw py::ValueError{ "`candidates` must be an iterable of Candidates." };
+		}
+	}
+	if (PyErr_Occurred()) throw py::ExcPropagation{};
+	trie_nodes[0].fillFail();
+	trie_nodes.shrink_to_fit();
 }
 
-void PhraserObject::dealloc(PhraserObject* self)
-{
-	self->vocabs.~Dictionary();
-	self->trie_nodes.~vector();
-	self->cand_info.~vector();
-	Py_TYPE(self)->tp_free((PyObject*)self);
-}
 
-PyObject* PhraserObject::repr(PhraserObject* self)
+std::string PhraserObject::repr() const
 {
 	string ret = "Phraser(... with ";
-	ret += to_string(self->cand_info.size());
+	ret += to_string(cand_info.size());
 	ret += " items)";
-	return py::buildPyValue(ret);
+	return ret;
 }
 
-PyObject* PhraserObject::call(PhraserObject* self, PyObject* args, PyObject* kwargs)
+py::UniqueObj PhraserObject::call(PyObject* words) const
 {
-	PyObject* words = nullptr;
-	static const char* kwlist[] = { "words", nullptr };
-
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
-		&words)) return nullptr;
-
-	return py::handleExc([&]()
+	py::UniqueObj ret{ PyList_New(0) };
+	deque<tomoto::Vid> buffer;
+	size_t c_found = 0;
+	auto* node = trie_nodes.data();
+	py::foreachWithPy<string>(words, [&](const string& w, PyObject* pw)
 	{
-		py::UniqueObj ret{ PyList_New(0) };
-		deque<tomoto::Vid> buffer;
-		size_t c_found = 0;
-		auto* node = self->trie_nodes.data();
-		py::foreachWithPy<string>(words, [&](const string& w, PyObject* pw)
-		{
-			auto wid = self->vocabs.toWid(w);
+		auto wid = vocabs.toWid(w);
 
-			if (wid != tomoto::non_vocab_id)
+		if (wid != tomoto::non_vocab_id)
+		{
+			auto* nnode = node->getNext(wid);
+			if (!nnode)
 			{
-				auto* nnode = node->getNext(wid);
-				if (!nnode)
+				if (c_found)
 				{
-					if (c_found)
+					auto& info = cand_info[c_found - 1];
+					if (buffer.size() >= info.second)
 					{
-						auto& info = self->cand_info[c_found - 1];
-						if (buffer.size() >= info.second)
-						{
-							PyList_Append(ret, py::UniqueObj{ py::buildPyValue(info.first) });
-							buffer.erase(buffer.begin(), buffer.begin() + info.second);
-						}
-						c_found = 0;
+						PyList_Append(ret.get(), py::buildPyValue(info.first).get());
+						buffer.erase(buffer.begin(), buffer.begin() + info.second);
 					}
+					c_found = 0;
+				}
+			}
+
+			while (!nnode)
+			{
+				size_t curDepth = node->depth;
+				node = node->getFail();
+				for (size_t d = node ? node->depth : 0; !buffer.empty() && d < curDepth; ++d)
+				{
+					PyList_Append(ret.get(), py::buildPyValue(vocabs.toWord(buffer.front())).get());
+					buffer.pop_front();
+				}
+				if (node) nnode = node->getNext(wid);
+				else break;
+			}
+
+			if (nnode)
+			{
+				node = nnode;
+				if (nnode->val && nnode->val != (size_t)-1)
+				{
+					c_found = nnode->val;
+				}
+				buffer.emplace_back(wid);
+				return;
+			}
+		}
+
+		for (auto v : buffer) PyList_Append(ret.get(), py::buildPyValue(vocabs.toWord(v)).get());
+		buffer.clear();
+		PyList_Append(ret.get(), pw);
+		node = trie_nodes.data();
+	}, "`words` must be an iterable of `str`s.");
+	if (c_found)
+	{
+		auto& info = cand_info[c_found - 1];
+		if (buffer.size() >= info.second)
+		{
+			PyList_Append(ret.get(), py::buildPyValue(info.first).get());
+			buffer.erase(buffer.begin(), buffer.begin() + info.second);
+			c_found = 0;
+		}
+	}
+	for (auto v : buffer) PyList_Append(ret.get(), py::buildPyValue(vocabs.toWord(v)).get());
+	return ret;
+}
+
+py::UniqueObj PhraserObject::findall(PyObject* words) const
+{
+	py::UniqueObj ret{ PyList_New(0) };
+	size_t c_found = 0, stack_size = 0, cur_pos = 0;
+	auto* node = trie_nodes.data();
+	py::foreach<string>(words, [&](const string& w)
+	{
+		auto wid = vocabs.toWid(w);
+
+		if (wid != tomoto::non_vocab_id)
+		{
+			auto* nnode = node->getNext(wid);
+			if (!nnode)
+			{
+				if (c_found)
+				{
+					auto& info = cand_info[c_found - 1];
+					if (stack_size >= info.second)
+					{
+						assert(cur_pos - stack_size < PyObject_Length(words));
+						assert(cur_pos - stack_size + info.second <= PyObject_Length(words));
+						PyList_Append(ret.get(), py::buildPyTuple(info.first, py::buildPyTuple(cur_pos - stack_size, cur_pos - stack_size + info.second)).get());
+						stack_size -= info.second;
+
+						size_t targetDepth = node->depth - info.second;
+						while (node->depth > targetDepth)
+						{
+							node = node->getFail();
+						}
+						nnode = node->getNext(wid);
+					}
+					c_found = 0;
 				}
 
 				while (!nnode)
 				{
 					size_t curDepth = node->depth;
 					node = node->getFail();
-					for (size_t d = node ? node->depth : 0; !buffer.empty() && d < curDepth; ++d)
-					{
-						PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(buffer.front())) });
-						buffer.pop_front();
-					}
+					stack_size -= curDepth - (node ? node->depth : 0);
 					if (node) nnode = node->getNext(wid);
 					else break;
 				}
-
-				if (nnode)
-				{
-					node = nnode;
-					if (nnode->val && nnode->val != (size_t)-1)
-					{
-						c_found = nnode->val;
-					}
-					buffer.emplace_back(wid);
-					return;
-				}
 			}
 
-			for (auto v : buffer) PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(v)) });
-			buffer.clear();
-			PyList_Append(ret, pw);
-			node = self->trie_nodes.data();
-		}, "`words` must be an iterable of `str`s.");
-		if (c_found)
-		{
-			auto& info = self->cand_info[c_found - 1];
-			if (buffer.size() >= info.second)
+			if (nnode)
 			{
-				PyList_Append(ret, py::UniqueObj{ py::buildPyValue(info.first) });
-				buffer.erase(buffer.begin(), buffer.begin() + info.second);
-				c_found = 0;
+				node = nnode;
+				if (nnode->val && nnode->val != (size_t)-1)
+				{
+					c_found = nnode->val;
+				}
+				stack_size++;
+				cur_pos++;
+				return;
 			}
 		}
-		for (auto v : buffer) PyList_Append(ret, py::UniqueObj{ py::buildPyValue(self->vocabs.toWord(v)) });
-		return ret.release();
-	});
-}
-
-PyObject* PhraserObject::findall(PhraserObject* self, PyObject* args, PyObject* kwargs)
-{
-	PyObject* words = nullptr;
-	static const char* kwlist[] = { "words", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O", (char**)kwlist,
-		&words)) return nullptr;
-	
-	return py::handleExc([&]()
+		stack_size = 0;
+		node = trie_nodes.data();
+		cur_pos++;
+	}, "`words` must be an iterable of `str`s.");
+	if (c_found)
 	{
-		py::UniqueObj ret{ PyList_New(0) };
-		size_t c_found = 0, stack_size = 0, cur_pos = 0;
-		auto* node = self->trie_nodes.data();
-		py::foreach<string>(words, [&](const string& w)
+		auto& info = cand_info[c_found - 1];
+		if (stack_size >= info.second)
 		{
-			auto wid = self->vocabs.toWid(w);
-
-			if (wid != tomoto::non_vocab_id)
-			{
-				auto* nnode = node->getNext(wid);
-				if (!nnode)
-				{
-					if (c_found)
-					{
-						auto& info = self->cand_info[c_found - 1];
-						if (stack_size >= info.second)
-						{
-							assert(cur_pos - stack_size < PyObject_Length(words));
-							assert(cur_pos - stack_size + info.second <= PyObject_Length(words));
-							PyList_Append(ret, py::UniqueObj{ py::buildPyTuple(info.first, py::buildPyTuple(cur_pos - stack_size, cur_pos - stack_size + info.second)) });
-							stack_size -= info.second;
-
-							size_t targetDepth = node->depth - info.second;
-							while (node->depth > targetDepth)
-							{
-								node = node->getFail();
-							}
-							nnode = node->getNext(wid);
-						}
-						c_found = 0;
-					}
-
-					while (!nnode)
-					{
-						size_t curDepth = node->depth;
-						node = node->getFail();
-						stack_size -= curDepth - (node ? node->depth : 0);
-						if (node) nnode = node->getNext(wid);
-						else break;
-					}
-				}
-
-				if (nnode)
-				{
-					node = nnode;
-					if (nnode->val && nnode->val != (size_t)-1)
-					{
-						c_found = nnode->val;
-					}
-					stack_size++;
-					cur_pos++;
-					return;
-				}
-			}
-			stack_size = 0;
-			node = self->trie_nodes.data();
-			cur_pos++;
-		}, "`words` must be an iterable of `str`s.");
-		if (c_found)
-		{
-			auto& info = self->cand_info[c_found - 1];
-			if (stack_size >= info.second)
-			{
-				PyList_Append(ret, py::UniqueObj{ py::buildPyTuple(info.first, py::buildPyTuple(cur_pos - stack_size, cur_pos - stack_size + info.second)) });
-				c_found = 0;
-			}
+			PyList_Append(ret.get(), py::buildPyTuple(info.first, py::buildPyTuple(cur_pos - stack_size, cur_pos - stack_size + info.second)).get());
+			c_found = 0;
 		}
-		return ret.release();
-	});
-}
-
-PyObject* PhraserObject::save(PhraserObject* self, PyObject* args, PyObject* kwargs)
-{
-	const char* path = nullptr;
-	static const char* kwlist[] = { "path", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist,
-		&path)) return nullptr;
-
-	return py::handleExc([&]()
-	{
-		ofstream ofs{ path, ios_base::binary };
-		if (!ofs) throw py::OSError{ string{"cannot write to '"} + path + "'" };
-		tomoto::serializer::writeMany(ofs, tomoto::serializer::to_keyz("tph1"),
-			self->vocabs,
-			self->cand_info,
-			self->trie_nodes
-		);
-		Py_INCREF(Py_None);
-		return Py_None;
-	});
-}
-
-PyObject* PhraserObject::load(PhraserObject*, PyObject* args, PyObject* kwargs)
-{
-	const char* path = nullptr;
-	PyObject* baseCls = nullptr;
-	static const char* kwlist[] = { "path", "cls", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)kwlist,
-		&path, &baseCls)) return nullptr;
-
-	return py::handleExc([&]()
-	{
-		if (!baseCls) baseCls = (PyObject*)&Phraser_type;
-		else if (!PyObject_IsSubclass(baseCls, (PyObject*)&Phraser_type)) throw runtime_error{ "`cls` must be a derived class of `Phraser`." };
-
-		ifstream ifs{ path };
-		if (!ifs) throw py::OSError{ string{"cannot read from '"} + path + "'" };
-		py::UniqueObj ret{ PyObject_CallObject(baseCls, nullptr) };
-		if (!ret) throw py::ExcPropagation{};
-		tomoto::serializer::readMany(ifs, tomoto::serializer::to_keyz("tph1"),
-			((PhraserObject*)ret.get())->vocabs,
-			((PhraserObject*)ret.get())->cand_info,
-			((PhraserObject*)ret.get())->trie_nodes
-		);
-		return ret.release();
-	});
-}
-
-
-static PyMethodDef Phraser_methods[] =
-{
-	{ "save", (PyCFunction)PhraserObject::save, METH_VARARGS | METH_KEYWORDS, "" },
-	{ "load", (PyCFunction)PhraserObject::load, METH_VARARGS | METH_KEYWORDS | METH_STATIC, "" },
-	{ "findall", (PyCFunction)PhraserObject::findall, METH_VARARGS | METH_KEYWORDS, "" },
-	{ nullptr }
-};
-
-PyTypeObject Phraser_type = {
-	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomoto._Phraser",             /* tp_name */
-	sizeof(PhraserObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)PhraserObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	(reprfunc)PhraserObject::repr, /* tp_repr */
-	0,                         /* tp_as_number */
-	0,                         /* tp_as_sequence */
-	0,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	(ternaryfunc)PhraserObject::call, /* tp_call */
-	0,                         /* tp_str */
-	0,                         /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	"",           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	0,                         /* tp_iter */
-	0,                         /* tp_iternext */
-	Phraser_methods,             /* tp_methods */
-	0,						 /* tp_members */
-	0,                         /* tp_getset */
-	0,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)PhraserObject::init,      /* tp_init */
-	PyType_GenericAlloc,
-	(newfunc)PhraserObject::_new,
-};
-
-
-tomoto::RawDoc::MiscType transformMisc(const tomoto::RawDoc::MiscType& misc, PyObject* transform)
-{
-	if (!transform || transform == Py_None) return misc;
-	py::UniqueObj args{ py::buildPyValue(misc) };
-	py::UniqueObj ret{ PyObject_CallFunctionObjArgs(transform, args.get(), nullptr) };
-	if (!ret) throw bad_exception{};
-	return py::toCpp<tomoto::RawDoc::MiscType>(ret, "`transform` must return an instance of `dict`.");
-}
-
-vector<size_t> insertCorpus(TopicModelObject* self, PyObject* _corpus, PyObject* transform)
-{
-	vector<size_t> ret;
-	if (!_corpus || _corpus == Py_None) return ret;
-	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
-	auto corpus = (CorpusObject*)_corpus;
-	bool insert_into_empty = self->inst->updateVocab(corpus->getVocabDict().getRaw());
-	if (corpus->isIndependent())
-	{
-		for (auto& rdoc : corpus->docs)
-		{
-			tomoto::RawDoc doc;
-			doc.rawStr = rdoc.rawStr;
-			doc.weight = rdoc.weight;
-			doc.docUid = rdoc.docUid;
-
-			for (size_t i = 0; i < rdoc.words.size(); ++i)
-			{
-				if (rdoc.words[i] == tomoto::non_vocab_id) continue;
-
-				if (insert_into_empty) doc.words.emplace_back(rdoc.words[i]);
-				else doc.words.emplace_back(corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict()));
-
-				if (!doc.rawStr.empty())
-				{
-					doc.origWordPos.emplace_back(rdoc.origWordPos[i]);
-					doc.origWordLen.emplace_back(rdoc.origWordLen[i]);
-				}
-			}
-
-			if (doc.words.empty())
-			{
-				fprintf(stderr, "Adding empty document was ignored.\n");
-				continue;
-			}
-
-			if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
-			auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
-			if (!miscConverter) doc.misc.clear();
-			else doc.misc = miscConverter(self, transformMisc(rdoc.misc, transform));
-			ret.emplace_back(self->inst->addDoc(doc));
-		}
-	}
-	else
-	{
-		for (Py_ssize_t i = 0; i < CorpusObject::len(corpus); ++i)
-		{
-			auto& rdoc = (tomoto::DocumentBase&)*corpus->getDoc(i);
-			
-			tomoto::RawDoc doc;
-			doc.rawStr = rdoc.rawStr;
-			doc.weight = rdoc.weight;
-			doc.docUid = rdoc.docUid;
-
-			for (size_t i = 0; i < rdoc.words.size(); ++i)
-			{
-				if (rdoc.words[i] == tomoto::non_vocab_id) continue;
-
-				doc.words.emplace_back(corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict()));
-
-				if (!doc.rawStr.empty())
-				{
-					doc.origWordPos.emplace_back(rdoc.origWordPos[i]);
-					doc.origWordLen.emplace_back(rdoc.origWordLen[i]);
-				}
-			}
-
-			if (doc.words.empty())
-			{
-				fprintf(stderr, "Adding empty document was ignored.\n");
-				continue;
-			}
-
-			if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
-			auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
-			if (!miscConverter) doc.misc.clear();
-			
-			else doc.misc = miscConverter(self, transformMisc(rdoc.makeMisc(corpus->tm->inst), transform));
-			ret.emplace_back(self->inst->addDoc(doc));
-		}
-		
 	}
 	return ret;
 }
 
-CorpusObject* makeCorpus(TopicModelObject* self, PyObject* _corpus, PyObject* transform)
+void PhraserObject::save(const std::string& path) const
 {
-	if (!_corpus || _corpus == Py_None) return nullptr;
-	if (!PyObject_TypeCheck(_corpus, &UtilsCorpus_type)) throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
-	auto corpus = (CorpusObject*)_corpus;
-	py::UniqueObj _corpusMade{ PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self, nullptr) };
-	CorpusObject* corpusMade = (CorpusObject*)_corpusMade.get();
-	corpusMade->made = true;
-	for (auto& rdoc : corpus->docs)
-	{
-		tomoto::RawDoc doc;
-		doc.rawStr = rdoc.rawStr;
-		doc.weight = rdoc.weight;
-		doc.docUid = rdoc.docUid;
-
-		for (size_t i = 0; i < rdoc.words.size(); ++i)
-		{
-			if (rdoc.words[i] == tomoto::non_vocab_id) continue;
-			tomoto::Vid w = corpus->getVocabDict().mapToNewDict(rdoc.words[i], self->inst->getVocabDict());
-			if (w == tomoto::non_vocab_id) continue;
-			doc.words.emplace_back(w);
-
-			if (!doc.rawStr.empty())
-			{
-				doc.origWordPos.emplace_back(rdoc.origWordPos[i]);
-				doc.origWordLen.emplace_back(rdoc.origWordLen[i]);
-			}
-		}
-
-		if (doc.words.empty())
-		{
-			fprintf(stderr, "Adding empty document was ignored.\n");
-			continue;
-		}
-
-		if (!doc.rawStr.empty()) char2Byte(doc.rawStr, doc.origWordPos, doc.origWordLen);
-		auto miscConverter = ((TopicModelTypeObject*)self->ob_base.ob_type)->miscConverter;
-		if (!miscConverter) doc.misc.clear();
-		else doc.misc = miscConverter(self, transformMisc(rdoc.misc, transform));
-		corpusMade->docsMade.emplace_back(self->inst->makeDoc(doc));
-	}
-	_corpusMade.release();
-	return corpusMade;
+	ofstream ofs{ path, ios_base::binary };
+	if (!ofs) throw py::OSError{ string{"cannot write to '"} + path + "'" };
+	tomoto::serializer::writeMany(ofs, tomoto::serializer::to_keyz("tph1"),
+		vocabs,
+		cand_info,
+		trie_nodes
+	);
 }
 
-void addUtilsTypes(PyObject* gModule)
+py::UniqueCObj<PhraserObject> PhraserObject::load(PyObject* cls, const std::string& path)
 {
-	if (PyType_Ready(&UtilsCorpus_type) < 0) throw runtime_error{ "UtilsCorpus_type is not ready." };
-	Py_INCREF(&UtilsCorpus_type);
-	PyModule_AddObject(gModule, "_UtilsCorpus", (PyObject*)&UtilsCorpus_type);
+	if (!cls) cls = (PyObject*)py::Type<PhraserObject>;
+	else if (!PyObject_IsSubclass(cls, (PyObject*)py::Type<PhraserObject>)) throw runtime_error{ "`cls` must be a derived class of `Phraser`." };
 
-	if (PyType_Ready(&UtilsCorpusIter_type) < 0) throw runtime_error{ "UtilsCorpusIter_type is not ready." };
-	Py_INCREF(&UtilsCorpusIter_type);
-	PyModule_AddObject(gModule, "_UtilsCorpusIter", (PyObject*)&UtilsCorpusIter_type);
+	ifstream ifs{ path };
+	if (!ifs) throw py::OSError{ string{"cannot read from '"} + path + "'" };
+	py::UniqueCObj<PhraserObject> ret{ (PhraserObject*)PyObject_CallObject(cls, nullptr) };
+	if (!ret) throw py::ExcPropagation{};
+	tomoto::serializer::readMany(ifs, tomoto::serializer::to_keyz("tph1"),
+		ret->vocabs,
+		ret->cand_info,
+		ret->trie_nodes
+	);
+	return ret;
+}
 
-	if (PyType_Ready(&UtilsDocument_type) < 0) throw runtime_error{ "UtilsDocument_type is not ready." };
-	Py_INCREF(&UtilsDocument_type);
-	PyModule_AddObject(gModule, "Document", (PyObject*)&UtilsDocument_type);
+void addUtilsTypes(py::Module& module)
+{
+	module.addType(py::define<VocabObject>("_VocabDict", "_UtilsVocabDict", Py_TPFLAGS_BASETYPE)
+		.sqLen<&VocabObject::len>()
+		.sqGetItem<&VocabObject::getitem>()
+		.method<&VocabObject::getstate>("__getstate__")
+		.method<&VocabObject::setstate>("__setstate__")
+	);
 
-	if (PyType_Ready(&UtilsVocab_type) < 0) throw runtime_error{ "UtilsVocab_type is not ready." };
-	Py_INCREF(&UtilsVocab_type);
-	PyModule_AddObject(gModule, "_UtilsVocabDict", (PyObject*)&UtilsVocab_type);
+	module.addType(py::define<CorpusObject>("tomotopy._UtilsCorpus", "_UtilsCorpus", Py_TPFLAGS_BASETYPE)
+		.mpLen<&CorpusObject::len>()
+		.mpGetItem<&CorpusObject::getitem>()
+		.method<&CorpusObject::getstate>("__getstate__")
+		.method<&CorpusObject::setstate>("__setstate__")
+		.method<&CorpusObject::addDoc>("add_doc")
+		.method<&CorpusObject::addDocs>("add_docs")
+		.method<&CorpusObject::extractNgrams>("extract_ngrams")
+		.method<&CorpusObject::concatNgrams>("concat_ngrams"));
 
-	if (PyType_Ready(&Phraser_type) < 0) throw runtime_error{ "Phraser_type is not ready." };
-	Py_INCREF(&Phraser_type);
-	PyModule_AddObject(gModule, "_Phraser", (PyObject*)&Phraser_type);
+	module.addType(py::define<CorpusIterObject>("tomotopy._UtilsCorpusIter", "_UtilsCorpusIter", Py_TPFLAGS_DEFAULT)
+		.iter<&CorpusIterObject::iter>()
+		.iternext<&CorpusIterObject::iternext>());
+
+	module.addType(py::define<DocumentObject>("tomotopy._Document", "_Document", Py_TPFLAGS_DEFAULT)
+		.sqLen<&DocumentObject::len>()
+		.sqGetItem<&DocumentObject::getitem>()
+		.getAttrO<&DocumentObject::getattro>()
+		.repr<&DocumentObject::repr>()
+		.method<&DocumentObject::getTopics>("get_topics")
+		.method<&DocumentObject::getTopicDist>("get_topic_dist")
+		.method<&DocumentObject::getSubTopics>("get_sub_topics")
+		.method<&DocumentObject::getSubTopicDist>("get_sub_topic_dist")
+		.method<&DocumentObject::getWords>("get_words")
+		.method<&DocumentObject::getCountVector>("get_count_vector")
+		.method<&DocumentObject::getLL>("get_ll")
+		.property<&DocumentObject::getAllWords>("words")
+		.property<&DocumentObject::getWeight>("weight")
+		.property<&DocumentObject::getZ>("topics")
+		.property<&DocumentObject::getUid>("uid")
+		.property<&DocumentObject::getRaw>("raw")
+		.property<&DocumentObject::getSpan>("span")
+		.property<&DocumentObject::getMetadata>("metadata")
+		.property<&DocumentObject::getMultiMetadata>("multi_metadata")
+		.property<&DocumentObject::getNumericMetadata>("numeric_metadata")
+		.property<&DocumentObject::getZ2>("subtopics")
+		.property<&DocumentObject::getWindows>("windows")
+		.property<&DocumentObject::getPath>("path")
+		.property<&DocumentObject::getBeta>("beta")
+		.property<&DocumentObject::getY>("vars")
+		.property<&DocumentObject::getLabels>("labels")
+		.property<&DocumentObject::getEta>("eta")
+		.property<&DocumentObject::getTimepoint>("timepoint")
+		.property<&DocumentObject::getPseudoDocId>("pseudo_doc_id"));
+
+	module.addType(py::define<PhraserObject>("tomotopy._Phraser", "_Phraser", Py_TPFLAGS_BASETYPE)
+		.call<&PhraserObject::call>()
+		.method<&PhraserObject::findall>("findall")
+		.method<&PhraserObject::save>("save")
+		.staticMethod<&PhraserObject::load>("load")
+		.repr<&PhraserObject::repr>());
 }
