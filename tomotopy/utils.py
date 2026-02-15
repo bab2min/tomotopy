@@ -16,6 +16,7 @@ class Corpus(_UtilsCorpus):
     '''
     class _VocabDict(_UtilsVocabDict):
         pass
+
     def __init__(self, tokenizer=None, batch_size=64, stopwords=None):
         '''Parameters
 ----------
@@ -29,7 +30,7 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
     When calling `tomotopy.utils.Corpus.add_doc`, words in `stopwords` are not added to the document but are excluded.
     If `stopwords` is callable, a word is excluded from the document when `stopwords(word) == True`.
         '''
-        super().__init__()
+        super().__init__(self._VocabDict(), None)
         self._tokenizer = tokenizer
         self._batch_size = batch_size
         if callable(stopwords):
