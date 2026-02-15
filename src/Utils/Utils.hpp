@@ -296,9 +296,9 @@ namespace tomoto
 	private:
 		_UnaryFunc f;
 	public:
-		using reference = typename std::result_of<
-			const _UnaryFunc(typename std::iterator_traits<_Iterator>::reference)
-		>::type;
+		using reference = std::invoke_result_t<
+			const _UnaryFunc, typename std::iterator_traits<_Iterator>::reference
+		>;
 		using value_type = reference;
 		
 		TransformIter(const _Iterator& _iter = {}, _UnaryFunc _f = {})
