@@ -12,10 +12,11 @@ PAModelObject::PAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTo
 {
 	tomoto::PAArgs margs;
 	margs.k = k1;
+	margs.k2 = k2;
 	if (alpha)
 	{
-		margs.alpha = broadcastObj<tomoto::Float>(alpha, margs.k,
-			[&]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(alpha) + ")"; }
+		margs.alpha = broadcastObj<tomoto::Float>(alpha, k1,
+			[&]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k1` (given " + py::repr(alpha) + ")"; }
 		);
 	}
 	if (subAlpha)
@@ -26,9 +27,9 @@ PAModelObject::PAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTo
 	}
 	margs.eta = eta;
 
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	auto inst = tomoto::IPAModel::create((tomoto::TermWeight)tw, margs);
@@ -92,7 +93,6 @@ std::vector<float> DocumentObject::getSubTopicDist(bool normalize) const
 
 py::UniqueObj PAModelObject::infer(PyObject* docObj, size_t iteration, float tolerance, size_t workers, tomoto::ParallelScheme ps, bool together, PyObject* transform) const
 {
-	DEBUG_LOG("infer " << this->ob_base.ob_type << ", " << this->ob_base.ob_refcnt);
 	auto* inst = getInst<tomoto::IPAModel>();
 	if (!isPrepared) throw py::RuntimeError{ "cannot infer with untrained model" };
 	py::UniqueObj iter;
@@ -104,10 +104,9 @@ py::UniqueObj PAModelObject::infer(PyObject* docObj, size_t iteration, float tol
 		auto ll = inst->infer(docs, iteration, tolerance, workers, ps, together);
 		return py::buildPyTuple(cps, ll);
 	}
-	else if (PyObject_TypeCheck(docObj, py::Type<DocumentObject>))
+	else if (auto* doc = py::checkType<DocumentObject>(docObj))
 	{
-		auto* doc = (DocumentObject*)docObj;
-		if ((PAModelObject*)doc->corpus->tm.get() != this) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
+		if (doc->corpus->tm.get() != py::getPObjectAddress<LDAModelObject>(this)) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 		if (doc->owner)
 		{
 			std::vector<tomoto::DocumentBase*> docs;
@@ -127,16 +126,16 @@ py::UniqueObj PAModelObject::infer(PyObject* docObj, size_t iteration, float tol
 			), nullptr);
 		}
 	}
-	else if ((iter = py::UniqueObj{ PyObject_GetIter(docObj) }))
+	else if (py::clearError(), (iter = py::UniqueObj{ PyObject_GetIter(docObj) }))
 	{
 		std::vector<tomoto::DocumentBase*> docs;
 		std::vector<DocumentObject*> docObjs;
 		py::UniqueObj item;
 		while ((item = py::UniqueObj{ PyIter_Next(iter.get()) }))
 		{
-			if (!PyObject_TypeCheck(item, py::Type<DocumentObject>)) throw py::ValueError{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
-			auto* doc = (DocumentObject*)item.get();
-			if ((PAModelObject*)doc->corpus->tm.get() != this) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
+			auto* doc = py::checkType<DocumentObject>(item.get());
+			if (!doc) throw py::ValueError{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
+			if (doc->corpus->tm.get() != py::getPObjectAddress<LDAModelObject>(this)) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 			docs.emplace_back((tomoto::DocumentBase*)doc->doc);
 			docObjs.emplace_back(doc);
 		}

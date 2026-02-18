@@ -62,9 +62,8 @@ py::UniqueObj VocabObject::getstate() const
 	return py::buildPyDict(keys, vocabs->getRaw());
 }
 
-void VocabObject::setstate(PyObject* args)
+void VocabObject::setstate(PyObject* dict)
 {
-	PyObject* dict = PyTuple_GetItem(args, 0);
 	PyObject* id2word = PyDict_GetItemString(dict, "id2word");
 	this->~VocabObject();
 	vocabs = new tomoto::Dictionary;
@@ -162,22 +161,21 @@ CorpusObject::CorpusObject()
 	new (&depObj) py::UniqueObj();
 }
 
-CorpusObject::CorpusObject(PyObject* vocabInst, PyObject* dep)
+CorpusObject::CorpusObject(PyObject* vocabCls, PyObject* dep)
 {
 	new (&docs) vector<tomoto::RawDoc>();
 	new (&depObj) py::UniqueObj();
 
-	if (vocabInst && vocabInst != Py_None)
-	{
-		Py_INCREF(vocabInst);
-		vocab = py::UniqueCObj<VocabObject>{ (VocabObject*)vocabInst };
-		vocab->vocabs = new tomoto::Dictionary;
-		vocab->size = -1;
-	}
-	else
+	if (dep && dep != Py_None)
 	{
 		Py_INCREF(dep);
 		depObj = py::UniqueObj{ dep };
+	}
+	else
+	{
+		vocab = py::makeNewObject<VocabObject>((PyTypeObject*)vocabCls);
+		vocab->vocabs = new tomoto::Dictionary;
+		vocab->size = -1;
 	}
 }
 
@@ -197,9 +195,8 @@ py::UniqueObj CorpusObject::getstate() const
 	return py::buildPyDict(keys, docs, vocab);
 }
 
-void CorpusObject::setstate(PyObject* args)
+void CorpusObject::setstate(PyObject* dict)
 {
-	PyObject* dict = PyTuple_GetItem(args, 0);
 	PyObject* vocab = PyDict_GetItemString(dict, "_vocab");
 	Py_INCREF(vocab);
 	this->vocab = py::UniqueCObj<VocabObject>{ (VocabObject*)vocab };
@@ -643,8 +640,9 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 	{
 		if (v >= len() || -v > len()) throw py::IndexError{ to_string(v) };
 		if (v < 0) v += len();
-		auto doc = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, this, nullptr) };
+		auto doc = py::makeNewObject<DocumentObject>(getDocumentCls());
 		if (!doc) throw py::ExcPropagation{};
+		doc->corpus.copyFrom((CorpusObject*)this);
 		doc->doc = getDoc(v);
 		return doc;
 	}
@@ -652,8 +650,9 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 	else if (PyUnicode_Check(idx))
 	{
 		string v = py::toCpp<std::string>(idx);
-		auto doc = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, this, nullptr) };
+		auto doc = py::makeNewObject<DocumentObject>(getDocumentCls());
 		if (!doc) throw py::ExcPropagation{};
+		doc->corpus.copyFrom((CorpusObject*)this);
 		size_t iidx = findUid(v);
 		if (iidx == (size_t)-1) throw py::KeyError{ "Cannot find a document with uid = " + py::repr(idx)  }; 
 		doc->doc = getDoc(iidx);
@@ -670,7 +669,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 
 		if (isIndependent())
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, vocab.get(), nullptr)};
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, vocab.get(), nullptr)};
 			if (!ret) throw py::ExcPropagation{};
 			for (Py_ssize_t i = start; i < end; i += step)
 			{
@@ -680,7 +679,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 		}
 		else if (made)
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr)};
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, tm.get(), nullptr)};
 			if (!ret) throw bad_exception{};
 			for (Py_ssize_t i = start; i < end; i += step)
 			{
@@ -691,7 +690,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 		}
 		else if(isSubDocs())
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr) };
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, tm.get(), nullptr) };
 			if (!ret) throw bad_exception{};
 			for (Py_ssize_t i = start; i < end; i += step)
 			{
@@ -702,7 +701,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 		}
 		else 
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr) };
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, tm.get(), nullptr) };
 			if (!ret) throw bad_exception{};
 			for (Py_ssize_t i = start; i < end; i += step)
 			{
@@ -743,7 +742,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 
 		if (isIndependent())
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, vocab.get(), nullptr)};
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, vocab.get(), nullptr)};
 			if (!ret) throw py::ExcPropagation{};
 			for (auto i : idcs)
 			{
@@ -753,7 +752,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 		}
 		else if (made)
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr)};
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, tm.get(), nullptr)};
 			if (!ret) throw py::ExcPropagation{};
 			for (auto i : ret->docIdcs)
 			{
@@ -764,7 +763,7 @@ py::UniqueObj CorpusObject::getitem(PyObject* idx) const
 		}
 		else
 		{
-			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, tm.get(), nullptr)};
+			auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, tm.get(), nullptr)};
 			if (!ret) throw py::ExcPropagation{};
 			ret->docIdcs = move(idcs);
 			for (auto i : ret->docIdcs)
@@ -805,8 +804,9 @@ py::UniqueCObj<DocumentObject> CorpusIterObject::iternext()
 {
 	if (idx >= corpus->len()) throw py::ExcPropagation{};
 	py::UniqueObj args = py::buildPyTuple(corpus);
-	auto doc = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallObject((PyObject*)py::Type<DocumentObject>, args.get()) };
+	auto doc = py::makeNewObject<DocumentObject>(getDocumentCls());
 	if (!doc) throw py::ExcPropagation{};
+	doc->corpus = corpus.copy();
 	doc->doc = corpus->getDoc(idx);
 	idx++;
 	return doc;
@@ -836,13 +836,13 @@ DocWordIterator wordEnd(const tomoto::RawDocKernel* doc, bool independent)
 
 DocumentObject::DocumentObject(PyObject* corpus)
 {
-	this->corpus = py::UniqueCObj<CorpusObject>{ (CorpusObject*)corpus };
-	Py_INCREF(corpus);
+	this->corpus = py::checkType<CorpusObject>(py::UniqueObj{ corpus });
+	this->corpus.incref();
 }
 
 DocumentObject::~DocumentObject()
 {
-	if (!corpus->isIndependent() && owner)
+	if (corpus && !corpus->isIndependent() && owner)
 	{
 		delete getBoundDoc();
 	}
@@ -1067,7 +1067,7 @@ PhraserObject::PhraserObject(PyObject* candidates, const std::string& delimiter)
 			string name;
 			if (!py::toCpp<string>(PyTuple_GetItem(item.get(), 1), name))
 			{
-				throw std::invalid_argument{ "`candidates` must be an iterable of `(list of str, str)`." };
+				throw py::ValueError{ "`candidates` must be an iterable of `(list of str, str)`." };
 			}
 			vector<tomoto::Vid> ws;
 			py::foreach<string>(PyTuple_GetItem(item.get(), 0), [&](const string& w)
@@ -1295,7 +1295,7 @@ void addUtilsTypes(py::Module& module)
 		.iter<&CorpusIterObject::iter>()
 		.iternext<&CorpusIterObject::iternext>());
 
-	module.addType(py::define<DocumentObject>("tomotopy._Document", "_Document", Py_TPFLAGS_DEFAULT)
+	module.addType(py::define<DocumentObject>("tomotopy._Document", "_Document", Py_TPFLAGS_BASETYPE)
 		.sqLen<&DocumentObject::len>()
 		.sqGetItem<&DocumentObject::getitem>()
 		.getAttrO<&DocumentObject::getattro>()
@@ -1307,24 +1307,24 @@ void addUtilsTypes(py::Module& module)
 		.method<&DocumentObject::getWords>("get_words")
 		.method<&DocumentObject::getCountVector>("get_count_vector")
 		.method<&DocumentObject::getLL>("get_ll")
-		.property<&DocumentObject::getAllWords>("words")
-		.property<&DocumentObject::getWeight>("weight")
-		.property<&DocumentObject::getZ>("topics")
-		.property<&DocumentObject::getUid>("uid")
-		.property<&DocumentObject::getRaw>("raw")
-		.property<&DocumentObject::getSpan>("span")
-		.property<&DocumentObject::getMetadata>("metadata")
-		.property<&DocumentObject::getMultiMetadata>("multi_metadata")
-		.property<&DocumentObject::getNumericMetadata>("numeric_metadata")
-		.property<&DocumentObject::getZ2>("subtopics")
-		.property<&DocumentObject::getWindows>("windows")
-		.property<&DocumentObject::getPath>("path")
-		.property<&DocumentObject::getBeta>("beta")
-		.property<&DocumentObject::getY>("vars")
-		.property<&DocumentObject::getLabels>("labels")
-		.property<&DocumentObject::getEta>("eta")
-		.property<&DocumentObject::getTimepoint>("timepoint")
-		.property<&DocumentObject::getPseudoDocId>("pseudo_doc_id"));
+		.property<&DocumentObject::getAllWords>("_words")
+		.property<&DocumentObject::getWeight>("_weight")
+		.property<&DocumentObject::getZ>("_topics")
+		.property<&DocumentObject::getUid>("_uid")
+		.property<&DocumentObject::getRaw>("_raw")
+		.property<&DocumentObject::getSpan>("_span")
+		.property<&DocumentObject::getMetadata>("_metadata")
+		.property<&DocumentObject::getMultiMetadata>("_multi_metadata")
+		.property<&DocumentObject::getNumericMetadata>("_numeric_metadata")
+		.property<&DocumentObject::getZ2>("_subtopics")
+		.property<&DocumentObject::getWindows>("_windows")
+		.property<&DocumentObject::getPath>("_path")
+		.property<&DocumentObject::getBeta>("_beta")
+		.property<&DocumentObject::getY>("_vars")
+		.property<&DocumentObject::getLabels>("_labels")
+		.property<&DocumentObject::getEta>("_eta")
+		.property<&DocumentObject::getTimepoint>("_timepoint")
+		.property<&DocumentObject::getPseudoDocId>("_pseudo_doc_id"));
 
 	module.addType(py::define<PhraserObject>("tomotopy._Phraser", "_Phraser", Py_TPFLAGS_BASETYPE)
 		.call<&PhraserObject::call>()

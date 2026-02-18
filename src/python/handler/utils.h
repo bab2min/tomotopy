@@ -15,7 +15,7 @@ struct VocabObject : public py::CObject<VocabObject>
 	~VocabObject();
 
 	py::UniqueObj getstate() const;
-	void setstate(PyObject* args);
+	void setstate(PyObject* dict);
 	
 	size_t len() const;
 	std::string_view getitem(size_t key) const;
@@ -50,7 +50,7 @@ struct CorpusObject : public py::CObject<CorpusObject>
 	{
 		py::UniqueObj depObj;
 		py::UniqueCObj<VocabObject> vocab;
-		py::UniqueCObj<LDAModelObject> tm;
+		py::UniquePObj<LDAModelObject> tm;
 	};
 	bool made = false;
 
@@ -68,11 +68,13 @@ struct CorpusObject : public py::CObject<CorpusObject>
 	const tomoto::RawDocKernel* getDoc(size_t idx) const;
 
 	CorpusObject();
-	CorpusObject(PyObject* vocabInst, PyObject* dep);
+	
+	using _InitArgs = std::tuple<PyObject*, PyObject*>;
+	CorpusObject(PyObject* vocabCls, PyObject* dep);
 	~CorpusObject();
 
 	py::UniqueObj getstate() const;
-	void setstate(PyObject* args);
+	void setstate(PyObject* dict);
 	size_t addDoc(PyObject* words, PyObject* raw, PyObject* userData, PyObject* additionalKwargs);
 	size_t addDocs(PyObject* tokenizedIter, PyObject* rawIter, PyObject* metadataIter);
 	py::UniqueObj extractNgrams(size_t minCf = 10, size_t minDf = 5, size_t maxLen = 5, size_t maxCand = 5000,
@@ -162,6 +164,8 @@ struct DocumentObject : py::CObject<DocumentObject>
 	inline const tomoto::DocumentBase* getBoundDoc() const { return (const tomoto::DocumentBase*)doc; }
 
 	DocumentObject() = default;
+
+	using _InitArgs = std::tuple<PyObject*>;
 	DocumentObject(PyObject* corpus);
 	~DocumentObject();
 
@@ -228,6 +232,16 @@ struct DocumentObject : py::CObject<DocumentObject>
 	std::vector<float> getTopicDistFromPseudoDoc(bool normalize = true) const;
 };
 
+inline PyTypeObject* getDocumentCls()
+{
+	thread_local PyTypeObject* documentCls = nullptr;
+	if (!documentCls)
+	{
+		documentCls = (PyTypeObject*)py::importFrom("tomotopy.utils", "Document").get();
+	}
+	return documentCls;
+}
+
 struct PhraserObject : public py::CObject<PhraserObject>
 {
 	using TrieNode = tomoto::Trie<tomoto::Vid, size_t, tomoto::ConstAccess<tomoto::phraser::map<tomoto::Vid, int32_t>>>;
@@ -237,6 +251,7 @@ struct PhraserObject : public py::CObject<PhraserObject>
 	std::vector<std::pair<std::string, size_t>> cand_info;
 
 	PhraserObject();
+	using _InitArgs = std::tuple <PyObject*, std::string>;
 	PhraserObject(PyObject* candidates, const std::string& delimiter);
 	~PhraserObject() = default;
 

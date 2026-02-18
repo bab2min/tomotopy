@@ -14,9 +14,9 @@ HDPModelObject::HDPModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rm
 	margs.alpha[0] = alpha;
 	margs.eta = eta;
 	margs.gamma = gamma;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	inst = tomoto::IHDPModel::create((tomoto::TermWeight)tw, margs);
@@ -36,12 +36,12 @@ bool HDPModelObject::isLiveTopic(size_t topicId) const
 	return inst->isLiveTopic(topicId);
 }
 
-std::pair<py::UniqueCObj<LDAModelObject>, py::UniqueObj> HDPModelObject::convertToLDA(PyObject* LDAType, float topicThreshold) const
+std::pair<py::UniquePObj<LDAModelObject>, py::UniqueObj> HDPModelObject::convertToLDA(PyObject* LDAType, float topicThreshold) const
 {
 	auto* inst = getInst<tomoto::IHDPModel>();
 	std::vector<tomoto::Tid> newK;
 	auto lda = inst->convertToLDA(topicThreshold, newK);
-	py::UniqueCObj<LDAModelObject> ret{ (LDAModelObject*)PyObject_CallObject(LDAType, nullptr) };
+	auto ret = py::makeNewObject<py::PObject<LDAModelObject>>((PyTypeObject*)LDAType);
 	ret->inst = move(lda);
 	ret->isPrepared = true;
 	ret->minWordCnt = minWordCnt;

@@ -25,9 +25,9 @@ MGLDAModelObject::MGLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_
 	margs.eta = eta;
 	margs.etaL = etaL;
 	margs.gamma = gamma;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	inst = tomoto::IMGLDAModel::create((tomoto::TermWeight)tw, margs);
@@ -80,8 +80,9 @@ py::UniqueCObj<DocumentObject> MGLDAModelObject::makeDoc(PyObject* words, const 
 	tomoto::RawDoc raw = buildRawDoc(words);
 	raw.misc["delimiter"] = delimiter;
 	auto doc = inst->makeDoc(raw);
-	py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
-	auto ret = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, corpus.get(), nullptr) };
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
 	ret->doc = doc.release();
 	ret->owner = true;
 	return ret;

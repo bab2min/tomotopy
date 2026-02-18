@@ -12,23 +12,24 @@ HPAModelObject::HPAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rm
 {
 	tomoto::HPAArgs margs;
 	margs.k = k1;
+	margs.k2 = k2;
 	if (alpha)
 	{
-		margs.alpha = broadcastObj<tomoto::Float>(alpha, margs.k,
-			[&]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(alpha) + ")"; }
+		margs.alpha = broadcastObj<tomoto::Float>(alpha, k1 + 1,
+			[&]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k1 + 1` (given " + py::repr(alpha) + ")"; }
 		);
 	}
 	if (subAlpha)
 	{
-		margs.subalpha = broadcastObj<tomoto::Float>(subAlpha, k2,
-			[=]() { return "`subalpha` must be an instance of `float` or `List[float]` with length `k2` (given " + py::repr(subAlpha) + ")"; }
+		margs.subalpha = broadcastObj<tomoto::Float>(subAlpha, k2 + 1,
+			[=]() { return "`subalpha` must be an instance of `float` or `List[float]` with length `k2 + 1` (given " + py::repr(subAlpha) + ")"; }
 		);
 	}
 	margs.eta = eta;
 
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	auto inst = tomoto::IHPAModel::create((tomoto::TermWeight)tw, false, margs);
@@ -59,7 +60,7 @@ std::vector<float> HPAModelObject::getTopicWordDist(size_t topicId, bool normali
 
 py::UniqueObj HPAModelObject::infer(PyObject* doc, size_t iteration, float tolerance, size_t workers, tomoto::ParallelScheme ps, bool together, PyObject* transform) const
 {
-	return ((const LDAModelObject*)this)->infer(doc, iteration, tolerance, workers, ps, together, transform);
+	return LDAModelObject::infer(doc, iteration, tolerance, workers, ps, together, transform);
 }
 
 py::UniqueObj HPAModelObject::getAlpha() const

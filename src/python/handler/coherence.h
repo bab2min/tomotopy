@@ -17,6 +17,8 @@ struct CoherenceObject : public py::CObject<CoherenceObject>
 	tomoto::coherence::AnyConfirmMeasurer cm;
 
 	CoherenceObject() = default;
+
+	using _InitArgs = std::tuple<PyObject*, ProbEstimation, Segmentation, ConfirmMeasure, IndirectMeasure, size_t, double, double, PyObject*>;
 	CoherenceObject(PyObject* corpus, 
 		ProbEstimation pe, Segmentation seg, ConfirmMeasure cm, IndirectMeasure im, 
 		size_t windowSize, double eps, double gamma, PyObject* targets);

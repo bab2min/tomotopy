@@ -15,9 +15,9 @@ CTModelObject::CTModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTo
 		[=]() { return "`smoothing_alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(alpha) + ")"; }
 	);
 	margs.eta = eta;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	inst = tomoto::ICTModel::create((tomoto::TermWeight)tw, margs);

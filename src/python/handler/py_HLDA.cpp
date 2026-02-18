@@ -19,9 +19,9 @@ HLDAModelObject::HLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 	}
 	margs.eta = eta;
 	margs.gamma = gamma;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	inst = tomoto::IHLDAModel::create((tomoto::TermWeight)tw, margs);

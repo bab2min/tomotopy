@@ -26,15 +26,15 @@ SLDAModelObject::SLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 		);
 	}
 	margs.eta = eta;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	vector<string> varTypeStrs;
-	if (vars && !py::toCpp<vector<string>>(vars, varTypeStrs))
+	if (vars && vars != Py_None && !py::toCpp<vector<string>>(vars, varTypeStrs))
 	{
-		throw invalid_argument{ "`vars` must be an iterable of str." };
+		throw py::ValueError{ "`vars` must be an iterable of str." };
 	}
 	for (auto& s : varTypeStrs)
 	{
@@ -52,13 +52,13 @@ SLDAModelObject::SLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 		{
 			margs.mu.resize(varTypeStrs.size(), fTemp);
 		}
-		else if (py::toCpp<vector<tomoto::Float>>(mu, margs.mu))
+		else if (py::clearError(), py::toCpp<vector<tomoto::Float>>(mu, margs.mu))
 		{
 
 		}
 		else
 		{
-			throw invalid_argument{ "`mu` must be a float or an iterable of float with length same as `vars`." };
+			throw py::ValueError{ "`mu` must be a float or an iterable of float with length same as `vars`." };
 		}
 	}
 
@@ -68,12 +68,12 @@ SLDAModelObject::SLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 		{
 			margs.nuSq.resize(varTypeStrs.size(), fTemp);
 		}
-		else if (py::toCpp<vector<tomoto::Float>>(nuSq, margs.nuSq))
+		else if (py::clearError(), py::toCpp<vector<tomoto::Float>>(nuSq, margs.nuSq))
 		{
 		}
 		else
 		{
-			throw invalid_argument{ "`nu_sq` must be a float or an iterable of float with length same as `vars`." };
+			throw py::ValueError{ "`nu_sq` must be a float or an iterable of float with length same as `vars`." };
 		}
 	}
 
@@ -83,12 +83,12 @@ SLDAModelObject::SLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 		{
 			margs.glmParam.resize(varTypeStrs.size(), fTemp);
 		}
-		else if (py::toCpp<vector<tomoto::Float>>(glmCoef, margs.glmParam))
+		else if (py::clearError(), py::toCpp<vector<tomoto::Float>>(glmCoef, margs.glmParam))
 		{
 		}
 		else
 		{
-			throw invalid_argument{ "`glm_param` must be a float or an iterable of float with length same as `vars`." };
+			throw py::ValueError{ "`glm_param` must be a float or an iterable of float with length same as `vars`." };
 		}
 	}
 
@@ -160,8 +160,9 @@ py::UniqueCObj<DocumentObject> SLDAModelObject::makeDoc(PyObject* words, PyObjec
 		raw.misc["y"] = yVec;
 	}
 	auto doc = inst->makeDoc(raw);
-	py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
-	auto ret = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, corpus.get(), nullptr) };
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
 	ret->doc = doc.release();
 	ret->owner = true;
 	return ret;
@@ -200,9 +201,9 @@ py::UniqueObj SLDAModelObject::estimateVars(PyObject* docObj) const
 	auto* inst = getInst<tomoto::ISLDAModel>();
 	try
 	{
-		if (!PyObject_TypeCheck(docObj, py::Type<DocumentObject>)) throw py::ConversionFail{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
-		auto* doc = (DocumentObject*)docObj;
-		if ((SLDAModelObject*)doc->corpus->tm.get() != this) throw py::ConversionFail{ "`doc` was from another model, not fit to this model" };
+		auto* doc = py::checkType<DocumentObject>(docObj);
+		if (!doc) throw py::ConversionFail{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
+		if (doc->corpus->tm.get() != py::getPObjectAddress<LDAModelObject>(this)) throw py::ConversionFail{ "`doc` was from another model, not fit to this model" };
 
 		return py::buildPyValue(inst->estimateVars(doc->getBoundDoc()));
 	}
@@ -216,9 +217,9 @@ py::UniqueObj SLDAModelObject::estimateVars(PyObject* docObj) const
 	std::vector<const tomoto::DocumentBase*> docs;
 	while ((nextDoc = py::UniqueObj{ PyIter_Next(iter.get()) }))
 	{
-		if (!PyObject_TypeCheck(nextDoc, py::Type<DocumentObject>)) throw py::ConversionFail{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
-		auto* doc = (DocumentObject*)nextDoc.get();
-		if ((SLDAModelObject*)doc->corpus->tm.get() != this) throw py::ConversionFail{ "`doc` was from another model, not fit to this model" };
+		auto* doc = py::checkType<DocumentObject>(nextDoc.get());
+		if (!doc) throw py::ConversionFail{ "`doc` must be tomotopy.Document or list of tomotopy.Document" };
+		if (doc->corpus->tm.get() != py::getPObjectAddress<LDAModelObject>(this)) throw py::ConversionFail{ "`doc` was from another model, not fit to this model" };
 		docs.emplace_back(doc->getBoundDoc());
 	}
 	if (PyErr_Occurred()) throw py::ExcPropagation{};

@@ -6,7 +6,7 @@
 using namespace std;
 
 PTModelObject::PTModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
-	size_t k, size_t p, PyObject* alpha, float eta,
+	size_t k, std::optional<size_t> p, PyObject* alpha, float eta,
 	PyObject* seed, PyObject* corpus, PyObject* transform)
 {
 	tomoto::PTArgs margs;
@@ -18,9 +18,10 @@ PTModelObject::PTModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTo
 		);
 	}
 	margs.eta = eta;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	margs.p = p.value_or(0);
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	if (margs.p == 0) margs.p = margs.k * 10;

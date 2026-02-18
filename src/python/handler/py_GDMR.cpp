@@ -23,6 +23,7 @@ GDMRModelObject::GDMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 	PyObject* seed, PyObject* corpus, PyObject* transform)
 {
 	tomoto::GDMRArgs margs;
+	margs.k = k;
 	if (alpha) margs.alpha = broadcastObj<tomoto::Float>(alpha, margs.k,
 		[&]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(alpha) + ")"; }
 	);
@@ -31,14 +32,14 @@ GDMRModelObject::GDMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 	margs.sigma0 = sigma0;
 	margs.alphaEps = alphaEps;
 	margs.orderDecay = orderDecay;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
-	if (degrees && !py::toCpp<vector<uint64_t>>(degrees, margs.degrees))
+	if (degrees && degrees != Py_None && !py::toCpp<vector<uint64_t>>(degrees, margs.degrees))
 	{
-		throw invalid_argument{ "`degrees` must be an iterable of int." };
+		throw py::ValueError{ "`degrees` must be an iterable of int." };
 	}
 
 	auto inst = tomoto::IGDMRModel::create((tomoto::TermWeight)tw, margs);
@@ -74,7 +75,7 @@ GDMRModelObject::GDMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 	insertCorpus(corpus, transform);
 }
 
-std::optional<size_t> GDMRModelObject::addDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, bool ignoreEmptyWords)
+std::optional<size_t> GDMRModelObject::addDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata, bool ignoreEmptyWords)
 {
 	if (isPrepared) throw py::RuntimeError{ "cannot add_doc() after train()" };
 	auto* inst = getInst<tomoto::IGDMRModel>();
@@ -85,7 +86,17 @@ std::optional<size_t> GDMRModelObject::addDoc(PyObject* words, PyObject* numeric
 
 	tomoto::RawDoc raw = buildRawDoc(words);
 	raw.misc["metadata"] = metadata;
-
+	if (multiMetadata)
+	{
+		vector<string> multiMetadataValue;
+		if (!py::toCpp<vector<string>>(multiMetadata, multiMetadataValue))
+		{
+			throw py::ValueError{
+				"`multi_metadata` must be an instance of `List[str]` (but given " + py::repr(multiMetadata) + ")"
+			};
+		}
+		raw.misc["multi_metadata"] = move(multiMetadataValue);
+	}
 	vector<tomoto::Float> nmd;
 	if (!py::toCpp(numericMetadata, nmd)) 
 	{
@@ -116,7 +127,7 @@ std::optional<size_t> GDMRModelObject::addDoc(PyObject* words, PyObject* numeric
 	}
 }
 
-py::UniqueCObj<DocumentObject> GDMRModelObject::makeDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata)
+py::UniqueCObj<DocumentObject> GDMRModelObject::makeDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata)
 {
 	if (!isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
 	auto* inst = getInst<tomoto::IGDMRModel>();
@@ -127,7 +138,17 @@ py::UniqueCObj<DocumentObject> GDMRModelObject::makeDoc(PyObject* words, PyObjec
 
 	tomoto::RawDoc raw = buildRawDoc(words);
 	raw.misc["metadata"] = metadata;
-
+	if (multiMetadata)
+	{
+		vector<string> multiMetadataValue;
+		if (!py::toCpp<vector<string>>(multiMetadata, multiMetadataValue))
+		{
+			throw py::ValueError{
+				"`multi_metadata` must be an instance of `List[str]` (but given " + py::repr(multiMetadata) + ")"
+			};
+		}
+		raw.misc["multi_metadata"] = move(multiMetadataValue);
+	}
 	vector<tomoto::Float> nmd;
 	if (!py::toCpp(numericMetadata, nmd))
 	{
@@ -142,8 +163,9 @@ py::UniqueCObj<DocumentObject> GDMRModelObject::makeDoc(PyObject* words, PyObjec
 	raw.misc["numeric_metadata"] = move(nmd);
 
 	auto doc = inst->makeDoc(raw);
-	py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
-	auto ret = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, corpus.get(), nullptr) };
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
 	ret->doc = doc.release();
 	ret->owner = true;
 	return ret;

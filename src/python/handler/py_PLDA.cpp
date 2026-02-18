@@ -13,7 +13,7 @@ tomoto::RawDoc::MiscType PLDAModelObject::convertMisc(const tomoto::RawDoc::Misc
 }
 
 PLDAModelObject::PLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
-	size_t latentTopics, size_t topicsPerLabel, PyObject* alpha, float eta, float sigma,
+	size_t latentTopics, size_t topicsPerLabel, PyObject* alpha, float eta,
 	PyObject* seed, PyObject* corpus, PyObject* transform)
 {
 	tomoto::PLDAArgs mArgs;
@@ -26,9 +26,9 @@ PLDAModelObject::PLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t 
 		);
 	}
 	mArgs.eta = eta;
-	if (seed && !py::toCpp<size_t>(seed, mArgs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, mArgs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	inst = tomoto::IPLDAModel::create((tomoto::TermWeight)tw, mArgs);
@@ -60,7 +60,7 @@ std::optional<size_t> PLDAModelObject::addDoc(PyObject* words, PyObject* labels,
 		vector<string> labelVec;
 		if (!py::toCpp(labels, labelVec))
 		{
-			throw invalid_argument{ "`labels` must be an iterable of str." };
+			throw py::ValueError{ "`labels` must be an iterable of str." };
 		}
 		raw.misc["labels"] = labelVec;
 	}
@@ -101,13 +101,14 @@ py::UniqueCObj<DocumentObject> PLDAModelObject::makeDoc(PyObject* words, PyObjec
 		vector<string> labelVec;
 		if (!py::toCpp(labels, labelVec))
 		{
-			throw invalid_argument{ "`labels` must be an iterable of str." };
+			throw py::ValueError{ "`labels` must be an iterable of str." };
 		}
 		raw.misc["labels"] = labelVec;
 	}
 	auto doc = inst->makeDoc(raw);
-	py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
-	auto ret = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, corpus.get(), nullptr) };
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
 	ret->doc = doc.release();
 	ret->owner = true;
 	return ret;
@@ -117,7 +118,7 @@ py::UniqueCObj<VocabObject> PLDAModelObject::getTopicLabelDict() const
 {
 	auto* inst = getInst<tomoto::IPLDAModel>();
 	auto ret = py::makeNewObject<VocabObject>();
-	ret->dep = py::UniqueObj{ (PyObject*)this };
+	ret->dep = py::UniqueObj{ getObject() };
 	Py_INCREF(ret->dep);
 	ret->vocabs = const_cast<tomoto::Dictionary*>(&inst->getTopicLabelDict());
 	ret->size = -1;

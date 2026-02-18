@@ -41,12 +41,19 @@ struct VocabObject;
 struct CorpusObject;
 struct DocumentObject;
 
-struct TopicModelObject
+struct LDAModelObject
 {
 	std::shared_ptr<tomoto::ITopicModel> inst;
 	bool isPrepared = false, seedGiven = false;
 	size_t minWordCnt = 0, minWordDf = 0;
 	size_t removeTopWord = 0;
+
+
+	LDAModelObject() = default;
+
+	virtual ~LDAModelObject() = default;
+	virtual tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const;
+
 
 	template<class Ty>
 	Ty* getInst() const
@@ -62,22 +69,18 @@ struct TopicModelObject
 		return dynamic_cast<Ty*>(inst.get());
 	}
 
-	virtual ~TopicModelObject() = default;
-	virtual PyObject* getObject() const = 0;
-	virtual tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const;
+	PyObject* getObject() const
+	{
+		return (PyObject*)py::getPObjectAddress(this);
+	}
 
 	std::vector<size_t> insertCorpus(PyObject* corpusObj, PyObject* transform);
 	py::UniqueCObj<CorpusObject> makeCorpus(PyObject* _corpus, PyObject* transform) const;
-};
 
-struct LDAModelObject : public py::CObject<LDAModelObject>, public TopicModelObject
-{
-	LDAModelObject() = default;
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, float, PyObject*, PyObject*, PyObject*>;
 	LDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, PyObject* alpha, float eta, PyObject* seed,
 		PyObject* corpus, PyObject* transform);
-
-	PyObject* getObject() const override { return (PyObject*)this; }
 
 	py::UniqueObj addCorpus(PyObject* corpus, PyObject* transform);
 
@@ -105,20 +108,20 @@ struct LDAModelObject : public py::CObject<LDAModelObject>, public TopicModelObj
 	std::vector<std::string> getRemovedTopWords() const;
 	py::UniqueObj getWordForms(size_t idx = -1) const;
 	py::UniqueObj getHash() const;
-	py::UniqueCObj<LDAModelObject> copy(PyObject* cls) const;
-	static std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> load(PyObject* cls, const std::string& filename);
-	static std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> loads(PyObject* cls, const std::vector<uint8_t>& data);
+	py::UniquePObj<LDAModelObject> copy(PyObject* cls) const;
+	static std::pair<py::UniquePObj<LDAModelObject>, std::vector<uint8_t>> load(PyObject* cls, const std::string& filename);
+	static std::pair<py::UniquePObj<LDAModelObject>, std::vector<uint8_t>> loads(PyObject* cls, const std::vector<uint8_t>& data);
 };
 
-struct DMRModelObject : public py::CObject<DMRModelObject>, public TopicModelObject
+struct DMRModelObject : public LDAModelObject
 {
 	DMRModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, float, float, float, PyObject*, PyObject*, PyObject*>;
 	DMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, PyObject* alpha, float eta, float sigma, float alphaEps,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
 
-	PyObject* getObject() const override { return (PyObject*)this; }
-	
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 
 	std::optional<size_t> addDoc(PyObject* words, const std::string& metadata, PyObject* multiMetadata, bool ignoreEmptyWords = true);
@@ -131,20 +134,20 @@ struct DMRModelObject : public py::CObject<DMRModelObject>, public TopicModelObj
 	py::UniqueObj getAlpha() const;
 };
 
-struct GDMRModelObject : public py::CObject<GDMRModelObject>, public TopicModelObject
+struct GDMRModelObject : public DMRModelObject
 {
 	GDMRModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, PyObject*, float, float, float, float, float, PyObject*, PyObject*, PyObject*, PyObject*>;
 	GDMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, PyObject* degrees, PyObject* alpha, float eta, float sigma, float sigma0, float alphaEps,
 		float orderDecay, PyObject* range,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
 	
-	PyObject* getObject() const override { return (PyObject*)this; }
-
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 
-	std::optional<size_t> addDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, bool ignoreEmptyWords = true);
-	py::UniqueCObj<DocumentObject> makeDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata);
+	std::optional<size_t> addDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata, bool ignoreEmptyWords = true);
+	py::UniqueCObj<DocumentObject> makeDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata);
 	std::vector<float> tdf(PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata, bool normalize = true) const;
 	py::UniqueObj tdfLinspace(PyObject* numericMetadataStart, PyObject* numericMetadataEnd, PyObject* num, const std::string& metadata, PyObject* multiMetadata, bool endpoint = true, bool normalize = true) const;
 
@@ -152,14 +155,15 @@ struct GDMRModelObject : public py::CObject<GDMRModelObject>, public TopicModelO
 	void getTopicPrior() const;
 };
 
-struct PAModelObject : public py::CObject<PAModelObject>, public TopicModelObject
+struct PAModelObject : public LDAModelObject
 {
 	PAModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, PyObject*, PyObject*, float, PyObject*, PyObject*, PyObject*>;
 	PAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k1, size_t k2, 
 		PyObject* alpha, PyObject* subAlpha, float eta,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
 
 	std::vector<float> getSubTopicPrior(size_t superTopicId, bool normalize = true) const;
 	std::vector<std::pair<tomoto::Tid, tomoto::Float>> getSubTopics(size_t superTopicId, size_t topN = 10) const;
@@ -171,14 +175,15 @@ struct PAModelObject : public py::CObject<PAModelObject>, public TopicModelObjec
 	py::UniqueObj getSubAlpha() const;
 };
 
-struct HPAModelObject : public py::CObject<HPAModelObject>, public TopicModelObject
+struct HPAModelObject : public PAModelObject
 {
 	HPAModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, PyObject*, PyObject*, float, PyObject*, PyObject*, PyObject*>;
 	HPAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k1, size_t k2,
 		PyObject* alpha, PyObject* subAlpha, float eta,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
 
 	std::vector<std::pair<std::string, tomoto::Float>> getTopicWords(size_t topicId, size_t topN = 10) const;
 	std::vector<float> getTopicWordDist(size_t topicId, bool normalize = true) const;
@@ -187,15 +192,16 @@ struct HPAModelObject : public py::CObject<HPAModelObject>, public TopicModelObj
 	py::UniqueObj getSubAlpha() const;
 };
 
-struct MGLDAModelObject : public py::CObject<MGLDAModelObject>, public TopicModelObject
+struct MGLDAModelObject : public LDAModelObject
 {
 	MGLDAModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t, float, float, float, float, float, float, float, PyObject*, PyObject*, PyObject*>;
 	MGLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, size_t kL, size_t t, float alpha, float alphaL, float alphaMG, float alphaML, 
 		float eta, float etaL, float gamma,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
-
+	
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 
 	std::optional<size_t> addDoc(PyObject* words, const std::string& delimiter, bool ignoreEmptyWords = true);
@@ -205,28 +211,30 @@ struct MGLDAModelObject : public py::CObject<MGLDAModelObject>, public TopicMode
 	std::vector<float> getTopicWordDist(size_t topicId, bool normalize = true) const;
 };
 
-struct HDPModelObject : public py::CObject<HDPModelObject>, public TopicModelObject
+struct HDPModelObject : public LDAModelObject
 {
 	HDPModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, float, float, float, PyObject*, PyObject*, PyObject*>;
 	HDPModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t initialK, float alpha, float eta, float gamma,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
-
+	
 	bool isLiveTopic(size_t topicId) const;
-	std::pair<py::UniqueCObj<LDAModelObject>, py::UniqueObj> convertToLDA(PyObject* LDAType, float topicThreshold) const;
+	std::pair<py::UniquePObj<LDAModelObject>, py::UniqueObj> convertToLDA(PyObject* LDAType, float topicThreshold) const;
 	std::vector<int32_t> purgeDeadTopics();
 
 	float getAlpha() const;
 };
 
-struct HLDAModelObject : public py::CObject<HLDAModelObject>, public TopicModelObject
+struct HLDAModelObject : public LDAModelObject
 {
 	HLDAModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, float, float, PyObject*, PyObject*, PyObject*>;
 	HLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t depth, PyObject* alpha, float eta, float gamma,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
 	
 	std::vector<float> getAlpha() const;
 	
@@ -240,26 +248,28 @@ struct HLDAModelObject : public py::CObject<HLDAModelObject>, public TopicModelO
 	}
 };
 
-struct CTModelObject : public py::CObject<CTModelObject>, public TopicModelObject
+struct CTModelObject : public LDAModelObject
 {
 	CTModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, float, PyObject*, PyObject*, PyObject*>;
 	CTModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, PyObject* alpha, float eta,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
-
+	
 	py::UniqueObj getCorrelations(PyObject* topicId) const;
 	py::UniqueObj getPriorCov() const;
 };
 
-struct SLDAModelObject : public py::CObject<SLDAModelObject>, public TopicModelObject
+struct SLDAModelObject : public LDAModelObject
 {
 	SLDAModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, PyObject*, float, PyObject*, PyObject*, PyObject*, PyObject*, PyObject*, PyObject*>;
 	SLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, PyObject* vars, PyObject* alpha, float eta,
 		PyObject* mu, PyObject* nuSq, PyObject* glmCoef,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
 
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 	std::optional<size_t> addDoc(PyObject* words, PyObject* y, bool ignoreEmptyWords = true);
@@ -269,43 +279,46 @@ struct SLDAModelObject : public py::CObject<SLDAModelObject>, public TopicModelO
 	py::UniqueObj estimateVars(PyObject* doc) const;
 };
 
-struct LLDAModelObject : public py::CObject<LLDAModelObject>, public TopicModelObject
+struct LLDAModelObject : public LDAModelObject
 {
 	LLDAModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, PyObject*, float, PyObject*, PyObject*, PyObject*>;
 	LLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, PyObject* alpha, float eta, 
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
-
+	
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 	std::optional<size_t> addDoc(PyObject* words, PyObject* labels, bool ignoreEmptyWords = true);
 	py::UniqueCObj<DocumentObject> makeDoc(PyObject* words, PyObject* labels);
 	py::UniqueCObj<VocabObject> getTopicLabelDict() const;
 };
 
-struct PLDAModelObject : public py::CObject<PLDAModelObject>, public TopicModelObject
+struct PLDAModelObject : public LDAModelObject
 {
 	PLDAModelObject() = default;
-	PLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
-		size_t latentTopics, size_t topicsPerLabel, PyObject* alpha, float eta, float sigma,
-		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
 
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, PyObject*, float, PyObject*, PyObject*, PyObject*>;
+	PLDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
+		size_t latentTopics, size_t topicsPerLabel, PyObject* alpha, float eta,
+		PyObject* seed, PyObject* corpus, PyObject* transform);
+	
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 	std::optional<size_t> addDoc(PyObject* words, PyObject* labels, bool ignoreEmptyWords = true);
 	py::UniqueCObj<DocumentObject> makeDoc(PyObject* words, PyObject* labels);
 	py::UniqueCObj<VocabObject> getTopicLabelDict() const;
 };
 
-struct DTModelObject : public py::CObject<DTModelObject>, public TopicModelObject
+struct DTModelObject : public LDAModelObject
 {
 	DTModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, float, float, float, float, float, float, PyObject*, PyObject*, PyObject*>;
 	DTModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
 		size_t k, size_t t, float alphaVar, float etaVar, float phiVar,
 		float lrA, float lrB, float lrC,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
-
+	
 	tomoto::RawDoc::MiscType convertMisc(const tomoto::RawDoc::MiscType& o) const override;
 	std::optional<size_t> addDoc(PyObject* words, size_t timepoint, bool ignoreEmptyWords = true);
 	py::UniqueCObj<DocumentObject> makeDoc(PyObject* words, size_t timepoint);
@@ -317,13 +330,14 @@ struct DTModelObject : public py::CObject<DTModelObject>, public TopicModelObjec
 	py::UniqueObj getAlpha() const;
 };
 
-struct PTModelObject : public py::CObject<PTModelObject>, public TopicModelObject
+struct PTModelObject : public LDAModelObject
 {
 	PTModelObject() = default;
+
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, std::optional<size_t>, PyObject*, float, PyObject*, PyObject*, PyObject*>;
 	PTModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
-		size_t k, size_t p, PyObject* alpha, float eta,
+		size_t k, std::optional<size_t> p, PyObject* alpha, float eta,
 		PyObject* seed, PyObject* corpus, PyObject* transform);
-	PyObject* getObject() const override { return (PyObject*)this; }
 };
 
 template<typename Ty, typename FailMsg>

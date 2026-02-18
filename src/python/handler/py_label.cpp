@@ -66,6 +66,7 @@ struct PMIExtractorObject : public py::CObject<PMIExtractorObject>
 
 	PMIExtractorObject() = default;
 
+	using _InitArgs = std::tuple<size_t, size_t, size_t, size_t, size_t, bool>;
 	PMIExtractorObject(
 		size_t minCf, size_t minDf, size_t minLen, size_t maxLen, size_t maxCand, bool normalized
 	)
@@ -75,16 +76,14 @@ struct PMIExtractorObject : public py::CObject<PMIExtractorObject>
 
 	py::UniqueObj extract(PyObject* arg)
 	{
-		if (!PyObject_TypeCheck(arg, py::Type<LDAModelObject>))
-			throw py::TypeError{ "`tm` must be a `tomotopy.LDAModel` instance." };
-		LDAModelObject* tm = (LDAModelObject*)arg;
-		auto cands = inst->extract(tm->inst.get());
+		auto tm = py::checkType<py::PObject<LDAModelObject>>(arg, "tm must be a tomotopy.LDAModel instance.");
+		auto cands = inst->extract(tm->value.inst.get());
 		py::UniqueObj ret = py::UniqueObj{ PyList_New(0) };
 		for (auto& c : cands)
 		{
 			auto item = py::makeNewObject<CandidateObject>();
-			item->tm = py::UniqueCObj<LDAModelObject>{ tm };
-			Py_INCREF(tm);
+			item->tm = py::UniquePObj<LDAModelObject>{ tm };
+			item->tm.incref();
 			item->cand = move(c);
 			PyList_Append(ret.get(), (PyObject*)item.get());
 		}
@@ -95,16 +94,17 @@ struct PMIExtractorObject : public py::CObject<PMIExtractorObject>
 struct FoRelevanceObject : public py::CObject<FoRelevanceObject>
 {
 	std::unique_ptr<tomoto::label::ILabeler> inst;
-	py::UniqueCObj<LDAModelObject> tm;
+	py::UniquePObj<LDAModelObject> tm;
 
 	FoRelevanceObject() = default;
 
+	using _InitArgs = std::tuple<PyObject*, PyObject*, size_t, float, float, size_t, size_t>;
 	FoRelevanceObject(
 		PyObject* topicModel, PyObject* cands, size_t minDf, float smoothing, float mu, size_t windowSize, size_t numWorkers
 	)
 	{
-		tm = py::UniqueCObj<LDAModelObject>{ (LDAModelObject*)topicModel };
-		Py_INCREF(topicModel);
+		tm = py::checkType<py::PObject<LDAModelObject>>(py::UniqueObj{ topicModel }, "topicModel must be a tomotopy.LDAModel instance.");
+		tm.incref();
 		py::UniqueObj iter{ PyObject_GetIter(cands) };
 		if (!iter) throw py::ValueError{ "`cands` must be an iterable of `tomotopy.label.Candidate`" };
 		vector<tomoto::label::Candidate*> pcands;

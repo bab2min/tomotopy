@@ -18,17 +18,17 @@ inline tomoto::RawDoc::MiscType transformMisc(const tomoto::RawDoc::MiscType& mi
 	tomoto::RawDoc::MiscType ret;
 	if (!py::toCpp(res.get(), ret))
 	{
-		throw invalid_argument{ "`transform` must return an instance of `dict`." };
+		throw py::ValueError{ "`transform` must return an instance of `dict`." };
 	}
 	return ret;
 }
 
-tomoto::RawDoc::MiscType TopicModelObject::convertMisc(const tomoto::RawDoc::MiscType& o) const
+tomoto::RawDoc::MiscType LDAModelObject::convertMisc(const tomoto::RawDoc::MiscType& o) const
 {
 	return {};
 }
 
-std::vector<size_t> TopicModelObject::insertCorpus(PyObject* corpusObj, PyObject* transform)
+std::vector<size_t> LDAModelObject::insertCorpus(PyObject* corpusObj, PyObject* transform)
 {
 	vector<size_t> ret;
 	if (!corpusObj || corpusObj == Py_None) return ret;
@@ -108,12 +108,11 @@ std::vector<size_t> TopicModelObject::insertCorpus(PyObject* corpusObj, PyObject
 	return ret;
 }
 
-py::UniqueCObj<CorpusObject> TopicModelObject::makeCorpus(PyObject* _corpus, PyObject* transform) const
+py::UniqueCObj<CorpusObject> LDAModelObject::makeCorpus(PyObject* _corpus, PyObject* transform) const
 {
 	if (!_corpus || _corpus == Py_None) return {};
-	if (!PyObject_TypeCheck(_corpus, py::Type<CorpusObject>)) throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
-	auto corpus = (CorpusObject*)_corpus;
-	py::UniqueCObj<CorpusObject> corpusMade{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, getObject(), nullptr)};
+	auto* corpus = py::checkType<CorpusObject>(_corpus, "`corpus` must be an instance of `tomotopy.utils.Corpus`");
+	py::UniqueCObj<CorpusObject> corpusMade{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr)};
 	corpusMade->made = true;
 	for (auto& rdoc : corpus->docs)
 	{
@@ -162,9 +161,9 @@ LDAModelObject::LDAModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rm
 		);
 	}
 	mArgs.eta = eta;
-	if (seed && !py::toCpp<size_t>(seed, mArgs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, mArgs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	inst = tomoto::ILDAModel::create((tomoto::TermWeight)tw, mArgs);
@@ -183,7 +182,7 @@ py::UniqueObj LDAModelObject::addCorpus(PyObject* corpus, PyObject* transform)
 	auto* inst = getInst<tomoto::ILDAModel>();
 	if (isPrepared) throw py::RuntimeError{ "cannot add_corpus() after train()" };
 	if (!PyObject_TypeCheck(corpus, py::Type<CorpusObject>)) throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`" };
-	py::UniqueObj _corpusRet{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
+	py::UniqueObj _corpusRet{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr)};
 	CorpusObject* corpusRet = (CorpusObject*)_corpusRet.get();
 	corpusRet->docIdcs = insertCorpus(corpus, transform);
 	for (size_t i = 0; i < corpusRet->docIdcs.size(); ++i)
@@ -199,7 +198,7 @@ std::optional<size_t> LDAModelObject::addDoc(PyObject* words, bool ignoreEmptyWo
 	auto* inst = getInst<tomoto::ILDAModel>();
 	if (PyUnicode_Check(words))
 	{
-		throw invalid_argument{ "`words` should be an iterable of str." };
+		throw py::ValueError{ "`words` should be an iterable of str." };
 	}
 		
 	tomoto::RawDoc raw = buildRawDoc(words);
@@ -227,12 +226,13 @@ py::UniqueCObj<DocumentObject> LDAModelObject::makeDoc(PyObject* words)
 	auto* inst = getInst<tomoto::ILDAModel>();
 	if (PyUnicode_Check(words))
 	{
-		throw invalid_argument{ "`words` should be an iterable of str." };
+		throw py::ValueError{ "`words` should be an iterable of str." };
 	}
 	tomoto::RawDoc raw = buildRawDoc(words);
 	auto doc = inst->makeDoc(raw);
-	py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
-	auto ret = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, corpus.get(), nullptr) };
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
 	ret->doc = doc.release();
 	ret->owner = true;
 	return ret;
@@ -284,6 +284,7 @@ void LDAModelObject::train(size_t iteration, size_t workers, size_t ps, bool fre
 		isPrepared = true;
 	}
 
+	if (callback == Py_None) callback = nullptr;
 	if (callback && !PyCallable_Check(callback)) throw py::ValueError{ "`callback` should be a callable object" };
 	if (!callback || callbackInterval <= 0)
 	{
@@ -294,7 +295,7 @@ void LDAModelObject::train(size_t iteration, size_t workers, size_t ps, bool fre
 	{
 		if (callback)
 		{
-			py::UniqueObj args{ py::buildPyTuple((PyObject*)this, it, iteration) };
+			py::UniqueObj args{ py::buildPyTuple(getObject(), it, iteration)};
 			if (callback)
 			{
 				py::UniqueObj ret{ PyObject_CallObject(callback, args.get()) };
@@ -309,7 +310,7 @@ void LDAModelObject::train(size_t iteration, size_t workers, size_t ps, bool fre
 	}
 	if (callback)
 	{
-		py::UniqueObj args{ py::buildPyTuple((PyObject*)this, iteration, iteration) };
+		py::UniqueObj args{ py::buildPyTuple(getObject(), iteration, iteration) };
 		if (callback)
 		{
 			py::UniqueObj ret{ PyObject_CallObject(callback, args.get()) };
@@ -343,7 +344,6 @@ std::vector<tomoto::Float> LDAModelObject::getTopicWordDist(size_t topicId, bool
 
 py::UniqueObj LDAModelObject::infer(PyObject* docObj, size_t iteration, float tolerance, size_t workers, tomoto::ParallelScheme ps, bool together, PyObject* transform) const
 {
-	DEBUG_LOG("infer " << this->ob_base.ob_type << ", " << this->ob_base.ob_refcnt);
 	auto* inst = getInst<tomoto::ILDAModel>();
 	if (!isPrepared) throw py::RuntimeError{ "cannot infer with untrained model" };
 	py::UniqueObj iter;
@@ -355,10 +355,9 @@ py::UniqueObj LDAModelObject::infer(PyObject* docObj, size_t iteration, float to
 		auto ll = inst->infer(docs, iteration, tolerance, workers, ps, together);
 		return py::buildPyTuple(cps, ll);
 	}
-	else if (PyObject_TypeCheck(docObj, py::Type<DocumentObject>))
+	else if (auto* doc = py::checkType<DocumentObject>(docObj))
 	{
-		auto* doc = (DocumentObject*)docObj;
-		if (doc->corpus->tm.get() != this) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
+		if (doc->corpus->tm.get() != py::getPObjectAddress(this)) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 		if (doc->owner)
 		{
 			std::vector<tomoto::DocumentBase*> docs;
@@ -372,16 +371,16 @@ py::UniqueObj LDAModelObject::infer(PyObject* docObj, size_t iteration, float to
 			return py::buildPyTuple(py::buildPyValue(inst->getTopicsByDoc(doc->getBoundDoc())), nullptr);
 		}
 	}
-	else if ((iter = py::UniqueObj{ PyObject_GetIter(docObj) }))
+	else if (py::clearError(), (iter = py::UniqueObj{ PyObject_GetIter(docObj) }))
 	{
 		std::vector<tomoto::DocumentBase*> docs;
 		std::vector<DocumentObject*> docObjs;
 		py::UniqueObj item;
 		while ((item = py::UniqueObj{ PyIter_Next(iter.get()) }))
 		{
-			if (!PyObject_TypeCheck(item, py::Type<DocumentObject>)) throw py::ValueError{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
-			auto* doc = (DocumentObject*)item.get();
-			if (doc->corpus->tm.get() != this) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
+			auto* doc = py::checkType<DocumentObject>(item.get());
+			if (!doc) throw py::ValueError{ "`doc` must be tomotopy.Document type or list of tomotopy.Document" };
+			if (doc->corpus->tm.get() != py::getPObjectAddress(this)) throw py::ValueError{ "`doc` was from another model, not fit to this model" };
 			docs.emplace_back((tomoto::DocumentBase*)doc->doc);
 			docObjs.emplace_back(doc);
 		}
@@ -447,8 +446,7 @@ void LDAModelObject::updateVocab(const std::vector<std::string>& newVocabs)
 py::UniqueCObj<CorpusObject> LDAModelObject::getDocs() const
 {
 	auto* inst = getInst<tomoto::ILDAModel>();
-	py::UniqueObj args{ py::buildPyTuple((PyObject*)this) };
-	auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallObject((PyObject*)py::Type<CorpusObject>, args.get()) };
+	auto ret = py::UniqueCObj<CorpusObject>{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
 	return ret;
 }
 
@@ -456,7 +454,7 @@ py::UniqueCObj<VocabObject> LDAModelObject::getVocabs() const
 {
 	auto* inst = getInst<tomoto::ILDAModel>();
 	auto ret = py::makeNewObject<VocabObject>();
-	ret->dep = py::UniqueObj{ (PyObject*)this };
+	ret->dep = py::UniqueObj{ getObject() };
 	Py_INCREF(ret->dep);
 	ret->vocabs = (tomoto::Dictionary*)&inst->getVocabDict();
 	ret->size = inst->getVocabDict().size();
@@ -467,7 +465,7 @@ py::UniqueCObj<VocabObject> LDAModelObject::getUsedVocabs() const
 {
 	auto* inst = getInst<tomoto::ILDAModel>();
 	auto ret = py::makeNewObject<VocabObject>();
-	ret->dep = py::UniqueObj{ (PyObject*)this };
+	ret->dep = py::UniqueObj{ getObject() };
 	Py_INCREF(ret->dep);
 	ret->vocabs = (tomoto::Dictionary*)&inst->getVocabDict();
 	ret->size = inst->getV();
@@ -545,10 +543,10 @@ py::UniqueObj LDAModelObject::getHash() const
 	return py::UniqueObj{ PyObject_CallMethod((PyObject*)&PyLong_Type, "from_bytes", "y#s", (const char*)hash.data(), sizeof(hash), "big") };
 }
 
-py::UniqueCObj<LDAModelObject> LDAModelObject::copy(PyObject* cls) const
+py::UniquePObj<LDAModelObject> LDAModelObject::copy(PyObject* cls) const
 {
 	auto* inst = getInst<tomoto::ILDAModel>();
-	auto ret = py::makeNewObject<LDAModelObject>((PyTypeObject*)cls);
+	auto ret = py::makeNewObject<py::PObject<LDAModelObject>>((PyTypeObject*)cls);
 	ret->inst = inst->copy();
 	ret->isPrepared = isPrepared;
 	ret->minWordCnt = minWordCnt;
@@ -557,7 +555,7 @@ py::UniqueCObj<LDAModelObject> LDAModelObject::copy(PyObject* cls) const
 	return ret;
 }
 
-std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::load(PyObject* cls, const std::string& filename)
+std::pair<py::UniquePObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::load(PyObject* cls, const std::string& filename)
 {
 	ifstream str{ filename, ios_base::binary };
 	if (!str) throw ios_base::failure{ std::string("cannot open file '") + filename + std::string("'") };
@@ -565,7 +563,9 @@ std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::
 	{
 		str.seekg(0);
 		py::UniqueObj args{ py::buildPyTuple(i) };
-		py::UniqueCObj<LDAModelObject> p{ (LDAModelObject*)PyObject_CallObject(cls, args.get()) };
+		py::UniqueObj newInst{ PyObject_CallObject(cls, args.get()) };
+		if (!newInst) throw py::ExcPropagation{};
+		auto p = py::checkType<py::PObject<LDAModelObject>>(std::move(newInst));
 		auto inst = p->getInst<tomoto::ILDAModel>();
 		vector<uint8_t> extraData;
 		try
@@ -583,14 +583,16 @@ std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::
 	throw runtime_error{ std::string("'") + filename + std::string("' is not valid model file") };
 }
 
-std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::loads(PyObject* cls, const std::vector<uint8_t>& data)
+std::pair<py::UniquePObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::loads(PyObject* cls, const std::vector<uint8_t>& data)
 {
 	tomoto::serializer::imstream str{ (const char*)data.data(), (std::ptrdiff_t)data.size() };
 	for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)
 	{
 		str.seekg(0);
 		py::UniqueObj args{ py::buildPyTuple(i) };
-		py::UniqueCObj<LDAModelObject> p{ (LDAModelObject*)PyObject_CallObject(cls, args.get()) };
+		py::UniqueObj newInst{ PyObject_CallObject(cls, args.get()) };
+		if (!newInst) throw py::ExcPropagation{};
+		auto p = py::checkType<py::PObject<LDAModelObject>>(std::move(newInst));
 		auto inst = p->getInst<tomoto::ILDAModel>();
 		vector<uint8_t> extraData;
 		try
@@ -607,117 +609,6 @@ std::pair<py::UniqueCObj<LDAModelObject>, std::vector<uint8_t>> LDAModelObject::
 	}
 	throw runtime_error{ "`data` is not valid model file" };
 }
-
-/*
-PyObject * LDA_load(PyObject*, PyObject * args, PyObject * kwargs)
-{
-	const char* filename;
-	static const char* kwlist[] = { "filename", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist, &filename)) return nullptr;
-	try
-	{
-		ifstream str{ filename, ios_base::binary };
-		if (!str) throw ios_base::failure{ std::string("cannot open file '") + filename + std::string("'") };
-		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)
-		{
-			str.seekg(0);
-			py::UniqueObj args{ Py_BuildValue("(n)", i) };
-			auto* p = PyObject_CallObject((PyObject*)&LDA_type, args);
-			try
-			{
-				vector<uint8_t> extra_data;
-				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);
-				if (!extra_data.empty())
-				{
-					py::UniqueObj pickle{ PyImport_ImportModule("pickle") };
-					PyObject* pickle_dict{ PyModule_GetDict(pickle) };
-					py::UniqueObj bytes{ PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size()) };
-					py::UniqueObj args{ Py_BuildValue("(O)", bytes.get()) };
-					Py_XDECREF(((TopicModelObject*)p)->initParams);
-					((TopicModelObject*)p)->initParams = PyObject_CallObject(
-						PyDict_GetItemString(pickle_dict, "loads"),
-						args
-					);
-				}
-			}
-			catch (const tomoto::serializer::UnfitException&)
-			{
-				Py_XDECREF(p);
-				continue;
-			}
-			((TopicModelObject*)p)->isPrepared = true;
-			return p;
-		}
-		throw runtime_error{ std::string("'") + filename + std::string("' is not valid model file") };
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const ios_base::failure& e)
-	{
-		PyErr_SetString(PyExc_OSError, e.what());
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
-}
-
-PyObject* LDA_loads(PyObject*, PyObject* args, PyObject *kwargs)
-{
-	Py_buffer data;
-	static const char* kwlist[] = { "data", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "y*", (char**)kwlist, &data)) return nullptr;
-	try
-	{
-		tomoto::serializer::imstream str{ (char*)data.buf, data.len };
-		for (size_t i = 0; i < (size_t)tomoto::TermWeight::size; ++i)
-		{
-			str.seekg(0);
-			py::UniqueObj args{ Py_BuildValue("(n)", i) };
-			auto* p = PyObject_CallObject((PyObject*)&LDA_type, args);
-			try
-			{
-				vector<uint8_t> extra_data;
-				((TopicModelObject*)p)->inst->loadModel(str, &extra_data);
-				if (!extra_data.empty())
-				{
-					py::UniqueObj pickle{ PyImport_ImportModule("pickle") };
-					PyObject* pickle_dict{ PyModule_GetDict(pickle) };
-					py::UniqueObj bytes{ PyBytes_FromStringAndSize((const char*)extra_data.data(), extra_data.size()) };
-					py::UniqueObj args{ Py_BuildValue("(O)", bytes.get()) };
-					Py_XDECREF(((TopicModelObject*)p)->initParams);
-					((TopicModelObject*)p)->initParams = PyObject_CallObject(
-						PyDict_GetItemString(pickle_dict, "loads"),
-						args
-					);
-				}
-			}
-			catch (const tomoto::serializer::UnfitException&)
-			{
-				Py_XDECREF(p);
-				continue;
-			}
-			((TopicModelObject*)p)->isPrepared = true;
-			return p;
-		}
-		throw runtime_error{ "`data` is not valid model file" };
-	}
-	catch (const bad_exception&)
-	{
-	}
-	catch (const ios_base::failure& e)
-	{
-		PyErr_SetString(PyExc_OSError, e.what());
-	}
-	catch (const exception& e)
-	{
-		PyErr_SetString(PyExc_Exception, e.what());
-	}
-	return nullptr;
-}
-*/
 
 py::UniqueObj DocumentObject::getZFromLDA() const
 {

@@ -9,13 +9,8 @@ CoherenceObject::CoherenceObject(PyObject* corpus,
 	size_t windowSize, double eps, double gamma, PyObject* targets)
 	: model{ pe, windowSize }
 {
-	if (!PyObject_TypeCheck(corpus, py::Type<CorpusObject>))
-	{
-		throw py::ValueError{ "`corpus` must be an instance of `tomotopy.utils.Corpus`." };
-	}
-
-	this->corpus = py::UniqueCObj<CorpusObject>{ (CorpusObject*)corpus };
-	Py_INCREF(corpus);
+	this->corpus = py::checkType<CorpusObject>(py::UniqueObj{ corpus }, "`corpus` must be an instance of `tomotopy.utils.Corpus`.");
+	this->corpus.incref();
 
 	vector<tomoto::Vid> targetIds;
 	py::foreach<string>(targets, [&](const string& w)

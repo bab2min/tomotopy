@@ -25,9 +25,9 @@ DMRModelObject::DMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rm
 	margs.eta = eta;
 	margs.sigma = sigma;
 	margs.alphaEps = alphaEps;
-	if (seed && !py::toCpp<size_t>(seed, margs.seed))
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		throw invalid_argument{ "`seed` must be an integer or None." };
+		throw py::ValueError{ "`seed` must be an integer or None." };
 	}
 
 	auto inst = tomoto::IDMRModel::create((tomoto::TermWeight)tw, margs);
@@ -110,8 +110,9 @@ py::UniqueCObj<DocumentObject> DMRModelObject::makeDoc(PyObject* words, const st
 		raw.misc["multi_metadata"] = move(multiMetadataValue);
 	}
 	auto doc = inst->makeDoc(raw);
-	py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, (PyObject*)this, nullptr) };
-	auto ret = py::UniqueCObj<DocumentObject>{ (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<DocumentObject>, corpus.get(), nullptr) };
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
 	ret->doc = doc.release();
 	ret->owner = true;
 	return ret;
@@ -142,7 +143,7 @@ py::UniqueCObj<VocabObject> DMRModelObject::getMetadataDict() const
 {
 	auto* inst = getInst<tomoto::IDMRModel>();
 	auto ret = py::makeNewObject<VocabObject>();
-	ret->dep = py::UniqueObj{ (PyObject*)this };
+	ret->dep = py::UniqueObj{ getObject() };
 	Py_INCREF(ret->dep);
 	ret->vocabs = const_cast<tomoto::Dictionary*>(&inst->getMetadataDict());
 	ret->size = -1;
@@ -153,7 +154,7 @@ py::UniqueCObj<VocabObject> DMRModelObject::getMultiMetadataDict() const
 {
 	auto* inst = getInst<tomoto::IDMRModel>();
 	auto ret = py::makeNewObject<VocabObject>();
-	ret->dep = py::UniqueObj{ (PyObject*)this };
+	ret->dep = py::UniqueObj{ getObject() };
 	Py_INCREF(ret->dep);
 	ret->vocabs = const_cast<tomoto::Dictionary*>(&inst->getMultiMetadataDict());
 	ret->size = -1;

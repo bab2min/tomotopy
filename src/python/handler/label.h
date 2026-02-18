@@ -61,7 +61,7 @@ struct LDAModelObject;
 
 struct CandidateObject : public py::CObject<CandidateObject>
 {
-	py::UniqueCObj<LDAModelObject> tm;
+	py::UniquePObj<LDAModelObject> tm;
 	py::UniqueCObj<CorpusObject> corpus;
 	tomoto::label::Candidate cand;
 
