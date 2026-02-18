@@ -1,5 +1,10 @@
 from typing import Optional, Union, List
 from copy import deepcopy
+import re
+import pickle
+from collections import Counter
+
+import numpy as np
 
 from _tomotopy import (
     _LDAModel,
@@ -17,6 +22,22 @@ from _tomotopy import (
     _DTModel,
     _PTModel,
 )
+
+from tomotopy._version import __version__
+from tomotopy.utils import Corpus, Document
+
+def _convert_term_weight(tw):
+    from tomotopy import TermWeight
+    if isinstance(tw, str):
+        try:
+            return getattr(TermWeight, tw.upper())
+        except AttributeError:
+            raise ValueError(f'Unknown term weight: {tw}')
+    return tw
+
+def _format_numpy(arr, prefix=''):
+    arr = np.array(arr)
+    return ('\n' + prefix).join(str(arr).split('\n'))
 
 class LDAModel(_LDAModel):
     def __init__(self, 
@@ -70,8 +91,9 @@ transform : Callable[dict, dict]
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
         self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -89,12 +111,16 @@ transform : Callable[dict, dict]
     @classmethod
     def load(cls, filename: str):
         '''Return the model instance loaded from file `filename`.'''
-        return cls._load(filename)
+        inst, extra_data = cls._load(cls, filename)
+        inst.init_params = pickle.loads(extra_data)
+        return inst
     
     @classmethod
     def loads(cls, data: bytes):
         '''Return the model instance loaded from `data` in bytes-like object.'''
-        return cls._loads(data)
+        inst, extra_data = cls._loads(cls, data)
+        inst.init_params = pickle.loads(extra_data)
+        return inst
     
     @property
     def alpha(self) -> Union[float, List[float]]:
@@ -263,7 +289,7 @@ ignore_empty_words : bool
         '''.. versionadded:: 0.12.0
 
 Return a new deep-copied instance of the current instance'''
-        return self._copy()
+        return self._copy(type(self))
     
     def get_count_by_topics(self):
         '''Return the number of words allocated to each topic.'''
@@ -303,7 +329,7 @@ return_id : bool
 '''
         return self._get_topic_words(topic_id, top_n, return_id)
     
-    def get_word_forms(self, idx):
+    def get_word_forms(self, idx = -1):
         return self._get_word_forms(idx)
     
     def get_word_prior(self, word):
@@ -318,7 +344,7 @@ word : str
 '''
         return self._get_word_prior(word)
     
-    def infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None):
+    def infer(self, doc, iterations=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None):
         '''Return the inferred topic distribution from unseen `doc`s.
 
 Parameters
@@ -332,7 +358,7 @@ doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpu
         Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
         In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
         return a corpus contains generated documents as the result.
-iter : int
+iterations : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
     The higher value will generate a more accuracy result.
 tolerance : float
@@ -364,9 +390,9 @@ result : Union[List[float], List[List[float]], tomotopy.utils.Corpus]
 log_ll : List[float]
     a list of log-likelihoods for each `doc`s
 '''
-        return self._infer(doc, iter, tolerance, workers, parallel, together, transform)
+        return self._infer(doc, iterations, tolerance, workers, parallel, together, transform)
     
-    def make_doc(self, words):
+    def make_doc(self, words) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
@@ -387,13 +413,15 @@ If `False`, only topic parameters of the model will be saved. This model can be 
 Since version 0.6.0, the model file format has been changed. 
 Thus model files saved in version 0.6.0 or later are not compatible with versions prior to 0.5.2.
 '''
-        return self._save(filename, full)
+        extra_data = pickle.dumps(self.init_params)
+        return self._save(filename, extra_data, full)
     
     def saves(self, full=True) -> bytes:
         '''.. versionadded:: 0.11.0
 
 Serialize the model instance into `bytes` object and return it. The arguments work the same as `tomotopy.LDAModel.save`.'''
-        return self._saves(full)
+        extra_data = pickle.dumps(self.init_params)
+        return self._saves(extra_data, full)
     
     def set_word_prior(self, word, prior):
         '''.. versionadded:: 0.6.0
@@ -419,6 +447,97 @@ The key of the dictionary is the topic id and the value is the prior of the topi
 '''
         return self._set_word_prior(word, prior)
     
+    @classmethod
+    def _summary_extract_param_desc(cls:type):
+        doc_string = cls.__doc__ or cls.__init__.__doc__
+        if not doc_string: return {}
+        ps = doc_string.split('\nParameters\n')[1].split('\n')
+        param_name = re.compile(r'^([a-zA-Z0-9_]+)\s*:\s*')
+        directive = re.compile(r'^\s*\.\.')
+        descriptive = re.compile(r'\s+([^\s].*)')
+        period = re.compile(r'[.,](\s|$)')
+        ret = {}
+        name = None
+        desc = ''
+        for p in ps:
+            if directive.search(p): continue
+            m = param_name.search(p)
+            if m:
+                if name: ret[name] = desc.split('. ')[0]
+                name = m.group(1)
+                desc = ''
+                continue
+            m = descriptive.search(p)
+            if m:
+                desc += (' ' if desc else '') + m.group(1)
+                continue
+        if name: ret[name] = period.split(desc)[0]
+        return ret
+
+    def _summary_basic_info(self, file):
+        p = self.used_vocab_freq
+        p = p / p.sum()
+        entropy = -(p * np.log(p + 1e-20)).sum()
+
+        p = self.used_vocab_weighted_freq
+        p /= p.sum()
+        w_entropy = -(p * np.log(p + 1e-20)).sum()
+
+        print('| {} (current version: {})'.format(type(self).__name__, __version__), file=file)
+        print('| {} docs, {} words'.format(len(self.docs), self.num_words), file=file)
+        print('| Total Vocabs: {}, Used Vocabs: {}'.format(len(self.vocabs), len(self.used_vocabs)), file=file)
+        print('| Entropy of words: {:.5f}'.format(entropy), file=file)
+        print('| Entropy of term-weighted words: {:.5f}'.format(w_entropy), file=file)
+        print('| Removed Vocabs: {}'.format(' '.join(self.removed_top_words) if self.removed_top_words else '<NA>'), file=file)
+
+    def _summary_training_info(self, file):
+        print('| Iterations: {}, Burn-in steps: {}'.format(self.global_step, self.burn_in), file=file)
+        print('| Optimization Interval: {}'.format(self.optim_interval), file=file)
+        print('| Log-likelihood per word: {:.5f}'.format(self.ll_per_word), file=file)
+
+    def _summary_initial_params_info(self, file):
+        param_desc = self._summary_extract_param_desc()
+        if hasattr(self, 'init_params'):
+            for k, v in self.init_params.items():
+                if type(v) is float: fmt = ':.5'
+                else: fmt = ''
+
+                try:
+                    getattr(self, f'_summary_initial_params_info_{k}')(v, file)
+                except AttributeError:
+                    if k in param_desc:
+                        print(('| {}: {' + fmt + '} ({})').format(k, v, param_desc[k]), file=file)
+                    else:
+                        print(('| {}: {' + fmt + '}').format(k, v), file=file)
+        else:
+            print('| Not Available (The model seems to have been built in version < 0.9.0.)', file=file)
+
+    def _summary_initial_params_info_tw(self, v, file):
+        from tomotopy import TermWeight
+        try:
+            if isinstance(v, str):
+                v = TermWeight[v.upper()].name
+            else:
+                v = TermWeight(v).name
+        except:
+            pass
+        print('| tw: TermWeight.{}'.format(v), file=file)
+
+    def _summary_initial_params_info_version(self, v, file):
+        print('| trained in version {}'.format(v), file=file)
+
+    def _summary_params_info(self, file):
+        print('| alpha (Dirichlet prior on the per-document topic distributions)\n'
+            '|  {}'.format(_format_numpy(self.alpha, '|  ')), file=file)
+        print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        for k in range(self.k):
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('| #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
+
     def summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False):
         '''.. versionadded:: 0.9.0
 
@@ -437,15 +556,40 @@ file
 flush : bool
     whether to forcibly flush the stream
 '''
-        return self._summary(initial_hp, params, topic_word_top_n, file, flush)
+        flush = flush or False
+
+        print('<Basic Info>', file=file)
+        self._summary_basic_info(file=file)
+        print('|', file=file)
+        print('<Training Info>', file=file)
+        self._summary_training_info(file=file)
+        print('|', file=file)
+
+        if initial_hp:
+            print('<Initial Parameters>', file=file)
+            self._summary_initial_params_info(file=file)
+            print('|', file=file)
+        
+        if params:
+            print('<Parameters>', file=file)
+            self._summary_params_info(file=file)
+            print('|', file=file)
+
+        if topic_word_top_n > 0:
+            print('<Topics>', file=file)
+            self._summary_topics_info(file=file, topic_word_top_n=topic_word_top_n)
+            print('|', file=file)
+
+        print(file=file, flush=flush)
+
     
-    def train(self, iter=10, workers=0, parallel=0, freeze_topics=False, callback_interval=10, callback=None, show_progress=False):
-        '''Train the model using Gibbs-sampling with `iter` iterations. Return `None`. 
+    def train(self, iterations=10, workers=0, parallel=0, freeze_topics=False, callback_interval=10, callback=None, show_progress=False):
+        '''Train the model using Gibbs-sampling with `iterations` iterations. Return `None`. 
 After calling this method, you cannot `tomotopy.LDAModel.add_doc` or `tomotopy.LDAModel.set_word_prior` more.
 
 Parameters
 ----------
-iter : int
+iterations : int
     the number of iterations of Gibbs-sampling
 workers : int
     an integer indicating the number of workers to perform samplings. 
@@ -472,8 +616,36 @@ show_progress : bool
 
     If `True`, it shows progress bar during training using `tqdm` package.
 '''
-        return self._train(iter, workers, parallel, freeze_topics, callback_interval, callback, show_progress)
+        if show_progress:
+            if callback is not None:
+                callback = LDAModel._show_progress
+            else:
+                def _multiple_callbacks(*args):
+                    callback(*args)
+                    LDAModel._show_progress(*args)
+                callback = _multiple_callbacks
+        return self._train(iterations, workers, parallel, freeze_topics, callback_interval, callback)
     
+    def _init_tqdm(self, current_iteration:int, total_iteration:int):
+        from tqdm import tqdm
+        self._tqdm = tqdm(total=total_iteration, desc='Iteration')
+    
+    def _close_tqdm(self, current_iteration:int, total_iteration:int):
+        self._tqdm.update(current_iteration - self._tqdm.n)
+        self._tqdm.close()
+        self._tqdm = None
+    
+    def _progress_tqdm(self, current_iteration:int, total_iteration:int):
+        self._tqdm.set_postfix_str(f'LLPW: {self.ll_per_word:.6f}')
+        self._tqdm.update(current_iteration - self._tqdm.n)
+    
+    def _show_progress(self, current_iteration:int, total_iteration:int):
+        if current_iteration == 0:
+            self._init_tqdm(current_iteration, total_iteration)
+        elif current_iteration == total_iteration:
+            self._close_tqdm(current_iteration, total_iteration)
+        else:
+            self._progress_tqdm(current_iteration, total_iteration)
     
 class DMRModel(_DMRModel, LDAModel):
     def __init__(self,
@@ -521,7 +693,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -558,7 +732,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, metadata, multi_metadata, ignore_empty_words)
     
-    def make_doc(self, words, metadata='', multi_metadata=[])
+    def make_doc(self, words, metadata='', multi_metadata=[]) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
 
 .. versionchanged:: 0.12.0
@@ -660,6 +834,30 @@ See `tomotopy.DMRModel.get_topic_prior` for the relation between the lambda para
     Prior to version 0.11.0, there was a bug in the lambda getter, so it yielded the wrong value. It is recommended to upgrade to version 0.11.0 or later.'''
         return self._alpha
     
+    def _summary_basic_info(self, file):
+        LDAModel._summary_basic_info(self, file)
+        md_cnt = Counter(doc.metadata for doc in self.docs)
+        if len(md_cnt) > 1:
+            print('| Metadata of docs and its distribution', file=file)
+            for md in self.metadata_dict:
+                print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+        md_cnt = Counter()
+        [md_cnt.update(doc.multi_metadata) for doc in self.docs]
+        if len(md_cnt) > 0:
+            print('| Multi-Metadata of docs and its distribution', file=file)
+            for md in self.multi_metadata_dict:
+                print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+
+    def _summary_params_info(self, file):
+        print('| lambda (feature vector per metadata of documents)\n'
+            '|  {}'.format(_format_numpy(self.lambda_, '|  ')), file=file)
+        print('| alpha (Dirichlet prior on the per-document topic distributions for each metadata)', file=file)
+        for i, md in enumerate(self.metadata_dict):
+            print('|  {}: {}'.format(md, _format_numpy(self.alpha[:, i], '|    ')), file=file)
+        print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+
+
 class GDMRModel(_GDMRModel, DMRModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None):
@@ -722,7 +920,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -771,7 +971,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, numeric_metadata, metadata, multi_metadata, ignore_empty_words)
     
-    def make_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[]):
+    def make_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[]) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
 
 .. versionchanged:: 0.11.0
@@ -868,6 +1068,37 @@ samples : ndarray
         '''the ranges of each metadata variable (read-only)'''
         return self._metadata_range
     
+    def _summary_basic_info(self, file):
+        LDAModel._summary_basic_info(self, file)
+
+        md_cnt = Counter(doc.metadata for doc in self.docs)
+        if len(md_cnt) > 1:
+            print('| Categorical metadata of docs and its distribution', file=file)
+            for md in self.metadata_dict:
+                print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+        md_cnt = Counter()
+        [md_cnt.update(doc.multi_metadata) for doc in self.docs]
+        if len(md_cnt) > 0:
+            print('| Categorical multi-metadata of docs and its distribution', file=file)
+            for md in self.multi_metadata_dict:
+                print('|  {}: {}'.format(md, md_cnt.get(md, 0)), file=file)
+
+        md_stack = np.stack([doc.numeric_metadata for doc in self.docs])
+        md_min = md_stack.min(axis=0)
+        md_max = md_stack.max(axis=0)
+        md_avg = np.average(md_stack, axis=0)
+        md_std = np.std(md_stack, axis=0)
+        print('| Numeric metadata distribution of docs', file=file)
+        for i in range(md_stack.shape[1]):
+            print('|  #{}: Range={:.5}~{:.5}, Avg={:.5}, Stdev={:.5}'.format(i, md_min[i], md_max[i], md_avg[i], md_std[i]), file=file)
+
+    def _summary_params_info(self, file):
+        print('| lambda (feature vector per metadata of documents)\n'
+            '|  {}'.format(_format_numpy(self.lambda_, '|  ')), file=file)
+        print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+
+
 class HDPModel(_HDPModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
@@ -920,7 +1151,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -961,7 +1194,7 @@ topic_threshold : float
     Topics with proportion less than this value is removed in new LDA model.
     The default value is 0, and it means no topic except not alive is removed.
 '''
-        return self._convert_to_lda(topic_threshold)
+        return self._convert_to_lda(LDAModel, topic_threshold)
     
     def purge_dead_topics(self):
         '''.. versionadded:: 0.12.3
@@ -988,6 +1221,27 @@ If topic `i` of previous HDP model is not alive or is removed in the new model, 
         '''the number of total tables (read-only)'''
         return self._num_tables
     
+    def _progress_tqdm(self, current_iteration:int, total_iteration:int):
+        self._tqdm.set_postfix_str(f'# Topics: {self.live_k}, LLPW: {self.ll_per_word:.6f}')
+        self._tqdm.update(current_iteration - self._tqdm.n)
+    
+    def _summary_params_info(self, file):
+        print('| alpha (concentration coefficient of Dirichlet Process for document-table)\n'
+            '|  {:.5}'.format(self.alpha), file=file)
+        print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+        print('| gamma (concentration coefficient of Dirichlet Process for table-topic)\n'
+            '|  {:.5}'.format(self.gamma), file=file)
+        print('| Number of Topics: {}'.format(self.live_k), file=file)
+        print('| Number of Tables: {}'.format(self.num_tables), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        for k in range(self.k):
+            if not self.is_live_topic(k): continue
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('| #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
+
 class MGLDAModel(_MGLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
@@ -1044,7 +1298,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1080,7 +1336,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, delimiter, ignore_empty_words)
     
-    def make_doc(self, words, delimiter='.'):
+    def make_doc(self, words, delimiter='.') -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
@@ -1170,6 +1426,17 @@ normalize : bool
         '''the hyperparameter eta_l (read-only)'''
         return self._eta_l
 
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        print('| Global Topic', file=file)
+        for k in range(self.k):
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('|  #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
+        print('| Local Topic', file=file)
+        for k in range(self.k_l):
+            words = ' '.join(w for w, _ in self.get_topic_words(k + self.k, top_n=topic_word_top_n))
+            print('|  #{} ({}) : {}'.format(k, topic_cnt[k + self.k], words), file=file)
+
 class PAModel(_PAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
@@ -1218,7 +1485,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1285,7 +1554,7 @@ super_topic_id : int
 '''
         return self._get_sub_topic_dist(super_topic_id, normalize)
     
-    def infer(self, doc, iter=100, tolerance=-1, workers=0, parallel=0, together=False):
+    def infer(self, doc, iterations=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None):
         '''.. versionadded:: 0.5.0
 
 Return the inferred topic distribution and sub-topic distribution from unseen `doc`s.
@@ -1301,7 +1570,7 @@ doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpu
         Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
         In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
         return a corpus contains generated documents as the result.
-iter : int
+iterations : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
     The higher value will generate a more accuracy result.
 tolerance : float
@@ -1333,7 +1602,7 @@ result : Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[flo
 log_ll : float
     a list of log-likelihoods for each `doc`s
 '''
-        return self._infer(doc, iter, tolerance, workers, parallel, together)
+        return self._infer(doc, iterations, tolerance, workers, parallel, together, transform)
     
     def get_count_by_super_topic(self):
         '''Return the number of words allocated to each super-topic.
@@ -1344,7 +1613,7 @@ log_ll : float
     @property
     def k1(self) -> int:
         '''k1, the number of super topics (read-only)'''
-        return self._k1
+        return self._k
     
     @property
     def k2(self) -> int:
@@ -1365,6 +1634,27 @@ log_ll : float
 .. versionadded:: 0.9.0'''
         return self._subalpha
     
+    def _summary_params_info(self, file):
+        print('| alpha (Dirichlet prior on the per-document super topic distributions)\n'
+            '|  {}'.format(_format_numpy(self.alpha, '|  ')), file=file)
+        print('| subalpha (Dirichlet prior on the sub topic distributions for each super topic)', file=file)
+        for k1 in range(self.k1):
+            print('|  Super #{}: {}'.format(k1, _format_numpy(self.subalpha[k1], '|   ')), file=file)
+        print('| eta (Dirichlet prior on the per-subtopic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_super_topic()
+        print('| Sub-topic distribution of Super-topics', file=file)
+        for k in range(self.k1):
+            words = ' '.join('#{}'.format(w) for w, _ in self.get_sub_topics(k, top_n=topic_word_top_n))
+            print('|  #Super{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
+        topic_cnt = self.get_count_by_topics()
+        print('| Word distribution of Sub-topics', file=file)
+        for k in range(self.k2):
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('|  #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
+
 class HPAModel(_HPAModel, PAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
@@ -1413,7 +1703,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1477,6 +1769,30 @@ and `[x, 1 ~ k2]` elements indicate ones to the sub topics in the super topic `x
 .. versionadded:: 0.9.0'''
         return self._subalpha
     
+    def _summary_params_info(self, file):
+        print('| alpha (Dirichlet prior on the per-document super topic distributions)\n'
+            '|  {} {}'.format(self.alpha[:1], _format_numpy(self.alpha[1:], '|  ')), file=file)
+        print('| subalpha (Dirichlet prior on the sub topic distributions for each super topic)', file=file)
+        for k1 in range(self.k1):
+            print('|  Super #{}: {} {}'.format(k1, self.subalpha[k1, :1], _format_numpy(self.subalpha[k1, 1:], '|   ')), file=file)
+        print('| eta (Dirichlet prior on the per-subtopic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        words = ' '.join(w for w, _ in self.get_topic_words(0, top_n=topic_word_top_n))
+        print('| Top-topic ({}) : {}'.format(topic_cnt[0], words), file=file)
+        print('| Super-topics', file=file)
+        for k in range(1, 1 + self.k1):
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('|  #Super{} ({}) : {}'.format(k - 1, topic_cnt[k], words), file=file)
+            words = ' '.join('#{}'.format(w) for w, _ in self.get_sub_topics(k - 1, top_n=topic_word_top_n))
+            print('|    its sub-topics : {}'.format(words), file=file)
+        print('| Sub-topics', file=file)
+        for k in range(1 + self.k1, 1 + self.k1 + self.k2):
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('|  #{} ({}) : {}'.format(k - 1 - self.k1, topic_cnt[k], words), file=file)
+
 class CTModel(_CTModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
@@ -1519,7 +1835,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1589,6 +1907,14 @@ If your model shows biased topic correlations, increasing this value may be help
 .. versionadded:: 0.9.1'''
         raise AttributeError("CTModel has no attribute 'alpha'. Use 'prior_mean' and 'prior_cov' instead.")
     
+    def _summary_params_info(self, file):
+        print('| prior_mean (Prior mean of Logit-normal for the per-document topic distributions)\n'
+            '|  {}'.format(_format_numpy(self.prior_mean, '|  ')), file=file)
+        print('| prior_cov (Prior covariance of Logit-normal for the per-document topic distributions)\n'
+            '|  {}'.format(_format_numpy(self.prior_cov, '|  ')), file=file)
+        print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)    
+
 class SLDAModel(_SLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None):
@@ -1645,7 +1971,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1683,7 +2011,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, y, ignore_empty_words)
     
-    def make_doc(self, words, y=[]):
+    def make_doc(self, words, y=[]) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` and response variables `y` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
@@ -1729,6 +2057,21 @@ doc : tomotopy.Document
         '''the number of response variables (read-only)'''
         return self._f
     
+    def _summary_initial_params_info_vars(self, v, file):
+        var_type = {'l':'linear', 'b':'binary'}
+        print('| vars: {}'.format(', '.join(map(var_type.__getitem__, v))), file=file)
+
+    def _summary_params_info(self, file):
+        LDAModel._summary_params_info(self, file)
+        var_type = {'l':'linear', 'b':'binary'}
+        print('| regression coefficients of response variables', file=file)
+        for f in range(self.f):
+            print('|  #{} ({}): {}'.format(f, 
+                var_type.get(self.get_var_type(f)),
+                _format_numpy(self.get_regression_coef(f), '|    ')
+            ), file=file)
+
+
 class LLDAModel(_LLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
@@ -1774,7 +2117,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1803,7 +2148,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, labels, ignore_empty_words)
     
-    def make_doc(self, words, labels=[]):
+    def make_doc(self, words, labels=[]) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
@@ -1815,9 +2160,9 @@ labels : Iterable[str]
 '''
         return self._make_doc(words, labels)
     
-    def get_topic_words(self, topic_id, top_n=10):
+    def get_topic_words(self, topic_id, top_n=10, return_id=False):
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
-The return type is a `list` of (word:`str`, probability:`float`).
+The return type is a `list` of (word:`str`, probability:`float`) if `return_id` is False, or a `list` of (word_id:`int`, word:`str`, probability:`float`) if `return_id` is True.
 
 Parameters
 ----------
@@ -1825,15 +2170,33 @@ topic_id : int
     Integers in the range [0, `l`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
     The label name can be found by looking up `tomotopy.LLDAModel.topic_label_dict`.
     Integers in the range [`l`, `k`) represent a latent topic which doesn't belongs to the any labels.
-    
+top_n : int
+    the number of top words to return
+return_id : bool
+    If `True`, it returns a list of (word_id, word, probability) where `word_id` is an integer indicating the id of the word in the model's vocabulary. Otherwise, it returns a list of (word, probability).
 '''
-        return self._get_topic_words(topic_id, top_n)
+        return self._get_topic_words(topic_id, top_n, return_id)
     
     @property
     def topic_label_dict(self):
         '''a dictionary of topic labels in type `tomotopy.Dictionary` (read-only)'''
         return self._topic_label_dict
     
+    def _summary_basic_info(self, file):
+        LDAModel._summary_basic_info(self, file)
+        label_cnt = Counter(l for doc in self.docs for l, _ in doc.labels)
+        print('| Label of docs and its distribution', file=file)
+        for lb in self.topic_label_dict:
+            print('|  {}: {}'.format(lb, label_cnt.get(lb, 0)), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        for k in range(self.k):
+            label = ('Label {} (#{})'.format(self.topic_label_dict[k], k) 
+                if k < len(self.topic_label_dict) else '#{}'.format(k))
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('| {} ({}) : {}'.format(label, topic_cnt[k], words), file=file)
+
 class PLDAModel(_PLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
@@ -1878,7 +2241,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -1908,7 +2273,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, labels, ignore_empty_words)
     
-    def make_doc(self, words, labels=[]):
+    def make_doc(self, words, labels=[]) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
@@ -1920,7 +2285,7 @@ labels : Iterable[str]
 '''
         return self._make_doc(words, labels)
     
-    def get_topic_words(self, topic_id, top_n=10):
+    def get_topic_words(self, topic_id, top_n=10, return_id=False):
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
@@ -1930,9 +2295,13 @@ topic_id : int
     Integers in the range [0, `l` * `topics_per_label`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
     The label name can be found by looking up `tomotopy.PLDAModel.topic_label_dict`.
     Integers in the range [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) represent a latent topic which doesn't belongs to the any labels.
+top_n : int
+    the number of top words to return
+return_id : bool
+    If `True`, it returns a list of (word_id:`int`, word:`str`, probability:`float`) instead of (word:`str`, probability:`float`).
     
 '''
-        return self._get_topic_words(topic_id, top_n)
+        return self._get_topic_words(topic_id, top_n, return_id)
     
     @property
     def topic_label_dict(self):
@@ -1948,6 +2317,22 @@ topic_id : int
     def topics_per_label(self) -> int:
         '''the number of topics per label (read-only)'''
         return self._topics_per_label
+    
+    def _summary_basic_info(self, file):
+        LDAModel._summary_basic_info(self, file)
+        label_cnt = Counter(l for doc in self.docs for l, _ in doc.labels)
+        print('| Label of docs and its distribution', file=file)
+        for lb in self.topic_label_dict:
+            print('|  {}: {}'.format(lb, label_cnt.get(lb, 0)), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        for k in range(self.k):
+            l = k // self.topics_per_label
+            label = ('Label {}-{} (#{})'.format(self.topic_label_dict[l], k % self.topics_per_label, k) 
+                if l < len(self.topic_label_dict) else 'Latent {} (#{})'.format(k - self.topics_per_label * len(self.topic_label_dict), k))
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('| {} ({}) : {}'.format(label, topic_cnt[k], words), file=file)
 
 class HLDAModel(_HLDAModel, LDAModel):
     def __init__(self,
@@ -1993,7 +2378,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -2074,6 +2461,30 @@ topic_id : int
         '''the maximum depth level of hierarchy (read-only)'''
         return self._depth
     
+    def _progress_tqdm(self, current_iteration:int, total_iteration:int):
+        self._tqdm.set_postfix_str(f'# Topics: {self.live_k}, LLPW: {self.ll_per_word:.6f}')
+        self._tqdm.update(current_iteration - self._tqdm.n)
+    
+    def _summary_params_info(self, file):
+        print('| alpha (Dirichlet prior on the per-document depth level distributions)\n'
+            '|  {}'.format(_format_numpy(self.alpha, '|  ')), file=file)
+        print('| eta (Dirichlet prior on the per-topic word distribution)\n'
+            '|  {:.5}'.format(self.eta), file=file)
+        print('| gamma (concentration coefficient of Dirichlet Process)\n'
+            '|  {:.5}'.format(self.gamma), file=file)
+        print('| Number of Topics: {}'.format(self.live_k), file=file)
+
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+
+        def print_hierarchical(k=0, level=0):
+            words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
+            print('| {}#{} ({}, {}) : {}'.format('  ' * level, k, topic_cnt[k], self.num_docs_of_topic(k), words), file=file)
+            for c in np.sort(self.children_topics(k)):
+                print_hierarchical(c, level + 1)
+
+        print_hierarchical()
+
 class DTModel(_DTModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None):
@@ -2122,7 +2533,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,
@@ -2156,7 +2569,7 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, timepoint, ignore_empty_words)
     
-    def make_doc(self, words, timepoint=0):
+    def make_doc(self, words, timepoint=0) -> Document:
         '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `timepoint` that can be used for `tomotopy.LDAModel.infer` method.
 
 Parameters
@@ -2201,7 +2614,7 @@ topic_id : int
 timepoint : int
 	an integer in range [0, `t`), indicating the timepoint
 '''
-        return self._get_topic_words_timepoint(topic_id, timepoint, top_n)
+        return self._get_topic_words(topic_id, timepoint, top_n)
     
     def get_topic_word_dist(self, topic_id, timepoint, normalize=True):
         '''Return the word distribution of the topic `topic_id` with `timepoint`.
@@ -2218,7 +2631,7 @@ normalize : bool
 
     If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
 '''
-        return self._get_topic_word_dist_timepoint(topic_id, timepoint, normalize)
+        return self._get_topic_word_dist(topic_id, timepoint, normalize)
     
     def get_count_by_topics(self):
         '''Return the number of words allocated to each timepoint and topic in the shape `[num_timepoints, k]`.
@@ -2277,6 +2690,20 @@ normalize : bool
 .. versionadded:: 0.9.0'''
         raise AttributeError("DTModel has no attribute 'eta'. Use 'docs[x].eta' instead.")
     
+    def _summary_params_info(self, file):
+        print('| alpha (Dirichlet prior on the per-document topic distributions for each timepoint)\n'
+            '|  {}'.format(_format_numpy(self.alpha, '|  ')), file=file)
+        print('| phi (Dirichlet prior on the per-time&topic word distribution)\n'
+            '|  ...', file=file)
+        
+    def _summary_topics_info(self, file, topic_word_top_n):
+        topic_cnt = self.get_count_by_topics()
+        for k in range(self.k):
+            print('| #{} ({})'.format(k, topic_cnt[:, k].sum()), file=file)
+            for t in range(self.num_timepoints):
+                words = ' '.join(w for w, _ in self.get_topic_words(k, t, top_n=topic_word_top_n))
+                print('|  t={} ({}) : {}'.format(t, topic_cnt[t, k], words), file=file)
+
 class PTModel(_PTModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, p=None, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
@@ -2316,7 +2743,9 @@ transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
 '''
         # get initial params
-        self.init_params = deepcopy(locals())
+        self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
+        self.init_params['version'] = __version__
+        tw = _convert_term_weight(tw)
 
         super().__init__(
             tw,

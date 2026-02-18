@@ -8,7 +8,187 @@ Submodule `tomotopy.utils` provides various utilities for topic modeling.
 The documents inserted into `Corpus` can be used any topic models, and you can save the corpus preprocessed into a file and load the corpus from a file.
 '''
 
-from _tomotopy import (_UtilsCorpus, _UtilsVocabDict)
+from _tomotopy import (_Document, _UtilsCorpus, _UtilsVocabDict)
+
+class Document(_Document):
+    '''This type provides abstract model to access documents to be used Topic Model.
+
+An instance of this type can be acquired from `tomotopy.LDAModel.make_doc` method or `tomotopy.LDAModel.docs` member of each Topic Model instance.'''
+    
+    def get_topics(self, top_n=10, from_pseudo_doc=False):
+        '''Return the `top_n` topics with its probability of the document.
+
+Parameters
+----------
+top_n : int
+    the `n` in "top-n"
+from_pseudo_doc : bool
+    .. versionadded:: 0.12.2
+
+    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.'''
+        return super().get_topics(top_n, from_pseudo_doc)
+    
+    def get_topic_dist(self, normalize=True, from_pseudo_doc=False):
+        '''Return a distribution of the topics in the document.
+
+Parameters
+----------
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.
+from_pseudo_doc : bool
+    .. versionadded:: 0.12.2
+
+    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.'''
+        return super().get_topic_dist(normalize, from_pseudo_doc)
+    
+    def get_sub_topics(self, top_n=10):
+        '''.. versionadded:: 0.5.0
+
+Return the `top_n` sub topics with its probability of the document. (for only `tomotopy.PAModel`)'''
+        return super().get_sub_topics(top_n)
+    
+    def get_sub_topic_dist(self, normalize=True):
+        '''.. versionadded:: 0.5.0
+
+Return a distribution of the sub topics in the document. (for only `tomotopy.PAModel`)
+
+Parameters
+----------
+normalize : bool
+    .. versionadded:: 0.11.0
+
+    If True, it returns the probability distribution with the sum being 1. Otherwise it returns the distribution of raw values.'''
+        return super().get_sub_topic_dist(normalize)
+    
+    def get_words(self, top_n=10):
+        '''.. versionadded:: 0.4.2
+
+Return the `top_n` words with its probability of the document.'''
+        return super().get_words(top_n)
+    
+    def get_count_vector(self):
+        '''.. versionadded:: 0.7.0
+
+Return a count vector for the current document.'''
+        return super().get_count_vector()
+    
+    def get_ll(self):
+        '''.. versionadded:: 0.10.0
+
+Return total log-likelihood for the current document.'''
+        return super().get_ll()
+    
+    @property
+    def words(self):
+        '''a `list` of IDs for each word (read-only)'''
+        return super()._words
+    
+    @property
+    def weights(self):
+        '''a `list` of weights for each word (read-only)'''
+        return super()._weights
+    
+    @property
+    def topics(self):
+        '''a `list` of topics for each word (read-only)
+
+This represents super topics in `tomotopy.PAModel` and `tomotopy.HPAModel` model.'''
+        return super()._topics
+    
+    @property
+    def uid(self):
+        '''a unique ID for the document (read-only)'''
+        return super()._uid
+    
+    @property
+    def metadata(self):
+        '''categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only)'''
+        return super()._metadata
+    
+    @property
+    def multi_metadata(self):
+        '''categorical multiple metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only)
+
+.. versionadded:: 0.12.0'''
+        return super()._multi_metadata
+    
+    @property
+    def numeric_metadata(self):
+        '''continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
+
+.. versionadded:: 0.11.0'''
+        return super()._numeric_metadata
+    
+    @property
+    def subtopics(self):
+        '''a `list` of sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model, read-only)'''
+        return super()._subtopics
+    
+    @property
+    def windows(self):
+        '''a `list` of window IDs for each word (for only `tomotopy.MGLDAModel` model, read-only)'''
+        return super()._windows
+    
+    @property
+    def paths(self):
+        '''a `list` of topic ids by depth for a given document (for only `tomotopy.HLDAModel` model, read-only)
+
+.. versionadded:: 0.7.1'''
+        return super()._paths
+    
+    @property
+    def beta(self):
+        '''a `list` of beta parameters for each topic (for only `tomotopy.CTModel` model, read-only)
+
+.. versionadded:: 0.2.0'''
+        return super()._beta
+    
+    @property
+    def vars(self):
+        '''a `list` of response variables (for only `tomotopy.SLDAModel` model, read-only)
+
+.. versionadded:: 0.2.0'''
+        return super()._vars
+    
+    @property
+    def labels(self):
+        '''a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.LLDAModel` and `tomotopy.PLDAModel` models, read-only)
+
+.. versionadded:: 0.3.0'''
+        return super()._labels
+    
+    @property
+    def eta(self):
+        '''a `list` of eta parameters(topic distribution) for the current document (for only `tomotopy.DTModel` model, read-only)
+
+.. versionadded:: 0.7.0'''
+        return super()._eta
+    
+    @property
+    def timepoint(self):
+        '''a timepoint of the document (for only `tomotopy.DTModel` model, read-only)
+
+.. versionadded:: 0.7.0'''
+        return super()._timepoint
+    
+    @property
+    def raw(self):
+        '''a raw text of the document (read-only)'''
+        return super()._raw
+        
+    @property
+    def span(self):
+        '''a span (tuple of a start position and a end position in bytes) for each word token in the document (read-only)'''
+        return super()._span
+    
+    @property
+    def pseudo_doc_id(self):
+        '''an ID of a pseudo document where the document is allocated to (for only `tomotopy.PTModel` model, read-only)
+
+.. versionadded:: 0.11.0'''
+        return super()._pseudo_doc_id
 
 class Corpus(_UtilsCorpus):
     '''`Corpus` class is a utility that makes it easy to manage large amounts of documents.
@@ -30,7 +210,7 @@ stopwords : Union[Iterable[str], Callable[str, bool]]
     When calling `tomotopy.utils.Corpus.add_doc`, words in `stopwords` are not added to the document but are excluded.
     If `stopwords` is callable, a word is excluded from the document when `stopwords(word) == True`.
         '''
-        super().__init__(self._VocabDict(), None)
+        super().__init__(self._VocabDict, None)
         self._tokenizer = tokenizer
         self._batch_size = batch_size
         if callable(stopwords):
@@ -74,7 +254,7 @@ user_data : Any
 **kargs
     arbitrary keyword arguments for specific topic models
         '''
-        return super().add_doc(words, raw, user_data, **kargs)
+        return super().add_doc(words, raw, user_data, kargs)
 
     def process(self, data_feeder, show_progress=False, total=None):
         '''Add multiple documents into the corpus through a given iterator `data_feeder` and return the number of documents inserted.

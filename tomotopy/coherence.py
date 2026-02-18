@@ -8,10 +8,10 @@ This module provides the way to calculate topic coherence introduced the followi
 > https://github.com/dice-group/Palmetto
 
 '''
+import itertools
+from enum import IntEnum
 
 from _tomotopy import _Coherence
-
-from enum import IntEnum
 
 class ProbEstimation(IntEnum):
     '''
@@ -100,7 +100,6 @@ gamma : float
     A gamma value for indirect confirm measures
         '''
         import tomotopy as tp
-        import itertools
         self._top_n = top_n
         if isinstance(corpus, tp.DTModel):
             self._topic_model = corpus
@@ -134,7 +133,7 @@ gamma : float
         
         if not targets: raise ValueError("`targets` must be given as a non-empty iterable of str.")
 
-        super().__init__(corpus, pe=pe, seg=seg, cm=cm, im=im, window_size=window_size or w, targets=targets, eps=eps, gamma=gamma)
+        super().__init__(corpus, pe, seg, cm, im, window_size or w, eps, gamma, targets)
     
     def get_score(self, words=None, topic_id=None, timepoint=None):
         '''Calculate the coherence score for given `words` or `topic_id`
