@@ -2961,7 +2961,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto method(const char* name) const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -2987,7 +2987,7 @@ namespace py
 		template<auto getter>
 		constexpr auto property(const char* name) const
 		{
-			static constexpr auto g = []() {
+			constexpr auto g = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, getter>;
 				else return getter;
 			}();
@@ -3003,11 +3003,11 @@ namespace py
 		template<auto getter, auto setter>
 		constexpr auto property(const char* name) const
 		{
-			static constexpr auto g = []() {
+			constexpr auto g = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, getter>;
 				else return getter;
 			}();
-			static constexpr auto s = []() {
+			constexpr auto s = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, setter>;
 				else return setter;
 			}();
@@ -3022,7 +3022,7 @@ namespace py
 		template<auto base, auto getter>
 		constexpr auto property2(const char* name) const
 		{
-			static constexpr auto b = []() {
+			constexpr auto b = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, base>;
 				else return base;
 			}();
@@ -3037,7 +3037,7 @@ namespace py
 		template<auto base, auto getter, auto setter>
 		constexpr auto property2(const char* name) const
 		{
-			static constexpr auto b = []() {
+			constexpr auto b = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, base>;
 				else return base;
 			}();
@@ -3052,7 +3052,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto getAttrO() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3068,7 +3068,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto sqLen() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3084,7 +3084,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto sqGetItem() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3100,7 +3100,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto mpLen() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3116,7 +3116,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto mpGetItem() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3132,7 +3132,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto repr() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3148,7 +3148,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto iter() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3164,7 +3164,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto iternext() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
@@ -3180,7 +3180,7 @@ namespace py
 		template<auto memFn>
 		constexpr auto call() const
 		{
-			static constexpr auto fn = []() {
+			constexpr auto fn = []() {
 				if constexpr (detail::IsPObject<Ty>::value) return detail::compose<&Ty::value, memFn>;
 				else return memFn;
 			}();
