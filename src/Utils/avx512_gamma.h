@@ -1,0 +1,46 @@
+#pragma once
+#include "avx512_mathfun.h"
+
+// approximation : lgamma(z) ~= (z+2.5)ln(z+3) - z - 3 + 0.5 ln (2pi) + 1/12/(z + 3) - ln (z(z+1)(z+2))
+inline __m512 lgamma512_ps(__m512 x)
+{
+	__m512 x_3 = _mm512_add_ps(x, _mm512_set1_ps(3));
+	__m512 ret = _mm512_mul_ps(_mm512_add_ps(x_3, _mm512_set1_ps(-0.5f)), log512_ps(x_3));
+	ret = _mm512_sub_ps(ret, x_3);
+	ret = _mm512_add_ps(ret, _mm512_set1_ps(0.91893853f));
+	ret = _mm512_add_ps(ret, _mm512_div_ps(_mm512_set1_ps(1 / 12.f), x_3));
+	ret = _mm512_sub_ps(ret, log512_ps(_mm512_mul_ps(
+		_mm512_mul_ps(_mm512_sub_ps(x_3, _mm512_set1_ps(1)), _mm512_sub_ps(x_3, _mm512_set1_ps(2))), x)));
+	return ret;
+}
+
+// approximation : lgamma(z + a) - lgamma(z) = (z + a + 1.5) * log(z + a + 2) - (z + 1.5) * log(z + 2) - a + (1. / (z + a + 2) - 1. / (z + 2)) / 12. - log(((z + a) * (z + a + 1)) / (z * (z + 1)))
+inline __m512 lgamma512_subt(__m512 z, __m512 a)
+{
+	__m512 _1p5 = _mm512_set1_ps(1.5f);
+	__m512 _2 = _mm512_set1_ps(2.f);
+	__m512 za = _mm512_add_ps(z, a);
+	__m512 ret = _mm512_mul_ps(_mm512_add_ps(za, _1p5), log512_ps(_mm512_add_ps(za, _2)));
+	ret = _mm512_sub_ps(ret, _mm512_mul_ps(_mm512_add_ps(z, _1p5), log512_ps(_mm512_add_ps(z, _2))));
+	ret = _mm512_sub_ps(ret, a);
+	__m512 _1 = _mm512_set1_ps(1.f);
+	__m512 _1_12 = _mm512_set1_ps(1 / 12.f);
+	ret = _mm512_add_ps(ret, _mm512_sub_ps(_mm512_div_ps(_1_12, _mm512_add_ps(za, _2)), _mm512_div_ps(_1_12, _mm512_add_ps(z, _2))));
+	ret = _mm512_sub_ps(ret, log512_ps(_mm512_div_ps(_mm512_div_ps(_mm512_mul_ps(za, _mm512_add_ps(za, _1)), z), _mm512_add_ps(z, _1))));
+	return ret;
+}
+
+
+// approximation : digamma(z) ~= ln(z+4) - 1/2/(z+4) - 1/12/(z+4)^2 - 1/z - 1/(z+1) - 1/(z+2) - 1/(z+3)
+inline __m512 digamma512_ps(__m512 x)
+{
+	__m512 x_4 = _mm512_add_ps(x, _mm512_set1_ps(4));
+	__m512 ret = log512_ps(x_4);
+	ret = _mm512_sub_ps(ret, _mm512_div_ps(_mm512_set1_ps(1 / 2.f), x_4));
+	ret = _mm512_sub_ps(ret, _mm512_div_ps(_mm512_div_ps(_mm512_set1_ps(1 / 12.f), x_4), x_4));
+	ret = _mm512_sub_ps(ret, _mm512_rcp14_ps(_mm512_sub_ps(x_4, _mm512_set1_ps(1))));
+	ret = _mm512_sub_ps(ret, _mm512_rcp14_ps(_mm512_sub_ps(x_4, _mm512_set1_ps(2))));
+	ret = _mm512_sub_ps(ret, _mm512_rcp14_ps(_mm512_sub_ps(x_4, _mm512_set1_ps(3))));
+	ret = _mm512_sub_ps(ret, _mm512_rcp14_ps(_mm512_sub_ps(x_4, _mm512_set1_ps(4))));
+	return ret;
+}

@@ -275,7 +275,9 @@ PyMODINIT_FUNC MODULE_NAME()
 		.property2<&PTModelObject::getInst<tomoto::IPTModel>, &tomoto::IPTModel::getP>("_p")
 	);
 
-#ifdef __AVX2__
+#ifdef __AVX512F__
+	PyModule_AddStringConstant(moduleObj, "isa", "avx512");
+#elif defined(__AVX2__)
 	PyModule_AddStringConstant(moduleObj, "isa", "avx2");
 #elif defined(__AVX__)
 	PyModule_AddStringConstant(moduleObj, "isa", "avx");

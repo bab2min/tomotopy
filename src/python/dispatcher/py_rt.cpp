@@ -41,8 +41,8 @@ PyMODINIT_FUNC PyInit__tomotopy()
 {
 	using namespace std;
 
-	bool sse2 = false, avx = false, avx2 = false;
-	bool env_sse2 = false, env_avx = false, env_avx2 = false;
+	bool sse2 = false, avx = false, avx2 = false, avx512 = false;
+	bool env_sse2 = false, env_avx = false, env_avx2 = false, env_avx512 = false;
 
 	string isaEnv;
 	const char* p = getenv("TOMOTOPY_ISA");
@@ -54,20 +54,22 @@ PyMODINIT_FUNC PyInit__tomotopy()
 
 	while (getline(iss, item, ','))
 	{
-		if (item == "avx2") env_avx2 = true;
+		if (item == "avx512") env_avx512 = true;
+		else if (item == "avx2") env_avx2 = true;
 		else if (item == "avx") env_avx = true;
 		else if (item == "sse2") env_sse2 = true;
 		else if (item == "none");
 		else fprintf(stderr, "Unknown ISA option '%s' ignored.\n", item.c_str());
 	}
 
-	if (!env_sse2 && !env_avx && !env_avx2)
+	if (!env_sse2 && !env_avx && !env_avx2 && !env_avx512)
 	{
 		env_sse2 = true;
 		env_avx = true;
 		env_avx2 = true;
+		env_avx512 = true;
 	}
-	
+
 	int info[4];
 	cpuid(info, 0);
 	int nIds = info[0];
@@ -75,22 +77,37 @@ PyMODINIT_FUNC PyInit__tomotopy()
 	cpuid(info, 0x80000000);
 	unsigned nExIds = info[0];
 
+	unsigned long long xcrFeatureMask = 0;
     if (nIds >= 1) {
         cpuid(info, 1);
         sse2 = (info[3] & ((int)1 << 26)) != 0;
 		if ((info[2] & (1 << 27)) && ((info[2] & ((int)1 << 28)) != 0))
 		{
-			unsigned long long xcrFeatureMask = _xgetbv(0);
+			xcrFeatureMask = _xgetbv(0);
 			avx = (xcrFeatureMask & 0x6) == 0x6;
 		}
     }
     if (nIds >= 7) {
         cpuid(info, 7);
-        avx2 = (info[1] & ((int)1 << 5)) != 0;
+        avx2 = avx && (info[1] & ((int)1 << 5)) != 0;
+		// AVX-512F: bit 16 of EBX
+		// Also check XCR0 for opmask (bit 5), ZMM_Hi256 (bit 6), Hi16_ZMM (bit 7)
+		bool hasAVX512F = (info[1] & ((int)1 << 16)) != 0;
+		bool osSupportsAVX512 = (xcrFeatureMask & 0xE6) == 0xE6;
+		avx512 = avx && hasAVX512F && osSupportsAVX512;
     }
 
 	PyObject* module = nullptr;
 	vector<string> triedModules;
+	if (!module && avx512 && env_avx512)
+	{
+		module = PyImport_ImportModule("_tomotopy_avx512");
+		if (!module)
+		{
+			PyErr_Clear();
+			triedModules.emplace_back("avx512");
+		}
+	}
 	if (!module && avx2 && env_avx2)
 	{
 		module = PyImport_ImportModule("_tomotopy_avx2");

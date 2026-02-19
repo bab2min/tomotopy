@@ -12,9 +12,6 @@ from distutils.version import LooseVersion
 from sysconfig import get_platform
 import struct
 
-import numpy as np
-
-
 def get_extra_cmake_options():
     """read --clean, --no, --set, --compiler-flags, and -G options from the command line and add them as cmake switches.
     """
@@ -194,19 +191,21 @@ cmake_extra_options, _ = get_extra_cmake_options()
 
 build_for_manyplatform = ('many' in os.environ.get('AUDITWHEEL_PLAT', ''))
 
-arch_levels = ['none', 'sse2', 'avx2']
-if platform.system() == 'Windows': 
-    arch_levels = ['none', 'sse2', 'avx2']
-elif platform.system() == 'Darwin': 
+arch_levels = ['none', 'sse2', 'avx2', 'avx512']
+if platform.system() == 'Windows':
+    arch_levels = ['none', 'sse2', 'avx2', 'avx512']
+elif platform.system() == 'Darwin':
     if tomotopy_cpu_arch == 'arm64':
         arch_levels = ['arm64']
-    elif build_for_manyplatform: 
+    elif build_for_manyplatform:
         arch_levels = ['sse2', 'avx', 'avx2']
     else:
         arch_levels = ['sse2']
 elif build_for_manyplatform:
     if tomotopy_cpu_arch in ('arm64', 'aarch64'):
         arch_levels = ['arm64']
+    else:
+        arch_levels = ['sse2', 'avx', 'avx2', 'avx512']
 else:
     arch_levels = ['native']
 
@@ -223,7 +222,7 @@ modules = []
 if len(arch_levels) > 1:
     modules.append(CMakeExtension('_tomotopy',
         libraries=[],
-        include_dirs=['include', np.get_include()],
+        include_dirs=['include'],
         cmake_options=cmake_extra_options + ['-DEXT_TYPE=dispatcher'],
     ))
 
@@ -245,7 +244,7 @@ for arch in arch_levels:
         module_name = '_tomotopy'
     modules.append(CMakeExtension(module_name,
         libraries=[],
-        include_dirs=['include', np.get_include()],
+        include_dirs=['include'],
         cmake_options=cmake_extra_options + [
             '-DEXT_TYPE=handler', 
             '-DTARGET_ARCH=' + arch,
