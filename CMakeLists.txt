@@ -43,20 +43,29 @@ function(get_arch_flags ARCH OUT_FLAGS OUT_DEFS)
     set(DEFS "")
 
     if(MSVC)
+        # On MSVC x64, SSE2 is always available (baseline)
+        # MSVC doesn't auto-define __SSE2__, so we must define it manually
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            list(APPEND DEFS "__SSE2__")
+        endif()
+
         if(ARCH STREQUAL "none")
-            # No additional flags
+            # x86 32-bit: no SIMD
+            # x64: SSE2 defined above
         elseif(ARCH STREQUAL "sse2")
             set(FLAGS "/arch:SSE2")
-            list(APPEND DEFS "__SSE2__")
+            if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+                list(APPEND DEFS "__SSE2__")
+            endif()
         elseif(ARCH STREQUAL "avx")
             set(FLAGS "/arch:AVX")
-            list(APPEND DEFS "__SSE2__")
+            list(APPEND DEFS "__AVX__")
         elseif(ARCH STREQUAL "avx2")
             set(FLAGS "/arch:AVX2")
-            list(APPEND DEFS "__SSE2__")
+            list(APPEND DEFS "__AVX__" "__AVX2__")
         elseif(ARCH STREQUAL "avx512")
             set(FLAGS "/arch:AVX512")
-            list(APPEND DEFS "__SSE2__" "__AVX__" "__AVX2__" "__AVX512F__")
+            list(APPEND DEFS "__AVX__" "__AVX2__" "__AVX512F__")
         endif()
     else()
         if(ARCH STREQUAL "native")
@@ -167,8 +176,8 @@ if(BUILD_MULTI_ARCH)
         add_handler_module("_tomotopy_avx2" "avx2" "avx2")
         add_handler_module("_tomotopy_avx512" "avx512" "avx512")
 
-        if(WIN32)
-            # Windows also needs 'none' for 32-bit compatibility
+        if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+            # Windows 32-bit needs 'none' for non-SSE2 CPUs
             add_handler_module("_tomotopy_none" "none" "none")
         endif()
     endif()
