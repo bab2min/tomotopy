@@ -1,121 +1,178 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.18)
 
-project(tomotopy)
+project(tomotopy LANGUAGES CXX)
 
-set ( CMAKE_CXX_STANDARD 17 )
-set ( CMAKE_VERBOSE_MAKEFILE true )
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_SKIP_RPATH ON)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
 
-set ( CMAKE_SKIP_RPATH ON )
-set ( CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version" )
+# Options
+option(BUILD_MULTI_ARCH "Build multiple architecture variants with dispatcher" OFF)
+option(NO_DEBUG_INFO "Strip debug info for release builds" OFF)
 
-set ( EXT_TYPE "handler" CACHE STRING "dispatcher or handler" )
-set ( TARGET_ARCH "" CACHE STRING "target architecture" )
-set ( MODULE_NAME "_tomotopy" CACHE STRING "module name" )
-set ( TOMOTOPY_ISA "none" CACHE STRING "target ISA" )
-set ( NO_DEBUG_INFO OFF CACHE BOOL "no debug info" )
-set ( TOMOTOPY_LANG "en" CACHE STRING "language" )
+set(TARGET_ARCH "native" CACHE STRING "Target architecture (none, native, sse2, avx, avx2, avx512, arm64)")
+set(TOMOTOPY_ISA "native" CACHE STRING "ISA string for module")
+set(TOMOTOPY_LANG "en" CACHE STRING "Documentation language (en, kr)")
 
-if(MSVC)
-    if (TARGET_ARCH STREQUAL "none")
-        set (ADDITIONAL_FLAGS "")
-    elseif (TARGET_ARCH STREQUAL "sse2")
-        set (ADDITIONAL_FLAGS "/arch:SSE2")
-        add_definitions(-D__SSE2__)
-    elseif (TARGET_ARCH STREQUAL "avx")
-        set (ADDITIONAL_FLAGS "/arch:AVX")
-        add_definitions(-D__SSE2__)
-    elseif (TARGET_ARCH STREQUAL "avx2")
-        set (ADDITIONAL_FLAGS "/arch:AVX2")
-        add_definitions(-D__SSE2__)
-    elseif (TARGET_ARCH STREQUAL "avx512")
-        set (ADDITIONAL_FLAGS "/arch:AVX512")
-        add_definitions(-D__SSE2__ -D__AVX__ -D__AVX2__ -D__AVX512F__)
-    endif()
+# Find Python
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 
-    set ( CMAKE_C_FLAGS_DEBUG "-DDEBUG -DC_FLAGS -Zc:__cplusplus -Zi -Od ${ADDITIONAL_FLAGS}" )
-    set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}" )
-
-    set ( CMAKE_C_FLAGS_RELEASE "-DNDEBUG -DRELEASE -DC_FLAGS -Zc:__cplusplus -O2 -Oi -Gy  ${ADDITIONAL_FLAGS}" )
-    set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" )
-
-    set ( CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -Zi /bigobj")
-    set ( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-    set ( CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELEASE}" )
-else()
-    set (CPU_ARCH "x86_64")
-    if (TARGET_ARCH STREQUAL "none")
-        set (ADDITIONAL_FLAGS "")
-    elseif (TARGET_ARCH STREQUAL "native")
-        set (ADDITIONAL_FLAGS "-march=native")
-    elseif (TARGET_ARCH STREQUAL "sse2")
-        set (ADDITIONAL_FLAGS "-msse2")
-    elseif (TARGET_ARCH STREQUAL "avx")
-        set (ADDITIONAL_FLAGS "-mavx")
-    elseif (TARGET_ARCH STREQUAL "avx2")
-        set (ADDITIONAL_FLAGS "-mavx2 -mfma")
-    elseif (TARGET_ARCH STREQUAL "avx512")
-        set (ADDITIONAL_FLAGS "-mavx512f -mavx512dq -mavx512bw -mavx512vl -mfma")
-    elseif (TARGET_ARCH STREQUAL "arm64")
-        set (CPU_ARCH "arm64")
-    endif()
-
-    if (APPLE)
-        message(STATUS "Apple Clang: use undefined=dynamic_lookup")
-        set (CMAKE_OSX_ARCHITECTURES "${CPU_ARCH}")
-        set (ADDITIONAL_FLAGS "${ADDITIONAL_FLAGS} -undefined dynamic_lookup")
-        set (ADDITIONAL_LINKER_FLAGS "-stdlib=libc++")
-    endif()
-
-    set ( CMAKE_C_FLAGS_DEBUG "-DDEBUG -DC_FLAGS -g3 -O0 ${ADDITIONAL_FLAGS}" )
-    set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}" )
-    set ( CMAKE_EXE_LINKER_FLAGS_DEBUG "-DDEBUG -DLINKER_FLAGS ${ADDITIONAL_LINKER_FLAGS}" )
-
-    set ( CMAKE_C_FLAGS_RELEASE "-DNDEBUG -DRELEASE -DC_FLAGS -O3 ${ADDITIONAL_FLAGS}" )
-    set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" )
-    set ( CMAKE_EXE_LINKER_FLAGS_RELEASE "-DRELEASE -DLINKER_FLAGS ${ADDITIONAL_LINKER_FLAGS}" )
-
-    if (NO_DEBUG_INFO)
-        set ( CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g0")
-        set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g0")
-        set ( CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g0")
-        set ( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g0")
-    endif()
-
-    set ( CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g3")
-    set ( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-    set ( CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${ADDITIONAL_LINKER_FLAGS}" )
-endif()
-
-SET (srcs 
+# Include directories
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${Python3_INCLUDE_DIRS}
 )
 
-if (EXT_TYPE STREQUAL "handler")
-    file(GLOB cpp_files "src/python/handler/*.cpp" "src/Utils/*.cpp" "src/TopicModel/*.cpp" "src/Labeling/*.cpp")
-    SET(srcs
-        ${srcs}
-        ${cpp_files}
+# Source files
+file(GLOB HANDLER_SOURCES
+    "src/python/handler/*.cpp"
+    "src/Utils/*.cpp"
+    "src/TopicModel/*.cpp"
+    "src/Labeling/*.cpp"
+)
+
+file(GLOB DISPATCHER_SOURCES
+    "src/python/dispatcher/*.cpp"
+)
+
+# Function to get compiler flags for an architecture
+function(get_arch_flags ARCH OUT_FLAGS OUT_DEFS)
+    set(FLAGS "")
+    set(DEFS "")
+
+    if(MSVC)
+        if(ARCH STREQUAL "none")
+            # No additional flags
+        elseif(ARCH STREQUAL "sse2")
+            set(FLAGS "/arch:SSE2")
+            list(APPEND DEFS "__SSE2__")
+        elseif(ARCH STREQUAL "avx")
+            set(FLAGS "/arch:AVX")
+            list(APPEND DEFS "__SSE2__")
+        elseif(ARCH STREQUAL "avx2")
+            set(FLAGS "/arch:AVX2")
+            list(APPEND DEFS "__SSE2__")
+        elseif(ARCH STREQUAL "avx512")
+            set(FLAGS "/arch:AVX512")
+            list(APPEND DEFS "__SSE2__" "__AVX__" "__AVX2__" "__AVX512F__")
+        endif()
+    else()
+        if(ARCH STREQUAL "native")
+            set(FLAGS "-march=native")
+        elseif(ARCH STREQUAL "sse2")
+            set(FLAGS "-msse2")
+        elseif(ARCH STREQUAL "avx")
+            set(FLAGS "-mavx")
+        elseif(ARCH STREQUAL "avx2")
+            set(FLAGS "-mavx2 -mfma")
+        elseif(ARCH STREQUAL "avx512")
+            set(FLAGS "-mavx512f -mavx512dq -mavx512bw -mavx512vl -mfma")
+        elseif(ARCH STREQUAL "arm64")
+            # No additional flags for arm64
+        endif()
+
+        if(APPLE)
+            set(FLAGS "${FLAGS} -undefined dynamic_lookup")
+        endif()
+    endif()
+
+    set(${OUT_FLAGS} "${FLAGS}" PARENT_SCOPE)
+    set(${OUT_DEFS} "${DEFS}" PARENT_SCOPE)
+endfunction()
+
+# Function to create a handler module
+function(add_handler_module TARGET_NAME ARCH ISA_NAME)
+    get_arch_flags(${ARCH} ARCH_FLAGS ARCH_DEFS)
+
+    add_library(${TARGET_NAME} MODULE ${HANDLER_SOURCES})
+
+    target_compile_definitions(${TARGET_NAME} PRIVATE
+        MODULE_NAME=PyInit_${TARGET_NAME}
+        TOMOTOPY_ISA=${ISA_NAME}
+        ${ARCH_DEFS}
     )
-    add_definitions(-DMODULE_NAME=${MODULE_NAME})
-    add_definitions(-DTOMOTOPY_ISA=${TOMOTOPY_ISA})
-    if (TOMOTOPY_LANG STREQUAL "kr")
-        add_definitions(-DDOC_KO=1)
+
+    if(TOMOTOPY_LANG STREQUAL "kr")
+        target_compile_definitions(${TARGET_NAME} PRIVATE DOC_KO=1)
+    endif()
+
+    if(ARCH_FLAGS)
+        target_compile_options(${TARGET_NAME} PRIVATE ${ARCH_FLAGS})
+    endif()
+
+    if(NO_DEBUG_INFO)
+        if(MSVC)
+            target_compile_options(${TARGET_NAME} PRIVATE /Zi-)
+        else()
+            target_compile_options(${TARGET_NAME} PRIVATE -g0)
+        endif()
+    endif()
+
+    set_target_properties(${TARGET_NAME} PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME ${TARGET_NAME}
+    )
+
+    if(WIN32)
+        set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd")
+    endif()
+
+    target_link_libraries(${TARGET_NAME} PRIVATE Python3::Module)
+
+    install(TARGETS ${TARGET_NAME} LIBRARY DESTINATION .)
+endfunction()
+
+# Function to create dispatcher module
+function(add_dispatcher_module)
+    add_library(_tomotopy MODULE ${DISPATCHER_SOURCES})
+
+    set_target_properties(_tomotopy PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "_tomotopy"
+    )
+
+    if(WIN32)
+        set_target_properties(_tomotopy PROPERTIES SUFFIX ".pyd")
+    endif()
+
+    target_link_libraries(_tomotopy PRIVATE Python3::Module)
+
+    install(TARGETS _tomotopy LIBRARY DESTINATION .)
+endfunction()
+
+# Build logic
+if(BUILD_MULTI_ARCH)
+    message(STATUS "Building multi-architecture modules with dispatcher")
+
+    # Build dispatcher
+    add_dispatcher_module()
+
+    # Determine which architectures to build
+    if(APPLE)
+        if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+            add_handler_module("_tomotopy_none" "arm64" "arm64")
+        else()
+            add_handler_module("_tomotopy_sse2" "sse2" "sse2")
+            add_handler_module("_tomotopy_avx" "avx" "avx")
+            add_handler_module("_tomotopy_avx2" "avx2" "avx2")
+        endif()
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+        add_handler_module("_tomotopy_none" "arm64" "arm64")
+    else()
+        # x86_64 Linux/Windows: build all variants
+        add_handler_module("_tomotopy_sse2" "sse2" "sse2")
+        add_handler_module("_tomotopy_avx" "avx" "avx")
+        add_handler_module("_tomotopy_avx2" "avx2" "avx2")
+        add_handler_module("_tomotopy_avx512" "avx512" "avx512")
+
+        if(WIN32)
+            # Windows also needs 'none' for 32-bit compatibility
+            add_handler_module("_tomotopy_none" "none" "none")
+        endif()
     endif()
 else()
-    file(GLOB cpp_files "src/python/dispatcher/*.cpp")
-    SET(srcs
-        ${srcs}
-        ${cpp_files}
-    )
+    message(STATUS "Building single module for architecture: ${TARGET_ARCH}")
+    add_handler_module("_tomotopy" "${TARGET_ARCH}" "${TOMOTOPY_ISA}")
 endif()
-
-include_directories(${INCLUDE_DIRS}
-)
-link_directories(${LIBRARY_DIRS})
-
-add_library("_tomotopy_target" SHARED
-    ${srcs}
-)
-
-target_link_libraries("_tomotopy_target" PRIVATE 
-  ${LIBRARIES}
-)
