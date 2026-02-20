@@ -41,8 +41,8 @@ PyMODINIT_FUNC PyInit__tomotopy()
 {
 	using namespace std;
 
-	bool sse2 = false, avx = false, avx2 = false, avx512 = false;
-	bool env_sse2 = false, env_avx = false, env_avx2 = false, env_avx512 = false;
+	bool sse2 = false, avx2 = false, avx512 = false;
+	bool env_sse2 = false, env_avx2 = false, env_avx512 = false;
 
 	string isaEnv;
 	const char* p = getenv("TOMOTOPY_ISA");
@@ -56,16 +56,14 @@ PyMODINIT_FUNC PyInit__tomotopy()
 	{
 		if (item == "avx512") env_avx512 = true;
 		else if (item == "avx2") env_avx2 = true;
-		else if (item == "avx") env_avx = true;
 		else if (item == "sse2") env_sse2 = true;
 		else if (item == "none");
 		else fprintf(stderr, "Unknown ISA option '%s' ignored.\n", item.c_str());
 	}
 
-	if (!env_sse2 && !env_avx && !env_avx2 && !env_avx512)
+	if (!env_sse2 && !env_avx2 && !env_avx512)
 	{
 		env_sse2 = true;
-		env_avx = true;
 		env_avx2 = true;
 		env_avx512 = true;
 	}
@@ -84,11 +82,11 @@ PyMODINIT_FUNC PyInit__tomotopy()
 		if ((info[2] & (1 << 27)) && ((info[2] & ((int)1 << 28)) != 0))
 		{
 			xcrFeatureMask = _xgetbv(0);
-			avx = (xcrFeatureMask & 0x6) == 0x6;
 		}
     }
     if (nIds >= 7) {
         cpuid(info, 7);
+        bool avx = (xcrFeatureMask & 0x6) == 0x6;
         avx2 = avx && (info[1] & ((int)1 << 5)) != 0;
 		// AVX-512F: bit 16 of EBX
 		// Also check XCR0 for opmask (bit 5), ZMM_Hi256 (bit 6), Hi16_ZMM (bit 7)
@@ -117,15 +115,6 @@ PyMODINIT_FUNC PyInit__tomotopy()
 			triedModules.emplace_back("avx2");
 		}
 	}
-	if (!module && avx && env_avx)
-	{
-		module = PyImport_ImportModule("_tomotopy_avx");
-		if (!module)
-		{
-			PyErr_Clear();
-			triedModules.emplace_back("avx");
-		}
-	}
 	if (!module && sse2 && env_sse2)
 	{
 		module = PyImport_ImportModule("_tomotopy_sse2");
@@ -150,11 +139,7 @@ PyMODINIT_FUNC PyInit__tomotopy()
 		string err = "No module named any of ";
 		for (auto& s : triedModules) err += "'_tomotopy_" + s + "', ";
 		err.pop_back(); err.pop_back();
-#if PY_MINOR_VERSION < 6
-		PyErr_SetString(PyExc_RuntimeError, err.c_str());
-#else
 		PyErr_SetString(PyExc_ModuleNotFoundError, err.c_str());
-#endif
 	}
 	return module;
 }
