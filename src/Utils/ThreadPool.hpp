@@ -22,11 +22,11 @@ namespace tomoto
 		ThreadPool(size_t threads = 0, size_t maxQueued = 0);
 		template<class F, class... Args>
 		auto enqueue(F&& f, Args&&... args)
-			->std::future<typename std::result_of<F(size_t, Args...)>::type>;
+			->std::future<typename std::invoke_result_t<F, size_t, Args...>>;
 		
 		template<class F, class... Args>
 		auto enqueueToAll(F&& f, Args&&... args)
-			->std::vector<std::future<typename std::result_of<F(size_t, Args...)>::type>>;
+			->std::vector<std::future<typename std::invoke_result_t<F, size_t, Args...>>>;
 
 		~ThreadPool();
 		
@@ -88,9 +88,9 @@ namespace tomoto
 	// add new work item to the pool
 	template<class F, class... Args>
 	auto ThreadPool::enqueue(F&& f, Args&&... args)
-		-> std::future<typename std::result_of<F(size_t, Args...)>::type>
+		-> std::future<typename std::invoke_result_t<F, size_t, Args...>>
 	{
-		using return_type = typename std::result_of<F(size_t, Args...)>::type;
+		using return_type = typename std::invoke_result_t<F, size_t, Args...>;
 
 		auto task = std::make_shared< std::packaged_task<return_type(size_t)> >(
 			std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Args>(args)...));
@@ -113,9 +113,9 @@ namespace tomoto
 
 	template<class F, class... Args>
 	auto ThreadPool::enqueueToAll(F&& f, Args&&... args)
-		->std::vector<std::future<typename std::result_of<F(size_t, Args...)>::type> >
+		->std::vector<std::future<typename std::invoke_result_t<F, size_t, Args...>> >
 	{
-		using return_type = typename std::result_of<F(size_t, Args...)>::type;
+		using return_type = typename std::invoke_result_t<F, size_t, Args...>;
 
 		std::vector<std::future<return_type> > ret;
 		std::unique_lock<std::mutex> lock(queue_mutex);

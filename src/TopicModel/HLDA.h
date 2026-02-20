@@ -34,7 +34,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentHLDA<TermWeight::one>;
-		static IHLDAModel* create(TermWeight _weight, const HLDAArgs& args,
+		static std::unique_ptr<IHLDAModel> create(TermWeight _weight, const HLDAArgs& args,
 			bool scalarRng = false);
 
 		virtual Float getGamma() const = 0;

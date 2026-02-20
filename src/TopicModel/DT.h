@@ -45,7 +45,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentDTM<TermWeight::one>;
-		static IDTModel* create(TermWeight _weight, const DTArgs& args,
+		static std::unique_ptr<IDTModel> create(TermWeight _weight, const DTArgs& args,
 			bool scalarRng = false);
 		
 		virtual size_t getT() const = 0;

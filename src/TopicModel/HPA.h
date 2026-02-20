@@ -24,7 +24,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentHPA<TermWeight::one>;
-		static IHPAModel* create(TermWeight _weight, bool _exclusive, const HPAArgs& args,
+		static std::unique_ptr<IHPAModel> create(TermWeight _weight, bool _exclusive, const HPAArgs& args,
 			bool scalarRng = false);
 	};
 }

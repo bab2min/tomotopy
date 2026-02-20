@@ -5,27 +5,21 @@
 #include "module.h"
 #include "../../Labeling/Phraser.hpp"
 
-extern PyTypeObject UtilsCorpus_type;
-extern PyTypeObject UtilsCorpusIter_type;
-extern PyTypeObject UtilsDocument_type;
-extern PyTypeObject UtilsVocab_type;
-extern PyTypeObject Phraser_type;
-
-struct VocabObject
+struct VocabObject : public py::CObject<VocabObject>
 {
-	PyObject_HEAD;
-	tomoto::Dictionary* vocabs;
-	PyObject* dep;
-	size_t size;
+	tomoto::Dictionary* vocabs = nullptr;
+	py::UniqueObj dep;
+	size_t size = 0;
 
-	static int init(VocabObject* self, PyObject* args, PyObject* kwargs);
-	static void dealloc(VocabObject* self);
-	static PyObject* getstate(VocabObject* self, PyObject*);
-	static PyObject* setstate(VocabObject* self, PyObject* args);
+	VocabObject() = default;
+	~VocabObject();
+
+	py::UniqueObj getstate() const;
+	void setstate(PyObject* dict);
 	
-	static Py_ssize_t len(VocabObject* self);
-	static PyObject* getitem(VocabObject* self, Py_ssize_t key);
-	static PyObject* repr(VocabObject* self);
+	size_t len() const;
+	std::string_view getitem(size_t key) const;
+	py::UniqueObj repr() const;
 };
 
 /*
@@ -40,9 +34,11 @@ Two modes of CorpusObject
     - TopicModelObject* tm;
 */
 
-struct CorpusObject
+struct DocumentObject;
+struct CorpusIterObject;
+
+struct CorpusObject : public py::CObject<CorpusObject>
 {
-	PyObject_HEAD;
 	union
 	{
 		std::vector<tomoto::RawDoc> docs;
@@ -52,15 +48,15 @@ struct CorpusObject
 	std::unordered_map<std::string, size_t> invmap;
 	union
 	{
-		PyObject* depObj;
-		VocabObject* vocab;
-		TopicModelObject* tm;
+		py::UniqueObj depObj;
+		py::UniqueCObj<VocabObject> vocab;
+		py::UniquePObj<LDAModelObject> tm;
 	};
-	bool made;
+	bool made = false;
 
 	inline bool isIndependent() const
 	{
-		return vocab && !!PyObject_TypeCheck(vocab, &UtilsVocab_type);
+		return vocab && !!PyObject_TypeCheck(vocab.get(), py::Type<VocabObject>);
 	}
 
 	inline bool isSubDocs() const
@@ -71,33 +67,37 @@ struct CorpusObject
 	size_t findUid(const std::string& uid) const;
 	const tomoto::RawDocKernel* getDoc(size_t idx) const;
 
-	static CorpusObject* _new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs);
-	static int init(CorpusObject* self, PyObject* args, PyObject* kwargs);
-	static void dealloc(CorpusObject* self);
-	static PyObject* getstate(CorpusObject* self, PyObject*);
-	static PyObject* setstate(CorpusObject* self, PyObject* args);
-	static PyObject* addDoc(CorpusObject* self, PyObject* args, PyObject* kwargs);
-	static PyObject* addDocs(CorpusObject* self, PyObject* args, PyObject* kwargs);
-	static PyObject* extractNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs);
-	static PyObject* concatNgrams(CorpusObject* self, PyObject* args, PyObject* kwargs);
-	static Py_ssize_t len(CorpusObject* self);
-	static PyObject* getitem(CorpusObject* self, PyObject* idx);
+	CorpusObject();
+	
+	using _InitArgs = std::tuple<PyObject*, PyObject*>;
+	CorpusObject(PyObject* vocabCls, PyObject* dep);
+	~CorpusObject();
 
-	static PyObject* iter(CorpusObject* self);
+	py::UniqueObj getstate() const;
+	void setstate(PyObject* dict);
+	size_t addDoc(PyObject* words, PyObject* raw, PyObject* userData, PyObject* additionalKwargs);
+	size_t addDocs(PyObject* tokenizedIter, PyObject* rawIter, PyObject* metadataIter);
+	py::UniqueObj extractNgrams(size_t minCf = 10, size_t minDf = 5, size_t maxLen = 5, size_t maxCand = 5000,
+		float minScore = -INFINITY, bool normalized = false, size_t workers = 1) const;
+	size_t concatNgrams(PyObject* cands, const std::string& delimiter = "_");
+	size_t len() const;
+	py::UniqueObj getitem(PyObject* idx) const;
+
+	py::UniqueCObj<CorpusIterObject> iter();
 
 	const tomoto::Dictionary& getVocabDict() const;
 };
 
-struct CorpusIterObject
+struct CorpusIterObject : public py::CObject<CorpusIterObject>
 {
-	PyObject_HEAD;
-	CorpusObject* corpus;
-	size_t idx;
-	static int init(CorpusIterObject* self, PyObject* args, PyObject* kwargs);
-	static void dealloc(CorpusIterObject* self);
+	py::UniqueCObj<CorpusObject> corpus;
+	size_t idx = 0;
 
-	static CorpusIterObject* iter(CorpusIterObject* self);
-	static PyObject* iternext(CorpusIterObject* self);
+	CorpusIterObject() = default;
+	~CorpusIterObject() = default;
+
+	py::UniqueCObj<CorpusIterObject> iter();
+	py::UniqueCObj<DocumentObject> iternext();
 };
 
 class DocWordIterator
@@ -153,58 +153,122 @@ public:
 DocWordIterator wordBegin(const tomoto::RawDocKernel* doc, bool independent);
 DocWordIterator wordEnd(const tomoto::RawDocKernel* doc, bool independent);
 
-struct DocumentObject
+struct DocumentObject : py::CObject<DocumentObject>
 {
-	PyObject_HEAD;
-	const tomoto::RawDocKernel* doc;
-	CorpusObject* corpus;
-	bool owner;
-	bool initialized;
+	const tomoto::RawDocKernel* doc = nullptr;
+	py::UniqueCObj<CorpusObject> corpus;
+	bool owner = false;
+	bool initialized = false;
 
 	inline const tomoto::RawDoc* getRawDoc() const { return (const tomoto::RawDoc*)doc; }
 	inline const tomoto::DocumentBase* getBoundDoc() const { return (const tomoto::DocumentBase*)doc; }
 
-	static int init(DocumentObject* self, PyObject* args, PyObject* kwargs);
-	static void dealloc(DocumentObject* self);
+	DocumentObject() = default;
 
-	static Py_ssize_t len(DocumentObject* self);
-	static PyObject* repr(DocumentObject* self);
-	static PyObject* getitem(DocumentObject* self, Py_ssize_t idx); // access to words
-	static PyObject* getWords(DocumentObject* self, void* closure); // access to word ids
-	static PyObject* getRaw(DocumentObject* self, void* closure);
-	static PyObject* getSpan(DocumentObject* self, void* closure);
-	static PyObject* getWeight(DocumentObject* self, void* closure);
-	static PyObject* getUid(DocumentObject* self, void* closure);
+	using _InitArgs = std::tuple<PyObject*>;
+	DocumentObject(PyObject* corpus);
+	~DocumentObject();
 
-	static PyObject* getattro(DocumentObject* self, PyObject* attr);
+	size_t len() const;
+	std::string repr() const;
+	std::optional<std::string_view> getitem(size_t idx) const; // access to words
+	py::UniqueObj getAllWords() const; // access to word ids
+	const tomoto::SharedString& getRaw() const;
+	py::UniqueObj getSpan() const;
+	tomoto::Float getWeight() const;
+	const tomoto::SharedString& getUid() const;
+
+	py::UniqueObj getattro(PyObject* attr) const;
+
+	std::vector<std::pair<tomoto::Tid, tomoto::Float>> getTopics(size_t topN, bool fromPseudoDoc = false) const;
+	std::vector<float> getTopicDist(bool normalize = true, bool fromPseudoDoc = false) const;
+	std::vector<std::pair<std::string, tomoto::Float>> getWords(size_t topN) const;
+	py::UniqueObj getZ() const;
+	std::string_view getMetadata() const;
+	double getLL() const;
+
+	// for LDAModel
+	py::UniqueObj getZFromLDA() const;
+	std::vector<float> getCountVector() const;
+
+	// for DMRModel
+	std::optional<std::string_view> getMetadataFromDMR() const;
+	py::UniqueObj getMultiMetadata() const;
+
+	// for GDMRModel
+	std::optional<std::vector<float>> getNumericMetadata() const;
+
+	// for PAModel
+	py::UniqueObj getZ2() const;
+	std::vector<std::pair<tomoto::Tid, tomoto::Float>> getSubTopics(size_t topN = 10) const;
+	std::vector<float> getSubTopicDist(bool normalize = true) const;
+
+	// for MGLDAModel
+	py::UniqueObj getWindows() const;
+
+	// for CTModel
+	py::UniqueObj getBeta() const;
+
+	// for HDPModel
+	py::UniqueObj getZFromHDP() const;
+
+	// for HLDAModel
+	py::UniqueObj getZFromHLDA() const;
+	std::vector<int32_t> getPath() const;
+
+	// for SLDAModel
+	py::UniqueObj getY() const;
+
+	// for LLDAModel
+	py::UniqueObj getLabels() const;
+
+	// for DTModel
+	py::UniqueObj getEta() const;
+	size_t getTimepoint() const;
+
+	// for PTModel
+	size_t getPseudoDocId() const;
+	std::vector<std::pair<tomoto::Tid, tomoto::Float>> getTopicsFromPseudoDoc(size_t topN) const;
+	std::vector<float> getTopicDistFromPseudoDoc(bool normalize = true) const;
 };
 
-struct PhraserObject
+inline PyTypeObject* getDocumentCls()
 {
-	PyObject_HEAD;
+	thread_local PyTypeObject* documentCls = nullptr;
+	if (!documentCls)
+	{
+		documentCls = (PyTypeObject*)py::importFrom("tomotopy.utils", "Document").get();
+	}
+	return documentCls;
+}
+
+struct PhraserObject : public py::CObject<PhraserObject>
+{
+	using TrieNode = tomoto::Trie<tomoto::Vid, size_t, tomoto::ConstAccess<tomoto::phraser::map<tomoto::Vid, int32_t>>>;
 
 	tomoto::Dictionary vocabs;
-	using TrieNode = tomoto::Trie<tomoto::Vid, size_t, tomoto::ConstAccess<tomoto::phraser::map<tomoto::Vid, int32_t>>>;
 	std::vector<TrieNode> trie_nodes;
 	std::vector<std::pair<std::string, size_t>> cand_info;
 
-	static PhraserObject* _new(PyTypeObject* subtype, PyObject* args, PyObject* kwargs);
-	static int init(PhraserObject* self, PyObject* args, PyObject* kwargs);
-	static void dealloc(PhraserObject* self);
-	static PyObject* repr(PhraserObject* self);
-	static PyObject* call(PhraserObject* self, PyObject* args, PyObject* kwargs);
-	static PyObject* save(PhraserObject* self, PyObject* args, PyObject* kwargs);
-	static PyObject* load(PhraserObject*, PyObject* args, PyObject* kwargs);
-	static PyObject* findall(PhraserObject* self, PyObject* args, PyObject* kwargs);
+	PhraserObject();
+	using _InitArgs = std::tuple <PyObject*, std::string>;
+	PhraserObject(PyObject* candidates, const std::string& delimiter);
+	~PhraserObject() = default;
+
+	std::string repr() const;
+	py::UniqueObj call(PyObject* words) const;
+	py::UniqueObj findall(PyObject* words) const;
+	void save(const std::string& path) const;
+	static py::UniqueCObj<PhraserObject> load(PyObject* cls, const std::string& path);
 };
 
-void addUtilsTypes(PyObject* gModule);
+void addUtilsTypes(py::Module& module);
 
 template<
 	template<tomoto::TermWeight tw> class DocTy, 
 	typename Fn
 >
-PyObject* docVisit(tomoto::DocumentBase* doc, Fn&& visitor)
+auto docVisit(tomoto::DocumentBase* doc, Fn&& visitor) -> decltype(visitor(static_cast<DocTy<tomoto::TermWeight::one>*>(doc)))
 {
 	if (auto* d = dynamic_cast<DocTy<tomoto::TermWeight::one>*>(doc))
 	{
@@ -220,15 +284,14 @@ PyObject* docVisit(tomoto::DocumentBase* doc, Fn&& visitor)
 	{
 		return visitor(d);
 	}
-
-	return nullptr;
+	return {};
 }
 
 template<
 	template<tomoto::TermWeight tw> class DocTy,
 	typename Fn
 >
-PyObject* docVisit(const tomoto::DocumentBase* doc, Fn&& visitor)
+auto docVisit(const tomoto::DocumentBase* doc, Fn&& visitor) -> decltype(visitor(static_cast<const DocTy<tomoto::TermWeight::one>*>(doc)))
 {
 	if (auto* d = dynamic_cast<const DocTy<tomoto::TermWeight::one>*>(doc))
 	{
@@ -245,111 +308,26 @@ PyObject* docVisit(const tomoto::DocumentBase* doc, Fn&& visitor)
 		return visitor(d);
 	}
 
-	return nullptr;
-}
-
-#define DEFINE_DOCUMENT_GETTER_PROTOTYPE(NAME) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure);
-
-#define DEFINE_DOCUMENT_GETTER(DOCTYPE, NAME, FIELD) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure)\
-{\
-	return py::handleExc([&]()\
-	{\
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
-		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
-		if (auto* ret = docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
-		{\
-			return py::buildPyValue(doc->FIELD);\
-		})) return ret;\
-		throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
-	});\
-}
-
-#define DEFINE_DOCUMENT_GETTER_WITHOUT_EXC(DOCTYPE, NAME, FIELD) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure)\
-{\
-	return py::handleExc([&]()\
-	{\
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
-		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
-		return docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
-		{\
-			return py::buildPyValue(doc->FIELD);\
-		});\
-	});\
-}
-
-#define DEFINE_DOCUMENT_GETTER_REORDER(DOCTYPE, NAME, FIELD) \
-PyObject* Document_##NAME(DocumentObject* self, void* closure)\
-{\
-	return py::handleExc([&]()\
-	{\
-		if (self->corpus->isIndependent()) throw py::AttributeError{ "doc has no `" #FIELD "` field!" };\
-		if (!self->doc) throw py::RuntimeError{ "doc is null!" };\
-		if (auto* ret = docVisit<DOCTYPE>(self->getBoundDoc(), [](auto* doc)\
-		{\
-			return buildPyValueReorder(doc->FIELD, doc->wOrder);\
-		})) return ret;\
-		throw py::AttributeError{ "doc has no `" #FIELD "` field!" }; \
-	});\
+	return {};
 }
 
 namespace py
 {
 	template<typename _Ty>
-	PyObject* buildPyValue(const tomoto::tvector<_Ty>& v)
+	py::UniqueObj buildPyValue(const tomoto::tvector<_Ty>& v)
 	{
-		auto ret = PyList_New(v.size());
+		auto ret = py::UniqueObj{ PyList_New(v.size()) };
 		size_t id = 0;
 		for (auto& e : v)
 		{
-			PyList_SetItem(ret, id++, buildPyValue(e));
+			PyList_SetItem(ret.get(), id++, buildPyValue(e).release());
 		}
 		return ret;
 	}
 }
 
-PyObject* Document_LDA_Z(DocumentObject* self, void* closure);
-
-PyObject* Document_HDP_Z(DocumentObject* self, void* closure);
-
-PyObject* Document_HLDA_Z(DocumentObject* self, void* closure);
-
-PyObject* Document_DMR_metadata(DocumentObject* self, void* closure);
-PyObject* Document_DMR_multiMetadata(DocumentObject* self, void* closure);
-
-PyObject* Document_numericMetadata(DocumentObject* self, void* closure);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(windows);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(Z2);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(path);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(beta);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(y);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(labels);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(eta);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(timepoint);
-
-DEFINE_DOCUMENT_GETTER_PROTOTYPE(pseudo_doc_id);
-
-PyObject* Document_getSubTopics(DocumentObject* self, PyObject* args, PyObject* kwargs);
-PyObject* Document_getSubTopicDist(DocumentObject* self, PyObject* args, PyObject* kwargs);
-
-PyObject* Document_getCountVector(DocumentObject* self);
-
-PyObject* Document_getTopicsFromPseudoDoc(DocumentObject* self, size_t topN);
-PyObject* Document_getTopicDistFromPseudoDoc(DocumentObject* self, bool normalize);
-
-
 template<typename _Target, typename _Order>
-PyObject* buildPyValueReorder(const _Target& target, const _Order& order)
+py::UniqueObj buildPyValueReorder(const _Target& target, const _Order& order)
 {
 	if (order.empty())
 	{
@@ -366,7 +344,7 @@ PyObject* buildPyValueReorder(const _Target& target, const _Order& order)
 }
 
 template<typename _Target, typename _Order, typename _Tx>
-PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& transformer)
+py::UniqueObj buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& transformer)
 {
 	if (order.empty())
 	{
@@ -381,6 +359,3 @@ PyObject* buildPyValueReorder(const _Target& target, const _Order& order, _Tx&& 
 		});
 	}
 }
-
-std::vector<size_t> insertCorpus(TopicModelObject* self, PyObject* corpus, PyObject* transform);
-CorpusObject* makeCorpus(TopicModelObject* self, PyObject* _corpus, PyObject* transform);

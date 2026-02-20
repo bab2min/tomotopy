@@ -1,5 +1,6 @@
 #pragma once
 
+#define USE_NUMPY
 #ifdef _DEBUG
 //#undef _DEBUG
 #define DEBUG_LOG(t) do{ cerr << t << endl; }while(0)
@@ -56,16 +57,15 @@ public:
 	}
 };
 
-struct CandidateObject
+struct LDAModelObject;
+
+struct CandidateObject : public py::CObject<CandidateObject>
 {
-	PyObject_HEAD;
-	TopicModelObject* tm;
-	CorpusObject* corpus;
+	py::UniquePObj<LDAModelObject> tm;
+	py::UniqueCObj<CorpusObject> corpus;
 	tomoto::label::Candidate cand;
 
-	static int init(CandidateObject* self, PyObject* args, PyObject* kwargs);
-	static void dealloc(CandidateObject* self);
-	static PyObject* repr(CandidateObject* self);
+	std::string repr() const;
 
 	CandWordIterator begin() const
 	{
@@ -76,8 +76,13 @@ struct CandidateObject
 	{
 		return { this, cand.w.size() };
 	}
+
+	py::UniqueObj getWords() const;
+	std::string getName() const;
+	void setName(const std::string& val);
+	float getScore() const;
+	size_t getCf() const;
+	size_t getDf() const;
 };
 
-extern PyTypeObject Candidate_type;
-
-void addLabelTypes(PyObject* mModule);
+void addLabelTypes(py::Module& module);

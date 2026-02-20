@@ -33,7 +33,7 @@ namespace tomoto
 		};
 
 		using DefaultDocType = DocumentSLDA<TermWeight::one>;
-		static ISLDAModel* create(TermWeight _weight, const SLDAArgs& args,
+		static std::unique_ptr<ISLDAModel> create(TermWeight _weight, const SLDAArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getF() const = 0;

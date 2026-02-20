@@ -43,7 +43,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentMGLDA<TermWeight::one>;
-		static IMGLDAModel* create(TermWeight _weight, const MGLDAArgs& args,
+		static std::unique_ptr<IMGLDAModel> create(TermWeight _weight, const MGLDAArgs& args,
 			bool scalarRng = false);
 
 		virtual size_t getKL() const = 0;

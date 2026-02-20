@@ -56,6 +56,47 @@ namespace Eigen
 	}
 }
 #endif
+#ifdef EIGEN_VECTORIZE_AVX512
+#include <immintrin.h>
+#include "avx512_gamma.h"
+
+namespace Eigen
+{
+	namespace internal
+	{
+		template<> struct to_int_packet<Packet16f>
+		{
+			typedef Packet16i type;
+		};
+
+		template<> struct to_float_packet<Packet16i>
+		{
+			typedef Packet16f type;
+		};
+
+		EIGEN_STRONG_INLINE Packet16f p_to_f32(const Packet16i& a)
+		{
+			return _mm512_cvtepi32_ps(a);
+		}
+
+		EIGEN_STRONG_INLINE Packet16f p_bool2float(const Packet16f& a)
+		{
+			__mmask16 mask = _mm512_cmp_ps_mask(a, _mm512_setzero_ps(), _CMP_NEQ_OQ);
+			return _mm512_maskz_mov_ps(mask, _mm512_set1_ps(1.f));
+		}
+
+		EIGEN_STRONG_INLINE Packet16f p_bool2float(const Packet16i& a)
+		{
+			return p_bool2float(_mm512_castsi512_ps(a));
+		}
+	}
+}
+
+inline __m512 lgamma_subt(__m512 z, __m512 a)
+{
+	return lgamma512_subt(z, a);
+}
+#endif
 #ifdef EIGEN_VECTORIZE_SSE2
 #include <xmmintrin.h>
 #include "sse_gamma.h"

@@ -70,7 +70,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentHDP<TermWeight::one>;
-		static IHDPModel* create(TermWeight _weight, const HDPArgs& args,
+		static std::unique_ptr<IHDPModel> create(TermWeight _weight, const HDPArgs& args,
 			bool scalarRng = false);
 
 		virtual Float getGamma() const = 0;

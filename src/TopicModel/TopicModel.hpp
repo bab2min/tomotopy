@@ -1,6 +1,7 @@
 #pragma once
 #include <numeric>
 #include <unordered_set>
+#include <variant>
 #include "../Utils/Utils.hpp"
 #include "../Utils/Dictionary.h"
 #include "../Utils/tvector.hpp"
@@ -9,7 +10,6 @@
 #include "../Utils/exception.h"
 #include "../Utils/SharedString.h"
 #include <EigenRand/EigenRand>
-#include <mapbox/variant.hpp>
 
 namespace tomoto
 {
@@ -38,7 +38,7 @@ namespace tomoto
 
 	struct RawDoc : public RawDocKernel
 	{
-		using Var = mapbox::util::variant<
+		using Var = std::variant<
 			std::string, uint32_t, Float,
 			std::vector<std::string>, std::vector<uint32_t>, std::vector<Float>,
 			std::shared_ptr<void>
@@ -63,8 +63,8 @@ namespace tomoto
 		{
 			auto it = misc.find(name);
 			if (it == misc.end()) throw exc::InvalidArgument{ "There is no value named `" + name + "` in misc data" };
-			if (!it->second.template is<_Ty>()) throw exc::InvalidArgument{ "Value named `" + name + "` is not in right type." };
-			return it->second.template get<_Ty>();
+			if (!std::holds_alternative<_Ty>(it->second)) throw exc::InvalidArgument{ "Value named `" + name + "` is not in right type." };
+			return std::get<_Ty>(it->second);
 		}
 
 		template<typename _Ty>
@@ -72,8 +72,8 @@ namespace tomoto
 		{
 			auto it = misc.find(name);
 			if (it == misc.end()) return {};
-			if (!it->second.template is<_Ty>()) throw exc::InvalidArgument{ "Value named `" + name + "` is not in right type." };
-			return it->second.template get<_Ty>();
+			if (!std::holds_alternative<_Ty>(it->second)) throw exc::InvalidArgument{ "Value named `" + name + "` is not in right type." };
+			return std::get<_Ty>(it->second);
 		}
 	};
 

@@ -32,7 +32,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentDMR<TermWeight::one>;
-		static IDMRModel* create(TermWeight _weight, const DMRArgs& args,
+		static std::unique_ptr<IDMRModel> create(TermWeight _weight, const DMRArgs& args,
 			bool scalarRng = false);
 
 		virtual void setAlphaEps(Float _alphaEps) = 0;

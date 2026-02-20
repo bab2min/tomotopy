@@ -7,7 +7,7 @@ namespace tomoto
 
 	TMT_INSTANTIATE_DOC(DocumentDTM);
 
-	IDTModel* IDTModel::create(TermWeight _weight, const DTArgs& args, bool scalarRng)
+	std::unique_ptr<IDTModel> IDTModel::create(TermWeight _weight, const DTArgs& args, bool scalarRng)
 	{
 		TMT_SWITCH_TW(_weight, scalarRng, DTModel, args);
 	}

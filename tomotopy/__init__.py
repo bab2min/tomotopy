@@ -63,25 +63,43 @@ class ParallelScheme(IntEnum):
     > * Yan, F., Xu, N., & Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
     """
 
-isa = ''
+import tomotopy.models as models
+
+try:
+    from _tomotopy import isa
+except ImportError:
+    isa = ''
 """
 Indicate which SIMD instruction set is used for acceleration.
-It can be one of `'avx2'`, `'avx'`, `'sse2'` and `'none'`.
+It can be one of `'avx512'`, `'avx2'`, `'avx'`, `'sse2'` and `'none'`.
 """
-
-from _tomotopy import *
-
 import tomotopy.utils as utils
 import tomotopy.coherence as coherence
 import tomotopy.label as label
 import tomotopy.viewer as viewer
 
+from tomotopy.models import (
+    LDAModel,
+    DMRModel,
+    GDMRModel,
+    HDPModel,
+    MGLDAModel,
+    PAModel,
+    HPAModel,
+    CTModel,
+    SLDAModel,
+    LLDAModel,
+    PLDAModel,
+    HLDAModel,
+    DTModel,
+    PTModel,
+)
+
 def _get_all_model_types():
-    import _tomotopy
     types = []
-    for name in dir(_tomotopy):
+    for name in dir(models):
         if name.endswith('Model') and not name.startswith('_'):
-            types.append(getattr(_tomotopy, name))
+            types.append(getattr(models, name))
     return types
 
 def load_model(path:str):

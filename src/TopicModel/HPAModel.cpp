@@ -7,7 +7,7 @@ namespace tomoto
 
 	TMT_INSTANTIATE_DOC(DocumentHPA);
 
-    IHPAModel* IHPAModel::create(TermWeight _weight, bool _exclusive, const HPAArgs& args, bool scalarRng)
+	std::unique_ptr<IHPAModel> IHPAModel::create(TermWeight _weight, bool _exclusive, const HPAArgs& args, bool scalarRng)
 	{
 		if (_exclusive)
 		{

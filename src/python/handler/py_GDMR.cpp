@@ -5,7 +5,7 @@
 
 using namespace std;
 
-tomoto::RawDoc::MiscType GDMR_misc_args(TopicModelObject* self, const tomoto::RawDoc::MiscType& o)
+tomoto::RawDoc::MiscType GDMRModelObject::convertMisc(const tomoto::RawDoc::MiscType& o) const
 {
 	tomoto::RawDoc::MiscType ret;
 	ret["metadata"] = getValueFromMiscDefault<string>("metadata", o, 
@@ -17,339 +17,281 @@ tomoto::RawDoc::MiscType GDMR_misc_args(TopicModelObject* self, const tomoto::Ra
 	return ret;
 }
 
-static int GDMR_init(TopicModelObject *self, PyObject *args, PyObject *kwargs)
+GDMRModelObject::GDMRModelObject(size_t tw, size_t minCnt, size_t minDf, size_t rmTop,
+	size_t k, PyObject* degrees, PyObject* alpha, float eta, float sigma, float sigma0, float alphaEps,
+	float orderDecay, PyObject* range,
+	PyObject* seed, PyObject* corpus, PyObject* transform)
 {
-	size_t tw = 0, minCnt = 0, minDf = 0, rmTop = 0;
 	tomoto::GDMRArgs margs;
-	PyObject* objCorpus = nullptr, *objTransform = nullptr, 
-		*objDegrees = nullptr, *objRange = nullptr;
-	PyObject* objAlpha = nullptr, *objSeed = nullptr;
-	static const char* kwlist[] = { "tw", "min_cf", "min_df", "rm_top", "k", 
-		"degrees", "alpha", "eta", "sigma", "sigma0", "alpha_epsilon", 
-		"decay", "metadata_range", "seed", "corpus", "transform", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|nnnnnOOfffffOOOO", (char**)kwlist, 
-		&tw, &minCnt, &minDf, &rmTop, &margs.k, 
-		&objDegrees, &objAlpha, &margs.eta, &margs.sigma, &margs.sigma0, &margs.alphaEps, 
-		&margs.orderDecay, &objRange, &objSeed, &objCorpus, &objTransform)) return -1;
-	return py::handleExc([&]()
+	margs.k = k;
+	if (alpha) margs.alpha = broadcastObj<tomoto::Float>(alpha, margs.k,
+		[&]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(alpha) + ")"; }
+	);
+	margs.eta = eta;
+	margs.sigma = sigma;
+	margs.sigma0 = sigma0;
+	margs.alphaEps = alphaEps;
+	margs.orderDecay = orderDecay;
+	if (seed && seed != Py_None && !py::toCpp<size_t>(seed, margs.seed))
 	{
-		if (objAlpha) margs.alpha = broadcastObj<tomoto::Float>(objAlpha, margs.k,
-			[=]() { return "`alpha` must be an instance of `float` or `List[float]` with length `k` (given " + py::repr(objAlpha) + ")"; }
-		);
-		if (objSeed) margs.seed = py::toCpp<size_t>(objSeed, "`seed` must be an integer or None.");
+		throw py::ValueError{ "`seed` must be an integer or None." };
+	}
 
-		if (objDegrees)
+	if (degrees && degrees != Py_None && !py::toCpp<vector<uint64_t>>(degrees, margs.degrees))
+	{
+		throw py::ValueError{ "`degrees` must be an iterable of int." };
+	}
+
+	auto inst = tomoto::IGDMRModel::create((tomoto::TermWeight)tw, margs);
+	if (!inst) throw py::ValueError{ "unknown `tw` value" };
+	this->inst = std::move(inst);
+	this->isPrepared = false;
+	this->seedGiven = !!seed;
+	this->minWordCnt = minCnt;
+	this->minWordDf = minDf;
+	this->removeTopWord = rmTop;
+	
+	if (range && range != Py_None)
+	{
+		vector<tomoto::Float> vMin, vMax;
+		py::UniqueObj rangeIter{ PyObject_GetIter(range) }, item;
+		if (!rangeIter) throw py::ValueError{ "`metadata_range` must be a list of pairs." };
+		while (item = py::UniqueObj{ PyIter_Next(rangeIter.get()) })
 		{
-			margs.degrees = py::toCpp<vector<uint64_t>>(objDegrees, "`degrees` must be an iterable of int.");
-		}
-
-		tomoto::IGDMRModel* inst = tomoto::IGDMRModel::create((tomoto::TermWeight)tw, margs);
-		if (!inst) throw py::ValueError{ "unknown `tw` value" };
-		self->inst = inst;
-		self->isPrepared = false;
-		self->seedGiven = !!objSeed;
-		self->minWordCnt = minCnt;
-		self->minWordDf = minDf;
-		self->removeTopWord = rmTop;
-		self->initParams = py::buildPyDict(kwlist,
-			tw, minCnt, minDf, rmTop,
-			margs.k, margs.degrees, margs.alpha, margs.eta, margs.sigma, margs.sigma0, margs.alphaEps,
-			margs.orderDecay
-		);
-		py::setPyDictItem(self->initParams, "version", getVersion());
-
-		if (objRange && objRange != Py_None)
-		{
-			vector<tomoto::Float> vMin, vMax;
-			py::UniqueObj rangeIter{ PyObject_GetIter(objRange) }, item;
-			if (!rangeIter) throw py::ValueError{ "`metadata_range` must be a list of pairs." };
-			while (item = py::UniqueObj{ PyIter_Next(rangeIter) })
+			vector<tomoto::Float> r;
+			if (!py::toCpp(item.get(), r))
 			{
-				auto r = py::toCpp<vector<tomoto::Float>>(item, "`metadata_range` must be a list of pairs.");
-				if (r.size() != 2) throw py::ValueError{ "`metadata_range` must be a list of pairs." };
-				vMin.emplace_back(r[0]);
-				vMax.emplace_back(r[1]);
+				throw py::ValueError{ "`metadata_range` must be a list of pairs." };
 			}
-			if (vMin.size() != margs.degrees.size()) throw py::ValueError{ "`len(metadata_range)` must be equal to `len(degrees)`" };
-
-			inst->setMdRange(vMin, vMax);
+			if (r.size() != 2) throw py::ValueError{ "`metadata_range` must be a list of pairs." };
+			vMin.emplace_back(r[0]);
+			vMax.emplace_back(r[1]);
 		}
+		if (vMin.size() != margs.degrees.size()) throw py::ValueError{ "`len(metadata_range)` must be equal to `len(degrees)`" };
 
-		insertCorpus(self, objCorpus, objTransform);
-		return 0;
-	});
+		inst->setMdRange(vMin, vMax);
+	}
+
+	insertCorpus(corpus, transform);
 }
 
-static PyObject* GDMR_addDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
+std::optional<size_t> GDMRModelObject::addDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata, bool ignoreEmptyWords)
 {
-	PyObject* argWords, *argNumMetadata = nullptr;
-	const char* metadata = nullptr;
-	size_t ignoreEmptyWords = 1;
-	static const char* kwlist[] = { "words", "numeric_metadata", "metadata", "ignore_empty_words", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Ozp", (char**)kwlist, &argWords, &argNumMetadata, &metadata, &ignoreEmptyWords)) return nullptr;
-	return py::handleExc([&]() -> PyObject*
+	if (isPrepared) throw py::RuntimeError{ "cannot add_doc() after train()" };
+	auto* inst = getInst<tomoto::IGDMRModel>();
+	if (PyUnicode_Check(words))
 	{
-		if (!self->inst) throw py::RuntimeError{ "inst is null" };
-		if (self->isPrepared) throw py::RuntimeError{ "cannot add_doc() after train()" };
-		auto* inst = static_cast<tomoto::IGDMRModel*>(self->inst);
-		if (PyUnicode_Check(argWords))
-		{
-			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
-		}
+		if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) throw py::ExcPropagation{};
+	}
 
-		if (!metadata) metadata = "";
-
-		tomoto::RawDoc raw = buildRawDoc(argWords);
-		raw.misc["metadata"] = metadata;
-
-		auto nmd = py::toCpp<vector<tomoto::Float>>(argNumMetadata, "`numeric_metadata` must be an iterable of float.");
-		for (auto x : nmd)
-		{
-			if (!isfinite(x)) throw py::ValueError{ "`numeric_metadata` has non-finite value (" + py::reprFromCpp(nmd) + ")." };
-		}
-		raw.misc["numeric_metadata"] = move(nmd);
-		try
-		{
-			auto ret = inst->addDoc(raw);
-			return py::buildPyValue(ret);
-		}
-		catch (const tomoto::exc::EmptyWordArgument&)
-		{
-			if (ignoreEmptyWords)
-			{
-				Py_INCREF(Py_None);
-				return Py_None;
-			}
-			else
-			{
-				throw;
-			}
-		}
-	});
-}
-
-static DocumentObject* GDMR_makeDoc(TopicModelObject* self, PyObject* args, PyObject *kwargs)
-{
-	PyObject* argWords, * argNumMetadata = nullptr;
-	const char* metadata = "";
-	static const char* kwlist[] = { "words", "numeric_metadata", "metadata", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Oz", (char**)kwlist, &argWords, &argNumMetadata, &metadata)) return nullptr;
-	return py::handleExc([&]() -> DocumentObject*
+	tomoto::RawDoc raw = buildRawDoc(words);
+	raw.misc["metadata"] = metadata;
+	if (multiMetadata)
 	{
-		if (!self->inst) throw py::RuntimeError{ "inst is null" };
-		if (!self->isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
-		auto* inst = static_cast<tomoto::IDMRModel*>(self->inst);
-		if (PyUnicode_Check(argWords))
+		vector<string> multiMetadataValue;
+		if (!py::toCpp<vector<string>>(multiMetadata, multiMetadataValue))
 		{
-			if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) return nullptr;
+			throw py::ValueError{
+				"`multi_metadata` must be an instance of `List[str]` (but given " + py::repr(multiMetadata) + ")"
+			};
 		}
-
-		if (!metadata) metadata = "";
-
-		tomoto::RawDoc raw = buildRawDoc(argWords);
-		raw.misc["metadata"] = metadata;
-
-		auto nmd = py::toCpp<vector<tomoto::Float>>(argNumMetadata, "`numeric_metadata` must be an iterable of float.");
-		for (auto x : nmd)
-		{
-			if (!isfinite(x)) throw py::ValueError{ "`numeric_metadata` has non-finite value (" + py::reprFromCpp(nmd) + ")." };
-		}
-		raw.misc["numeric_metadata"] = move(nmd);
-
-		auto doc = inst->makeDoc(raw);
-		py::UniqueObj corpus{ PyObject_CallFunctionObjArgs((PyObject*)&UtilsCorpus_type, (PyObject*)self, nullptr) };
-		auto* ret = (DocumentObject*)PyObject_CallFunctionObjArgs((PyObject*)&UtilsDocument_type, corpus.get(), nullptr);
-		ret->doc = doc.release();
-		ret->owner = true;
-		return ret;
-	});
-}
-
-static PyObject* GDMR_tdf(TopicModelObject* self, PyObject* args, PyObject *kwargs)
-{
-	PyObject *argNumMetadata = nullptr;
-	PyObject* multiMetadata = nullptr;
-	const char* metadata = "";
-	int normalize = 1;
-	static const char* kwlist[] = { "numeric_metadata", "metadata", "multi_metadata", "normalize", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|zOp", (char**)kwlist, &argNumMetadata, &metadata, &multiMetadata, &normalize)) return nullptr;
-	return py::handleExc([&]() -> PyObject*
+		raw.misc["multi_metadata"] = move(multiMetadataValue);
+	}
+	vector<tomoto::Float> nmd;
+	if (!py::toCpp(numericMetadata, nmd)) 
 	{
-		if (!self->inst) throw py::RuntimeError{ "inst is null" };
-		auto* inst = static_cast<tomoto::IGDMRModel*>(self->inst);
-
-		auto v = py::toCpp<vector<tomoto::Float>>(argNumMetadata, "`numeric_metadata` must be an iterable of float.");
-		if (v.size() != inst->getFs().size()) throw py::ValueError{ "`len(numeric_metadata)` must be equal to `len(degree).`" };
-		
-		try
-		{
-			return py::buildPyValue(inst->getTDF(v.data(), metadata, {}, !!normalize));
-		}
-		catch (const tomoto::exc::InvalidArgument& e)
-		{
-			throw py::ValueError{ e.what() };
-		}
-	});
-}
-
-static PyObject* GDMR_tdfLinspace(TopicModelObject* self, PyObject* args, PyObject *kwargs)
-{
-	PyObject *argMetadataStart = nullptr, *argMetadataStop = nullptr, *argNum = nullptr;
-	PyObject* multiMetadata = nullptr;
-	const char* metadata = "";
-	size_t endpoint = 1, normalize = 1;
-	static const char* kwlist[] = { "numeric_metadata_start", "numeric_metadata_stop", "num", "metadata", "multi_metadata", "endpoint", "normalize", nullptr };
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOO|zOpp", (char**)kwlist, 
-		&argMetadataStart, &argMetadataStop, &argNum, &metadata, &multiMetadata, &endpoint, &normalize)) return nullptr;
-	return py::handleExc([&]() -> PyObject*
+		throw py::ValueError{
+			"`numeric_metadata` must be an iterable of float (but given " + py::repr(numericMetadata) + ")"
+		};
+	}
+	for (auto x : nmd)
 	{
-		if (!self->inst) throw py::RuntimeError{ "inst is null" };
-		auto* inst = static_cast<tomoto::IGDMRModel*>(self->inst);
-		auto start = py::toCpp<vector<tomoto::Float>>(argMetadataStart, "`metadata_start` must be an iterable of float.");
-		if (start.size() != inst->getFs().size()) throw py::ValueError{ "`len(metadata_start)` must be equal to `len(degree).`" };
-
-		auto stop = py::toCpp<vector<tomoto::Float>>(argMetadataStop, "`metadata_stop` must be an iterable of float.");
-		if (stop.size() != inst->getFs().size()) throw py::ValueError{ "`len(metadata_stop)` must be equal to `len(degree).`" };
-
-		auto num = py::toCpp<vector<npy_intp>>(argNum, "`num` must be an iterable of float.");
-		if (num.size() != inst->getFs().size()) throw py::ValueError{ "`len(num)` must be equal to `len(degree).`" };
-
-		std::ptrdiff_t tot = 1;
-		for (auto& v : num)
-		{
-			if (v <= 0) v = 1;
-			tot *= v;
-		}
-
-		Eigen::MatrixXf mds{ (Eigen::Index)num.size(), (Eigen::Index)tot };
-		vector<npy_intp> idcs(num.size());
-		for (size_t i = 0; i < tot; ++i)
-		{
-			for (size_t j = 0; j < num.size(); ++j)
-			{
-				mds(j, i) = start[j] + (stop[j] - start[j]) * idcs[j] / (endpoint ? max(num[j] - 1, (npy_intp)1) : num[j]);
-			}
-
-			idcs.back()++;
-			for (int j = idcs.size() - 1; j >= 0; --j)
-			{
-				if (idcs[j] >= num[j])
-				{
-					idcs[j] = 0;
-					if (j) idcs[j - 1]++;
-				}
-				else break;
-			}
-		}
-
-		try
-		{
-			py::UniqueObj obj{ py::buildPyValue(inst->getTDFBatch(mds.data(), metadata, {}, num.size(), tot, !!normalize)) };
-			PyArray_Dims dims;
-			num.emplace_back(inst->getK());
-			dims.ptr = num.data();
-			dims.len = num.size();
-			return PyArray_Newshape((PyArrayObject*)obj.get(), &dims, NPY_CORDER);
-		}
-		catch (const tomoto::exc::InvalidArgument& e)
-		{
-			throw py::ValueError{ e.what() };
-		}
-	});
-}
-
-static PyObject* GDMR_getMetadataRange(TopicModelObject* self, void* closure)
-{
-	return py::handleExc([&]()
+		if (!isfinite(x)) throw py::ValueError{ "`numeric_metadata` has non-finite value (" + py::reprFromCpp(nmd) + ")." };
+	}
+	raw.misc["numeric_metadata"] = move(nmd);
+	try
 	{
-		if (!self->inst) throw py::RuntimeError{ "inst is null" };
-		auto* inst = static_cast<tomoto::IGDMRModel*>(self->inst);
-		vector<float> vMin, vMax;
-		inst->getMdRange(vMin, vMax);
-		vector<pair<float, float>> ret;
-		for (size_t i = 0; i < vMin.size(); ++i)
-		{
-			ret.emplace_back(vMin[i], vMax[i]);
-		}
+		auto ret = inst->addDoc(raw);
 		return py::buildPyValue(ret);
-	});
-}
-
-
-static PyObject* GDMR_getTopicPrior(TopicModelObject* self, PyObject* args, PyObject* kwargs)
-{
-	return py::handleExc([&]() -> PyObject*
+	}
+	catch (const tomoto::exc::EmptyWordArgument&)
 	{
-		throw py::RuntimeError{ "GDMRModel doesn't support get_topic_prior(). Use tdf() instead." };
-	});
+		if (ignoreEmptyWords)
+		{
+			return std::nullopt;
+		}
+		else
+		{
+			throw;
+		}
+	}
 }
 
-
-DEFINE_GETTER(tomoto::IGDMRModel, GDMR, getSigma0);
-DEFINE_GETTER(tomoto::IGDMRModel, GDMR, getOrderDecay);
-DEFINE_GETTER(tomoto::IGDMRModel, GDMR, getFs);
-
-DEFINE_DOCUMENT_GETTER(tomoto::DocumentGDMR, numericMetadata, metadataOrg);
-
-DEFINE_LOADER(GDMR, GDMR_type);
-
-static PyMethodDef GDMR_methods[] =
+py::UniqueCObj<DocumentObject> GDMRModelObject::makeDoc(PyObject* words, PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata)
 {
-	{ "add_doc", (PyCFunction)GDMR_addDoc, METH_VARARGS | METH_KEYWORDS, GDMR_add_doc__doc__ },
-	{ "make_doc", (PyCFunction)GDMR_makeDoc, METH_VARARGS | METH_KEYWORDS, GDMR_make_doc__doc__ },
-	{ "load", (PyCFunction)GDMR_load, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_load__doc__ },
-	{ "loads", (PyCFunction)GDMR_loads, METH_STATIC | METH_VARARGS | METH_KEYWORDS, LDA_loads__doc__ },
-	{ "get_topic_prior", (PyCFunction)GDMR_getTopicPrior, METH_VARARGS | METH_KEYWORDS, DMR_get_topic_prior__doc__ },
-	{ "tdf", (PyCFunction)GDMR_tdf, METH_VARARGS | METH_KEYWORDS, GDMR_tdf__doc__ },
-	{ "tdf_linspace", (PyCFunction)GDMR_tdfLinspace, METH_VARARGS | METH_KEYWORDS, GDMR_tdf_linspace__doc__ },
-	{ nullptr }
-};
+	if (!isPrepared) throw py::RuntimeError{ "`train()` should be called before `make_doc()`." };
+	auto* inst = getInst<tomoto::IGDMRModel>();
+	if (PyUnicode_Check(words))
+	{
+		if (PyErr_WarnEx(PyExc_RuntimeWarning, "`words` should be an iterable of str.", 1)) throw py::ExcPropagation{};
+	}
 
-static PyGetSetDef GDMR_getseters[] = {
-	{ (char*)"degrees", (getter)GDMR_getFs, nullptr, GDMR_degrees__doc__, nullptr },
-	{ (char*)"sigma0", (getter)GDMR_getSigma0, nullptr, GDMR_sigma0__doc__, nullptr },
-	{ (char*)"decay", (getter)GDMR_getOrderDecay, nullptr, GDMR_decay__doc__, nullptr },
-	{ (char*)"metadata_range", (getter)GDMR_getMetadataRange, nullptr, GDMR_metadata_range__doc__, nullptr },
-	{ nullptr },
-};
+	tomoto::RawDoc raw = buildRawDoc(words);
+	raw.misc["metadata"] = metadata;
+	if (multiMetadata)
+	{
+		vector<string> multiMetadataValue;
+		if (!py::toCpp<vector<string>>(multiMetadata, multiMetadataValue))
+		{
+			throw py::ValueError{
+				"`multi_metadata` must be an instance of `List[str]` (but given " + py::repr(multiMetadata) + ")"
+			};
+		}
+		raw.misc["multi_metadata"] = move(multiMetadataValue);
+	}
+	vector<tomoto::Float> nmd;
+	if (!py::toCpp(numericMetadata, nmd))
+	{
+		throw py::ValueError{
+			"`numeric_metadata` must be an iterable of float (but given " + py::repr(numericMetadata) + ")"
+		};
+	}
+	for (auto x : nmd)
+	{
+		if (!isfinite(x)) throw py::ValueError{ "`numeric_metadata` has non-finite value (" + py::reprFromCpp(nmd) + ")." };
+	}
+	raw.misc["numeric_metadata"] = move(nmd);
 
-TopicModelTypeObject GDMR_type = { {
-	PyVarObject_HEAD_INIT(nullptr, 0)
-	"tomotopy.GDMRModel",             /* tp_name */
-	sizeof(TopicModelObject), /* tp_basicsize */
-	0,                         /* tp_itemsize */
-	(destructor)TopicModelObject::dealloc, /* tp_dealloc */
-	0,                         /* tp_print */
-	0,                         /* tp_getattr */
-	0,                         /* tp_setattr */
-	0,                         /* tp_reserved */
-	0,                         /* tp_repr */
-	0,                         /* tp_as_number */
-	0,                         /* tp_as_sequence */
-	0,                         /* tp_as_mapping */
-	0,                         /* tp_hash  */
-	0,                         /* tp_call */
-	0,                         /* tp_str */
-	0,                         /* tp_getattro */
-	0,                         /* tp_setattro */
-	0,                         /* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
-	GDMR___init____doc__,           /* tp_doc */
-	0,                         /* tp_traverse */
-	0,                         /* tp_clear */
-	0,                         /* tp_richcompare */
-	0,                         /* tp_weaklistoffset */
-	0,                         /* tp_iter */
-	0,                         /* tp_iternext */
-	GDMR_methods,             /* tp_methods */
-	0,						 /* tp_members */
-	GDMR_getseters,                         /* tp_getset */
-	&DMR_type,                         /* tp_base */
-	0,                         /* tp_dict */
-	0,                         /* tp_descr_get */
-	0,                         /* tp_descr_set */
-	0,                         /* tp_dictoffset */
-	(initproc)GDMR_init,      /* tp_init */
-	PyType_GenericAlloc,
-	PyType_GenericNew,
-}, GDMR_misc_args };
+	auto doc = inst->makeDoc(raw);
+	py::UniqueCObj<CorpusObject> corpus{ (CorpusObject*)PyObject_CallFunctionObjArgs((PyObject*)py::Type<CorpusObject>, Py_None, getObject(), nullptr) };
+	auto ret = py::makeNewObject<DocumentObject>(getDocumentCls());
+	ret->corpus = corpus.copy();
+	ret->doc = doc.release();
+	ret->owner = true;
+	return ret;
+}
+
+std::vector<float> GDMRModelObject::tdf(PyObject* numericMetadata, const std::string& metadata, PyObject* multiMetadata, bool normalize) const
+{
+	auto* inst = getInst<tomoto::IGDMRModel>();
+
+	vector<tomoto::Float> nmd;
+	if (!py::toCpp(numericMetadata, nmd))
+	{
+		throw py::ValueError{
+			"`numeric_metadata` must be an iterable of float (but given " + py::repr(numericMetadata) + ")"
+		};
+	}
+	if (nmd.size() != inst->getFs().size()) throw py::ValueError{ "`len(numeric_metadata)` must be equal to `len(degree).`" };
+		
+	try
+	{
+		return inst->getTDF(nmd.data(), metadata, {}, normalize);
+	}
+	catch (const tomoto::exc::InvalidArgument& e)
+	{
+		throw py::ValueError{ e.what() };
+	}
+}
+
+py::UniqueObj GDMRModelObject::tdfLinspace(PyObject* numericMetadataStart, PyObject* numericMetadataEnd, PyObject* numericMetadataNum, const std::string& metadata, PyObject* multiMetadata, bool endpoint, bool normalize) const
+{
+	auto* inst = getInst<tomoto::IGDMRModel>();
+
+	vector<tomoto::Float> start, stop;
+	if(!py::toCpp(numericMetadataStart, start))
+	{
+		throw py::ValueError{
+			"`metadata_start` must be an iterable of float (but given " + py::repr(numericMetadataStart) + ")"
+		};
+	}
+	if (!py::toCpp(numericMetadataEnd, stop))
+	{
+		throw py::ValueError{
+			"`metadata_stop` must be an iterable of float (but given " + py::repr(numericMetadataEnd) + ")"
+		};
+	}
+
+	vector<std::ptrdiff_t> num;
+	if (!py::toCpp(numericMetadataNum, num))
+	{
+		throw py::ValueError{
+			"`num` must be an iterable of int (but given " + py::repr(numericMetadataNum) + ")"
+		};
+	}
+
+	if (start.size() != inst->getFs().size()) throw py::ValueError{ "`len(metadata_start)` must be equal to `len(degree).`" };
+	if (stop.size() != inst->getFs().size()) throw py::ValueError{ "`len(metadata_stop)` must be equal to `len(degree).`" };
+	if (num.size() != inst->getFs().size()) throw py::ValueError{ "`len(num)` must be equal to `len(degree).`" };
+
+	std::ptrdiff_t tot = 1;
+	for (auto& v : num)
+	{
+		if (v <= 0) v = 1;
+		tot *= v;
+	}
+
+	Eigen::MatrixXf mds{ (Eigen::Index)num.size(), (Eigen::Index)tot };
+	vector<std::ptrdiff_t> idcs(num.size());
+	for (size_t i = 0; i < tot; ++i)
+	{
+		for (size_t j = 0; j < num.size(); ++j)
+		{
+			mds(j, i) = start[j] + (stop[j] - start[j]) * idcs[j] / (endpoint ? max(num[j] - 1, (std::ptrdiff_t)1) : num[j]);
+		}
+
+		idcs.back()++;
+		for (int j = idcs.size() - 1; j >= 0; --j)
+		{
+			if (idcs[j] >= num[j])
+			{
+				idcs[j] = 0;
+				if (j) idcs[j - 1]++;
+			}
+			else break;
+		}
+	}
+
+	try
+	{
+		auto computed = inst->getTDFBatch(mds.data(), metadata, {}, num.size(), tot, normalize);
+		num.emplace_back(inst->getK());
+		float* ptr;
+		auto ret = py::newEmptyArrayFromDim(ptr, num.size(), num.data());
+		memcpy(ptr, computed.data(), sizeof(float) * computed.size());
+		return ret;
+	}
+	catch (const tomoto::exc::InvalidArgument& e)
+	{
+		throw py::ValueError{ e.what() };
+	}
+}
+
+std::vector<std::pair<float, float>> GDMRModelObject::getMetadataRange() const
+{
+	auto* inst = getInst<tomoto::IGDMRModel>();
+	vector<float> vMin, vMax;
+	inst->getMdRange(vMin, vMax);
+	vector<pair<float, float>> ret;
+	for (size_t i = 0; i < vMin.size(); ++i)
+	{
+		ret.emplace_back(vMin[i], vMax[i]);
+	}
+	return ret;
+}
+
+void GDMRModelObject::getTopicPrior() const
+{
+	throw py::RuntimeError{ "GDMRModel doesn't support get_topic_prior(). Use tdf() instead." };
+}
+
+std::optional<std::vector<tomoto::Float>> DocumentObject::getNumericMetadata() const
+{
+	if (corpus->isIndependent()) throw py::AttributeError{ "doc has no `numericMetadata` field!" }; 
+	if (!doc) throw py::RuntimeError{ "doc is null!" }; 
+	if (auto ret = docVisit<tomoto::DocumentGDMR>(getBoundDoc(), [](auto* doc) -> std::optional<std::vector<tomoto::Float>>
+	{
+		return doc->metadataOrg; 
+	})) return ret; 
+	throw py::AttributeError{ "doc has no `numericMetadata` field!" }; 
+}

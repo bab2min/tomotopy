@@ -19,7 +19,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentLLDA<TermWeight::one>;
-		static ILLDAModel* create(TermWeight _weight, const LDAArgs& args,
+		static std::unique_ptr<ILLDAModel> create(TermWeight _weight, const LDAArgs& args,
 			bool scalarRng = false);
 
 		virtual const Dictionary& getTopicLabelDict() const = 0;

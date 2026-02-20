@@ -7,7 +7,7 @@ namespace tomoto
 
     TMT_INSTANTIATE_DOC(DocumentLDA);
 
-    ILDAModel* ILDAModel::create(TermWeight _weight, const LDAArgs& args, bool scalarRng)
+    std::unique_ptr<ILDAModel> ILDAModel::create(TermWeight _weight, const LDAArgs& args, bool scalarRng)
     {
         TMT_SWITCH_TW(_weight, scalarRng, LDAModel, args);
     }

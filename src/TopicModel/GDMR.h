@@ -32,7 +32,7 @@ namespace tomoto
 	{
 	public:
 		using DefaultDocType = DocumentDMR<TermWeight::one>;
-		static IGDMRModel* create(TermWeight _weight, const GDMRArgs& args,
+		static std::unique_ptr<IGDMRModel> create(TermWeight _weight, const GDMRArgs& args,
 			bool scalarRng = false);
 
 		virtual Float getSigma0() const = 0;
