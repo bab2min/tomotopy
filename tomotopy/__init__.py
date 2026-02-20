@@ -102,7 +102,7 @@ def _get_all_model_types():
             types.append(getattr(models, name))
     return types
 
-def load_model(path:str):
+def load_model(path:str) -> 'LDAModel':
     '''
 ..versionadded:: 0.13.0
 
@@ -125,7 +125,7 @@ model : LDAModel or its subclass
             pass
     raise ValueError(f'Cannot load model from {path}')
 
-def loads_model(data:bytes):
+def loads_model(data:bytes) -> 'LDAModel':
     '''
 ..versionadded:: 0.13.0
 

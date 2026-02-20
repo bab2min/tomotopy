@@ -5,6 +5,8 @@ You can label topics automatically with simple code like below. The results are 
 .. include:: ./auto_labeling_code.rst
 """
 
+from typing import List, Tuple
+
 from _tomotopy import (_LabelCandidate, _LabelPMIExtractor, _LabelFoRelevance)
 
 Candidate = _LabelCandidate
@@ -36,7 +38,7 @@ max_cand : int
 '''
         super().__init__(min_cf, min_df, min_len, max_len, max_cand, normalized)
 
-    def extract(self, topic_model):
+    def extract(self, topic_model) -> List:
         '''Return the list of `tomotopy.label.Candidate`s extracted from `topic_model`
 
 Parameters
@@ -78,7 +80,7 @@ workers : int
 '''
         super().__init__(topic_model, cands, min_df, smoothing, mu, window_size, workers)
     
-    def get_topic_labels(self, k, top_n=10):
+    def get_topic_labels(self, k, top_n=10) -> List[Tuple[str, float]]:
         '''Return the top-n label candidates for the topic `k`
 
 Parameters

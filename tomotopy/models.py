@@ -1,4 +1,4 @@
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 from copy import deepcopy
 import re
 import pickle
@@ -109,14 +109,14 @@ transform : Callable[dict, dict]
         )
     
     @classmethod
-    def load(cls, filename: str):
+    def load(cls, filename: str) -> 'LDAModel':
         '''Return the model instance loaded from file `filename`.'''
         inst, extra_data = cls._load(cls, filename)
         inst.init_params = pickle.loads(extra_data)
         return inst
     
     @classmethod
-    def loads(cls, data: bytes):
+    def loads(cls, data: bytes) -> 'LDAModel':
         '''Return the model instance loaded from `data` in bytes-like object.'''
         inst, extra_data = cls._loads(cls, data)
         inst.init_params = pickle.loads(extra_data)
@@ -200,7 +200,7 @@ Its default value is 10. If it is set to 0, the parameter optimization is turned
         return self._perplexity
     
     @property
-    def removed_top_words(self) -> int:
+    def removed_top_words(self) -> List[str]:
         '''a `list` of `str` which is a word removed from the model if you set `rm_top` greater than 0 at initializing the model (read-only)'''
         return self._removed_top_words
     
@@ -254,7 +254,7 @@ Its default value is 10. If it is set to 0, the parameter optimization is turned
         '''a dictionary, which contains both vocabularies filtered by frequency and vocabularies actually used in modeling, as the type `tomotopy.Dictionary` (read-only)'''
         return self._vocabs
     
-    def add_corpus(self, corpus, transform=None):
+    def add_corpus(self, corpus, transform=None) -> Corpus:
         '''.. versionadded:: 0.10.0
 
 Add new documents into the model instance using `tomotopy.utils.Corpus` and return an instance of corpus that contains the inserted documents. 
@@ -269,7 +269,7 @@ transform : Callable[dict, dict]
 '''
         return self._add_corpus(corpus, transform)
     
-    def add_doc(self, words, ignore_empty_words=True):
+    def add_doc(self, words, ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.models.LDAModel.train`.
 
 .. versionchanged:: 0.12.3
@@ -285,20 +285,20 @@ ignore_empty_words : bool
 '''
         return self._add_doc(words, ignore_empty_words)
     
-    def copy(self):
+    def copy(self) -> 'LDAModel':
         '''.. versionadded:: 0.12.0
 
 Return a new deep-copied instance of the current instance'''
         return self._copy(type(self))
     
-    def get_count_by_topics(self):
+    def get_count_by_topics(self) -> List[int]:
         '''Return the number of words allocated to each topic.'''
         return self._get_count_by_topics()
     
-    def get_hash(self):
+    def get_hash(self) -> int:
         return self._get_hash()
     
-    def get_topic_word_dist(self, topic_id, normalize=True):
+    def get_topic_word_dist(self, topic_id, normalize=True) -> List[float]:
         '''Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
@@ -313,7 +313,7 @@ normalize : bool
 '''
         return self._get_topic_word_dist(topic_id, normalize)
     
-    def get_topic_words(self, topic_id, top_n=10, return_id=False):
+    def get_topic_words(self, topic_id, top_n=10, return_id=False) -> Union[List[Tuple[str, float]], List[Tuple[str, int, float]]]:
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`) tuples if return_id is False,
 otherwise a `list` of (word:`str`, word_id:`int`, probability:`float`) tuples.
@@ -332,7 +332,7 @@ return_id : bool
     def get_word_forms(self, idx = -1):
         return self._get_word_forms(idx)
     
-    def get_word_prior(self, word):
+    def get_word_prior(self, word) -> List[float]:
         '''.. versionadded:: 0.6.0
 
 Return word-topic prior for `word`. If there is no set prior for `word`, an empty list is returned.
@@ -344,7 +344,7 @@ word : str
 '''
         return self._get_word_prior(word)
     
-    def infer(self, doc, iterations=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None):
+    def infer(self, doc, iterations=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None) -> Tuple[Union[List[float], List[List[float]], Corpus], List[float]]:
         '''Return the inferred topic distribution from unseen `doc`s.
 
 Parameters
@@ -402,7 +402,7 @@ words : Iterable[str]
 '''
         return self._make_doc(words)
     
-    def save(self, filename: str, full=True):
+    def save(self, filename: str, full=True) -> None:
         '''Save the model instance to file `filename`. Return `None`.
 
 If `full` is `True`, the model with its all documents and state will be saved. If you want to train more after, use full model.
@@ -423,7 +423,7 @@ Serialize the model instance into `bytes` object and return it. The arguments wo
         extra_data = pickle.dumps(self.init_params)
         return self._saves(extra_data, full)
     
-    def set_word_prior(self, word, prior):
+    def set_word_prior(self, word, prior) -> None:
         '''.. versionadded:: 0.6.0
 
 Set word-topic prior. This method should be called before calling the `tomotopy.models.LDAModel.train`.
@@ -538,7 +538,7 @@ The key of the dictionary is the topic id and the value is the prior of the topi
             words = ' '.join(w for w, _ in self.get_topic_words(k, top_n=topic_word_top_n))
             print('| #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
 
-    def summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False):
+    def summary(self, initial_hp=True, params=True, topic_word_top_n=5, file=None, flush=False) -> None:
         '''.. versionadded:: 0.9.0
 
 Print human-readable description of the current model
@@ -583,7 +583,7 @@ flush : bool
         print(file=file, flush=flush)
 
     
-    def train(self, iterations=10, workers=0, parallel=0, freeze_topics=False, callback_interval=10, callback=None, show_progress=False):
+    def train(self, iterations=10, workers=0, parallel=0, freeze_topics=False, callback_interval=10, callback=None, show_progress=False) -> None:
         '''Train the model using Gibbs-sampling with `iterations` iterations. Return `None`. 
 After calling this method, you cannot `tomotopy.models.LDAModel.add_doc` or `tomotopy.models.LDAModel.set_word_prior` more.
 
@@ -712,7 +712,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def add_doc(self, words, metadata='', multi_metadata=[], ignore_empty_words=True):
+    def add_doc(self, words, metadata='', multi_metadata=[], ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance with `metadata` and return an index of the inserted document.
 
 .. versionchanged:: 0.12.0
@@ -750,7 +750,7 @@ multi_metadata : Iterable[str]
 '''
         return self._make_doc(words, metadata, multi_metadata)
     
-    def get_topic_prior(self, metadata='', multi_metadata=[], raw=False):
+    def get_topic_prior(self, metadata='', multi_metadata=[], raw=False) -> List[float]:
         '''.. versionadded:: 0.12.0
 
 Calculate the topic prior of any document with the given `metadata` and `multi_metadata`. 
@@ -805,7 +805,7 @@ raw : bool
         return self._multi_metadata_dict
     
     @property
-    def lambdas(self):
+    def lambdas(self) -> np.ndarray:
         '''parameter lambdas in the shape `[k, f]` (read-only)
 
 .. warning::
@@ -814,7 +814,7 @@ raw : bool
         return self._lambdas
     
     @property
-    def lambda_(self):
+    def lambda_(self) -> np.ndarray:
         '''parameter lambdas in the shape `[k, len(metadata_dict), l]` where `k` is the number of topics and `l` is the size of vector for multi_metadata (read-only)
 
 See `tomotopy.models.DMRModel.get_topic_prior` for the relation between the lambda parameter and the topic prior.
@@ -824,7 +824,7 @@ See `tomotopy.models.DMRModel.get_topic_prior` for the relation between the lamb
         return self._lambda_
     
     @property
-    def alpha(self):
+    def alpha(self) -> np.ndarray:
         '''Dirichlet prior on the per-document topic distributions for each metadata in the shape `[k, f]`. Equivalent to `np.exp(DMRModel.lambdas)` (read-only)
 
 .. versionadded:: 0.9.0
@@ -943,7 +943,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def add_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[], ignore_empty_words=True):
+    def add_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[], ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance with `metadata` and return an index of the inserted document.
 
 .. versionchanged:: 0.11.0
@@ -997,7 +997,7 @@ multi_metadata : Iterable[str]
 '''
         return self._make_doc(words, numeric_metadata, metadata, multi_metadata)
     
-    def tdf(self, numeric_metadata, metadata='', multi_metadata=[], normalize=True):
+    def tdf(self, numeric_metadata, metadata='', multi_metadata=[], normalize=True) -> List[float]:
         '''Calculate a topic distribution for given `numeric_metadata` value. It returns a list with length `k`.
 
 .. versionchanged:: 0.12.0
@@ -1017,7 +1017,7 @@ normalize : bool
 '''
         return self._tdf(numeric_metadata, metadata, multi_metadata, normalize)
     
-    def tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', multi_metadata=[], endpoint=True, normalize=True):
+    def tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', multi_metadata=[], endpoint=True, normalize=True) -> np.ndarray:
         '''Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
 
 .. versionchanged:: 0.12.0
@@ -1049,7 +1049,7 @@ samples : ndarray
         return self._tdf_linspace(numeric_metadata_start, numeric_metadata_stop, num, metadata, multi_metadata, endpoint, normalize)
     
     @property
-    def degrees(self):
+    def degrees(self) -> List[int]:
         '''the degrees of Legendre polynomials (read-only)'''
         return self._degrees
 
@@ -1064,7 +1064,7 @@ samples : ndarray
         return self._decay
     
     @property
-    def metadata_range(self):
+    def metadata_range(self) -> List[Tuple[float, float]]:
         '''the ranges of each metadata variable (read-only)'''
         return self._metadata_range
     
@@ -1169,7 +1169,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def is_live_topic(self, topic_id):
+    def is_live_topic(self, topic_id) -> bool:
         '''Return `True` if the topic `topic_id` is valid, otherwise return `False`.
 
 Parameters
@@ -1179,7 +1179,7 @@ topic_id : int
 '''
         return self._is_live_topic(topic_id)
     
-    def convert_to_lda(self, topic_threshold=0.0):
+    def convert_to_lda(self, topic_threshold=0.0) -> Tuple['LDAModel', List[int]]:
         '''.. versionadded:: 0.8.0
 
 Convert the current HDP model to equivalent LDA model and return `(new_lda_model, new_topic_id)`.
@@ -1196,7 +1196,7 @@ topic_threshold : float
 '''
         return self._convert_to_lda(LDAModel, topic_threshold)
     
-    def purge_dead_topics(self):
+    def purge_dead_topics(self) -> List[int]:
         '''.. versionadded:: 0.12.3
 
 Purge all non-alive topics from the model and return `new_topic_ids`. After called, `HDPModel.k` shrinks to `HDPModel.live_k` and all topics of the model become live.
@@ -1322,7 +1322,7 @@ transform : Callable[dict, dict]
             transform,
         )
     
-    def add_doc(self, words, delimiter='.', ignore_empty_words=True):
+    def add_doc(self, words, delimiter='.', ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance and return an index of the inserted document.
 
 Parameters
@@ -1348,7 +1348,7 @@ delimiter : str
 '''
         return self._make_doc(words, delimiter)
     
-    def get_topic_words(self, topic_id, top_n=10):
+    def get_topic_words(self, topic_id, top_n=10) -> List[Tuple[str, float]]:
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
@@ -1360,7 +1360,7 @@ topic_id : int
 '''
         return self._get_topic_words(topic_id, top_n)
     
-    def get_topic_word_dist(self, topic_id, normalize=True):
+    def get_topic_word_dist(self, topic_id, normalize=True) -> List[float]:
         '''Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
@@ -1504,7 +1504,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def get_topic_words(self, sub_topic_id, top_n=10):
+    def get_topic_words(self, sub_topic_id, top_n=10) -> List[Tuple[str, float]]:
         '''Return the `top_n` words and its probability in the sub topic `sub_topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
@@ -1515,7 +1515,7 @@ sub_topic_id : int
 '''
         return self._get_topic_words(sub_topic_id, top_n)
     
-    def get_topic_word_dist(self, sub_topic_id, normalize=True):
+    def get_topic_word_dist(self, sub_topic_id, normalize=True) -> List[float]:
         '''Return the word distribution of the sub topic `sub_topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current sub topic.
 
@@ -1530,7 +1530,7 @@ normalize : bool
 '''
         return self._get_topic_word_dist(sub_topic_id, normalize)
     
-    def get_sub_topics(self, super_topic_id, top_n=10):
+    def get_sub_topics(self, super_topic_id, top_n=10) -> List[Tuple[int, float]]:
         '''.. versionadded:: 0.1.4
 
 Return the `top_n` sub topics and its probability in a super topic `super_topic_id`.
@@ -1543,7 +1543,7 @@ super_topic_id : int
 '''
         return self._get_sub_topics(super_topic_id, top_n)
     
-    def get_sub_topic_dist(self, super_topic_id, normalize=True):
+    def get_sub_topic_dist(self, super_topic_id, normalize=True) -> List[float]:
         '''Return a distribution of the sub topics in a super topic `super_topic_id`.
 The returned value is a `list` that has `k2` fraction numbers indicating probabilities for each sub topic in the current super topic.
 
@@ -1554,7 +1554,7 @@ super_topic_id : int
 '''
         return self._get_sub_topic_dist(super_topic_id, normalize)
     
-    def infer(self, doc, iterations=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None):
+    def infer(self, doc, iterations=100, tolerance=-1, workers=0, parallel=0, together=False, transform=None) -> Tuple[Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[float]]], Corpus], List[float]]:
         '''.. versionadded:: 0.5.0
 
 Return the inferred topic distribution and sub-topic distribution from unseen `doc`s.
@@ -1604,7 +1604,7 @@ log_ll : float
 '''
         return self._infer(doc, iterations, tolerance, workers, parallel, together, transform)
     
-    def get_count_by_super_topic(self):
+    def get_count_by_super_topic(self) -> List[int]:
         '''Return the number of words allocated to each super-topic.
 
 .. versionadded:: 0.9.0'''
@@ -1722,7 +1722,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def get_topic_words(self, topic_id, top_n=10):
+    def get_topic_words(self, topic_id, top_n=10) -> List[Tuple[str, float]]:
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
@@ -1735,7 +1735,7 @@ topic_id : int
 '''
         return self._get_topic_words(topic_id, top_n)
     
-    def get_topic_word_dist(self, topic_id, normalize=True):
+    def get_topic_word_dist(self, topic_id, normalize=True) -> List[float]:
         '''Return the word distribution of the topic `topic_id`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.
 
@@ -1852,7 +1852,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def get_correlations(self, topic_id=None):
+    def get_correlations(self, topic_id=None) -> List[float]:
         '''Return correlations between the topic `topic_id` and other topics.
 The returned value is a `list` of `float`s of size `tomotopy.models.LDAModel.k`.
 
@@ -1891,12 +1891,12 @@ If your model shows biased topic correlations, increasing this value may be help
         self._num_tmn_samples = value
 
     @property
-    def prior_mean(self):
+    def prior_mean(self) -> np.ndarray:
         '''the mean of prior logistic-normal distribution for the topic distribution (read-only)'''
         return self._prior_mean
     
     @property
-    def prior_cov(self):
+    def prior_cov(self) -> np.ndarray:
         '''the covariance matrix of prior logistic-normal distribution the for topic distribution (read-only)'''
         return self._prior_cov
     
@@ -1992,7 +1992,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def add_doc(self, words, y=[], ignore_empty_words=True):
+    def add_doc(self, words, y=[], ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance with response variables `y` and return an index of the inserted document.
 
 Parameters
@@ -2025,7 +2025,7 @@ y : Iterable[float]
 '''
         return self._make_doc(words, y)
     
-    def get_regression_coef(self, var_id=None):
+    def get_regression_coef(self, var_id=None) -> List[float]:
         '''Return the regression coefficient of the response variable `var_id`.
 
 Parameters
@@ -2037,11 +2037,11 @@ var_id : int
 '''
         return self._get_regression_coef(var_id)
     
-    def get_var_type(self, var_id):
+    def get_var_type(self, var_id) -> str:
         '''Return the type of the response variable `var_id`. 'l' means linear variable, 'b' means binary variable.'''
         return self._get_var_type(var_id)
     
-    def estimate(self, doc):
+    def estimate(self, doc) -> List[float]:
         '''Return the estimated response variable for `doc`.
 If `doc` is an unseen document instance which is generated by `tomotopy.models.SLDAModel.make_doc` method, it should be inferred by `tomotopy.models.LDAModel.infer` method first.
 
@@ -2134,7 +2134,7 @@ transform : Callable[dict, dict]
             transform,
         )
     
-    def add_doc(self, words, labels=[], ignore_empty_words=True):
+    def add_doc(self, words, labels=[], ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance with `labels` and return an index of the inserted document.
 
 Parameters
@@ -2160,7 +2160,7 @@ labels : Iterable[str]
 '''
         return self._make_doc(words, labels)
     
-    def get_topic_words(self, topic_id, top_n=10, return_id=False):
+    def get_topic_words(self, topic_id, top_n=10, return_id=False) -> Union[List[Tuple[str, float]], List[Tuple[int, str, float]]]:
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`) if `return_id` is False, or a `list` of (word_id:`int`, word:`str`, probability:`float`) if `return_id` is True.
 
@@ -2259,7 +2259,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def add_doc(self, words, labels=[], ignore_empty_words=True):
+    def add_doc(self, words, labels=[], ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance with `labels` and return an index of the inserted document.
 
 Parameters
@@ -2285,7 +2285,7 @@ labels : Iterable[str]
 '''
         return self._make_doc(words, labels)
     
-    def get_topic_words(self, topic_id, top_n=10, return_id=False):
+    def get_topic_words(self, topic_id, top_n=10, return_id=False) -> Union[List[Tuple[str, float]], List[Tuple[int, str, float]]]:
         '''Return the `top_n` words and its probability in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
@@ -2396,7 +2396,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def is_live_topic(self, topic_id):
+    def is_live_topic(self, topic_id) -> bool:
         '''Return `True` if the topic `topic_id` is alive, otherwise return `False`.
 
 Parameters
@@ -2406,7 +2406,7 @@ topic_id : int
 '''
         return self._is_live_topic(topic_id)
     
-    def num_docs_of_topic(self, topic_id):
+    def num_docs_of_topic(self, topic_id) -> int:
         '''Return the number of documents belonging to a topic `topic_id`.
 
 Parameters
@@ -2416,7 +2416,7 @@ topic_id : int
 '''
         return self._num_docs_of_topic(topic_id)
     
-    def level(self, topic_id):
+    def level(self, topic_id) -> int:
         '''Return the level of a topic `topic_id`.
 
 Parameters
@@ -2426,7 +2426,7 @@ topic_id : int
 '''
         return self._level(topic_id)
     
-    def parent_topic(self, topic_id):
+    def parent_topic(self, topic_id) -> int:
         '''Return the topic ID of parent of a topic `topic_id`.
 
 Parameters
@@ -2436,7 +2436,7 @@ topic_id : int
 '''
         return self._parent_topic(topic_id)
     
-    def children_topics(self, topic_id):
+    def children_topics(self, topic_id) -> List[int]:
         '''Return a list of topic IDs with children of a topic `topic_id`.
 
 Parameters
@@ -2555,7 +2555,7 @@ transform : Callable[dict, dict]
             transform,
         )
 
-    def add_doc(self, words, timepoint=0, ignore_empty_words=True):
+    def add_doc(self, words, timepoint=0, ignore_empty_words=True) -> Optional[int]:
         '''Add a new document into the model instance with `timepoint` and return an index of the inserted document.
 
 Parameters
@@ -2581,7 +2581,7 @@ timepoint : int
 '''
         return self._make_doc(words, timepoint)
     
-    def get_alpha(self, timepoint):
+    def get_alpha(self, timepoint) -> List[float]:
         '''Return a `list` of alpha parameters for `timepoint`.
 
 Parameters
@@ -2591,7 +2591,7 @@ timepoint : int
 '''
         return self._get_alpha(timepoint)
     
-    def get_phi(self, timepoint, topic_id):
+    def get_phi(self, timepoint, topic_id) -> List[float]:
         '''Return a `list` of phi parameters for `timepoint` and `topic_id`.
 
 Parameters
@@ -2603,7 +2603,7 @@ topic_id : int
 '''
         return self._get_phi(timepoint, topic_id)
     
-    def get_topic_words(self, topic_id, timepoint, top_n=10):
+    def get_topic_words(self, topic_id, timepoint, top_n=10) -> List[Tuple[str, float]]:
         '''Return the `top_n` words and its probability in the topic `topic_id` with `timepoint`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
@@ -2616,7 +2616,7 @@ timepoint : int
 '''
         return self._get_topic_words(topic_id, timepoint, top_n)
     
-    def get_topic_word_dist(self, topic_id, timepoint, normalize=True):
+    def get_topic_word_dist(self, topic_id, timepoint, normalize=True) -> List[float]:
         '''Return the word distribution of the topic `topic_id` with `timepoint`.
 The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
@@ -2633,7 +2633,7 @@ normalize : bool
 '''
         return self._get_topic_word_dist(topic_id, timepoint, normalize)
     
-    def get_count_by_topics(self):
+    def get_count_by_topics(self) -> np.ndarray:
         '''Return the number of words allocated to each timepoint and topic in the shape `[num_timepoints, k]`.
 
 .. versionadded:: 0.9.0'''
@@ -2672,7 +2672,7 @@ normalize : bool
         return self._num_timepoints
     
     @property
-    def num_docs_by_timepoint(self):
+    def num_docs_by_timepoint(self) -> List[int]:
         '''the number of documents in the model by timepoint (read-only)'''
         return self._num_docs_by_timepoint
     

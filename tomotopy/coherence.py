@@ -135,7 +135,7 @@ gamma : float
 
         super().__init__(corpus, pe, seg, cm, im, window_size or w, eps, gamma, targets)
     
-    def get_score(self, words=None, topic_id=None, timepoint=None):
+    def get_score(self, words=None, topic_id=None, timepoint=None) -> float:
         '''Calculate the coherence score for given `words` or `topic_id`
 
 Parameters
