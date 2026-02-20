@@ -389,6 +389,13 @@ meaning you can use it for any reasonable purpose and remain in complete ownersh
 
 History
 -------
+* 0.14.0 (2026-02-21)
+    * New features
+        * Now AVX512 instruction set is supported for x86-64 architecture. If your CPU supports AVX512, you can enjoy much faster performance.
+        * AVX only mode is removed.
+        * Now tomotopy supports Python3 Stable ABI, so you can use the same tomotopy package for Python 3.9 and later.
+        * Now tomotopy supports numpy 2.0 and later.
+
 * 0.13.0 (2024-08-05)
     * New features
         * Major features of Topic Model Viewer `tomotopy.viewer.open_viewer()` are ready now.

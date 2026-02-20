@@ -386,6 +386,13 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 역사
 -------
+* 0.14.0 (2026-02-21)
+    * 신규 기능
+        * 이제 x86-64 아키텍처에 대한 AVX512 명령어 세트가 지원됩니다. 만약 CPU가 AVX512를 지원한다면 훨씬 더 빠른 성능을 즐길 수 있습니다.
+        * AVX 단독 모드는 제거되었습니다.
+        * 이제 Python3 Stable ABI를 지원하므로, Python 3.9 이상 버전에서는 동일한 tomotopy 패키지를 사용할 수 있습니다.
+        * 이제 tomotopy가 numpy 2.0 이상 버전을 지원합니다.
+
 * 0.13.0 (2024-08-05)
     * 신규 기능
         * 토픽 모델 뷰어인 `tomotopy.viewer.open_viewer()`의 주요 기능이 완성되었습니다.
