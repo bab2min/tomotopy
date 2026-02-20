@@ -565,6 +565,3 @@ tomotopy의 Python3 예제 코드는 https://github.com/bab2min/tomotopy/blob/ma
 
 * EigenRand: `MIT License
   <licenses_bundled/EigenRand>`_
-
-* Mapbox Variant: `BSD License
-  <licenses_bundled/MapboxVariant>`_

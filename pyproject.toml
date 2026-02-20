@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "tomotopy"
 dynamic = ["version"]
 description = "Tomoto, Topic Modeling Tool for Python"
-readme = "tomotopy/documentation.rst"
+readme = "README_pypi.rst"
 license = {text = "MIT"}
 authors = [
     { name = "bab2min", email = "bab2min@gmail.com" }
@@ -51,6 +51,7 @@ sdist.include = [
     "src/**",
     "tomotopy/**",
     "CMakeLists.txt",
+    "README_pypi.rst",
 ]
 sdist.exclude = [
     "build",
