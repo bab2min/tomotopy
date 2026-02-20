@@ -225,16 +225,15 @@ if(BUILD_MULTI_ARCH)
         endif()
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
         add_handler_module("_tomotopy_none" "arm64" "arm64")
+    elseif(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+        # Windows 32-bit: AVX2/AVX512 intrinsics require 64-bit registers
+        add_handler_module("_tomotopy_none" "none" "none")
+        add_handler_module("_tomotopy_sse2" "sse2" "sse2")
     else()
         # x86_64 Linux/Windows: build all variants
         add_handler_module("_tomotopy_sse2" "sse2" "sse2")
         add_handler_module("_tomotopy_avx2" "avx2" "avx2")
         add_handler_module("_tomotopy_avx512" "avx512" "avx512")
-
-        if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-            # Windows 32-bit needs 'none' for non-SSE2 CPUs
-            add_handler_module("_tomotopy_none" "none" "none")
-        endif()
     endif()
 else()
     message(STATUS "Building single module for architecture: ${TARGET_ARCH}")
