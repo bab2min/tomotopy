@@ -140,7 +140,7 @@ Its default value is 0.'''
     
     @property
     def docs(self):
-        '''a `list`-like interface of `tomotopy.Document` in the model instance (read-only)'''
+        '''a `list`-like interface of `tomotopy.utils.Document` in the model instance (read-only)'''
         return self._docs
     
     @property
@@ -258,7 +258,7 @@ Its default value is 10. If it is set to 0, the parameter optimization is turned
         '''.. versionadded:: 0.10.0
 
 Add new documents into the model instance using `tomotopy.utils.Corpus` and return an instance of corpus that contains the inserted documents. 
-This method should be called before calling the `tomotopy.LDAModel.train`.
+This method should be called before calling the `tomotopy.models.LDAModel.train`.
 
 Parameters
 ----------
@@ -270,7 +270,7 @@ transform : Callable[dict, dict]
         return self._add_corpus(corpus, transform)
     
     def add_doc(self, words, ignore_empty_words=True):
-        '''Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.LDAModel.train`.
+        '''Add a new document into the model instance and return an index of the inserted document. This method should be called before calling the `tomotopy.models.LDAModel.train`.
 
 .. versionchanged:: 0.12.3
 
@@ -349,9 +349,9 @@ word : str
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
-    an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document` to be inferred by the model.
-    It can be acquired from `tomotopy.LDAModel.make_doc` method.
+doc : Union[tomotopy.utils.Document, Iterable[tomotopy.utils.Document], tomotopy.utils.Corpus]
+    an instance of `tomotopy.utils.Document` or a `list` of instances of `tomotopy.utils.Document` to be inferred by the model.
+    It can be acquired from `tomotopy.models.LDAModel.make_doc` method.
 
     .. versionchanged:: 0.10.0
 
@@ -381,19 +381,19 @@ transform : Callable[dict, dict]
 Returns
 -------
 result : Union[List[float], List[List[float]], tomotopy.utils.Corpus]
-    If `doc` is given as a single `tomotopy.Document`, `result` is a single `List[float]` indicating its topic distribution.
+    If `doc` is given as a single `tomotopy.utils.Document`, `result` is a single `List[float]` indicating its topic distribution.
     
-    If `doc` is given as a list of `tomotopy.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
+    If `doc` is given as a list of `tomotopy.utils.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
     
     If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains infered documents.
-    You can get topic distribution for each document using `tomotopy.Document.get_topic_dist`.
+    You can get topic distribution for each document using `tomotopy.utils.Document.get_topic_dist`.
 log_ll : List[float]
     a list of log-likelihoods for each `doc`s
 '''
         return self._infer(doc, iterations, tolerance, workers, parallel, together, transform)
     
     def make_doc(self, words) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -419,21 +419,21 @@ Thus model files saved in version 0.6.0 or later are not compatible with version
     def saves(self, full=True) -> bytes:
         '''.. versionadded:: 0.11.0
 
-Serialize the model instance into `bytes` object and return it. The arguments work the same as `tomotopy.LDAModel.save`.'''
+Serialize the model instance into `bytes` object and return it. The arguments work the same as `tomotopy.models.LDAModel.save`.'''
         extra_data = pickle.dumps(self.init_params)
         return self._saves(extra_data, full)
     
     def set_word_prior(self, word, prior):
         '''.. versionadded:: 0.6.0
 
-Set word-topic prior. This method should be called before calling the `tomotopy.LDAModel.train`.
+Set word-topic prior. This method should be called before calling the `tomotopy.models.LDAModel.train`.
 
 Parameters
 ----------
 word : str
     a word to be set
 prior : Union[Iterable[float], Dict[int, float]]
-	topic distribution of `word` whose length is equal to `tomotopy.LDAModel.k`
+	topic distribution of `word` whose length is equal to `tomotopy.models.LDAModel.k`
 
 Note
 ----
@@ -585,7 +585,7 @@ flush : bool
     
     def train(self, iterations=10, workers=0, parallel=0, freeze_topics=False, callback_interval=10, callback=None, show_progress=False):
         '''Train the model using Gibbs-sampling with `iterations` iterations. Return `None`. 
-After calling this method, you cannot `tomotopy.LDAModel.add_doc` or `tomotopy.LDAModel.set_word_prior` more.
+After calling this method, you cannot `tomotopy.models.LDAModel.add_doc` or `tomotopy.models.LDAModel.set_word_prior` more.
 
 Parameters
 ----------
@@ -601,12 +601,12 @@ parallel : Union[int, tomotopy.ParallelScheme]
 freeze_topics : bool
     .. versionadded:: 0.10.1
 
-    prevents to create a new topic when training. Only valid for `tomotopy.HLDAModel`
+    prevents to create a new topic when training. Only valid for `tomotopy.models.HLDAModel`
 callback_interval : int
     .. versionadded:: 0.12.6
 
     the interval of calling `callback` function. If `callback_interval` <= 0, `callback` function is called at the beginning and the end of training.
-callback : Callable[[tomotopy.LDAModel, int, int], None]
+callback : Callable[[tomotopy.models.LDAModel, int, int], None]
     .. versionadded:: 0.12.6
 
     a callable object which is called every `callback_interval` iterations. 
@@ -733,7 +733,7 @@ ignore_empty_words : bool
         return self._add_doc(words, metadata, multi_metadata, ignore_empty_words)
     
     def make_doc(self, words, metadata='', multi_metadata=[]) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 .. versionchanged:: 0.12.0
 
@@ -817,7 +817,7 @@ raw : bool
     def lambda_(self):
         '''parameter lambdas in the shape `[k, len(metadata_dict), l]` where `k` is the number of topics and `l` is the size of vector for multi_metadata (read-only)
 
-See `tomotopy.DMRModel.get_topic_prior` for the relation between the lambda parameter and the topic prior.
+See `tomotopy.models.DMRModel.get_topic_prior` for the relation between the lambda parameter and the topic prior.
 
 .. versionadded:: 0.12.0
 '''
@@ -871,7 +871,7 @@ class GDMRModel(_GDMRModel, DMRModel):
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
-    and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+    and `metadata` is added to represent categorical data for unification with the `tomotopy.models.DMRModel`.
     So `metadata` arguments in the older codes should be replaced with `numeric_metadata` to work in version 0.11.0.
 
 Parameters
@@ -950,7 +950,7 @@ transform : Callable[dict, dict]
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
-    and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+    and `metadata` is added to represent categorical data for unification with the `tomotopy.models.DMRModel`.
 
 .. versionchanged:: 0.12.0
 
@@ -972,13 +972,13 @@ ignore_empty_words : bool
         return self._add_doc(words, numeric_metadata, metadata, multi_metadata, ignore_empty_words)
     
     def make_doc(self, words, numeric_metadata=[], metadata='', multi_metadata=[]) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` and `metadata` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 .. versionchanged:: 0.11.0
 
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
-    and `metadata` is added to represent categorical data for unification with the `tomotopy.DMRModel`.
+    and `metadata` is added to represent categorical data for unification with the `tomotopy.models.DMRModel`.
 
 .. versionchanged:: 0.12.0
 
@@ -1337,7 +1337,7 @@ ignore_empty_words : bool
         return self._add_doc(words, delimiter, ignore_empty_words)
     
     def make_doc(self, words, delimiter='.') -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -1561,9 +1561,9 @@ Return the inferred topic distribution and sub-topic distribution from unseen `d
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
-    an instance of `tomotopy.Document` or a `list` of instances of `tomotopy.Document` to be inferred by the model.
-    It can be acquired from `tomotopy.LDAModel.make_doc` method.
+doc : Union[tomotopy.utils.Document, Iterable[tomotopy.utils.Document], tomotopy.utils.Corpus]
+    an instance of `tomotopy.utils.Document` or a `list` of instances of `tomotopy.utils.Document` to be inferred by the model.
+    It can be acquired from `tomotopy.models.LDAModel.make_doc` method.
 
     .. versionchanged:: 0.10.0
 
@@ -1593,12 +1593,12 @@ transform : Callable[dict, dict]
 Returns
 -------
 result : Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[float]]], tomotopy.utils.Corpus]
-    If `doc` is given as a single `tomotopy.Document`, `result` is a tuple of `List[float]` indicating its topic distribution and `List[float]` indicating its sub-topic distribution.
+    If `doc` is given as a single `tomotopy.utils.Document`, `result` is a tuple of `List[float]` indicating its topic distribution and `List[float]` indicating its sub-topic distribution.
     
-    If `doc` is given as a list of `tomotopy.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
+    If `doc` is given as a list of `tomotopy.utils.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
     
     If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains infered documents.
-    You can get topic distribution for each document using `tomotopy.Document.get_topic_dist` and sub-topic distribution using `tomotopy.Document.get_sub_topic_dist`
+    You can get topic distribution for each document using `tomotopy.utils.Document.get_topic_dist` and sub-topic distribution using `tomotopy.utils.Document.get_sub_topic_dist`
 log_ll : float
     a list of log-likelihoods for each `doc`s
 '''
@@ -1854,7 +1854,7 @@ transform : Callable[dict, dict]
 
     def get_correlations(self, topic_id=None):
         '''Return correlations between the topic `topic_id` and other topics.
-The returned value is a `list` of `float`s of size `tomotopy.LDAModel.k`.
+The returned value is a `list` of `float`s of size `tomotopy.models.LDAModel.k`.
 
 Parameters
 ----------
@@ -2001,7 +2001,7 @@ words : Iterable[str]
     an iterable of `str`
 y : Iterable[float]
     response variables of this document. 
-    The length of `y` must be equal to the number of response variables of the model (`tomotopy.SLDAModel.f`).
+    The length of `y` must be equal to the number of response variables of the model (`tomotopy.models.SLDAModel.f`).
     
     .. versionchanged:: 0.5.1
     
@@ -2012,7 +2012,7 @@ ignore_empty_words : bool
         return self._add_doc(words, y, ignore_empty_words)
     
     def make_doc(self, words, y=[]) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` and response variables `y` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` and response variables `y` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -2020,8 +2020,8 @@ words : Iterable[str]
     an iterable of `str`
 y : Iterable[float]
     response variables of this document. 
-    The length of `y` doesn't have to be equal to the number of response variables of the model (`tomotopy.SLDAModel.f`).
-    If the length of `y` is shorter than `tomotopy.SLDAModel.f`, missing values are automatically filled with `NaN`.
+    The length of `y` doesn't have to be equal to the number of response variables of the model (`tomotopy.models.SLDAModel.f`).
+    If the length of `y` is shorter than `tomotopy.models.SLDAModel.f`, missing values are automatically filled with `NaN`.
 '''
         return self._make_doc(words, y)
     
@@ -2043,11 +2043,11 @@ var_id : int
     
     def estimate(self, doc):
         '''Return the estimated response variable for `doc`.
-If `doc` is an unseen document instance which is generated by `tomotopy.SLDAModel.make_doc` method, it should be inferred by `tomotopy.LDAModel.infer` method first.
+If `doc` is an unseen document instance which is generated by `tomotopy.models.SLDAModel.make_doc` method, it should be inferred by `tomotopy.models.LDAModel.infer` method first.
 
 Parameters
 ----------
-doc : tomotopy.Document
+doc : tomotopy.utils.Document
     an instance of document or a list of them to be used for estimating response variables
 '''
         return self._estimate(doc)
@@ -2082,7 +2082,7 @@ class LLDAModel(_LLDAModel, LDAModel):
 .. versionadded:: 0.3.0
 
 .. deprecated:: 0.11.0
-    Use `tomotopy.PLDAModel` instead.
+    Use `tomotopy.models.PLDAModel` instead.
 
 Parameters
 ----------
@@ -2149,7 +2149,7 @@ ignore_empty_words : bool
         return self._add_doc(words, labels, ignore_empty_words)
     
     def make_doc(self, words, labels=[]) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -2168,7 +2168,7 @@ Parameters
 ----------
 topic_id : int
     Integers in the range [0, `l`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
-    The label name can be found by looking up `tomotopy.LLDAModel.topic_label_dict`.
+    The label name can be found by looking up `tomotopy.models.LLDAModel.topic_label_dict`.
     Integers in the range [`l`, `k`) represent a latent topic which doesn't belongs to the any labels.
 top_n : int
     the number of top words to return
@@ -2274,7 +2274,7 @@ ignore_empty_words : bool
         return self._add_doc(words, labels, ignore_empty_words)
     
     def make_doc(self, words, labels=[]) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` and `labels` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 Parameters
 ----------
@@ -2293,7 +2293,7 @@ Parameters
 ----------
 topic_id : int
     Integers in the range [0, `l` * `topics_per_label`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
-    The label name can be found by looking up `tomotopy.PLDAModel.topic_label_dict`.
+    The label name can be found by looking up `tomotopy.models.PLDAModel.topic_label_dict`.
     Integers in the range [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) represent a latent topic which doesn't belongs to the any labels.
 top_n : int
     the number of top words to return
@@ -2570,7 +2570,7 @@ ignore_empty_words : bool
         return self._add_doc(words, timepoint, ignore_empty_words)
     
     def make_doc(self, words, timepoint=0) -> Document:
-        '''Return a new `tomotopy.Document` instance for an unseen document with `words` and `timepoint` that can be used for `tomotopy.LDAModel.infer` method.
+        '''Return a new `tomotopy.utils.Document` instance for an unseen document with `words` and `timepoint` that can be used for `tomotopy.models.LDAModel.infer` method.
 
 Parameters
 ----------

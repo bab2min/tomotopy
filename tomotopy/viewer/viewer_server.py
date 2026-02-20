@@ -889,7 +889,7 @@ Run a server for topic model viewer
 
 Parameters
 ----------
-model: tomotopy.LDAModel or its derived class
+model: tomotopy.models.LDAModel or its derived class
     A trained topic model instance to be visualized.
 host: str
     The host name to bind the server. Default is 'localhost'.
@@ -911,7 +911,7 @@ because this uses python's built-in `http.server` module which is not designed f
     '''
     import tomotopy as tp
     if not isinstance(model, tp.LDAModel):
-        raise ValueError(f'`model` must be an instance of tomotopy.LDAModel, but {model!r} was given.')
+        raise ValueError(f'`model` must be an instance of tomotopy.models.LDAModel, but {model!r} was given.')
     
     if title is None:
         title = type(model).__name__ + ' Viewer'

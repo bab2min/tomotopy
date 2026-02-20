@@ -71,9 +71,9 @@ class Coherence(_Coherence):
 
 Parameters
 ----------
-corpus : Union[tomotopy.utils.Corpus, tomotopy.LDAModel]
+corpus : Union[tomotopy.utils.Corpus, tomotopy.models.LDAModel]
     A reference corpus to be used for estimating probability. 
-    Supports not only an instance of `tomotopy.utils.Corpus`, but also any topic model instances including `tomotopy.LDAModel` and its descendants.
+    Supports not only an instance of `tomotopy.utils.Corpus`, but also any topic model instances including `tomotopy.models.LDAModel` and its descendants.
     If `corpus` is an instance of `tomotpy.utils.Corpus`, `targets` must be given too.
 coherence : Union[str, Tuple[int, int, int], Tuple[int, int, int, int]]
     A coherence metric to be used. The metric can be a combination of (`tomotopy.coherence.ProbEstimation`, `tomotopy.coherence.Segmentation`, `tomotopy.coherence.ConfirmMeasure`)
@@ -92,7 +92,7 @@ targets : Iterable[str]
     Only words that are provided as `targets` are included in probability estimation.
 top_n : int
     The number of top words to be extracted from each topic.
-    If `corpus` is an instance of `tomotopy.LDAModel` and its descendants, target words are extracted from each topic of the topic model.
+    If `corpus` is an instance of `tomotopy.models.LDAModel` and its descendants, target words are extracted from each topic of the topic model.
     But if `targets` are given, target words are extracted from `targets`, even if `corpus` is an instance of topic models.
 eps : float
     An epsilon value to prevent division by zero
@@ -142,16 +142,16 @@ Parameters
 ----------
 words : Iterable[str]
     Words whose coherence is calculated. 
-    If `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.LDAModel` or its descendants, `words` can be omitted.
+    If `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.models.LDAModel` or its descendants, `words` can be omitted.
     In this case words are extracted from topic with `topic_id`.
 topic_id : int
     An id of the topic from which words are extracted. 
-    This parameter is valid when `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.LDAModel` or its descendants.
+    This parameter is valid when `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.models.LDAModel` or its descendants.
     If this is omitted, the average score of all topics is returned.
 timepoint : int
     ..versionadded:: 0.12.3
 
-    A timepoint of the topic from which words are extracted. (Only for `tomotopy.DTModel`)
+    A timepoint of the topic from which words are extracted. (Only for `tomotopy.models.DTModel`)
         '''
         import tomotopy as tp
         if words is None and self._topic_model is None:
@@ -212,9 +212,9 @@ if os.environ.get('TOMOTOPY_LANG') == 'kr':
 
 Parameters
 ----------
-corpus : Union[tomotopy.utils.Corpus, tomotopy.LDAModel]
+corpus : Union[tomotopy.utils.Corpus, tomotopy.models.LDAModel]
     단어 분포 확률을 추정하기 위한 레퍼런스 코퍼스.
-    `tomotopy.utils.Corpus` 타입뿐만 아니라 `tomotopy.LDAModel`를 비롯한 다양한 토픽 모델링 타입의 인스턴스까지 지원합니다.
+    `tomotopy.utils.Corpus` 타입뿐만 아니라 `tomotopy.models.LDAModel`를 비롯한 다양한 토픽 모델링 타입의 인스턴스까지 지원합니다.
     만약 `corpus`가 `tomotpy.utils.Corpus`의 인스턴스라면 `targets`이 반드시 주어져야 합니다.
 coherence : Union[str, Tuple[int, int, int], Tuple[int, int, int, int]]
     coherence를 계산하는 데 사용될 척도. 척도는 (`tomotopy.coherence.ProbEstimation`, `tomotopy.coherence.Segmentation`, `tomotopy.coherence.ConfirmMeasure`)의 조합이거나
@@ -233,7 +233,7 @@ targets : Iterable[str]
     `targets`에 주어진 단어 목록에 대해서만 확률 분포가 추정됩니다.
 top_n : int
     각 토픽에서 추출할 상위 단어의 개수.
-    만약 `corpus`이 `tomotopy.LDAModel`나 기타 토픽 모델의 인스턴스인 경우, 목표 단어는 각 토픽의 상위 단어에서 추출됩니다.
+    만약 `corpus`이 `tomotopy.models.LDAModel`나 기타 토픽 모델의 인스턴스인 경우, 목표 단어는 각 토픽의 상위 단어에서 추출됩니다.
     만약 `targets`이 주어진 경우 `corpus`가 토픽 모델인 경우에도 `targets`에서 목표 단어를 가져옵니다.
 eps : float
     계산 과정에서 0으로 나누는 것을 방지하기 위한 epsilon 값
@@ -246,15 +246,15 @@ Parameters
 ----------
 words : Iterable[str]
     coherence가 계산될 단어들.
-    만약 `tomotopy.coherence.Coherence`가 `tomotopy.LDAModel`나 기타 토픽 모델의 인스턴스로 `corpus`를 받아 초기화된 경우 `words`는 생략될 수 있습니다.
+    만약 `tomotopy.coherence.Coherence`가 `tomotopy.models.LDAModel`나 기타 토픽 모델의 인스턴스로 `corpus`를 받아 초기화된 경우 `words`는 생략될 수 있습니다.
     이 경우 단어들은 토픽 모델의 `topic_id` 토픽에서 추출됩니다.
 topic_id : int
     단어가 추출될 토픽의 id.
-    이 파라미터는 오직 `tomotopy.coherence.Coherence`가 `tomotopy.LDAModel`나 기타 토픽 모델의 인스턴스로 `corpus`를 받아 초기화된 경우에만 사용 가능합니다.
+    이 파라미터는 오직 `tomotopy.coherence.Coherence`가 `tomotopy.models.LDAModel`나 기타 토픽 모델의 인스턴스로 `corpus`를 받아 초기화된 경우에만 사용 가능합니다.
     생략시 모든 토픽의 coherence 점수를 평균낸 값이 반환됩니다.
 timepoint : int
     ..versionadded:: 0.12.3
 
-    단어가 추출될 토픽의 시점 (`tomotopy.DTModel`에서만 유효)
+    단어가 추출될 토픽의 시점 (`tomotopy.models.DTModel`에서만 유효)
 '''
 del os

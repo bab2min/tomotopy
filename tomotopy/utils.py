@@ -13,7 +13,7 @@ from _tomotopy import (_Document, _UtilsCorpus, _UtilsVocabDict)
 class Document(_Document):
     '''This type provides abstract model to access documents to be used Topic Model.
 
-An instance of this type can be acquired from `tomotopy.LDAModel.make_doc` method or `tomotopy.LDAModel.docs` member of each Topic Model instance.'''
+An instance of this type can be acquired from `tomotopy.models.LDAModel.make_doc` method or `tomotopy.models.LDAModel.docs` member of each Topic Model instance.'''
     
     def get_topics(self, top_n=10, from_pseudo_doc=False):
         '''Return the `top_n` topics with its probability of the document.
@@ -25,7 +25,7 @@ top_n : int
 from_pseudo_doc : bool
     .. versionadded:: 0.12.2
 
-    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.'''
+    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.models.PTModel`.'''
         return super().get_topics(top_n, from_pseudo_doc)
     
     def get_topic_dist(self, normalize=True, from_pseudo_doc=False):
@@ -40,19 +40,19 @@ normalize : bool
 from_pseudo_doc : bool
     .. versionadded:: 0.12.2
 
-    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.PTModel`.'''
+    If True, it returns the topic distribution of its pseudo document. Only valid for `tomotopy.models.PTModel`.'''
         return super().get_topic_dist(normalize, from_pseudo_doc)
     
     def get_sub_topics(self, top_n=10):
         '''.. versionadded:: 0.5.0
 
-Return the `top_n` sub topics with its probability of the document. (for only `tomotopy.PAModel`)'''
+Return the `top_n` sub topics with its probability of the document. (for only `tomotopy.models.PAModel`)'''
         return super().get_sub_topics(top_n)
     
     def get_sub_topic_dist(self, normalize=True):
         '''.. versionadded:: 0.5.0
 
-Return a distribution of the sub topics in the document. (for only `tomotopy.PAModel`)
+Return a distribution of the sub topics in the document. (for only `tomotopy.models.PAModel`)
 
 Parameters
 ----------
@@ -94,7 +94,7 @@ Return total log-likelihood for the current document.'''
     def topics(self):
         '''a `list` of topics for each word (read-only)
 
-This represents super topics in `tomotopy.PAModel` and `tomotopy.HPAModel` model.'''
+This represents super topics in `tomotopy.models.PAModel` and `tomotopy.models.HPAModel` model.'''
         return super()._topics
     
     @property
@@ -104,71 +104,71 @@ This represents super topics in `tomotopy.PAModel` and `tomotopy.HPAModel` model
     
     @property
     def metadata(self):
-        '''categorical metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only)'''
+        '''categorical metadata of the document (for only `tomotopy.models.DMRModel` and `tomotopy.models.GDMRModel` model, read-only)'''
         return super()._metadata
     
     @property
     def multi_metadata(self):
-        '''categorical multiple metadata of the document (for only `tomotopy.DMRModel` and `tomotopy.GDMRModel` model, read-only)
+        '''categorical multiple metadata of the document (for only `tomotopy.models.DMRModel` and `tomotopy.models.GDMRModel` model, read-only)
 
 .. versionadded:: 0.12.0'''
         return super()._multi_metadata
     
     @property
     def numeric_metadata(self):
-        '''continuous numeric metadata of the document (for only `tomotopy.GDMRModel` model, read-only)
+        '''continuous numeric metadata of the document (for only `tomotopy.models.GDMRModel` model, read-only)
 
 .. versionadded:: 0.11.0'''
         return super()._numeric_metadata
     
     @property
     def subtopics(self):
-        '''a `list` of sub topics for each word (for only `tomotopy.PAModel` and `tomotopy.HPAModel` model, read-only)'''
+        '''a `list` of sub topics for each word (for only `tomotopy.models.PAModel` and `tomotopy.models.HPAModel` model, read-only)'''
         return super()._subtopics
     
     @property
     def windows(self):
-        '''a `list` of window IDs for each word (for only `tomotopy.MGLDAModel` model, read-only)'''
+        '''a `list` of window IDs for each word (for only `tomotopy.models.MGLDAModel` model, read-only)'''
         return super()._windows
     
     @property
     def paths(self):
-        '''a `list` of topic ids by depth for a given document (for only `tomotopy.HLDAModel` model, read-only)
+        '''a `list` of topic ids by depth for a given document (for only `tomotopy.models.HLDAModel` model, read-only)
 
 .. versionadded:: 0.7.1'''
         return super()._paths
     
     @property
     def beta(self):
-        '''a `list` of beta parameters for each topic (for only `tomotopy.CTModel` model, read-only)
+        '''a `list` of beta parameters for each topic (for only `tomotopy.models.CTModel` model, read-only)
 
 .. versionadded:: 0.2.0'''
         return super()._beta
     
     @property
     def vars(self):
-        '''a `list` of response variables (for only `tomotopy.SLDAModel` model, read-only)
+        '''a `list` of response variables (for only `tomotopy.models.SLDAModel` model, read-only)
 
 .. versionadded:: 0.2.0'''
         return super()._vars
     
     @property
     def labels(self):
-        '''a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.LLDAModel` and `tomotopy.PLDAModel` models, read-only)
+        '''a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.models.LLDAModel` and `tomotopy.models.PLDAModel` models, read-only)
 
 .. versionadded:: 0.3.0'''
         return super()._labels
     
     @property
     def eta(self):
-        '''a `list` of eta parameters(topic distribution) for the current document (for only `tomotopy.DTModel` model, read-only)
+        '''a `list` of eta parameters(topic distribution) for the current document (for only `tomotopy.models.DTModel` model, read-only)
 
 .. versionadded:: 0.7.0'''
         return super()._eta
     
     @property
     def timepoint(self):
-        '''a timepoint of the document (for only `tomotopy.DTModel` model, read-only)
+        '''a timepoint of the document (for only `tomotopy.models.DTModel` model, read-only)
 
 .. versionadded:: 0.7.0'''
         return super()._timepoint
@@ -185,7 +185,7 @@ This represents super topics in `tomotopy.PAModel` and `tomotopy.HPAModel` model
     
     @property
     def pseudo_doc_id(self):
-        '''an ID of a pseudo document where the document is allocated to (for only `tomotopy.PTModel` model, read-only)
+        '''an ID of a pseudo document where the document is allocated to (for only `tomotopy.models.PTModel` model, read-only)
 
 .. versionadded:: 0.11.0'''
         return super()._pseudo_doc_id
@@ -240,7 +240,7 @@ This method requires either `words` parameter or `raw` and `user_data` parameter
 If `words` parameter is provided, `words` are expected to be already preprocessed results.
 If `raw` parameter is provided, `raw` is expected to be a raw string of document which isn't preprocessed yet, and `tokenizer` will be called for preprocessing the raw document.
 
-If you need additional parameters for a specific topic model, such as `metadata` for `tomotopy.DMRModel` or `y` for `tomotopy.SLDAModel`, you can pass it as an arbitrary keyword argument.
+If you need additional parameters for a specific topic model, such as `metadata` for `tomotopy.models.DMRModel` or `y` for `tomotopy.models.SLDAModel`, you can pass it as an arbitrary keyword argument.
 
 Parameters
 ----------
@@ -513,7 +513,7 @@ stopwords : Iterable[str]
 `words` 파라미터를 사용할 경우, `words`는 이미 전처리된 단어들의 리스트여야 합니다.
 `raw` 파라미터를 사용할 경우, `raw`는 정제되기 전 문헌의 str이며, `tokenizer`가 이 비정제문헌을 처리하기 위해 호출됩니다.
 
-만약 `tomotopy.DMRModel`의 `metadata`나 `tomotopy.SLDAModel`의 `y`처럼 특정한 토픽 모델에 필요한 추가 파라미터가 있다면 임의 키워드 인자로 넘겨줄 수 있습니다.
+만약 `tomotopy.models.DMRModel`의 `metadata`나 `tomotopy.models.SLDAModel`의 `y`처럼 특정한 토픽 모델에 필요한 추가 파라미터가 있다면 임의 키워드 인자로 넘겨줄 수 있습니다.
 
 Parameters
 ----------
