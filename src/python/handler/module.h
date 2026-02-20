@@ -31,7 +31,6 @@
 #include "../../TopicModel/PT.h"
 #include "../../Utils/serializer.hpp"
 #include "../../Utils/Mmap.h"
-#include "docs.h"
 
 void char2Byte(const std::string& str, std::vector<uint32_t>& startPos, std::vector<uint16_t>& length);
 

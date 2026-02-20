@@ -1,7 +1,6 @@
 #include "module.h"
 #include "label.h"
 #include "utils.h"
-#include "label_docs.h"
 
 using namespace std;
 

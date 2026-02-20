@@ -138,7 +138,6 @@ model : LDAModel 또는 그 하위 클래스
 
     # Corpus
 
-    # C++ docstrings (from docs.h and label_docs.h)
     'CTModel': '''.. versionadded:: 0.2.0
 이 타입은 Correlated Topic Model (CTM)의 구현체를 제공합니다. 주요 알고리즘은 다음 논문에 기초하고 있습니다:
 	
