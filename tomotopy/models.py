@@ -1,3 +1,9 @@
+'''
+Submodule `tomotopy.models` provides various topic model classes.
+All models are based on `tomotopy.models.LDAModel`, which implements the basic Latent Dirichlet Allocation.
+Derived models include DMR, GDMR, HDP, MGLDA, PA, HPA, CT, SLDA, LLDA, PLDA, HLDA, DT and PT.
+'''
+
 from typing import Optional, Union, List, Tuple
 from copy import deepcopy
 import re
@@ -40,6 +46,11 @@ def _format_numpy(arr, prefix=''):
     return ('\n' + prefix).join(str(arr).split('\n'))
 
 class LDAModel(_LDAModel):
+    '''This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on the following papers:
+	
+> * Blei, D.M., Ng, A.Y., &Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.
+> * Newman, D., Asuncion, A., Smyth, P., &Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.'''
+
     def __init__(self, 
                  tw: Union[int, str] ='one',
                  min_cf: int = 0,
@@ -52,12 +63,7 @@ class LDAModel(_LDAModel):
                  corpus = None,
                  transform = None,
                  ):
-        '''This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on the following papers:
-	
-> * Blei, D.M., Ng, A.Y., &Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.
-> * Newman, D., Asuncion, A., Smyth, P., &Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.
-
-Parameters
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -90,6 +96,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
         self.init_params['version'] = __version__
@@ -648,13 +655,13 @@ show_progress : bool
             self._progress_tqdm(current_iteration, total_iteration)
     
 class DMRModel(_DMRModel, LDAModel):
+    '''This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on the following papers:
+
+> * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.'''
+
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=0.0000000001, seed=None, corpus=None, transform=None):
-        '''This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on the following papers:
-
-> * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.
-
-Parameters
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -691,6 +698,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -859,9 +867,7 @@ See `tomotopy.models.DMRModel.get_topic_prior` for the relation between the lamb
 
 
 class GDMRModel(_GDMRModel, DMRModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None):
-        '''This type provides Generalized DMR(g-DMR) topic model and its implementation is based on the following papers:
+    '''This type provides Generalized DMR(g-DMR) topic model and its implementation is based on the following papers:
 
 > * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
 
@@ -872,9 +878,11 @@ class GDMRModel(_GDMRModel, DMRModel):
     Until version 0.10.2, `metadata` was used to represent numeric data and there was no argument for categorical data.
     Since version 0.11.0, the name of the previous `metadata` argument is changed to `numeric_metadata`, 
     and `metadata` is added to represent categorical data for unification with the `tomotopy.models.DMRModel`.
-    So `metadata` arguments in the older codes should be replaced with `numeric_metadata` to work in version 0.11.0.
+    So `metadata` arguments in the older codes should be replaced with `numeric_metadata` to work in version 0.11.0.'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -918,6 +926,7 @@ corpus : tomotopy.utils.Corpus
     a list of documents to be added into the model
 transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -1100,18 +1109,18 @@ samples : ndarray
 
 
 class HDPModel(_HDPModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
-        '''This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on the following papers:
+    '''This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on the following papers:
 
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
 
 .. versionchanged:: 0.3.0
 
-    Since version 0.3.0, hyperparameter estimation for `alpha` and `gamma` has been added. You can turn off this estimation by setting `optim_interval` to zero.
+    Since version 0.3.0, hyperparameter estimation for `alpha` and `gamma` has been added. You can turn off this estimation by setting `optim_interval` to zero.'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -1149,6 +1158,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -1243,13 +1253,13 @@ If topic `i` of previous HDP model is not alive or is removed in the new model, 
             print('| #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
 
 class MGLDAModel(_MGLDAModel, LDAModel):
+    '''This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on the following papers:
+
+> * Titov, I., & McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.'''
+
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
-        '''This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on the following papers:
-
-> * Titov, I., & McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.
-
-Parameters
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -1296,6 +1306,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -1399,7 +1410,7 @@ normalize : bool
     @property
     def alpha_g(self) -> float:
         '''the hyperparameter alpha_g (read-only)'''
-        return self._alpha_g
+        return self._alpha
     
     @property
     def alpha_l(self) -> float:
@@ -1419,7 +1430,7 @@ normalize : bool
     @property
     def eta_g(self) -> float:
         '''the hyperparameter eta_g (read-only)'''
-        return self._eta_g
+        return self._eta
     
     @property
     def eta_l(self) -> float:
@@ -1438,13 +1449,13 @@ normalize : bool
             print('|  #{} ({}) : {}'.format(k, topic_cnt[k + self.k], words), file=file)
 
 class PAModel(_PAModel, LDAModel):
+    '''This type provides Pachinko Allocation(PA) topic model and its implementation is based on the following papers:
+
+> * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.'''
+
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Pachinko Allocation(PA) topic model and its implementation is based on the following papers:
-
-> * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.
-
-Parameters
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -1483,6 +1494,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -1656,13 +1668,13 @@ log_ll : List[float]
             print('|  #{} ({}) : {}'.format(k, topic_cnt[k], words), file=file)
 
 class HPAModel(_HPAModel, PAModel):
+    '''This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on the following papers:
+
+> * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.'''
+
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on the following papers:
-
-> * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
-
-Parameters
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -1701,6 +1713,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -1794,15 +1807,15 @@ and `[x, 1 ~ k2]` elements indicate ones to the sub topics in the super topic `x
             print('|  #{} ({}) : {}'.format(k - 1 - self.k1, topic_cnt[k], words), file=file)
 
 class CTModel(_CTModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''.. versionadded:: 0.2.0
+    '''.. versionadded:: 0.2.0
 This type provides Correlated Topic Model (CTM) and its implementation is based on the following papers:
 	
 > * Blei, D., & Lafferty, J. (2006). Correlated topic models. Advances in neural information processing systems, 18, 147.
-> * Mimno, D., Wallach, H., & McCallum, A. (2008, December). Gibbs sampling for logistic normal topic models with graph-based priors. In NIPS Workshop on Analyzing Graphs (Vol. 61).
+> * Mimno, D., Wallach, H., & McCallum, A. (2008, December). Gibbs sampling for logistic normal topic models with graph-based priors. In NIPS Workshop on Analyzing Graphs (Vol. 61).'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -1833,6 +1846,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -1916,16 +1930,16 @@ If your model shows biased topic correlations, increasing this value may be help
             '|  {:.5}'.format(self.eta), file=file)    
 
 class SLDAModel(_SLDAModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None):
-        '''This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on the following papers:
+    '''This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on the following papers:
 	
 > * Mcauliffe, J. D., & Blei, D. M. (2008). Supervised topic models. In Advances in neural information processing systems (pp. 121-128).
 > * Python version implementation using Gibbs sampling : https://github.com/Savvysherpa/slda
 
-.. versionadded:: 0.2.0
+.. versionadded:: 0.2.0'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -1969,6 +1983,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -2073,18 +2088,18 @@ doc : tomotopy.utils.Document
 
 
 class LLDAModel(_LLDAModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Labeled LDA(L-LDA) topic model and its implementation is based on the following papers:
+    '''This type provides Labeled LDA(L-LDA) topic model and its implementation is based on the following papers:
 	
 > * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
 
 .. versionadded:: 0.3.0
 
 .. deprecated:: 0.11.0
-    Use `tomotopy.models.PLDAModel` instead.
+    Use `tomotopy.models.PLDAModel` instead.'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -2115,6 +2130,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -2198,15 +2214,15 @@ return_id : bool
             print('| {} ({}) : {}'.format(label, topic_cnt[k], words), file=file)
 
 class PLDAModel(_PLDAModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on the following papers:
+    '''This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on the following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
-.. versionadded:: 0.4.0
+.. versionadded:: 0.4.0'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -2239,6 +2255,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -2335,15 +2352,15 @@ return_id : bool
             print('| {} ({}) : {}'.format(label, topic_cnt[k], words), file=file)
 
 class HLDAModel(_HLDAModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
-        '''This type provides Hierarchical LDA topic model and its implementation is based on the following papers:
+    '''This type provides Hierarchical LDA topic model and its implementation is based on the following papers:
 
 > * Griffiths, T. L., Jordan, M. I., Tenenbaum, J. B., & Blei, D. M. (2004). Hierarchical topic models and the nested Chinese restaurant process. In Advances in neural information processing systems (pp. 17-24).
 
-.. versionadded:: 0.4.0
+.. versionadded:: 0.4.0'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -2376,6 +2393,7 @@ transform : Callable[dict, dict]
     .. versionadded:: 0.6.0
 
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -2486,17 +2504,17 @@ topic_id : int
         print_hierarchical()
 
 class DTModel(_DTModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None):
-        '''This type provides Dynamic Topic model and its implementation is based on the following papers:
+    '''This type provides Dynamic Topic model and its implementation is based on the following papers:
 
 > * Blei, D. M., & Lafferty, J. D. (2006, June). Dynamic topic models. In Proceedings of the 23rd international conference on Machine learning (pp. 113-120).
 > * Bhadury, A., Chen, J., Zhu, J., & Liu, S. (2016, April). Scaling up dynamic topic models. In Proceedings of the 25th International Conference on World Wide Web (pp. 381-390).
 > https://github.com/Arnie0426/FastDTM
 
-.. versionadded:: 0.7.0
+.. versionadded:: 0.7.0'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -2531,6 +2549,7 @@ corpus : tomotopy.utils.Corpus
     a list of documents to be added into the model
 transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})
@@ -2705,14 +2724,14 @@ normalize : bool
                 print('|  t={} ({}) : {}'.format(t, topic_cnt[t, k], words), file=file)
 
 class PTModel(_PTModel, LDAModel):
-    def __init__(self,
-                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, p=None, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''.. versionadded:: 0.11.0
+    '''.. versionadded:: 0.11.0
 This type provides Pseudo-document based Topic Model (PTM) and its implementation is based on the following papers:
 	
-> * Zuo, Y., Wu, J., Zhang, H., Lin, H., Wang, F., Xu, K., & Xiong, H. (2016, August). Topic modeling of short texts: A pseudo-document view. In Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining (pp. 2105-2114).
+> * Zuo, Y., Wu, J., Zhang, H., Lin, H., Wang, F., Xu, K., & Xiong, H. (2016, August). Topic modeling of short texts: A pseudo-document view. In Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining (pp. 2105-2114).'''
 
-Parameters
+    def __init__(self,
+                 tw='one', min_cf=0, min_df=0, rm_top=0, k=1, p=None, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
+        '''Parameters
 ----------
 tw : Union[int, tomotopy.TermWeight]
     term weighting scheme in `tomotopy.TermWeight`. The default value is TermWeight.ONE
@@ -2741,6 +2760,7 @@ corpus : tomotopy.utils.Corpus
     a list of documents to be added into the model
 transform : Callable[dict, dict]
     a callable object to manipulate arbitrary keyword arguments for a specific topic model
+
 '''
         # get initial params
         self.init_params = deepcopy({k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')})

@@ -1,12 +1,12 @@
+'''
+Submodule `tomotopy.utils` provides various utilities for topic modeling.
+`tomotopy.utils.Corpus` class helps manage multiple documents easily.
+The documents inserted into `Corpus` can be used with any topic model, and you can save the corpus preprocessed into a file and load the corpus from a file.
+'''
+
 from typing import Optional, List, Tuple
 
 import re
-
-'''
-Submodule `tomotopy.utils` provides various utilities for topic modeling. 
-`tomotopy.utils.Corpus` class helps manage multiple documents easily. 
-The documents inserted into `Corpus` can be used with any topic model, and you can save the corpus preprocessed into a file and load the corpus from a file.
-'''
 
 from _tomotopy import (_Document, _UtilsCorpus, _UtilsVocabDict)
 

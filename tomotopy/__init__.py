@@ -10,21 +10,21 @@ from enum import IntEnum
 class TermWeight(IntEnum):
     """
     This enumeration is for Term Weighting Scheme and it is based on the following paper:
-    
+
     > * Wilson, A. T., & Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.
-    
-    There are three options for term weighting and the basic one is ONE. The others can also be applied to all topic models in `tomotopy`. 
+
+    There are three options for term weighting and the basic one is ONE. The others can also be applied to all topic models in `tomotopy`.
     """
 
     ONE = 0
     """ Consider every term equal (default)"""
 
     IDF = 1
-    """ 
+    """
     Use Inverse Document Frequency term weighting.
-    
+
     Thus, a term occurring in almost every document has very low weighting
-    and a term occurring in a few documents has high weighting. 
+    and a term occurring in a few documents has high weighting.
     """
 
     PMI = 2
@@ -35,23 +35,23 @@ class TermWeight(IntEnum):
 class ParallelScheme(IntEnum):
     """
     This enumeration is for Parallelizing Scheme:
-    There are three options for parallelizing and the basic one is DEFAULT. Not all models support all options. 
+    There are three options for parallelizing and the basic one is DEFAULT. Not all models support all options.
     """
 
     DEFAULT = 0
     """tomotopy chooses the best available parallelism scheme for your model"""
 
     NONE = 1
-    """ 
+    """
     Turn off multi-threading for Gibbs sampling at training or inference. Operations other than Gibbs sampling may use multithreading.
     """
 
     COPY_MERGE = 2
     """
-    Use Copy and Merge algorithm from AD-LDA. It consumes RAM in proportion to the number of workers. 
+    Use Copy and Merge algorithm from AD-LDA. It consumes RAM in proportion to the number of workers.
     This has advantages when you have a small number of workers and a small number of topics and vocabulary sizes in the model.
-    Prior to version 0.5, all models used this algorithm by default. 
-    
+    Prior to version 0.5, all models used this algorithm by default.
+
     > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
     """
 
@@ -59,7 +59,7 @@ class ParallelScheme(IntEnum):
     """
     Use Partitioning algorithm from PCGS. It consumes only twice as much RAM as a single-threaded algorithm, regardless of the number of workers.
     This has advantages when you have a large number of workers or a large number of topics and vocabulary sizes in the model.
-    
+
     > * Yan, F., Xu, N., & Qi, Y. (2009). Parallel inference for latent dirichlet allocation on graphics processing units. In Advances in neural information processing systems (pp. 2134-2142).
     """
 
