@@ -2072,10 +2072,22 @@ namespace py
 		PyObject* init(Defs&&... defs)
 		{
 			mod = PyModule_Create(&def);
+			if (!mod) return nullptr;
 #ifdef Py_GIL_DISABLED
 			PyUnstable_Module_SetGIL(mod, Py_MOD_GIL_NOT_USED);
 #endif
-			((addType(std::forward<Defs>(defs))), ...);
+			bool ok = true;
+			((ok = ok && addType(std::forward<Defs>(defs))), ...);
+			if (!ok)
+			{
+				if (!PyErr_Occurred())
+				{
+					PyErr_SetString(PyExc_RuntimeError, "Failed to initialize module types");
+				}
+				Py_DECREF(mod);
+				mod = nullptr;
+				return nullptr;
+			}
 			return mod;
 		}
 
