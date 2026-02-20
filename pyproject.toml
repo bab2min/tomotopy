@@ -96,7 +96,7 @@ cmake.define.BUILD_MULTI_ARCH = "OFF"
 [[tool.scikit-build.overrides]]
 if.platform-system = "linux"
 if.platform-machine = "x86_64"
-if.env.AUDITWHEEL_PLAT = {contains = "many"}
+if.env.AUDITWHEEL_PLAT = "many"
 inherit.cmake.define = "append"
 cmake.define.BUILD_MULTI_ARCH = "ON"
 cmake.define.NO_DEBUG_INFO = "ON"
