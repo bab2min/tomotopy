@@ -7,7 +7,7 @@ name = "tomotopy"
 dynamic = ["version"]
 description = "Tomoto, Topic Modeling Tool for Python"
 readme = "tomotopy/documentation.rst"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     { name = "bab2min", email = "bab2min@gmail.com" }
 ]
