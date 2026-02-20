@@ -3402,7 +3402,7 @@ namespace py
 				std::cerr << "Base type " << def.typeName << " is not registered in module." << std::endl;
 				return false;
 			}
-			typeObj = (PyTypeObject*)PyType_FromSpecWithBases(&spec, (PyObject*)baseTypeObj);
+			typeObj = (PyTypeObject*)PyType_FromSpecWithBases(&spec, buildPyTuple((PyObject*)baseTypeObj).get());
 		}
 		if (!typeObj) return false;
 
