@@ -168,7 +168,7 @@ py::UniqueObj PAModelObject::infer(PyObject* docObj, size_t iteration, float tol
 	}
 }
 
-std::vector<size_t> PAModelObject::getCountBySuperTopic() const
+std::vector<uint64_t> PAModelObject::getCountBySuperTopic() const
 {
 	auto* inst = getInst<tomoto::IPAModel>();
 	return inst->getCountBySuperTopic();

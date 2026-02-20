@@ -171,7 +171,7 @@ struct PAModelObject : public LDAModelObject
 	std::vector<float> getTopicWordDist(size_t subTopicId, bool normalize = true) const;
 
 	py::UniqueObj infer(PyObject* doc, size_t iteration, float tolerance, size_t workers, tomoto::ParallelScheme ps, bool together, PyObject* transform) const;
-	std::vector<size_t> getCountBySuperTopic() const;
+	std::vector<uint64_t> getCountBySuperTopic() const;
 	py::UniqueObj getSubAlpha() const;
 };
 
