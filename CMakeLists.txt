@@ -11,17 +11,50 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment ve
 # Options
 option(BUILD_MULTI_ARCH "Build multiple architecture variants with dispatcher" OFF)
 option(NO_DEBUG_INFO "Strip debug info for release builds" OFF)
+option(USE_STABLE_ABI "Build with Python Stable ABI (abi3)" OFF)
 
 set(TARGET_ARCH "native" CACHE STRING "Target architecture (none, native, sse2, avx, avx2, avx512, arm64)")
 set(TOMOTOPY_ISA "native" CACHE STRING "ISA string for module")
 set(TOMOTOPY_LANG "en" CACHE STRING "Documentation language (en, kr)")
+
+# Stable ABI setup
+if(USE_STABLE_ABI)
+    add_compile_definitions(Py_LIMITED_API=0x03090000)
+endif()
+
+# Fetch dependencies
+include(FetchContent)
+
+FetchContent_Declare(
+    eigen
+    URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
+FetchContent_Declare(
+    eigenrand
+    GIT_REPOSITORY https://github.com/bab2min/EigenRand.git
+    GIT_TAG v0.5.1
+)
+
+# Populate without add_subdirectory() to avoid installing their targets into our wheel
+FetchContent_GetProperties(eigen)
+if(NOT eigen_POPULATED)
+    FetchContent_Populate(eigen)
+endif()
+
+FetchContent_GetProperties(eigenrand)
+if(NOT eigenrand_POPULATED)
+    FetchContent_Populate(eigenrand)
+endif()
 
 # Find Python
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 
 # Include directories
 include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${eigen_SOURCE_DIR}
+    ${eigenrand_SOURCE_DIR}
     ${Python3_INCLUDE_DIRS}
 )
 
@@ -75,15 +108,15 @@ function(get_arch_flags ARCH OUT_FLAGS OUT_DEFS)
         elseif(ARCH STREQUAL "avx")
             set(FLAGS "-mavx")
         elseif(ARCH STREQUAL "avx2")
-            set(FLAGS "-mavx2 -mfma")
+            set(FLAGS "-mavx2" "-mfma")
         elseif(ARCH STREQUAL "avx512")
-            set(FLAGS "-mavx512f -mavx512dq -mavx512bw -mavx512vl -mfma")
+            set(FLAGS "-mavx512f" "-mavx512dq" "-mavx512bw" "-mavx512vl" "-mfma")
         elseif(ARCH STREQUAL "arm64")
             # No additional flags for arm64
         endif()
 
         if(APPLE)
-            set(FLAGS "${FLAGS} -undefined dynamic_lookup")
+            list(APPEND FLAGS "-undefined" "dynamic_lookup")
         endif()
     endif()
 
@@ -107,6 +140,10 @@ function(add_handler_module TARGET_NAME ARCH ISA_NAME)
         target_compile_definitions(${TARGET_NAME} PRIVATE DOC_KO=1)
     endif()
 
+    if(MSVC)
+        target_compile_options(${TARGET_NAME} PRIVATE /bigobj)
+    endif()
+
     if(ARCH_FLAGS)
         target_compile_options(${TARGET_NAME} PRIVATE ${ARCH_FLAGS})
     endif()
@@ -126,9 +163,31 @@ function(add_handler_module TARGET_NAME ARCH ISA_NAME)
 
     if(WIN32)
         set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd")
+    elseif(USE_STABLE_ABI)
+        set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".abi3.so")
     endif()
 
-    target_link_libraries(${TARGET_NAME} PRIVATE Python3::Module)
+    if(USE_STABLE_ABI AND WIN32)
+        # Link against python3.lib (stable ABI import library) instead of python3X.lib
+        get_filename_component(_python_lib_dir "${Python3_LIBRARY_DIRS}" ABSOLUTE)
+        find_file(PYTHON3_STABLE_LIB "python3.lib" PATHS "${_python_lib_dir}" NO_DEFAULT_PATH)
+        if(NOT PYTHON3_STABLE_LIB)
+            # Fallback: search in the Python prefix
+            find_file(PYTHON3_STABLE_LIB "python3.lib"
+                PATHS "${Python3_RUNTIME_LIBRARY_DIRS}" "${Python3_LIBRARY_DIRS}"
+                PATH_SUFFIXES "libs" "lib"
+            )
+        endif()
+        if(PYTHON3_STABLE_LIB)
+            target_link_libraries(${TARGET_NAME} PRIVATE "${PYTHON3_STABLE_LIB}")
+            target_include_directories(${TARGET_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
+        else()
+            message(WARNING "python3.lib not found, falling back to Python3::Module")
+            target_link_libraries(${TARGET_NAME} PRIVATE Python3::Module)
+        endif()
+    else()
+        target_link_libraries(${TARGET_NAME} PRIVATE Python3::Module)
+    endif()
 
     install(TARGETS ${TARGET_NAME} LIBRARY DESTINATION .)
 endfunction()
@@ -144,9 +203,20 @@ function(add_dispatcher_module)
 
     if(WIN32)
         set_target_properties(_tomotopy PROPERTIES SUFFIX ".pyd")
+    elseif(USE_STABLE_ABI)
+        set_target_properties(_tomotopy PROPERTIES SUFFIX ".abi3.so")
     endif()
 
-    target_link_libraries(_tomotopy PRIVATE Python3::Module)
+    if(USE_STABLE_ABI AND WIN32)
+        if(PYTHON3_STABLE_LIB)
+            target_link_libraries(_tomotopy PRIVATE "${PYTHON3_STABLE_LIB}")
+            target_include_directories(_tomotopy PRIVATE ${Python3_INCLUDE_DIRS})
+        else()
+            target_link_libraries(_tomotopy PRIVATE Python3::Module)
+        endif()
+    else()
+        target_link_libraries(_tomotopy PRIVATE Python3::Module)
+    endif()
 
     install(TARGETS _tomotopy LIBRARY DESTINATION .)
 endfunction()
@@ -164,7 +234,6 @@ if(BUILD_MULTI_ARCH)
             add_handler_module("_tomotopy_none" "arm64" "arm64")
         else()
             add_handler_module("_tomotopy_sse2" "sse2" "sse2")
-            add_handler_module("_tomotopy_avx" "avx" "avx")
             add_handler_module("_tomotopy_avx2" "avx2" "avx2")
         endif()
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
@@ -172,7 +241,6 @@ if(BUILD_MULTI_ARCH)
     else()
         # x86_64 Linux/Windows: build all variants
         add_handler_module("_tomotopy_sse2" "sse2" "sse2")
-        add_handler_module("_tomotopy_avx" "avx" "avx")
         add_handler_module("_tomotopy_avx2" "avx2" "avx2")
         add_handler_module("_tomotopy_avx512" "avx512" "avx512")
 
