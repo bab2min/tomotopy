@@ -108,7 +108,7 @@ transform : Callable[dict, dict]
 
 .. versionadded:: 0.9.1''',
     'CTModel.get_correlations': '''토픽 `topic_id`와 나머지 토픽들 간의 상관관계를 반환합니다.
-반환값은 `tomotopy.LDAModel.k` 길이의 `float`의 `list`입니다.
+반환값은 `tomotopy.models.LDAModel.k` 길이의 `float`의 `list`입니다.
 
 Parameters
 ----------
@@ -224,7 +224,7 @@ raw : bool
 ''',
     'DMRModel.lambda_': '''현재 모형의 lambda 파라미터을 보여주는 `[k, len(metadata_dict), l]` 모양의 float array (읽기전용)
 
-lambda 파라미터와 토픽 사전 분포 간의 관계에 대해서는 `tomotopy.DMRModel.get_topic_prior`를 참고하십시오.
+lambda 파라미터와 토픽 사전 분포 간의 관계에 대해서는 `tomotopy.models.DMRModel.get_topic_prior`를 참고하십시오.
 
 .. versionadded:: 0.12.0''',
     'DMRModel.lambdas': '''현재 모형의 lambda 파라미터을 보여주는 `[k, f]` 모양의 float array (읽기전용)
@@ -232,7 +232,7 @@ lambda 파라미터와 토픽 사전 분포 간의 관계에 대해서는 `tomot
 .. warning::
 
     0.11.0 버전 전까지는 lambda getter에 있는 버그로 잘못된 값이 출력되었습니다. 0.11.0 이후 버전으로 업그레이드하시길 권장합니다.''',
-    'DMRModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+    'DMRModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 .. versionchanged:: 0.12.0
 
@@ -361,7 +361,7 @@ timepoint : int
     'DTModel.lr_a': 'SGLD의 스텝 크기를 결정하는 0보다 큰 파라미터 `a` (e_i = a * (b + i) ^ -c)',
     'DTModel.lr_b': 'SGLD의 스텝 크기를 결정하는 0 이상의 파라미터 `b` (e_i = a * (b + i) ^ -c)',
     'DTModel.lr_c': 'SGLD의 스텝 크기를 결정하는 (0.5, 1] 범위의 파라미터 `c` (e_i = a * (b + i) ^ -c)',
-    'DTModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+    'DTModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 Parameters
 ----------
@@ -373,10 +373,10 @@ timepoint : int
     'DTModel.num_docs_by_timepoint': '각 시점별 모델 내 문헌 개수 (읽기전용)',
     'DTModel.num_timepoints': '모델의 시점 개수 (읽기전용)',
     'Document': '이 타입은 토픽 모델에 사용되는 문헌들에 접근할 수 있는 추상 인터페이스을 제공합니다.',
-    'Document.beta': '''문헌의 각 토픽별 beta 파라미터를 보여주는 `list` (`tomotopy.CTModel` 모형에서만 사용됨, 읽기전용)
+    'Document.beta': '''문헌의 각 토픽별 beta 파라미터를 보여주는 `list` (`tomotopy.models.CTModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.2.0''',
-    'Document.eta': '''문헌의 eta 파라미터(토픽 분포)를 나타내는 `list` (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
+    'Document.eta': '''문헌의 eta 파라미터(토픽 분포)를 나타내는 `list` (`tomotopy.models.DTModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.7.0''',
     'Document.get_count_vector': '''.. versionadded:: 0.7.0
@@ -387,7 +387,7 @@ timepoint : int
 현재 문헌의 로그가능도 총합을 반환합니다.''',
     'Document.get_sub_topic_dist': '''.. versionadded:: 0.5.0
 
-현재 문헌의 하위 토픽 확률 분포를 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용)
+현재 문헌의 하위 토픽 확률 분포를 `list` 형태로 반환합니다. (`tomotopy.models.PAModel` 전용)
 
 Parameters
 ----------
@@ -398,7 +398,7 @@ normalize : bool
 ''',
     'Document.get_sub_topics': '''.. versionadded:: 0.5.0
 
-현재 문헌의 상위 `top_n`개의 하위 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다. (`tomotopy.PAModel` 전용)''',
+현재 문헌의 상위 `top_n`개의 하위 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다. (`tomotopy.models.PAModel` 전용)''',
     'Document.get_topic_dist': '''현재 문헌의 토픽 확률 분포를 `list` 형태로 반환합니다.
 
 Parameters
@@ -410,7 +410,7 @@ normalize : bool
 from_pseudo_doc : bool
     .. versionadded:: 0.12.2
 
-    참일 경우 가상 문헌의 토픽 분포를 반환합니다. `tomotopy.PTModel`에서만 유효합니다.
+    참일 경우 가상 문헌의 토픽 분포를 반환합니다. `tomotopy.models.PTModel`에서만 유효합니다.
 ''',
     'Document.get_topics': '''현재 문헌의 상위 `top_n`개의 토픽과 그 확률을 `tuple`의 `list` 형태로 반환합니다.
     
@@ -421,42 +421,42 @@ top_n : int
 from_pseudo_doc : bool
     .. versionadded:: 0.12.2
 
-    참일 경우 가상 문헌의 토픽 분포를 반환합니다. `tomotopy.PTModel`에서만 유효합니다.
+    참일 경우 가상 문헌의 토픽 분포를 반환합니다. `tomotopy.models.PTModel`에서만 유효합니다.
 ''',
     'Document.get_words': '''.. versionadded:: 0.4.2
 
 현재 문헌의 상위 `top_n`개의 단어와 그 확률을 `tuple`의 `list` 형태로 반환합니다.''',
-    'Document.labels': '''문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확률들)의 `list` (`tomotopy.LLDAModel`, `tomotopy.PLDAModel` 모형에서만 사용됨 , 읽기전용)
+    'Document.labels': '''문헌에 매겨진 (레이블, 레이블에 속하는 각 주제의 확률들)의 `list` (`tomotopy.models.LLDAModel`, `tomotopy.models.PLDAModel` 모형에서만 사용됨 , 읽기전용)
 
 .. versionadded:: 0.3.0''',
-    'Document.metadata': '문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)',
-    'Document.multi_metadata': '''문헌의 범주형 메타데이터 (`tomotopy.DMRModel`과 `tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
+    'Document.metadata': '문헌의 범주형 메타데이터 (`tomotopy.models.DMRModel`과 `tomotopy.models.GDMRModel` 모형에서만 사용됨, 읽기전용)',
+    'Document.multi_metadata': '''문헌의 범주형 메타데이터 (`tomotopy.models.DMRModel`과 `tomotopy.models.GDMRModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.12.0''',
-    'Document.numeric_metadata': '''문헌의 연속형 숫자 메타데이터 (`tomotopy.GDMRModel` 모형에서만 사용됨, 읽기전용)
+    'Document.numeric_metadata': '''문헌의 연속형 숫자 메타데이터 (`tomotopy.models.GDMRModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.11.0''',
-    'Document.paths': '''주어진 문헌에 대한 깊이별 토픽 번호의 `list` (`tomotopy.HLDAModel` 모형에서만 사용됨, 읽기전용)
+    'Document.paths': '''주어진 문헌에 대한 깊이별 토픽 번호의 `list` (`tomotopy.models.HLDAModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.7.1''',
-    'Document.pseudo_doc_id': '''문헌이 할당된 가상 문헌의 id (`tomotopy.PTModel` 모형에서만 사용됨, 읽기전용)
+    'Document.pseudo_doc_id': '''문헌이 할당된 가상 문헌의 id (`tomotopy.models.PTModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.11.0''',
     'Document.raw': '문헌의 가공되지 않는 전체 텍스트 (읽기전용)',
     'Document.span': '문헌의 각 단어 토큰의 구간(바이트 단위 시작 지점과 끝 지점의 tuple) (읽기전용)',
-    'Document.subtopics': '문헌의 단어들이 각각 할당된 하위 토픽을 보여주는 `list` (`tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서만 사용됨, 읽기전용)',
-    'Document.timepoint': '''문헌의 시점 (`tomotopy.DTModel` 모형에서만 사용됨, 읽기전용)
+    'Document.subtopics': '문헌의 단어들이 각각 할당된 하위 토픽을 보여주는 `list` (`tomotopy.models.PAModel`와 `tomotopy.models.HPAModel` 모형에서만 사용됨, 읽기전용)',
+    'Document.timepoint': '''문헌의 시점 (`tomotopy.models.DTModel` 모형에서만 사용됨, 읽기전용)
 
 .. versionadded:: 0.7.0''',
     'Document.topics': '''문헌의 단어들이 각각 할당된 토픽을 보여주는 `list` (읽기 전용)
 
-`tomotopy.PAModel`와 `tomotopy.HPAModel` 모형에서는 이 값이 상위토픽의 ID를 가리킵니다.''',
+`tomotopy.models.PAModel`와 `tomotopy.models.HPAModel` 모형에서는 이 값이 상위토픽의 ID를 가리킵니다.''',
     'Document.uid': '문헌의 고유 ID (읽기전용)',
-    'Document.vars': '''문헌의 응답 변수를 보여주는 `list` (`tomotopy.SLDAModel` 모형에서만 사용됨 , 읽기전용)
+    'Document.vars': '''문헌의 응답 변수를 보여주는 `list` (`tomotopy.models.SLDAModel` 모형에서만 사용됨 , 읽기전용)
 
 .. versionadded:: 0.2.0''',
     'Document.weights': '문헌의 가중치 (읽기전용)',
-    'Document.windows': '문헌의 단어들이 할당된 윈도우의 ID를 보여주는 `list` (`tomotopy.MGLDAModel` 모형에서만 사용됨, 읽기전용)',
+    'Document.windows': '문헌의 단어들이 할당된 윈도우의 ID를 보여주는 `list` (`tomotopy.models.MGLDAModel` 모형에서만 사용됨, 읽기전용)',
     'Document.words': '문헌 내 단어들의 ID가 담긴 `list` (읽기전용)',
     'FoRelevance': '''.. versionadded:: 0.6.0
 
@@ -503,7 +503,7 @@ top_n : int
 .. warning::
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
-    0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+    0.11.0버전부터는 `tomotopy.models.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
     따라서 이전 코드의 `metadata` 인자를 `numeric_metadata`로 바꿔주어야 0.11.0 버전에서 작동합니다.
 
@@ -558,7 +558,7 @@ transform : Callable[dict, dict]
 .. versionchanged:: 0.11.0
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
-    0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+    0.11.0버전부터는 `tomotopy.models.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
 
 .. versionchanged:: 0.12.0
@@ -578,12 +578,12 @@ multi_metadata : Iterable[str]
 ''',
     'GDMRModel.decay': '하이퍼 파라미터 decay (읽기전용)',
     'GDMRModel.degrees': '르장드르 다항식의 차수 (읽기전용)',
-    'GDMRModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+    'GDMRModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 .. versionchanged:: 0.11.0
 
     0.10.2버전까지는 `metadata`가 숫자형 연속 변수를 표현하는데 사용되었고, 별도로 범주형 변수에 사용되는 인자가 없었습니다.
-    0.11.0버전부터는 `tomotopy.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
+    0.11.0버전부터는 `tomotopy.models.DMRModel`과의 통일성을 위해 기존의 `metadata` 인수가 `numeric_metadata`라는 이름으로 변경되고,
     `metadata`라는 이름으로 범주형 변수를 사용할 수 있게 변경됩니다.
 
 .. versionchanged:: 0.12.0
@@ -927,7 +927,7 @@ transform : Callable[dict, dict]
     'LDAModel.add_corpus': '''.. versionadded:: 0.10.0
 
 코퍼스를 이용해 현재 모델에 새로운 문헌들을 추가하고 추가된 문헌로 구성된 새 코퍼스를 반환합니다. 
-이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
+이 메소드는 `tomotopy.models.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
 Parameters
 ----------
 corpus : tomotopy.utils.Corpus
@@ -935,7 +935,7 @@ corpus : tomotopy.utils.Corpus
 transform : Callable[dict, dict]
     특정한 토픽 모델에 맞춰 임의 키워드 인자를 조작하기 위한 호출가능한 객체
 ''',
-    'LDAModel.add_doc': '''현재 모델에 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다. 이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
+    'LDAModel.add_doc': '''현재 모델에 새로운 문헌을 추가하고 추가된 문헌의 인덱스 번호를 반환합니다. 이 메소드는 `tomotopy.models.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
 
 Parameters
 ----------
@@ -948,7 +948,7 @@ words : Iterable[str]
     'LDAModel.copy': '''.. versionadded:: 0.12.0
 
 깊게 복사된 새 인스턴스를 반환합니다.''',
-    'LDAModel.docs': '현재 모델에 포함된 `tomotopy.Document`에 접근할 수 있는 `list`형 인터페이스 (읽기전용)',
+    'LDAModel.docs': '현재 모델에 포함된 `tomotopy.utils.Document`에 접근할 수 있는 `list`형 인터페이스 (읽기전용)',
     'LDAModel.eta': '하이퍼 파라미터 eta (읽기전용)',
     'LDAModel.get_count_by_topics': '각각의 토픽에 할당된 단어의 개수를 `list`형태로 반환합니다.',
     'LDAModel.get_topic_word_dist': '''토픽 `topic_id`의 단어 분포를 반환합니다.
@@ -992,9 +992,9 @@ word : str
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document], tomotopy.utils.Corpus]
-    추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
-    이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
+doc : Union[tomotopy.utils.Document, Iterable[tomotopy.utils.Document], tomotopy.utils.Corpus]
+    추론에 사용할 `tomotopy.utils.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
+    이 인스턴스들은 `tomotopy.models.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
 
     .. versionchanged:: 0.10.0
 
@@ -1025,12 +1025,12 @@ transform : Callable[dict, dict]
 Returns
 -------
 result : Union[List[float], List[List[float]], tomotopy.utils.Corpus]
-    `doc`이 `tomotopy.Document`로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`입니다.
+    `doc`이 `tomotopy.utils.Document`로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`입니다.
     
-    `doc`이 `tomotopy.Document`의 list로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`의 list입니다.
+    `doc`이 `tomotopy.utils.Document`의 list로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`의 list입니다.
     
     `doc`이 `tomotopy.utils.Corpus`의 인스턴스로 주어진 경우, `result`는 추론된 결과 문서들을 담고 있는, `tomotopy.utils.Corpus`의 새로운 인스턴스입니다.
-    각 문헌별 토픽 분포를 얻기 위해서는 `tomotopy.Document.get_topic_dist`를 사용하면 됩니다.
+    각 문헌별 토픽 분포를 얻기 위해서는 `tomotopy.utils.Document.get_topic_dist`를 사용하면 됩니다.
 log_ll : float
     각 문헌별 로그 가능도의 리스트
 ''',
@@ -1038,7 +1038,7 @@ log_ll : float
     'LDAModel.ll_per_word': '현재 모델의 단어당 로그 가능도 (읽기전용)',
     'LDAModel.load': '`filename` 경로의 파일로부터 모델 인스턴스를 읽어들여 반환합니다.',
     'LDAModel.loads': 'bytes-like object인 `data`로로부터 모델 인스턴스를 읽어들여 반환합니다.',
-    'LDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다..
+    'LDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다..
 
 Parameters
 ----------
@@ -1072,17 +1072,17 @@ words : Iterable[str]
 ''',
     'LDAModel.saves': '''.. versionadded:: 0.11.0
 
-현재 모델을 직렬화하여 `bytes`로 만든 뒤 이를 반환합니다. 인자는 `tomotopy.LDAModel.save`와 동일하게 작동합니다.''',
+현재 모델을 직렬화하여 `bytes`로 만든 뒤 이를 반환합니다. 인자는 `tomotopy.models.LDAModel.save`와 동일하게 작동합니다.''',
     'LDAModel.set_word_prior': '''.. versionadded:: 0.6.0
 
-어휘-주제 사전 분포를 설정합니다. 이 메소드는 `tomotopy.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
+어휘-주제 사전 분포를 설정합니다. 이 메소드는 `tomotopy.models.LDAModel.train`를 호출하기 전에만 사용될 수 있습니다.
 
 Parameters
 ----------
 word : str
     설정할 어휘
 prior : Union[Iterable[float], Dict[int, float]]
-    어휘 `word`의 주제 분포. `prior`의 길이는 `tomotopy.LDAModel.k`와 동일해야 합니다.
+    어휘 `word`의 주제 분포. `prior`의 길이는 `tomotopy.models.LDAModel.k`와 동일해야 합니다.
 
 Note
 ----
@@ -1112,7 +1112,7 @@ flush : bool
     출력 스트림의 강제 flush 여부
 ''',
     'LDAModel.train': '''깁스 샘플링을 `iter` 회 반복하여 현재 모델을 학습시킵니다. 반환값은 `None`입니다. 
-이 메소드가 호출된 이후에는 더 이상 `tomotopy.LDAModel.add_doc`로 현재 모델에 새로운 학습 문헌을 추가시킬 수 없습니다.
+이 메소드가 호출된 이후에는 더 이상 `tomotopy.models.LDAModel.add_doc`로 현재 모델에 새로운 학습 문헌을 추가시킬 수 없습니다.
 
 Parameters
 ----------
@@ -1128,12 +1128,12 @@ parallel : Union[int, tomotopy.ParallelScheme]
 freeze_topics : bool
     .. versionadded:: 0.10.1
 
-    학습 시 새로운 토픽을 생성하지 못하도록 합니다. 이 파라미터는 오직 `tomotopy.HLDAModel`에만 유효합니다.
+    학습 시 새로운 토픽을 생성하지 못하도록 합니다. 이 파라미터는 오직 `tomotopy.models.HLDAModel`에만 유효합니다.
 callback_interval : int
     .. versionadded:: 0.12.6
 
     `callback` 함수를 호출하는 간격. `callback_interval` <= 0일 경우 학습 시작과 종료 시에만 `callback` 함수가 호출됩니다.
-callback : Callable[[tomotopy.LDAModel, int, int], None]
+callback : Callable[[tomotopy.models.LDAModel, int, int], None]
     .. versionadded:: 0.12.6
 
     학습 과정에서 `callback_interval` 마다 호출되는 호출가능한 객체. 
@@ -1164,7 +1164,7 @@ show_progress : bool
 .. versionadded:: 0.3.0
 
 .. deprecated:: 0.11.0
-    `tomotopy.PLDAModel`를 대신 사용하세요.
+    `tomotopy.models.PLDAModel`를 대신 사용하세요.
 
 Parameters
 ----------
@@ -1215,10 +1215,10 @@ Parameters
 ----------
 topic_id : int
     전체 레이블의 개수를 `l`이라고 할 때, [0, `l`) 범위의 정수는 각각의 레이블에 해당하는 토픽을 가리킵니다. 
-    해당 토픽의 레이블 이름은 `tomotopy.LLDAModel.topic_label_dict`을 열람하여 확인할 수 있습니다.
+    해당 토픽의 레이블 이름은 `tomotopy.models.LLDAModel.topic_label_dict`을 열람하여 확인할 수 있습니다.
     [`l`, `k`) 범위의 정수는 어느 레이블에도 속하지 않는 잠재 토픽을 가리킵니다.
 ''',
-    'LLDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+    'LLDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 Parameters
 ----------
@@ -1319,7 +1319,7 @@ topic_id : int
 ''',
     'MGLDAModel.k_g': '하이퍼 파라미터 k_g (읽기전용)',
     'MGLDAModel.k_l': '하이퍼 파라미터 k_l (읽기전용)',
-    'MGLDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+    'MGLDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 Parameters
 ----------
@@ -1429,9 +1429,9 @@ sub_topic_id : int
 
 Parameters
 ----------
-doc : Union[tomotopy.Document, Iterable[tomotopy.Document]]
-    추론에 사용할 `tomotopy.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
-    이 인스턴스들은 `tomotopy.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
+doc : Union[tomotopy.utils.Document, Iterable[tomotopy.utils.Document]]
+    추론에 사용할 `tomotopy.utils.Document`의 인스턴스이거나 이 인스턴스들의 `list`.
+    이 인스턴스들은 `tomotopy.models.LDAModel.make_doc` 메소드를 통해 얻을 수 있습니다.
 
     .. versionchanged:: 0.10.0
 
@@ -1462,12 +1462,12 @@ transform : Callable[dict, dict]
 Returns
 -------
 result : Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[float]]], tomotopy.utils.Corpus]
-    `doc`이 `tomotopy.Document`로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`와 하위 토픽 분포를 나타내는 `List[float]`의 tuple입니다.
+    `doc`이 `tomotopy.utils.Document`로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`와 하위 토픽 분포를 나타내는 `List[float]`의 tuple입니다.
     
-    `doc`이 `tomotopy.Document`의 list로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`와 하위 토픽 분포를 나타내는 `List[float]`의 tuple의 list입니다.
+    `doc`이 `tomotopy.utils.Document`의 list로 주어진 경우, `result`는 문헌의 토픽 분포를 나타내는 `List[float]`와 하위 토픽 분포를 나타내는 `List[float]`의 tuple의 list입니다.
     
     `doc`이 `tomotopy.utils.Corpus`의 인스턴스로 주어진 경우, `result`는 추론된 결과 문서들을 담고 있는, `tomotopy.utils.Corpus`의 새로운 인스턴스입니다.
-    각 문헌별 토픽 분포를 얻기 위해서는 `tomotopy.Document.get_topic_dist`, 하위 토픽 분포를 얻기 위해서는 `tomotopy.Document.get_sub_topic_dist`를 사용하면 됩니다.
+    각 문헌별 토픽 분포를 얻기 위해서는 `tomotopy.utils.Document.get_topic_dist`, 하위 토픽 분포를 얻기 위해서는 `tomotopy.utils.Document.get_sub_topic_dist`를 사용하면 됩니다.
 log_ll : List[float]
     각 문헌별 로그 가능도의 리스트
 ''',
@@ -1524,7 +1524,7 @@ Parameters
 ----------
 topic_id : int
     전체 레이블의 개수를 `l`이라고 할 때, [0, `l` * `topics_per_label`) 범위의 정수는 각각의 레이블에 해당하는 토픽을 가리킵니다. 
-    해당 토픽의 레이블 이름은 `tomotopy.PLDAModel.topic_label_dict`을 열람하여 확인할 수 있습니다.
+    해당 토픽의 레이블 이름은 `tomotopy.models.PLDAModel.topic_label_dict`을 열람하여 확인할 수 있습니다.
     [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) 범위의 정수는 어느 레이블에도 속하지 않는 잠재 토픽을 가리킵니다.
 ''',
     'PLDAModel.latent_topics': '잠재 토픽의 개수 (읽기전용)',
@@ -1658,18 +1658,18 @@ Parameters
 words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 y : Iterable[float]
-    문헌의 응답 변수로 쓰일 `float`의 `list`. `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.SLDAModel.f`와 일치해야 합니다.
+    문헌의 응답 변수로 쓰일 `float`의 `list`. `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.models.SLDAModel.f`와 일치해야 합니다.
     
     .. versionchanged:: 0.5.1
     
         만약 결측값이 있을 경우, 해당 항목을 `NaN`으로 설정할 수 있습니다. 이 경우 `NaN`값을 가진 문헌은 토픽을 모델링하는 데에는 포함되지만, 응답 변수 회귀에서는 제외됩니다.
 ''',
     'SLDAModel.estimate': '''`doc`의 추정된 응답 변수를 반환합니다.
-만약 `doc`이 `tomotopy.SLDAModel.make_doc`에 의해 생성된 인스턴스라면, 먼저 `tomotopy.LDAModel.infer`를 통해 토픽 추론을 실시한 다음 이 메소드를 사용해야 합니다.
+만약 `doc`이 `tomotopy.models.SLDAModel.make_doc`에 의해 생성된 인스턴스라면, 먼저 `tomotopy.models.LDAModel.infer`를 통해 토픽 추론을 실시한 다음 이 메소드를 사용해야 합니다.
 
 Parameters
 ----------
-doc : tomotopy.Document
+doc : tomotopy.utils.Document
     응답 변수를 추정하려하는 문헌의 인스턴스 혹은 인스턴스들의 list
 ''',
     'SLDAModel.f': '응답 변수의 개수 (읽기전용)',
@@ -1683,7 +1683,7 @@ var_id : int
     생략시, `[f, k]` 모양의 전체 회귀 계수가 반환됩니다.
 ''',
     'SLDAModel.get_var_type': '응답 변수 `var_id`의 종류를 반환합니다. \'l\'은 선형 변수, \'b\'는 이진 변수를 뜻합니다.',
-    'SLDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.LDAModel.infer` 메소드에 사용될 수 있습니다.
+    'SLDAModel.make_doc': '''`words` 단어를 바탕으로 새로운 문헌인 `tomotopy.utils.Document` 인스턴스를 반환합니다. 이 인스턴스는 `tomotopy.models.LDAModel.infer` 메소드에 사용될 수 있습니다.
 
 Parameters
 ----------
@@ -1691,8 +1691,8 @@ words : Iterable[str]
     문헌의 각 단어를 나열하는 `str` 타입의 iterable
 y : Iterable[float]
     문헌의 응답 변수로 쓰일 `float`의 `list`. 
-    `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.SLDAModel.f`와 꼭 일치할 필요는 없습니다.
-    `y`의 길이가 `tomotopy.SLDAModel.f`보다 짧을 경우, 모자란 값들은 자동으로 `NaN`으로 채워집니다.
+    `y`의 길이는 모델의 응답 변수의 개수인 `tomotopy.models.SLDAModel.f`와 꼭 일치할 필요는 없습니다.
+    `y`의 길이가 `tomotopy.models.SLDAModel.f`보다 짧을 경우, 모자란 값들은 자동으로 `NaN`으로 채워집니다.
 ''',
 }
 
