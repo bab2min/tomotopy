@@ -51,6 +51,21 @@ endif()
 # Find Python
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 
+# Find python3.lib for stable ABI on Windows
+if(USE_STABLE_ABI AND WIN32)
+    get_filename_component(_python_prefix "${Python3_EXECUTABLE}" DIRECTORY)
+    find_file(PYTHON3_STABLE_LIB "python3.lib"
+        PATHS "${_python_prefix}" "${_python_prefix}/.."
+        PATH_SUFFIXES "libs" "lib"
+        NO_DEFAULT_PATH
+    )
+    if(PYTHON3_STABLE_LIB)
+        message(STATUS "Found python3.lib: ${PYTHON3_STABLE_LIB}")
+    else()
+        message(WARNING "python3.lib not found, will fall back to Python3::Module")
+    endif()
+endif()
+
 # Include directories
 include_directories(
     ${eigen_SOURCE_DIR}
@@ -160,24 +175,8 @@ function(add_handler_module TARGET_NAME ARCH ISA_NAME)
         set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".abi3.so")
     endif()
 
-    if(USE_STABLE_ABI AND WIN32)
-        # Link against python3.lib (stable ABI import library) instead of python3X.lib
-        get_filename_component(_python_lib_dir "${Python3_LIBRARY_DIRS}" ABSOLUTE)
-        find_file(PYTHON3_STABLE_LIB "python3.lib" PATHS "${_python_lib_dir}" NO_DEFAULT_PATH)
-        if(NOT PYTHON3_STABLE_LIB)
-            # Fallback: search in the Python prefix
-            find_file(PYTHON3_STABLE_LIB "python3.lib"
-                PATHS "${Python3_RUNTIME_LIBRARY_DIRS}" "${Python3_LIBRARY_DIRS}"
-                PATH_SUFFIXES "libs" "lib"
-            )
-        endif()
-        if(PYTHON3_STABLE_LIB)
-            target_link_libraries(${TARGET_NAME} PRIVATE "${PYTHON3_STABLE_LIB}")
-            target_include_directories(${TARGET_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
-        else()
-            message(WARNING "python3.lib not found, falling back to Python3::Module")
-            target_link_libraries(${TARGET_NAME} PRIVATE Python3::Module)
-        endif()
+    if(USE_STABLE_ABI AND WIN32 AND PYTHON3_STABLE_LIB)
+        target_link_libraries(${TARGET_NAME} PRIVATE "${PYTHON3_STABLE_LIB}")
     else()
         target_link_libraries(${TARGET_NAME} PRIVATE Python3::Module)
     endif()
@@ -200,13 +199,8 @@ function(add_dispatcher_module)
         set_target_properties(_tomotopy PROPERTIES SUFFIX ".abi3.so")
     endif()
 
-    if(USE_STABLE_ABI AND WIN32)
-        if(PYTHON3_STABLE_LIB)
-            target_link_libraries(_tomotopy PRIVATE "${PYTHON3_STABLE_LIB}")
-            target_include_directories(_tomotopy PRIVATE ${Python3_INCLUDE_DIRS})
-        else()
-            target_link_libraries(_tomotopy PRIVATE Python3::Module)
-        endif()
+    if(USE_STABLE_ABI AND WIN32 AND PYTHON3_STABLE_LIB)
+        target_link_libraries(_tomotopy PRIVATE "${PYTHON3_STABLE_LIB}")
     else()
         target_link_libraries(_tomotopy PRIVATE Python3::Module)
     endif()
