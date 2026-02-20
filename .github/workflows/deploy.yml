@@ -7,181 +7,156 @@ on:
       - '!v*.*.*d'
 
 jobs:
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    container:
+      image: docker://quay.io/pypa/manylinux_2_28_x86_64
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build sdist
+      run: |
+        /opt/python/cp313-cp313/bin/python -m pip install build scikit-build-core numpy
+        /opt/python/cp313-cp313/bin/python -m build --sdist
+    - name: Upload sdist
+      uses: actions/upload-artifact@v4
+      with:
+        name: sdist
+        path: dist/*.tar.gz
+
   build_manylinux:
     name: Build for manylinux
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     container:
-      image: docker://quay.io/pypa/manylinux2014_x86_64
+      image: docker://quay.io/pypa/manylinux_2_28_x86_64
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Install dependencies
+    - uses: actions/checkout@v4
+    - name: Build wheel
       run: |
-        yum install libffi-devel -y
-        git clone https://gitlab.com/libeigen/eigen
-        cd eigen
-        git checkout tags/3.4.0
-        cd ..
-        mkdir include
-        mv eigen/Eigen/ include/
-        rm -rf eigen-git-mirror/
-        git clone https://github.com/bab2min/EigenRand
-        cd EigenRand
-        git checkout tags/v0.4.1
-        cd ..
-        mv EigenRand/EigenRand include/
-        git clone https://github.com/mapbox/variant
-        cd variant
-        git checkout tags/v1.1.3
-        cd ..
-        mv variant/include/mapbox include/
-    - name: Src Deploy
-      continue-on-error: True
-      if: ${{ matrix.cp == 'cp38-cp38' }}
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python .github/workflows/numpy_version.py`
-        /opt/python/${{ matrix.cp }}/bin/python setup.py sdist
-        /opt/python/${{ matrix.cp }}/bin/python -m twine upload dist/*.tar.gz
+        /opt/python/cp313-cp313/bin/python -m pip install scikit-build-core numpy
+        /opt/python/cp313-cp313/bin/python -m pip wheel . -w dist --no-build-isolation
+        auditwheel repair dist/*.whl -w wheelhouse
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel-manylinux-x86_64
+        path: wheelhouse/*.whl
 
-    - name: Binary Deploy
-      continue-on-error: True
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python .github/workflows/numpy_version.py`
-        /opt/python/${{ matrix.cp }}/bin/python setup.py build bdist_wheel
-        auditwheel repair dist/*-${{ matrix.cp }}-linux_x86_64.whl
-        /opt/python/${{ matrix.cp }}/bin/python -m twine upload wheelhouse/*.whl
-  
   build_linux_arm64:
-    name: Arm64-Centos7
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        cp: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
-
+    name: Build for linux arm64
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: docker://quay.io/pypa/manylinux_2_28_aarch64
+    
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
         lfs: true
-    - uses: bab2min/run-on-arch-action@use-custom-image
-      id: runcmd
+    - name: Build wheel
+      run: |
+          /opt/python/cp313-cp313/bin/python -m pip install scikit-build-core numpy
+          /opt/python/cp313-cp313/bin/python -m pip wheel . -w dist --no-build-isolation
+          auditwheel repair dist/*.whl -w wheelhouse
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
       with:
-        image: quay.io/pypa/manylinux2014_aarch64
-        githubToken: ${{ github.token }}
-        setup: |
-          mkdir -p "${PWD}/artifacts"
-        dockerRunArgs: |
-          --volume "${PWD}/artifacts:/artifacts"
-        run: |
-          yum install libffi-devel -y
-          git clone https://gitlab.com/libeigen/eigen
-          cd eigen
-          git checkout tags/3.4.0
-          cd ..
-          mkdir include
-          mv eigen/Eigen/ include/
-          rm -rf eigen-git-mirror/
-          git clone https://github.com/bab2min/EigenRand
-          cd EigenRand
-          git checkout tags/v0.4.1
-          cd ..
-          mv EigenRand/EigenRand include/
-          git clone https://github.com/mapbox/variant
-          cd variant
-          git checkout tags/v1.1.3
-          cd ..
-          mv variant/include/mapbox include/
-          /opt/python/${{ matrix.cp }}/bin/python -m pip install twine wheel numpy==`/opt/python/${{ matrix.cp }}/bin/python .github/workflows/numpy_version.py`
-          /opt/python/${{ matrix.cp }}/bin/python setup.py build bdist_wheel
-          auditwheel repair dist/*-${{ matrix.cp }}-linux_*.whl
-          TWINE_USERNAME=${{ secrets.PYPI_USERNAME }} TWINE_PASSWORD=${{ secrets.PYPI_PASSWORD }} /opt/python/${{ matrix.cp }}/bin/python -m twine upload wheelhouse/*.whl
+        name: wheel-manylinux-aarch64
+        path: wheelhouse/*.whl
 
-  build_macos_13:
-    name: Build for macOS 13
-    runs-on: macOS-13
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.8, 3.9, "3.10", 3.11, 3.12]
-        cpu-arch: [x86_64, arm64]
+  build_macos_intel:
+    name: Build for macOS Intel
+    runs-on: macos-15-intel
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+        python-version: "3.13"
+    - name: Build wheel
       run: |
-        python -m pip install --upgrade pip setuptools
-        wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-        tar -zxvf eigen-3.4.0.tar.gz
-        rm eigen-3.4.0.tar.gz
-        mv eigen-* include
-        wget https://github.com/bab2min/EigenRand/archive/v0.4.1.tar.gz
-        tar -zxvf v0.4.1.tar.gz
-        mv EigenRand-0.4.1/EigenRand include/
-        wget https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
-        tar -zxvf v1.1.3.tar.gz
-        mv variant-1.1.3/include/mapbox include/
-    - name: Deploy
-      continue-on-error: True
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        export AUDITWHEEL_PLAT=many
         export MACOSX_DEPLOYMENT_TARGET=10.14
-        python -m pip install twine wheel numpy==`python .github/workflows/numpy_version.py`
-        TOMOTOPY_CPU_ARCH=${{ matrix.cpu-arch }} python setup.py bdist_wheel
-        twine upload dist/*
+        python -m pip install --upgrade pip
+        python -m pip install scikit-build-core numpy
+        export AUDITWHEEL_PLAT=many
+        python -m pip wheel . -w dist --no-build-isolation
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel-macos-x86_64
+        path: dist/*.whl
+
+  build_macos:
+    name: Build for macOS Arm64
+    runs-on: macos-15
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+    - name: Build wheel
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.14
+        python -m pip install --upgrade pip
+        python -m pip install scikit-build-core numpy
+        export CMAKE_OSX_ARCHITECTURES=arm64
+        export _PYTHON_HOST_PLATFORM="macosx-11.0-arm64"
+        export ARCHFLAGS="-arch arm64"
+        python -m pip wheel . -w dist --no-build-isolation \
+          -C cmake.define.TARGET_ARCH=arm64 \
+          -C cmake.define.TOMOTOPY_ISA=arm64 \
+          -C cmake.define.BUILD_MULTI_ARCH=OFF
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel-macos-arm64
+        path: dist/*.whl
 
   build_windows:
-    name: Build for Windows
-    runs-on: windows-2019
+    name: Build for Windows (${{ matrix.architecture }})
+    runs-on: windows-latest
     strategy:
-      max-parallel: 4
       matrix:
-        python-version: [3.8, 3.9, "3.10", 3.11, 3.12]
         architecture: [x86, x64]
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }} ${{ matrix.architecture }}
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.13 ${{ matrix.architecture }}
+      uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.13"
         architecture: ${{ matrix.architecture }}
-    - name: Install dependencies
+    - name: Build wheel
       run: |
-        python -m pip install --upgrade pip setuptools
-        Invoke-WebRequest -OutFile eigen-3.4.0.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-        tar -zxvf eigen-3.4.0.tar.gz
-        rm eigen-3.4.0.tar.gz
-        mv eigen-* include
-        Invoke-WebRequest -OutFile v0.4.1.tar.gz https://github.com/bab2min/EigenRand/archive/v0.4.1.tar.gz
-        tar -zxvf v0.4.1.tar.gz
-        mv EigenRand-0.4.1/EigenRand include/
-        Invoke-WebRequest -OutFile v1.1.3.tar.gz https://github.com/mapbox/variant/archive/v1.1.3.tar.gz
-        tar -zxvf v1.1.3.tar.gz
-        mv variant-1.1.3/include/mapbox include/
-    - name: Deploy
-      continue-on-error: True
+        python -m pip install --upgrade pip
+        python -m pip install scikit-build-core numpy
+        python -m pip wheel . -w dist --no-build-isolation
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel-windows-${{ matrix.architecture }}
+        path: dist/*.whl
+
+  publish:
+    name: Publish to PyPI
+    needs: [build_sdist, build_manylinux, build_linux_arm64, build_macos_intel, build_macos, build_windows]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist
+        merge-multiple: true
+    - name: Publish to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python -m pip install twine wheel numpy==$(python .github/workflows/numpy_version.py)
-        python setup.py bdist_wheel
+        pip install twine
         twine upload dist/*
