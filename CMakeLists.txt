@@ -15,7 +15,6 @@ option(USE_STABLE_ABI "Build with Python Stable ABI (abi3)" OFF)
 
 set(TARGET_ARCH "native" CACHE STRING "Target architecture (none, native, sse2, avx, avx2, avx512, arm64)")
 set(TOMOTOPY_ISA "native" CACHE STRING "ISA string for module")
-set(TOMOTOPY_LANG "en" CACHE STRING "Documentation language (en, kr)")
 
 # Stable ABI setup
 if(USE_STABLE_ABI)
@@ -143,10 +142,6 @@ function(add_handler_module TARGET_NAME ARCH ISA_NAME)
         TOMOTOPY_ISA=${ISA_NAME}
         ${ARCH_DEFS}
     )
-
-    if(TOMOTOPY_LANG STREQUAL "kr")
-        target_compile_definitions(${TARGET_NAME} PRIVATE DOC_KO=1)
-    endif()
 
     if(MSVC)
         target_compile_options(${TARGET_NAME} PRIVATE /bigobj)
