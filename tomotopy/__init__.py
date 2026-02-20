@@ -1,6 +1,6 @@
 """
-Python package `tomotopy` provides types and functions for various Topic Model 
-including LDA, DMR, HDP, MG-LDA, PA and HPA. It is written in C++ for speed and provides Python extension.
+Python package `tomotopy` provides types and functions for various topic models
+including LDA, DMR, HDP, MG-LDA, PA and HPA. It is written in C++ for speed and provides a Python extension.
 
 .. include:: ./documentation.rst
 """
@@ -9,11 +9,11 @@ from enum import IntEnum
 
 class TermWeight(IntEnum):
     """
-    This enumeration is for Term Weighting Scheme and it is based on following paper:
+    This enumeration is for Term Weighting Scheme and it is based on the following paper:
     
     > * Wilson, A. T., & Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.
     
-    There are three options for term weighting and the basic one is ONE. The others also can be applied for all topic models in `tomotopy`. 
+    There are three options for term weighting and the basic one is ONE. The others can also be applied to all topic models in `tomotopy`. 
     """
 
     ONE = 0
@@ -23,8 +23,8 @@ class TermWeight(IntEnum):
     """ 
     Use Inverse Document Frequency term weighting.
     
-    Thus, a term occurring at almost every document has very low weighting
-    and a term occurring at a few document has high weighting. 
+    Thus, a term occurring in almost every document has very low weighting
+    and a term occurring in a few documents has high weighting. 
     """
 
     PMI = 2
@@ -35,7 +35,7 @@ class TermWeight(IntEnum):
 class ParallelScheme(IntEnum):
     """
     This enumeration is for Parallelizing Scheme:
-    There are three options for parallelizing and the basic one is DEFAULT. Not all models supports all options. 
+    There are three options for parallelizing and the basic one is DEFAULT. Not all models support all options. 
     """
 
     DEFAULT = 0
@@ -70,8 +70,8 @@ try:
 except ImportError:
     isa = ''
 """
-Indicate which SIMD instruction set is used for acceleration.
-It can be one of `'avx512'`, `'avx2'`, `'avx'`, `'sse2'` and `'none'`.
+Indicates which SIMD instruction set is used for acceleration.
+It can be one of `'avx512'`, `'avx2'`, `'sse2'` and `'none'`.
 """
 import tomotopy.utils as utils
 import tomotopy.coherence as coherence

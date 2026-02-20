@@ -5,18 +5,18 @@ import re
 '''
 Submodule `tomotopy.utils` provides various utilities for topic modeling. 
 `tomotopy.utils.Corpus` class helps manage multiple documents easily. 
-The documents inserted into `Corpus` can be used any topic models, and you can save the corpus preprocessed into a file and load the corpus from a file.
+The documents inserted into `Corpus` can be used with any topic model, and you can save the corpus preprocessed into a file and load the corpus from a file.
 '''
 
 from _tomotopy import (_Document, _UtilsCorpus, _UtilsVocabDict)
 
 class Document(_Document):
-    '''This type provides abstract model to access documents to be used Topic Model.
+    '''This type provides an abstract interface for accessing documents used in topic models.
 
 An instance of this type can be acquired from `tomotopy.models.LDAModel.make_doc` method or `tomotopy.models.LDAModel.docs` member of each Topic Model instance.'''
     
     def get_topics(self, top_n=10, from_pseudo_doc=False) -> List[Tuple[int, float]]:
-        '''Return the `top_n` topics with its probability of the document.
+        '''Return the `top_n` topics with their probabilities for the document.
 
 Parameters
 ----------
@@ -46,7 +46,7 @@ from_pseudo_doc : bool
     def get_sub_topics(self, top_n=10) -> List[Tuple[int, float]]:
         '''.. versionadded:: 0.5.0
 
-Return the `top_n` sub topics with its probability of the document. (for only `tomotopy.models.PAModel`)'''
+Return the `top_n` sub topics with their probabilities for the document. (for only `tomotopy.models.PAModel`)'''
         return super().get_sub_topics(top_n)
     
     def get_sub_topic_dist(self, normalize=True) -> List[float]:
@@ -65,7 +65,7 @@ normalize : bool
     def get_words(self, top_n=10) -> List[Tuple[int, float]]:
         '''.. versionadded:: 0.4.2
 
-Return the `top_n` words with its probability of the document.'''
+Return the `top_n` words with their probabilities for the document.'''
         return super().get_words(top_n)
     
     def get_count_vector(self) -> List[int]:
@@ -154,7 +154,7 @@ This represents super topics in `tomotopy.models.PAModel` and `tomotopy.models.H
     
     @property
     def labels(self) -> List[Tuple[str, List[float]]]:
-        '''a `list` of (label, list of probabilties of each topic belonging to the label) of the document (for only `tomotopy.models.LLDAModel` and `tomotopy.models.PLDAModel` models, read-only)
+        '''a `list` of (label, list of probabilities of each topic belonging to the label) of the document (for only `tomotopy.models.LLDAModel` and `tomotopy.models.PLDAModel` models, read-only)
 
 .. versionadded:: 0.3.0'''
         return super()._labels
@@ -180,7 +180,7 @@ This represents super topics in `tomotopy.models.PAModel` and `tomotopy.models.H
         
     @property
     def span(self) -> List[Tuple[int, int]]:
-        '''a span (tuple of a start position and a end position in bytes) for each word token in the document (read-only)'''
+        '''a span (tuple of a start position and an end position in bytes) for each word token in the document (read-only)'''
         return super()._span
     
     @property
@@ -205,7 +205,7 @@ tokenizer : Union[Callable[[str, Any], List[Union[str, Tuple[str, int, int]]]], 
     `tokenizer` receives two arguments `raw` and `user_data` and 
     it should return an iterable of `str`(the tokenized word) or of Tuple[`str`, `int`, `int`] (the tokenized word, starting position of the word, the length of the word).
 batch_size : int
-    `tomotopy.utils.Corpus.process` method reads a bunch of documents and send them to `tomotopy.utils.Corpus.add_doc`. `batch_size` indicates the size of the bunch.
+    `tomotopy.utils.Corpus.process` method reads a bunch of documents and send them to `tomotopy.utils.Corpus.add_doc`. `batch_size` indicates the size of each batch.
 stopwords : Union[Iterable[str], Callable[str, bool]]
     When calling `tomotopy.utils.Corpus.add_doc`, words in `stopwords` are not added to the document but are excluded.
     If `stopwords` is callable, a word is excluded from the document when `stopwords(word) == True`.
@@ -250,7 +250,7 @@ raw : str
     a raw string of document which isn't preprocessed yet. 
     The `raw` parameter can be used only when the `tokenizer` parameter of `__init__` is set.
 user_data : Any
-    an user data for `tokenizer`. The `raw` and `user_data` parameter are sent to `tokenizer`.
+    user data for `tokenizer`. The `raw` and `user_data` parameter are sent to `tokenizer`.
 **kargs
     arbitrary keyword arguments for specific topic models
         '''
@@ -346,7 +346,7 @@ max_len : int
 max_cand : int
     Maximum number of n-grams to be extracted
 min_score : float
-    Minium PMI score of n-grams to be extracted
+    Minimum PMI score of n-grams to be extracted
 normalized : bool
     whether to use Normalized PMI or just PMI
 workers : int
@@ -363,7 +363,7 @@ candidates : List[tomotopy.label.Candidate]
     def concat_ngrams(self, cands, delimiter='_') -> None:
         '''..versionadded:: 0.10.0
 
-Concatenate n-gram matched given candidates in the corpus into single word
+Concatenate n-grams matching the given candidates in the corpus into single words
 
 Parameters
 ----------
@@ -375,7 +375,7 @@ delimiter : str
         return super().concat_ngrams(cands, delimiter)
 
 class SimpleTokenizer:
-    '''`SimpleTokenizer` provided a simple word-tokenizing utility with an arbitrary stemmer.'''
+    '''`SimpleTokenizer` provides a simple word-tokenizing utility with an arbitrary stemmer.'''
     def __init__(self, 
                  stemmer = None, 
                  pattern:str = None, 

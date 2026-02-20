@@ -30,7 +30,7 @@ min_len : int
     .. versionadded:: 0.10.0
     
     minimum length of collocations. `min_len=1` means that it extracts not only collocations but also all single words.
-    The number of single words are excluded in counting `max_cand`.
+    The number of single words is excluded in counting `max_cand`.
 max_len : int
     maximum length of collocations
 max_cand : int
@@ -52,7 +52,7 @@ class FoRelevance(_LabelFoRelevance):
     def __init__(self, topic_model, cands, min_df=5, smoothing=0.01, mu=0.25, window_size=-1, workers=0):
         '''.. versionadded:: 0.6.0
 
-This type provides an implementation of First-order Relevance for topic labeling based on following papers:
+This type provides an implementation of First-order Relevance for topic labeling based on the following papers:
 
 > * Mei, Q., Shen, X., & Zhai, C. (2007, August). Automatic labeling of multinomial topic models. In Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 490-499).
 
@@ -68,7 +68,7 @@ min_df : int
 smoothing : float
     a small value greater than 0 for Laplace smoothing
 mu : float
-    a discriminative coefficient. Candidates with high score on a specific topic and with low score on other topics get the higher final score when this value is the larger.
+    a discriminative coefficient. Candidates with high score on a specific topic and with low score on other topics get a higher final score when this value is larger.
 window_size : int
     .. versionadded:: 0.10.0
     

@@ -55,9 +55,9 @@ tomotopy 란?
 ::
 
     import tomotopy as tp
-    print(tp.isa) # 'avx2'나 'avx', 'sse2', 'none'를 출력합니다.
+    print(tp.isa) # 'avx512'나 'avx2', 'sse2', 'none'를 출력합니다.
 
-현재 tomotopy는 가속을 위해 AVX2, AVX or SSE2 SIMD 명령어 세트를 활용할 수 있습니다.
+현재 tomotopy는 가속을 위해 AVX512, AVX2 or SSE2 SIMD 명령어 세트를 활용할 수 있습니다.
 패키지가 import될 때 현재 환경에서 활용할 수 있는 최선의 명령어 세트를 확인하여 최상의 모듈을 자동으로 가져옵니다.
 만약 `tp.isa`가 `none`이라면 현재 환경에서 활용 가능한 SIMD 명령어 세트가 없는 것이므로 훈련에 오랜 시간이 걸릴 수 있습니다.
 그러나 최근 대부분의 Intel 및 AMD CPU에서는 SIMD 명령어 세트를 지원하므로 SIMD 가속이 성능을 크게 향상시킬 수 있을 것입니다.

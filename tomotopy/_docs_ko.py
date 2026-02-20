@@ -31,7 +31,7 @@ _MODULE_DOCS = {
 
 _DOCS = {
     # Enums
-    'isa': '현재 로드된 모듈이 어떤 SIMD 명령어 세트를 사용하는지 표시합니다. \n이 값은 `\'avx2\'`, `\'avx\'`, `\'sse2\'`, `\'none\'` 중 하나입니다.',
+    'isa': '현재 로드된 모듈이 어떤 SIMD 명령어 세트를 사용하는지 표시합니다. \n이 값은 `\'avx512\'`, `\'avx2\'`, `\'sse2\'`, `\'none\'` 중 하나입니다.',
     'TermWeight': '''용어 가중치 기법을 선택하는 데에 사용되는 열거형입니다. 여기에 제시된 용어 가중치 기법들은 다음 논문을 바탕으로 하였습니다:
 
 > * Wilson, A. T., & Chew, P. A. (2010, June). Term weighting schemes for latent dirichlet allocation. In human language technologies: The 2010 annual conference of the North American Chapter of the Association for Computational Linguistics (pp. 465-473). Association for Computational Linguistics.

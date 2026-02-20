@@ -52,7 +52,7 @@ class LDAModel(_LDAModel):
                  corpus = None,
                  transform = None,
                  ):
-        '''This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on following papers:
+        '''This type provides Latent Dirichlet Allocation(LDA) topic model and its implementation is based on the following papers:
 	
 > * Blei, D.M., Ng, A.Y., &Jordan, M.I. (2003).Latent dirichlet allocation.Journal of machine Learning research, 3(Jan), 993 - 1022.
 > * Newman, D., Asuncion, A., Smyth, P., &Welling, M. (2009).Distributed algorithms for topic models.Journal of Machine Learning Research, 10(Aug), 1801 - 1828.
@@ -68,11 +68,11 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
     .. versionadded:: 0.2.0
     
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
@@ -117,7 +117,7 @@ transform : Callable[dict, dict]
     
     @classmethod
     def loads(cls, data: bytes) -> 'LDAModel':
-        '''Return the model instance loaded from `data` in bytes-like object.'''
+        '''Return the model instance loaded from `data` in a bytes-like object.'''
         inst, extra_data = cls._loads(cls, data)
         inst.init_params = pickle.loads(extra_data)
         return inst
@@ -167,9 +167,9 @@ Its default value is 0.'''
     
     @property
     def num_vocabs(self) -> int:
-        '''the number of vocabuluaries after words with a smaller frequency were removed (read-only)
+        '''the number of vocabularies after words with a smaller frequency were removed (read-only)
 
-This value is 0 before `train` called.
+This value is 0 before `train` is called.
 
 .. deprecated:: 0.8.0
 
@@ -180,7 +180,7 @@ This value is 0 before `train` called.
     def num_words(self) -> int:
         '''the number of total words (read-only)
 
-This value is 0 before `train` called.'''
+This value is 0 before `train` is called.'''
         return self._num_words
     
     @property
@@ -281,7 +281,7 @@ Parameters
 words : Iterable[str]
     an iterable of `str`
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, ignore_empty_words)
     
@@ -314,7 +314,7 @@ normalize : bool
         return self._get_topic_word_dist(topic_id, normalize)
     
     def get_topic_words(self, topic_id, top_n=10, return_id=False) -> Union[List[Tuple[str, float]], List[Tuple[str, int, float]]]:
-        '''Return the `top_n` words and its probability in the topic `topic_id`. 
+        '''Return the `top_n` words and their probabilities in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`) tuples if return_id is False,
 otherwise a `list` of (word:`str`, word_id:`int`, probability:`float`) tuples.
 
@@ -357,12 +357,12 @@ doc : Union[tomotopy.utils.Document, Iterable[tomotopy.utils.Document], tomotopy
 
         Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
         In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
-        return a corpus contains generated documents as the result.
+        return a corpus containing generated documents as the result.
 iterations : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
-    The higher value will generate a more accuracy result.
+    The higher value will generate a more accurate result.
 tolerance : float
-    isn't currently used.
+    This parameter is not currently used.
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
@@ -371,7 +371,7 @@ parallel : Union[int, tomotopy.ParallelScheme]
     
     the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
 together : bool
-    all `doc`s are infered together in one process if True, otherwise each `doc` is infered independently. Its default value is `False`.
+    all `doc`s are inferred together in one process if True, otherwise each `doc` is inferred independently. Its default value is `False`.
 transform : Callable[dict, dict]
     .. versionadded:: 0.10.0
     
@@ -385,10 +385,10 @@ result : Union[List[float], List[List[float]], tomotopy.utils.Corpus]
     
     If `doc` is given as a list of `tomotopy.utils.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
     
-    If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains infered documents.
+    If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains inferred documents.
     You can get topic distribution for each document using `tomotopy.utils.Document.get_topic_dist`.
 log_ll : List[float]
-    a list of log-likelihoods for each `doc`s
+    a list of log-likelihoods for each `doc`
 '''
         return self._infer(doc, iterations, tolerance, workers, parallel, together, transform)
     
@@ -601,7 +601,7 @@ parallel : Union[int, tomotopy.ParallelScheme]
 freeze_topics : bool
     .. versionadded:: 0.10.1
 
-    prevents to create a new topic when training. Only valid for `tomotopy.models.HLDAModel`
+    prevents creating a new topic when training. Only valid for `tomotopy.models.HLDAModel`
 callback_interval : int
     .. versionadded:: 0.12.6
 
@@ -650,7 +650,7 @@ show_progress : bool
 class DMRModel(_DMRModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, sigma=1.0, alpha_epsilon=0.0000000001, seed=None, corpus=None, transform=None):
-        '''This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on following papers:
+        '''This type provides Dirichlet Multinomial Regression(DMR) topic model and its implementation is based on the following papers:
 
 > * Mimno, D., & McCallum, A. (2012). Topic models conditioned on arbitrary features with dirichlet-multinomial regression. arXiv preprint arXiv:1206.3278.
 
@@ -665,11 +665,11 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
     .. versionadded:: 0.2.0
     
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
@@ -728,7 +728,7 @@ metadata : str
 multi_metadata : Iterable[str]
     metadata of the document (for multiple values)
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, metadata, multi_metadata, ignore_empty_words)
     
@@ -742,7 +742,7 @@ ignore_empty_words : bool
 Parameters
 ----------
 words : Iterable[str]
-    an iteratable of `str`
+    an iterable of `str`
 metadata : str
     metadata of the document (e.g., author, title or year)
 multi_metadata : Iterable[str]
@@ -861,7 +861,7 @@ See `tomotopy.models.DMRModel.get_topic_prior` for the relation between the lamb
 class GDMRModel(_GDMRModel, DMRModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, degrees=[], alpha=0.1, eta=0.01, sigma=1.0, sigma0=3.0, decay=0, alpha_epsilon=0.0000000001, metadata_range=None, seed=None, corpus=None, transform=None):
-        '''This type provides Generalized DMR(g-DMR) topic model and its implementation is based on following papers:
+        '''This type provides Generalized DMR(g-DMR) topic model and its implementation is based on the following papers:
 
 > * Lee, M., & Song, M. Incorporating citation impact into analysis of research trends. Scientometrics, 1-34.
 
@@ -883,16 +883,16 @@ min_cf : int
     The default value is 0, which means no words are excluded.
 min_df : int
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
 degrees : Iterable[int]
     a list of the degrees of Legendre polynomials for TDF(Topic Distribution Function). Its length should be equal to the number of metadata variables.
 
-    Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as the LDA or DMR model. 
+    Its default value is `[]` in which case the model doesn't use any metadata variable and as a result, it becomes the same as an LDA or DMR model. 
 alpha : Union[float, Iterable[float]]
     exponential of mean of normal distribution for `lambdas`, given as a single `float` in case of symmetric prior and as a list with length `k` of `float` in case of asymmetric prior.
 eta : float
@@ -967,7 +967,7 @@ metadata : str
 multi_metadata : Iterable[str]
     metadata of the document (for multiple values)
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, numeric_metadata, metadata, multi_metadata, ignore_empty_words)
     
@@ -987,7 +987,7 @@ ignore_empty_words : bool
 Parameters
 ----------
 words : Iterable[str]
-    an iteratable of `str`
+    an iterable of `str`
 numeric_metadata : Iterable[float]
     continuous numeric metadata variable of the document. Its length should be equal to the length of `degrees`.
 metadata : str
@@ -1018,7 +1018,7 @@ normalize : bool
         return self._tdf(numeric_metadata, metadata, multi_metadata, normalize)
     
     def tdf_linspace(self, numeric_metadata_start, numeric_metadata_stop, num, metadata='', multi_metadata=[], endpoint=True, normalize=True) -> np.ndarray:
-        '''Calculate a topic distribution for given `metadata` value. It returns a list with length `k`.
+        '''Calculate topic distributions over a linspace of `numeric_metadata` values.
 
 .. versionchanged:: 0.12.0
 
@@ -1102,7 +1102,7 @@ samples : ndarray
 class HDPModel(_HDPModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, initial_k=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
-        '''This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on following papers:
+        '''This type provides Hierarchical Dirichlet Process(HDP) topic model and its implementation is based on the following papers:
 
 > * Teh, Y. W., Jordan, M. I., Beal, M. J., & Blei, D. M. (2005). Sharing clusters among related groups: Hierarchical Dirichlet processes. In Advances in neural information processing systems (pp. 1385-1392).
 > * Newman, D., Asuncion, A., Smyth, P., & Welling, M. (2009). Distributed algorithms for topic models. Journal of Machine Learning Research, 10(Aug), 1801-1828.
@@ -1122,23 +1122,23 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
     .. versionadded:: 0.2.0
     
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 initial_k : int
     the initial number of topics between 2 ~ 32767
-    The number of topics will be adjusted for data during training.
+    The number of topics will be adjusted based on the data during training.
 	
 	Since version 0.3.0, the default value has been changed to 2 from 1.
 alpha : float
-    concentration coeficient of Dirichlet Process for document-table 
+    concentration coefficient of Dirichlet Process for document-table 
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 gamma : float
-    concentration coeficient of Dirichlet Process for table-topic
+    concentration coefficient of Dirichlet Process for table-topic
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
 corpus : tomotopy.utils.Corpus
@@ -1245,7 +1245,7 @@ If topic `i` of previous HDP model is not alive or is removed in the new model, 
 class MGLDAModel(_MGLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k_g=1, k_l=1, t=3, alpha_g=0.1, alpha_l=0.1, alpha_mg=0.1, alpha_ml=0.1, eta_g=0.01, eta_l=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
-        '''This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on following papers:
+        '''This type provides Multi Grain Latent Dirichlet Allocation(MG-LDA) topic model and its implementation is based on the following papers:
 
 > * Titov, I., & McDonald, R. (2008, April). Modeling online reviews with multi-grain topic models. In Proceedings of the 17th international conference on World Wide Web (pp. 111-120). ACM.
 
@@ -1260,11 +1260,11 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
     .. versionadded:: 0.2.0
     
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k_g : int
     the number of global topics between 1 ~ 32767
@@ -1332,7 +1332,7 @@ words : Iterable[str]
 delimiter : str
     a sentence separator. `words` will be separated by this value into sentences.
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, delimiter, ignore_empty_words)
     
@@ -1342,14 +1342,14 @@ ignore_empty_words : bool
 Parameters
 ----------
 words : Iterable[str]
-    an iteratable of `str`
+    an iterable of `str`
 delimiter : str
     a sentence separator. `words` will be separated by this value into sentences.
 '''
         return self._make_doc(words, delimiter)
     
     def get_topic_words(self, topic_id, top_n=10) -> List[Tuple[str, float]]:
-        '''Return the `top_n` words and its probability in the topic `topic_id`. 
+        '''Return the `top_n` words and their probabilities in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -1440,7 +1440,7 @@ normalize : bool
 class PAModel(_PAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Pachinko Allocation(PA) topic model and its implementation is based on following papers:
+        '''This type provides Pachinko Allocation(PA) topic model and its implementation is based on the following papers:
 
 > * Li, W., & McCallum, A. (2006, June). Pachinko allocation: DAG-structured mixture models of topic correlations. In Proceedings of the 23rd international conference on Machine learning (pp. 577-584). ACM.
 
@@ -1455,11 +1455,11 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
     .. versionadded:: 0.2.0
     
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k1 : int
     the number of super topics between 1 ~ 32767
@@ -1505,7 +1505,7 @@ transform : Callable[dict, dict]
         )
 
     def get_topic_words(self, sub_topic_id, top_n=10) -> List[Tuple[str, float]]:
-        '''Return the `top_n` words and its probability in the sub topic `sub_topic_id`. 
+        '''Return the `top_n` words and their probabilities in the sub topic `sub_topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -1533,7 +1533,7 @@ normalize : bool
     def get_sub_topics(self, super_topic_id, top_n=10) -> List[Tuple[int, float]]:
         '''.. versionadded:: 0.1.4
 
-Return the `top_n` sub topics and its probability in a super topic `super_topic_id`.
+Return the `top_n` sub topics and their probabilities in the super topic `super_topic_id`.
 The return type is a `list` of (subtopic:`int`, probability:`float`).
 
 Parameters
@@ -1569,12 +1569,12 @@ doc : Union[tomotopy.utils.Document, Iterable[tomotopy.utils.Document], tomotopy
 
         Since version 0.10.0, `infer` can receive a raw corpus instance of `tomotopy.utils.Corpus`. 
         In this case, you don't need to call `make_doc`. `infer` would generate documents bound to the model, estimate its topic distributions and
-        return a corpus contains generated documents as the result.
+        return a corpus containing generated documents as the result.
 iterations : int
     an integer indicating the number of iteration to estimate the distribution of topics of `doc`.
-    The higher value will generate a more accuracy result.
+    The higher value will generate a more accurate result.
 tolerance : float
-    isn't currently used.
+    This parameter is not currently used.
 workers : int
     an integer indicating the number of workers to perform samplings. 
     If `workers` is 0, the number of cores in the system will be used.
@@ -1583,7 +1583,7 @@ parallel : Union[int, tomotopy.ParallelScheme]
     
     the parallelism scheme for inference. the default value is ParallelScheme.DEFAULT which means that tomotopy selects the best scheme by model.
 together : bool
-    all `doc`s are infered together in one process if True, otherwise each `doc` is infered independently. Its default value is `False`.
+    all `doc`s are inferred together in one process if True, otherwise each `doc` is inferred independently. Its default value is `False`.
 transform : Callable[dict, dict]
     .. versionadded:: 0.10.0
     
@@ -1597,10 +1597,10 @@ result : Union[Tuple[List[float], List[float]], List[Tuple[List[float], List[flo
     
     If `doc` is given as a list of `tomotopy.utils.Document`s, `result` is a list of `List[float]` indicating topic distributions for each document.
     
-    If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains infered documents.
+    If `doc` is given as an instance of `tomotopy.utils.Corpus`, `result` is another instance of `tomotopy.utils.Corpus` which contains inferred documents.
     You can get topic distribution for each document using `tomotopy.utils.Document.get_topic_dist` and sub-topic distribution using `tomotopy.utils.Document.get_sub_topic_dist`
-log_ll : float
-    a list of log-likelihoods for each `doc`s
+log_ll : List[float]
+    a list of log-likelihoods for each `doc`
 '''
         return self._infer(doc, iterations, tolerance, workers, parallel, together, transform)
     
@@ -1658,7 +1658,7 @@ log_ll : float
 class HPAModel(_HPAModel, PAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k1=1, k2=1, alpha=0.1, subalpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on following papers:
+        '''This type provides Hierarchical Pachinko Allocation(HPA) topic model and its implementation is based on the following papers:
 
 > * Mimno, D., Li, W., & McCallum, A. (2007, June). Mixtures of hierarchical topics with pachinko allocation. In Proceedings of the 24th international conference on Machine learning (pp. 633-640). ACM.
 
@@ -1673,11 +1673,11 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
     .. versionadded:: 0.2.0
     
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k1 : int
     the number of super topics between 1 ~ 32767
@@ -1723,7 +1723,7 @@ transform : Callable[dict, dict]
         )
 
     def get_topic_words(self, topic_id, top_n=10) -> List[Tuple[str, float]]:
-        '''Return the `top_n` words and its probability in the topic `topic_id`. 
+        '''Return the `top_n` words and their probabilities in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -1737,7 +1737,7 @@ topic_id : int
     
     def get_topic_word_dist(self, topic_id, normalize=True) -> List[float]:
         '''Return the word distribution of the topic `topic_id`.
-The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in current topic.
+The returned value is a `list` that has `len(vocabs)` fraction numbers indicating probabilities for each word in the current topic.
 
 Parameters
 ----------
@@ -1797,7 +1797,7 @@ class CTModel(_CTModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, smoothing_alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
         '''.. versionadded:: 0.2.0
-This type provides Correlated Topic Model (CTM) and its implementation is based on following papers:
+This type provides Correlated Topic Model (CTM) and its implementation is based on the following papers:
 	
 > * Blei, D., & Lafferty, J. (2006). Correlated topic models. Advances in neural information processing systems, 18, 147.
 > * Mimno, D., Wallach, H., & McCallum, A. (2008, December). Gibbs sampling for logistic normal topic models with graph-based priors. In NIPS Workshop on Analyzing Graphs (Vol. 61).
@@ -1813,9 +1813,9 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
@@ -1870,7 +1870,7 @@ topic_id : Union[int, None]
         '''the number of times to sample beta parameters, default value is 10.
 
 CTModel samples `num_beta_samples` beta parameters for each document. 
-The more beta it samples, the more accurate the distribution will be, but the longer time it takes to learn. 
+The more beta it samples, the more accurate the distribution will be, but the more time it takes to learn. 
 If you have a small number of documents in your model, keeping this value larger will help you get better result.
 '''
         return self._num_beta_samples
@@ -1897,7 +1897,7 @@ If your model shows biased topic correlations, increasing this value may be help
     
     @property
     def prior_cov(self) -> np.ndarray:
-        '''the covariance matrix of prior logistic-normal distribution the for topic distribution (read-only)'''
+        '''the covariance matrix of prior logistic-normal distribution for the topic distribution (read-only)'''
         return self._prior_cov
     
     @property
@@ -1918,7 +1918,7 @@ If your model shows biased topic correlations, increasing this value may be help
 class SLDAModel(_SLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, vars='', alpha=0.1, eta=0.01, mu=[], nu_sq=[], glm_param=[], seed=None, corpus=None, transform=None):
-        '''This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on following papers:
+        '''This type provides supervised Latent Dirichlet Allocation(sLDA) topic model and its implementation is based on the following papers:
 	
 > * Mcauliffe, J. D., & Blei, D. M. (2008). Supervised topic models. In Advances in neural information processing systems (pp. 121-128).
 > * Python version implementation using Gibbs sampling : https://github.com/Savvysherpa/slda
@@ -1936,9 +1936,9 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
@@ -2007,7 +2007,7 @@ y : Iterable[float]
     
         If you have a missing value, you can set the item as `NaN`. Documents with `NaN` variables are included in modeling topics, but excluded from regression.
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, y, ignore_empty_words)
     
@@ -2031,7 +2031,7 @@ y : Iterable[float]
 Parameters
 ----------
 var_id : int
-    indicating the reponse variable, in range [0, `f`)
+    indicating the response variable, in range [0, `f`)
 
     If omitted, the whole regression coefficients with shape `[f, k]` are returned.
 '''
@@ -2075,7 +2075,7 @@ doc : tomotopy.utils.Document
 class LLDAModel(_LLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Labeled LDA(L-LDA) topic model and its implementation is based on following papers:
+        '''This type provides Labeled LDA(L-LDA) topic model and its implementation is based on the following papers:
 	
 > * Ramage, D., Hall, D., Nallapati, R., & Manning, C. D. (2009, August). Labeled LDA: A supervised topic model for credit attribution in multi-labeled corpora. In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: Volume 1-Volume 1 (pp. 248-256). Association for Computational Linguistics.
 
@@ -2095,9 +2095,9 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
@@ -2144,7 +2144,7 @@ words : Iterable[str]
 labels : Iterable[str]
     labels of the document
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, labels, ignore_empty_words)
     
@@ -2154,14 +2154,14 @@ ignore_empty_words : bool
 Parameters
 ----------
 words : Iterable[str]
-    an iteratable of `str`
+    an iterable of `str`
 labels : Iterable[str]
     labels of the document
 '''
         return self._make_doc(words, labels)
     
     def get_topic_words(self, topic_id, top_n=10, return_id=False) -> Union[List[Tuple[str, float]], List[Tuple[int, str, float]]]:
-        '''Return the `top_n` words and its probability in the topic `topic_id`. 
+        '''Return the `top_n` words and their probabilities in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`) if `return_id` is False, or a `list` of (word_id:`int`, word:`str`, probability:`float`) if `return_id` is True.
 
 Parameters
@@ -2169,7 +2169,7 @@ Parameters
 topic_id : int
     Integers in the range [0, `l`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
     The label name can be found by looking up `tomotopy.models.LLDAModel.topic_label_dict`.
-    Integers in the range [`l`, `k`) represent a latent topic which doesn't belongs to the any labels.
+    Integers in the range [`l`, `k`) represent a latent topic which does not belong to any label.
 top_n : int
     the number of top words to return
 return_id : bool
@@ -2200,7 +2200,7 @@ return_id : bool
 class PLDAModel(_PLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, latent_topics=0, topics_per_label=1, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
-        '''This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on following papers:
+        '''This type provides Partially Labeled LDA(PLDA) topic model and its implementation is based on the following papers:
 	
 > * Ramage, D., Manning, C. D., & Dumais, S. (2011, August). Partially labeled topic models for interpretable text mining. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining (pp. 457-465). ACM.
 
@@ -2217,9 +2217,9 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 latent_topics : int
     the number of latent topics, which are shared to all documents, between 1 ~ 32767
@@ -2269,7 +2269,7 @@ words : Iterable[str]
 labels : Iterable[str]
     labels of the document
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, labels, ignore_empty_words)
     
@@ -2279,14 +2279,14 @@ ignore_empty_words : bool
 Parameters
 ----------
 words : Iterable[str]
-    an iteratable of `str`
+    an iterable of `str`
 labels : Iterable[str]
     labels of the document
 '''
         return self._make_doc(words, labels)
     
     def get_topic_words(self, topic_id, top_n=10, return_id=False) -> Union[List[Tuple[str, float]], List[Tuple[int, str, float]]]:
-        '''Return the `top_n` words and its probability in the topic `topic_id`. 
+        '''Return the `top_n` words and their probabilities in the topic `topic_id`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -2294,7 +2294,7 @@ Parameters
 topic_id : int
     Integers in the range [0, `l` * `topics_per_label`), where `l` is the number of total labels, represent a topic that belongs to the corresponding label.
     The label name can be found by looking up `tomotopy.models.PLDAModel.topic_label_dict`.
-    Integers in the range [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) represent a latent topic which doesn't belongs to the any labels.
+    Integers in the range [`l` * `topics_per_label`, `l` * `topics_per_label` + `latent_topics`) represent a latent topic which does not belong to any label.
 top_n : int
     the number of top words to return
 return_id : bool
@@ -2337,7 +2337,7 @@ return_id : bool
 class HLDAModel(_HLDAModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, depth=2, alpha=0.1, eta=0.01, gamma=0.1, seed=None, corpus=None, transform=None):
-        '''This type provides Hierarchical LDA topic model and its implementation is based on following papers:
+        '''This type provides Hierarchical LDA topic model and its implementation is based on the following papers:
 
 > * Griffiths, T. L., Jordan, M. I., Tenenbaum, J. B., & Blei, D. M. (2004). Hierarchical topic models and the nested Chinese restaurant process. In Advances in neural information processing systems (pp. 17-24).
 
@@ -2354,9 +2354,9 @@ min_df : int
     .. versionadded:: 0.6.0
 
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int    
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 depth : int
     the maximum depth level of hierarchy between 2 ~ 32767
@@ -2365,7 +2365,7 @@ alpha : Union[float, Iterable[float]]
 eta : float
     hyperparameter of Dirichlet distribution for topic-word
 gamma : float
-    concentration coeficient of Dirichlet Process
+    concentration coefficient of Dirichlet Process
 seed : int
     random seed. default value is a random number from `std::random_device{}` in C++
 corpus : tomotopy.utils.Corpus
@@ -2488,7 +2488,7 @@ topic_id : int
 class DTModel(_DTModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, t=1, alpha_var=0.1, eta_var=0.1, phi_var=0.1, lr_a=0.01, lr_b=0.1, lr_c=0.55, seed=None, corpus=None, transform=None):
-        '''This type provides Dynamic Topic model and its implementation is based on following papers:
+        '''This type provides Dynamic Topic model and its implementation is based on the following papers:
 
 > * Blei, D. M., & Lafferty, J. D. (2006, June). Dynamic topic models. In Proceedings of the 23rd international conference on Machine learning (pp. 113-120).
 > * Bhadury, A., Chen, J., Zhu, J., & Liu, S. (2016, April). Scaling up dynamic topic models. In Proceedings of the 25th International Conference on World Wide Web (pp. 381-390).
@@ -2505,14 +2505,14 @@ min_cf : int
     The default value is 0, which means no words are excluded.
 min_df : int
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767
 t : int
-    the number of timpoints
+    the number of timepoints
 alpha_var : float
     transition variance of alpha (per-document topic distribution)
 eta_var : float
@@ -2565,7 +2565,7 @@ words : Iterable[str]
 timepoint : int
     an integer with range [0, `t`)
 ignore_empty_words : bool
-    If `True`, empty `words` doesn't raise exception and makes the method return None.
+    If `True`, empty `words` doesn't raise an exception and makes the method return None.
 '''
         return self._add_doc(words, timepoint, ignore_empty_words)
     
@@ -2575,7 +2575,7 @@ ignore_empty_words : bool
 Parameters
 ----------
 words : Iterable[str]
-    an iteratable of `str`
+    an iterable of `str`
 timepoint : int
     an integer with range [0, `t`)
 '''
@@ -2604,7 +2604,7 @@ topic_id : int
         return self._get_phi(timepoint, topic_id)
     
     def get_topic_words(self, topic_id, timepoint, top_n=10) -> List[Tuple[str, float]]:
-        '''Return the `top_n` words and its probability in the topic `topic_id` with `timepoint`. 
+        '''Return the `top_n` words and their probabilities in the topic `topic_id` with `timepoint`. 
 The return type is a `list` of (word:`str`, probability:`float`).
 
 Parameters
@@ -2708,7 +2708,7 @@ class PTModel(_PTModel, LDAModel):
     def __init__(self,
                  tw='one', min_cf=0, min_df=0, rm_top=0, k=1, p=None, alpha=0.1, eta=0.01, seed=None, corpus=None, transform=None):
         '''.. versionadded:: 0.11.0
-This type provides Pseudo-document based Topic Model (PTM) and its implementation is based on following papers:
+This type provides Pseudo-document based Topic Model (PTM) and its implementation is based on the following papers:
 	
 > * Zuo, Y., Wu, J., Zhang, H., Lin, H., Wang, F., Xu, K., & Xiong, H. (2016, August). Topic modeling of short texts: A pseudo-document view. In Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining (pp. 2105-2114).
 
@@ -2721,9 +2721,9 @@ min_cf : int
     The default value is 0, which means no words are excluded.
 min_df : int
     minimum document frequency of words. Words with a smaller document frequency than `min_df` are excluded from the model.
-    The default value is 0, which means no words are excluded
+    The default value is 0, which means no words are excluded.
 rm_top : int
-    the number of top words to be removed. If you want to remove too common words from model, you can set this value to 1 or more.
+    the number of top words to be removed. If you want to remove too common words from the model, you can set this value to 1 or more.
     The default value is 0, which means no top words are removed.
 k : int
     the number of topics between 1 ~ 32767

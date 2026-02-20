@@ -1,7 +1,7 @@
 '''
 ..versionadded:: 0.10.0
 
-This module provides the way to calculate topic coherence introduced the following paper:
+This module provides a way to calculate topic coherence introduced in the following paper:
 
 > * Röder, M., Both, A., & Hinneburg, A. (2015, February). Exploring the space of topic coherence measures. In Proceedings of the eighth ACM international conference on Web search and data mining (pp. 399-408).
 > http://svn.aksw.org/papers/2015/WSDM_Topic_Evaluation/public.pdf
@@ -57,7 +57,7 @@ class IndirectMeasure(IntEnum):
 del IntEnum    
 
 class Coherence(_Coherence):
-    '''`Coherence` class provides the way to calculate topic coherence.
+    '''`Coherence` class provides a way to calculate topic coherence.
     '''
     _COH_MAP = {
         'u_mass':(ProbEstimation.DOCUMENT, 0, Segmentation.ONE_PRE, ConfirmMeasure.LOGCOND, IndirectMeasure.NONE),
@@ -74,7 +74,7 @@ Parameters
 corpus : Union[tomotopy.utils.Corpus, tomotopy.models.LDAModel]
     A reference corpus to be used for estimating probability. 
     Supports not only an instance of `tomotopy.utils.Corpus`, but also any topic model instances including `tomotopy.models.LDAModel` and its descendants.
-    If `corpus` is an instance of `tomotpy.utils.Corpus`, `targets` must be given too.
+    If `corpus` is an instance of `tomotopy.utils.Corpus`, `targets` must be given too.
 coherence : Union[str, Tuple[int, int, int], Tuple[int, int, int, int]]
     A coherence metric to be used. The metric can be a combination of (`tomotopy.coherence.ProbEstimation`, `tomotopy.coherence.Segmentation`, `tomotopy.coherence.ConfirmMeasure`)
     or a combination of (`tomotopy.coherence.ProbEstimation`, `tomotopy.coherence.Segmentation`, `tomotopy.coherence.ConfirmMeasure`, `tomotopy.coherence.IndirectMeasure`).
@@ -88,7 +88,7 @@ window_size : int
     A window size for `tomotopy.coherence.ProbEstimation.SLIDING_WINDOWS`.
     default value is 10 for 'c_uci' and 'c_npmi' and 110 for 'c_v'.
 targets : Iterable[str]
-    If `corpus` is an instance of `tomotpy.utils.Corpus`, target words must be given. 
+    If `corpus` is an instance of `tomotopy.utils.Corpus`, target words must be given. 
     Only words that are provided as `targets` are included in probability estimation.
 top_n : int
     The number of top words to be extracted from each topic.
@@ -143,7 +143,7 @@ Parameters
 words : Iterable[str]
     Words whose coherence is calculated. 
     If `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.models.LDAModel` or its descendants, `words` can be omitted.
-    In this case words are extracted from topic with `topic_id`.
+    In this case, words are extracted from the topic with `topic_id`.
 topic_id : int
     An id of the topic from which words are extracted. 
     This parameter is valid when `tomotopy.coherence.Coherence` was initialized using `corpus` as `tomotopy.models.LDAModel` or its descendants.
