@@ -444,17 +444,46 @@
               var category_labels = {{categorical_metadata}};
             </script>
             <script>
+              const backgroundColors = [
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(255, 159, 64, 0.5)',
+                'rgba(255, 205, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)',
+                'rgba(201, 203, 207, 0.5)',
+                'rgba(255, 0, 0, 0.5)',
+                'rgba(0, 255, 0, 0.5)',
+                'rgba(0, 0, 255, 0.5)',
+              ];
+              const borderColors = [
+                'rgb(54, 162, 235)',
+                'rgb(255, 99, 132)',
+                'rgb(255, 159, 64)',
+                'rgb(255, 205, 86)',
+                'rgb(75, 192, 192)',
+                'rgb(153, 102, 255)',
+                'rgb(201, 203, 207)',
+                'rgb(255, 0, 0)',
+                'rgb(0, 255, 0)',
+                'rgb(0, 0, 255)',
+              ];
+
               var charts = [];
               for (var i in tdf_data) {
                 var data = tdf_data[i];
                 const ctx = document.getElementById('chart-' + i);
 
                 var datasets = [];
-                for (var c in category_labels) {
+                const reorder = [1, 2, 3, 4, 5, 0, 6, 7, 8, 9];
+                for (var c in reorder) {
+                  c = reorder[c];
                   datasets.push({
                     label: category_labels[c],
                     cubicInterpolationMode: 'monotone',
                     data: data[c],
+                    backgroundColor: backgroundColors[datasets.length % backgroundColors.length],
+                    borderColor: borderColors[datasets.length % borderColors.length],
                     borderWidth: 2,
                     pointStyle: false,
                     segment: {

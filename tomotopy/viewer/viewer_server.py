@@ -191,11 +191,12 @@ class DocumentFilter:
         self._cached = {}
         self._cached_keys = []
     
-    def _sort_and_filter(self, sort_key:int, filter_target:int, filter_value:float, filter_keyword:tuple, filter_metadata:str):
+    def _sort_and_filter(self, sort_key:int, filter_target:int, filter_value:float, filter_keyword:tuple, filter_metadata:str, filter_numeric_metadata:list):
         results = []
         for i, doc in enumerate(self.model.docs):
             if filter_keyword and not all(kw in doc.raw.lower() for kw in filter_keyword): continue
             if filter_metadata is not None and doc.metadata != filter_metadata: continue
+            if filter_numeric_metadata and not all(s <= v <= e for (s, e), v in zip(filter_numeric_metadata, doc.numeric_metadata)): continue
             dist = doc.get_topic_dist()
             if dist[filter_target] < filter_value: continue
             if sort_key >= 0:
@@ -208,25 +209,25 @@ class DocumentFilter:
         else:
             return [i for _, i in sorted(results, reverse=True)]
 
-    def _get_cached_filter_result(self, sort_key:int, filter_target:int, filter_value:float, filter_keyword:str, filter_metadata:str):
+    def _get_cached_filter_result(self, sort_key:int, filter_target:int, filter_value:float, filter_keyword:str, filter_metadata:str, filter_numeric_metadata:list):
         filter_keyword = tuple(filter_keyword.lower().split())
-        if sort_key < 0 and filter_value <= 0 and not filter_keyword and filter_metadata is None:
+        if sort_key < 0 and filter_value <= 0 and not filter_keyword and filter_metadata is None and not filter_numeric_metadata:
             # return None for no filtering nor sorting
             return None
-        key = (sort_key, filter_target, filter_value, filter_keyword, filter_metadata)
+        key = (sort_key, filter_target, filter_value, filter_keyword, filter_metadata, tuple(filter_numeric_metadata))
         if key in self._cached:
             return self._cached[key]
         else:
-            result = self._sort_and_filter(sort_key, filter_target, filter_value, filter_keyword, filter_metadata)
+            result = self._sort_and_filter(sort_key, filter_target, filter_value, filter_keyword, filter_metadata, filter_numeric_metadata)
             if len(self._cached_keys) >= self.max_cache_size:
                 del self._cached[self._cached_keys.pop(0)]
             self._cached[key] = result
             self._cached_keys.append(key)
             return result
 
-    def get(self, sort_key:int, filter_target:int, filter_value:float, filter_keyword:str, filter_metadata:str, index:slice):
+    def get(self, sort_key:int, filter_target:int, filter_value:float, filter_keyword:str, filter_metadata:str, filter_numeric_metadata:list, index:slice):
         # return (doc_indices, total_docs_filtered)
-        result = self._get_cached_filter_result(sort_key, filter_target, filter_value, filter_keyword, filter_metadata)
+        result = self._get_cached_filter_result(sort_key, filter_target, filter_value, filter_keyword, filter_metadata, filter_numeric_metadata)
         if result is None:
             return list(range(index.start, min(index.stop, len(self.model.docs)))), len(self.model.docs)
         else:
@@ -431,6 +432,7 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         filter_value = float(self.arguments.get('v', '0'))
         filter_keyword = self.arguments.get('sq', '')
         filter_metadata = int(self.arguments.get('m', '-1'))
+        filter_numeric_metadata = self.arguments.get('x', '')
         page = int(self.arguments.get('p', '0'))
         
         if not self.available.get('metadata') or filter_metadata < 0:
@@ -439,12 +441,19 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         else:
             md = self.model.metadata_dict[filter_metadata]
 
+        if not self.available.get('metadata') or not filter_numeric_metadata:
+            filter_numeric_metadata = []
+        else:
+            filter_numeric_metadata = list(map(float, filter_numeric_metadata.split(',')))
+            filter_numeric_metadata = list(zip(filter_numeric_metadata[::2], filter_numeric_metadata[1::2]))
+
         doc_indices, filtered_docs = self.server.filter.get(
             sort_key, 
             filter_target, 
             filter_value / 100, 
             filter_keyword,
             md,
+            filter_numeric_metadata,
             slice(page * self.num_docs_per_page, (page + 1) * self.num_docs_per_page)
         )
         total_pages = (filtered_docs + self.num_docs_per_page - 1) // self.num_docs_per_page
@@ -459,7 +468,7 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         self.render(action='document',
                     page=page,
                     total_pages=total_pages,
-                    filtered_docs=filtered_docs if filter_value > 0 or filter_keyword or filter_metadata >= 0 else None,
+                    filtered_docs=filtered_docs if filter_value > 0 or filter_keyword or filter_metadata >= 0 or filter_numeric_metadata else None,
                     total_docs=total_docs,
                     documents=documents,
                     sort_key=sort_key,
@@ -800,6 +809,27 @@ f'''<tr class="topic-action" data-topic-id="{topic_id}">
             contour_map[:-int(h * 0.32)] = 0
             contour_map[:-int(h * 0.16), is_sub_grid] = 0
             contour_map = contour_map.clip(0, 1)
+        else:
+            grid_map = np.zeros_like(contour_map)
+            for i in range(5):
+                t = (h * i) // 4
+                bold = i % 2 == 0
+                if t < h:
+                    grid_map[t] = 0.8 if bold else 0.5
+                if t > 0:
+                    grid_map[t - 1] = 0.8 if bold else 0.5
+                if t + 1 < h and bold:
+                    grid_map[t + 1] = 0.8 if bold else 0.5
+            for i in range(24):
+                t = (w * i) // 23
+                bold = i % 5 == 4
+                if t < w:
+                    grid_map[:, t] = 0.8 if bold else 0.5
+                if t > 0:
+                    grid_map[:, t - 1] = 0.8 if bold else 0.5
+                if t + 1 < h and bold:
+                    grid_map[:, t + 1] = 0.8 if bold else 0.5
+            colorized = colorized * (1 - grid_map[..., None]) + 0.85 * grid_map[..., None]
         colorized *= 1 - contour_map[..., None]
         img = Image.fromarray((colorized * 255).astype(np.uint8), 'RGB')
         img_buf = io.BytesIO()
