@@ -81,6 +81,23 @@ model_corpus_cases = [
     (tp.PTModel, curpath + '/sample.txt', 0, None, {'k':10, 'p':100}, [tp.ParallelScheme.PARTITION]),
 ]
 
+def properties(cls, inputFile, mdFields, f, kargs, ps):
+    print('Test properties')
+    tw = 0
+    print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
+    mdl = cls(tw=tw, min_df=2, rm_top=2, **kargs)
+    all_attributes = [attr for attr in dir(mdl) if not attr.startswith('_')]
+    ignore_properties = {'CTModel.alpha', 'DTModel.eta'}
+    for attr in all_attributes:
+        if '{}.{}'.format(cls.__name__, attr) in ignore_properties:
+            print('Skipping property {}.{}'.format(cls.__name__, attr))
+            continue
+        try:
+            print(attr, getattr(mdl, attr), sep=': ')
+        except Exception as e:
+            print('Error accessing attribute {}: {}'.format(attr, e))
+            raise
+
 def null_doc(cls, inputFile, mdFields, f, kargs, ps):
     tw = 0
     print('Initialize model %s with TW=%s ...' % (str(cls), ['one', 'idf', 'pmi'][tw]))
@@ -663,6 +680,13 @@ def test_purge_dead_topics():
     for i in range(0, 200, 100):
         mdl.train(100)
         print('Iteration: {}\tLog-likelihood: {}\tNum. of topics: {}\tNum. of tables: {}'.format(i, mdl.ll_per_word, mdl.live_k, mdl.num_tables))
+
+for model_case in model_cases:
+    pss = model_case[5]
+    if not pss: pss = [tp.ParallelScheme.DEFAULT]
+    for ps in pss[:1]:
+        for func in [properties]:
+            locals()['test_{}_{}_{}'.format(model_case[0].__name__, func.__name__, ps.name)] = (lambda f, mc, ps: lambda: f(*(mc + (ps,))))(func, model_case[:-1], ps)
 
 for model_case in model_cases:
     pss = model_case[5]
