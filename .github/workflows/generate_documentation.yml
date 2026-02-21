@@ -2,54 +2,34 @@ name: Generate the documentation
 
 on:
   push:
-    tags: 
+    tags:
       - 'v*.*.*'
       - '!v*.*.*d'
+  workflow_dispatch:
 
 jobs:
   build_manylinux:
     name: Build for manylinux
     runs-on: ubuntu-latest
     container:
-      image: docker://quay.io/pypa/manylinux2014_x86_64
+      image: docker://quay.io/pypa/manylinux_2_28_x86_64
     strategy:
       max-parallel: 1
       matrix:
         language: [kr, en]
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Install dependencies
+    - uses: actions/checkout@v4
+    - name: Build and install
       run: |
-        /opt/python/cp39-cp39/bin/python -m pip install --upgrade pip
-        yum install libffi-devel -y
-        git clone https://gitlab.com/libeigen/eigen
-        cd eigen
-        git checkout tags/3.4.0
-        cd ..
-        mkdir include
-        mv eigen/Eigen/ include/
-        git clone https://github.com/bab2min/EigenRand
-        cd EigenRand
-        git checkout tags/v0.4.1
-        cd ..
-        mv EigenRand/EigenRand include/
-        git clone https://github.com/mapbox/variant
-        cd variant
-        git checkout tags/v1.1.3
-        cd ..
-        mv variant/include/mapbox include/
-    - name: build
-      run: |
-        /opt/python/cp39-cp39/bin/python -m pip install numpy==`/opt/python/cp39-cp39/bin/python .github/workflows/numpy_version.py`
-        /opt/python/cp39-cp39/bin/python -m pip install pdoc3==0.8.4
-        export TOMOTOPY_LANG=${{ matrix.language }}
-        /opt/python/cp39-cp39/bin/python setup.py install
+        /opt/python/cp313-cp313/bin/python -m pip install scikit-build-core numpy
+        /opt/python/cp313-cp313/bin/python -m pip install . --no-build-isolation --no-deps
+        /opt/python/cp313-cp313/bin/python -m pip install pdoc3
     - name: gen doc
       run: |
-        export TOMOTOPY_VER="`/opt/python/cp39-cp39/bin/python -m pip show tomotopy | grep Version | cut -d' ' -f2`"
+        export TOMOTOPY_VER="`/opt/python/cp313-cp313/bin/python -m pip show tomotopy | grep Version | cut -d' ' -f2`"
         export TOMOTOPY_LANG=${{ matrix.language }}
-        /opt/python/cp39-cp39/bin/python -m pdoc --html tomotopy
+        /opt/python/cp313-cp313/bin/python -m pdoc --html tomotopy
         sed -i -E "s/documentation<\/title>/documentation (v${TOMOTOPY_VER})<\/title>/" html/tomotopy/*.html
         sed -i -E 's/<\/title>/<\/title><link rel="icon" type="image\/png" sizes="192x192" href="\/tomotopy\/favicon-192x192.png">/' html/tomotopy/*.html
         sed -i -E 's/(<p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"><\/p>)/<script async defer src="https:\/\/buttons.github.io\/buttons.js"><\/script> <p><img alt="" src="https:\/\/badge.fury.io\/py\/tomotopy.svg"> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy" data-size="large" data-show-count="true" aria-label="Star bab2min\/tomotopy on GitHub">Star<\/a> <a class="github-button" href="https:\/\/github.com\/bab2min\/tomotopy\/issues" data-size="large" data-show-count="true" aria-label="Issue bab2min\/tomotopy on GitHub">Issue<\/a> <\/p>/' html/tomotopy/*.html
