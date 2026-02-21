@@ -58,9 +58,10 @@ py::UniqueObj CTModelObject::getCorrelations(PyObject* topicId) const
 py::UniqueObj CTModelObject::getPriorCov() const
 {
 	auto* inst = getInst<tomoto::ICTModel>();
+	auto cov = inst->getPriorCov();
+	if (cov.empty()) return py::buildPyValue(nullptr);
 	float* ptr;
 	auto ret = py::newEmptyArray(ptr, inst->getK(), inst->getK());
-	auto cov = inst->getPriorCov();
 	memcpy(ptr, cov.data(), sizeof(float) * inst->getK() * inst->getK());
 	return ret;
 }

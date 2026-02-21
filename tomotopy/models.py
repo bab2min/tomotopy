@@ -456,9 +456,9 @@ The key of the dictionary is the topic id and the value is the prior of the topi
     
     @classmethod
     def _summary_extract_param_desc(cls:type):
-        doc_string = cls.__doc__ or cls.__init__.__doc__
+        doc_string = cls.__init__.__doc__
         if not doc_string: return {}
-        ps = doc_string.split('\nParameters\n')[1].split('\n')
+        ps = doc_string.split('Parameters\n')[1].split('\n')
         param_name = re.compile(r'^([a-zA-Z0-9_]+)\s*:\s*')
         directive = re.compile(r'^\s*\.\.')
         descriptive = re.compile(r'\s+([^\s].*)')
@@ -503,7 +503,10 @@ The key of the dictionary is the topic id and the value is the prior of the topi
         print('| Log-likelihood per word: {:.5f}'.format(self.ll_per_word), file=file)
 
     def _summary_initial_params_info(self, file):
-        param_desc = self._summary_extract_param_desc()
+        try:
+            param_desc = self._summary_extract_param_desc()
+        except:
+            param_desc = {}
         if hasattr(self, 'init_params'):
             for k, v in self.init_params.items():
                 if type(v) is float: fmt = ':.5'
@@ -1390,7 +1393,7 @@ normalize : bool
     @property
     def k_g(self) -> int:
         '''the hyperparameter k_g (read-only)'''
-        return self._k_g
+        return self._k
     
     @property
     def k_l(self) -> int:
