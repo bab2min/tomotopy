@@ -4,6 +4,22 @@ import tomotopy as tp
 curpath = os.path.dirname(os.path.realpath(__file__))
 print(curpath)
 
+def test_concat():
+    tokenizer = tp.utils.SimpleTokenizer()
+    corpus = tp.utils.Corpus(tokenizer=tokenizer)
+    corpus.process([
+        'a b 0 d e',
+        'a b 1 d e',
+        'a b d e 2',
+        'a b 3 d e',
+        'a b 4 d e',
+    ])
+    cands = corpus.extract_ngrams(min_cf=5, min_df=5, normalized=True, min_score=0.5)
+    print(cands)
+    corpus.concat_ngrams(cands)
+    for doc in corpus:
+        print(doc.words, doc.span)
+
 model_cases = [
     (tp.LDAModel, curpath + '/sample.txt', 0, None, {'k':40}, None),
     (tp.LLDAModel, curpath + '/sample_with_md.txt', 1, lambda x:x, {'k':5}, None),
