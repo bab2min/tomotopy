@@ -440,8 +440,9 @@ namespace tomoto
 			if (edd.vChunkOffset.size() != numPools)
 			{
 				edd.vChunkOffset.clear();
-				size_t totCnt = std::accumulate(this->vocabCf.begin(), this->vocabCf.begin() + this->realV, 0);
-				size_t cumCnt = 0;
+				// Keep partition bookkeeping in 64-bit space for corpora whose total token count exceeds INT32_MAX.
+				uint64_t totCnt = std::accumulate(this->vocabCf.begin(), this->vocabCf.begin() + this->realV, uint64_t{0});
+				uint64_t cumCnt = 0;
 				for (size_t i = 0; i < this->realV; ++i)
 				{
 					cumCnt += this->vocabCf[i];
@@ -1087,7 +1088,7 @@ namespace tomoto
 			if (initDocs)
 			{
 				std::vector<uint32_t> df, cf, tf;
-				size_t totCf;
+				uint64_t totCf;
 
 				// calculate weighting
 				if (_tw != TermWeight::one)
@@ -1102,7 +1103,7 @@ namespace tomoto
 							++df[w];
 						}
 					}
-					totCf = std::accumulate(this->vocabCf.begin(), this->vocabCf.end(), 0);
+					totCf = std::accumulate(this->vocabCf.begin(), this->vocabCf.end(), uint64_t{0});
 				}
 				if (_tw == TermWeight::idf)
 				{
